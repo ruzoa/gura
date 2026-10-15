@@ -167,11 +167,12 @@ button:disabled{cursor:not-allowed}
 .box h3{font-size:12px;letter-spacing:.12em;color:var(--muted);margin:0 0 8px;font-weight:600}
 .log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:13px;max-height:220px;overflow-y:auto}
 .log li{padding-left:9px;border-left:2px solid var(--line);overflow-wrap:anywhere}
-.log li.sys{color:var(--muted)}
-.log li.gura,.log li.lie{border-color:var(--gura)}
-.log li.lie{color:var(--gura)}
-.log li.truth{border-color:var(--leaf)}
-.log li.fin{border-color:var(--gold);color:var(--gold)}
+.log li.lg-sys{color:var(--muted)}
+.log li.lg-gura,.log li.lg-lie{border-color:var(--gura)}
+.log li.lg-gura{color:var(--gura);font-weight:600}
+.log li.lg-lie{color:var(--gura)}
+.log li.lg-truth{border-color:var(--leaf);color:var(--ok)}
+.log li.lg-fin{border-color:var(--gold);color:var(--gold)}
 .rules{font-size:13px;color:var(--muted);margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
 .rules b{color:var(--text);font-weight:600}
 
@@ -831,7 +832,7 @@ function renderMe(){
   const lead=V.st==='play'&&V.t===i&&activeV(i)&&V.rn==null;
   np.hidden=!lead;
   if(lead){
-    const cur=chosenNum();let s='<span class="lb">선언할 숫자 (실제 카드와 달라도 돼요)</span>';
+    const cur=chosenNum();let s=`<span class="lb">선언할 숫자 (실제 카드와 달라도 돼요) · 키보드 ${esc(keyLabel(KEYS.numDown))} / ${esc(keyLabel(KEYS.numUp))}</span>`;
     for(let k=1;k<=13;k++)s+=`<button type="button" class="np ${pickNum===k?'on':(pickNum==null&&cur===k?'soft':'')}" data-n="${k}">${k}</button>`;
     np.innerHTML=s;
   }
@@ -857,7 +858,7 @@ function renderButtons(){
   if(hint.textContent!==h)hint.textContent=h;
   $('#me').classList.toggle('on',!!(V&&V.st==='play'&&V.t===i&&i>=0));
 }
-function renderLog(){$('#log').innerHTML=(V&&Array.isArray(V.lg)?V.lg:[]).map(l=>`<li class="${esc(l[1]||'')}">${esc(l[0])}</li>`).join('')}
+function renderLog(){$('#log').innerHTML=(V&&Array.isArray(V.lg)?V.lg:[]).map(l=>`<li class="${l[1]?'lg-'+esc(l[1]):''}">${esc(l[0])}</li>`).join('')}
 function showPanel(html){$('#panel').hidden=false;$('#panelBody').innerHTML=html}
 function renderPanel(){
   if(mode==='closed')return;
@@ -942,14 +943,16 @@ $('#btnPlay').addEventListener('click',()=>{
 $('#btnPass').addEventListener('click',()=>{if(myReady()&&V.rn!=null)sendAct({t:'pass'})});
 $('#btnGura').addEventListener('click',()=>{if(canShoutV())sendAct({t:'gura'})});
 /* 키 설정 — 물리 키(e.code)로 저장해서 한/영 입력 상태와 상관없이 동작 */
-const DEFAULT_KEYS={play:'Space',pass:'KeyQ',gura:'KeyF',pick:'KeyE',right:'KeyD',left:'KeyA'};
+const DEFAULT_KEYS={play:'Space',pass:'KeyQ',gura:'KeyF',pick:'KeyE',right:'KeyD',left:'KeyA',numUp:'KeyW',numDown:'KeyS'};
 const KEY_ACTIONS=[
   {a:'play',n:'카드 내기',d:'고른 카드를 내요'},
   {a:'pass',n:'패스',d:'이번 차례를 넘겨요'},
   {a:'gura',n:'구라!',d:'직전에 낸 카드를 의심해요'},
   {a:'pick',n:'카드 선택 / 취소',d:'커서가 있는 카드를 고르거나 풀어요'},
   {a:'right',n:'오른쪽 카드',d:'커서를 오른쪽으로 옮겨요'},
-  {a:'left',n:'왼쪽 카드',d:'커서를 왼쪽으로 옮겨요'}];
+  {a:'left',n:'왼쪽 카드',d:'커서를 왼쪽으로 옮겨요'},
+  {a:'numUp',n:'선언 숫자 올리기',d:'라운드를 시작할 때 선언할 숫자를 1 올려요'},
+  {a:'numDown',n:'선언 숫자 내리기',d:'라운드를 시작할 때 선언할 숫자를 1 내려요'}];
 const RESERVED=new Set(['Escape','Tab','MetaLeft','MetaRight']);
 let KEYS={...DEFAULT_KEYS},listening=null;
 try{const s=JSON.parse(store('gura-keys2')||'null');if(s&&typeof s==='object')for(const k of Object.keys(DEFAULT_KEYS))if(typeof s[k]==='string'&&s[k])KEYS[k]=s[k]}catch(e){}
@@ -992,6 +995,7 @@ document.addEventListener('keydown',e=>{
   if(!act)return;
   e.preventDefault();
   if(act==='left'||act==='right'){moveCursor(act==='right'?1:-1);return}
+  if(act==='numUp'||act==='numDown'){stepNum(act==='numUp'?1:-1);return}
   if(e.repeat)return;
   if(act==='pick')pickCursor();
   else if(act==='gura'){if(canShoutV())sendAct({t:'gura'})}
@@ -1017,6 +1021,12 @@ function pickCursor(){
   const h=myHand();if(!h.length)return;
   if(curId==null||!h.includes(curId)){curIdx=0;curId=h[0];renderMe();showCursor();return}
   sel.has(curId)?sel.delete(curId):sel.add(curId);sfx('pick');renderMe();showCursor();
+}
+function stepNum(d){
+  if($('#numpick').hidden)return;
+  const cur=chosenNum()||(d>0?0:14);
+  pickNum=((cur-1+d)%13+13)%13+1;
+  sfx('tick');renderMe();
 }
 function showCursor(){const el=document.querySelector('#hand .card.cur');if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest',inline:'nearest'})}
 
