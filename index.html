@@ -62,7 +62,7 @@ button:disabled{cursor:not-allowed}
 /* 3D 무대: 원목 테두리 안에 테이블 */
 .stage{position:relative;height:clamp(460px,74vh,800px);border-radius:var(--r-lg);overflow:hidden;border:5px solid var(--wood-dark);background:#ead9bf;box-shadow:0 5px 0 #4f301a,0 20px 40px -22px rgba(59,42,31,.55)}
 #cv{position:absolute;inset:0;width:100%;height:100%;display:block}
-.dim{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 55%,rgba(59,42,31,0) 30%,rgba(59,42,31,.5));opacity:0;transition:opacity .4s}
+.dim{position:absolute;inset:0;z-index:5;pointer-events:none;background:radial-gradient(ellipse var(--rx,190px) var(--ry,120px) at var(--cx,50%) var(--cy,45%),rgba(28,18,10,0) 0%,rgba(28,18,10,0) 62%,rgba(28,18,10,.66) 100%);opacity:0;transition:opacity .4s}
 .dim.on{opacity:1}
 .nogl{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:13px;text-align:center}
 .labels{position:absolute;inset:0;pointer-events:none;transition:opacity .25s}
@@ -102,6 +102,11 @@ body.no3d .seat.on .ring{display:block}
 .menu-info:empty{display:none}
 .menu{width:auto!important}
 .menu-row{display:flex;gap:8px}
+.menu-vol{display:flex;align-items:center;gap:8px;padding:2px 2px}
+.menu-vol svg{width:20px;height:20px;flex:none}
+.menu-vol input{flex:1;accent-color:var(--gura);height:26px}
+.menu-vol b{font-family:var(--f-num);font-size:12px;font-weight:500;color:var(--muted);width:36px;text-align:right}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .mbtn{min-width:74px;height:66px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:12px;border:1.5px solid var(--line-strong);background:var(--panel);color:var(--ink);box-shadow:0 3px 0 var(--line-strong);font-size:11.5px;font-weight:600;transition:transform .08s,box-shadow .08s}
 .mbtn svg{width:24px;height:24px}
 .mbtn:active{transform:translateY(3px);box-shadow:none}
@@ -121,9 +126,9 @@ body.no3d .seat.on .ring{display:block}
 .act-gura.ready{animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{50%{box-shadow:0 4px 0 var(--gura-edge),0 0 0 8px rgba(204,58,46,.25)}}
 .verdict{position:absolute;left:50%;top:8px;z-index:9;transform:translateX(-50%);text-align:center;pointer-events:none;width:min(92%,460px);display:flex;flex-direction:column;gap:5px;align-items:center}
-.verdict .vw,.verdict .vm{font-size:13px;background:rgba(255,250,240,.95);border:1.5px solid var(--line-strong);padding:3px 12px;border-radius:99px}
+.verdict .vw,.verdict .vm{font-size:14px;font-weight:600;box-shadow:0 3px 10px -4px rgba(28,18,10,.4);background:rgba(255,250,240,.95);border:1.5px solid var(--line-strong);padding:3px 12px;border-radius:99px}
 .verdict .vw b{color:var(--amber)}
-.verdict .vt{font-family:var(--f-display);font-size:56px;line-height:1.1;text-shadow:0 3px 0 var(--paper),0 0 14px rgba(255,250,240,.9);animation:pop .35s .45s ease-out both}
+.verdict .vt{font-family:var(--f-display);font-size:58px;line-height:1;padding:10px 26px 12px;border-radius:20px;background:var(--paper);border:4px solid currentColor;box-shadow:0 6px 0 currentColor,0 18px 30px -12px rgba(28,18,10,.55);animation:pop .35s .45s ease-out both}
 .verdict .vt.lie{color:var(--gura)}
 .verdict .vt.truth{color:var(--ok)}
 @keyframes pop{from{transform:scale(.6) rotate(-6deg);opacity:0}to{transform:none;opacity:1}}
@@ -258,6 +263,9 @@ div.nickline b{font-family:var(--f-display);font-weight:400;font-size:20px}
 .mm-join small{color:rgba(59,42,31,.8)}
 .note.warn{color:var(--gura);font-weight:600}
 .joinrow{display:flex;gap:8px}
+.numin{display:flex;align-items:center;gap:8px}
+.numin .txt{width:110px;font-family:var(--f-num);font-size:16px;text-align:right}
+.numin span{font-weight:600;color:var(--muted)}
 .joinrow .txt{flex:1;width:0}
 
 .keys-ov{z-index:40}
@@ -329,7 +337,7 @@ body.kb .fan .card.cur{z-index:70!important}
 .numwheel .np:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
 
 /* 필드 위 지금 숫자 */
-.pilenum{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:56px;height:76px;padding:0 8px;background:rgba(255,252,245,.72);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:.88;border:3px solid var(--rc,var(--ink));border-top-width:7px;border-radius:12px;box-shadow:0 4px 0 var(--rc,var(--ink)),0 12px 22px -10px rgba(59,42,31,.55);pointer-events:none;z-index:4;transition:border-color .2s}
+.pilenum{position:absolute;z-index:6;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:56px;height:76px;padding:0 8px;background:rgba(255,252,245,.72);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:.88;border:3px solid var(--rc,var(--ink));border-top-width:7px;border-radius:12px;box-shadow:0 4px 0 var(--rc,var(--ink)),0 12px 22px -10px rgba(59,42,31,.55);pointer-events:none;z-index:4;transition:border-color .2s}
 .pilenum .pn-l{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--muted);line-height:1}
 .pilenum b{font-family:var(--f-display);font-weight:400;font-size:44px;line-height:1;color:var(--rc,var(--ink))}
 .pilenum.pop{animation:pnpop .35s ease-out}
@@ -349,12 +357,12 @@ body.kb .fan .card.cur{z-index:70!important}
 @keyframes tkbar{to{transform:scaleX(0)}}
 .fan .card.newcard{box-shadow:0 0 0 3px var(--mustard),0 4px 8px -2px rgba(59,42,31,.3)}
 /* 필드 장수와 카드 낼 때 이펙트 */
-.pilecount{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:4px;background:var(--ink);color:var(--paper);border:2px solid var(--mustard);border-radius:99px;padding:2px 11px 2px 8px;font-size:13px;font-weight:600;white-space:nowrap;pointer-events:none;box-shadow:0 3px 0 rgba(59,42,31,.3)}
+.pilecount{position:absolute;z-index:6;transform:translate(-50%,-50%);display:flex;align-items:center;gap:4px;background:var(--ink);color:var(--paper);border:2px solid var(--mustard);border-radius:99px;padding:2px 11px 2px 8px;font-size:13px;font-weight:600;white-space:nowrap;pointer-events:none;box-shadow:0 3px 0 rgba(59,42,31,.3)}
 .pilecount svg{width:16px;height:16px;color:var(--mustard)}
 .pilecount b{font-family:var(--f-display);font-size:19px;font-weight:400;line-height:1;color:var(--mustard)}
 .pilecount.bump{animation:bump .4s ease-out}
 @keyframes bump{40%{transform:translate(-50%,-50%) scale(1.25)}}
-.fxlayer{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.fxlayer{position:absolute;inset:0;z-index:6;pointer-events:none;overflow:hidden}
 .playfx{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:8px;background:var(--paper);border:3px solid var(--rc,var(--ink));border-radius:var(--r-md);padding:5px 14px 5px 7px;box-shadow:0 4px 0 var(--rc,var(--ink)),0 14px 24px -10px rgba(59,42,31,.5);white-space:nowrap;animation:fxpop 2s ease-out forwards}
 .playfx .fx-card{width:36px;height:50px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--paper);border:2px solid var(--rc);border-top-width:4px;border-radius:6px;font-family:var(--f-display);font-size:26px;color:var(--rc)}
 .playfx .fx-n{font-family:var(--f-display);font-size:34px;line-height:1;color:var(--rc,var(--ink))}
@@ -419,12 +427,6 @@ body.kb .fan .card.cur{z-index:70!important}
     <div class="pilenum" id="pileNum" hidden aria-live="polite"><span class="pn-l">지금</span><b id="pileNumV"></b></div>
     <div class="pilecount" id="pileCount" hidden aria-live="polite"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="12" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 21h10a2 2 0 0 0 2-2V7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b id="pileN">0</b>장</div>
     <div class="fxlayer" id="fx" aria-hidden="true"></div>
-    <div class="taken" id="taken" hidden role="dialog" aria-labelledby="takenT">
-      <div class="tk-h"><b id="takenT">가져온 카드</b><span id="takenN"></span></div>
-      <div class="tk-cards" id="takenCards"></div>
-      <button type="button" class="btn btn-play" id="btnTaken">손패에 넣기 <small id="takenKey"></small></button>
-      <div class="tk-bar"><i id="takenBar"></i></div>
-    </div>
     <div class="hud-top" id="hudTop" hidden>
       <span class="label">이번 라운드 숫자</span>
       <div class="bignum none" id="bignum">새 라운드</div>
@@ -434,6 +436,7 @@ body.kb .fan .card.cur{z-index:70!important}
     <button class="fsbtn cfg" id="btnMenu" type="button" aria-label="설정" title="설정" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     <div class="menu" id="menu" hidden role="menu">
       <div class="menu-info" id="menuInfo"></div>
+      <label class="menu-vol"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg><span class="sr">음량</span><input type="range" id="mVol" min="0" max="100" step="5" aria-label="음량"><b id="mVolV"></b></label>
       <div class="menu-row">
         <button type="button" class="mbtn" id="mKeys" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg><span>키 설정</span></button>
         <button type="button" class="mbtn giveup" id="btnGiveUp" role="menuitem" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg><span>항복</span></button>
@@ -498,8 +501,8 @@ body.kb .fan .card.cur{z-index:70!important}
       <div class="field"><label for="inTitle">방 이름</label><input class="txt" id="inTitle" maxlength="20" autocomplete="off"></div>
       <div class="field"><span class="fl">최대 인원</span><div class="seg" id="segMax"></div></div>
       <div class="field"><span class="fl">조커</span><div class="seg" id="segJokers"></div></div>
-      <div class="field"><span class="fl">구라 대기 시간</span><small>카드가 나온 뒤 다음 사람이 행동하지 못하는 시간</small><div class="seg" id="segGrace"></div></div>
-      <div class="field"><span class="fl">제한 시간</span><small>지나면 자동 패스, 첫 플레이어는 카드 1장을 자동으로 냅니다</small><div class="seg" id="segTurn"></div></div>
+      <div class="field"><label for="inGrace">구라 대기 시간</label><small>카드가 나온 뒤 다음 사람이 행동하지 못하는 시간 (0~30초)</small><div class="numin"><input class="txt" type="number" id="inGrace" min="0" max="30" step="1" inputmode="numeric"><span>초</span></div></div>
+      <div class="field"><label for="inTurn">제한 시간</label><small>지나면 자동 패스, 첫 플레이어는 카드 1장을 자동으로 냅니다 (5~120초)</small><div class="numin"><input class="txt" type="number" id="inTurn" min="5" max="120" step="1" inputmode="numeric"><span>초</span></div></div>
       <div class="row">
         <button class="btn btn-red" id="btnCreate" type="button">온라인 방 만들기</button>
         <button class="btn btn-sub" id="btnPractice" type="button">봇과 연습하기</button>
@@ -588,7 +591,7 @@ function nextActive(i){const n=H.players.length;for(let k=1;k<=n;k++){const j=(i
 function addLog(txt,cls=''){H.logSeq=(H.logSeq||0)+1;H.log.unshift([txt,cls,H.logSeq]);if(H.log.length>10)H.log.length=10}
 
 function hostNew(online,code,title){
-  H={online,code,title,cfg:{...cfg},phase:'wait',members:[{name:myNick(),bot:false,conn:null,host:true}],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
+  H={online,code,title,cfg:{...cfg,grace:Math.max(0,Math.min(30,Math.round(cfg.grace)||0)),turn:Math.max(5,Math.min(120,Math.round(cfg.turn)||30))},phase:'wait',members:[{name:myNick(),bot:false,conn:null,host:true}],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
 }
 function hostAddBot(force){
   if(!force&&(H.phase!=='wait'||H.members.length>=H.cfg.max))return;
@@ -933,23 +936,8 @@ function applyView(s){
   }
 }
 let takenTimer=null,newCards=new Set(),newTimer=null;
-function showTaken(ids){
-  const box=$('#taken');
-  $('#takenN').textContent=`${ids.length}장`;
-  $('#takenCards').innerHTML=ids.slice().sort((a,b)=>a-b).map(id=>cardHTML(id,'')).join('');
-  $('#takenKey').textContent=keyLabel(KEYS.pick);
-  const sec=Math.min(8,4+ids.length*.4);box.style.setProperty('--tkt',sec+'s');
-  const bar=$('#takenBar');bar.style.animation='none';void bar.offsetWidth;bar.style.animation='';
-  box.hidden=false;clearTimeout(takenTimer);takenTimer=setTimeout(closeTaken,sec*1000);
-  newCards=new Set(ids);clearTimeout(newTimer);
-}
-function closeTaken(){
-  if($('#taken').hidden)return;
-  $('#taken').hidden=true;clearTimeout(takenTimer);sfx('sweep');
-  markNewCards();
-}
+function showTaken(ids){newCards=new Set(ids);markNewCards();sfx('sweep')}
 function markNewCards(){document.querySelectorAll('#hand .card').forEach(c=>c.classList.toggle('newcard',newCards.has(+c.dataset.id)))}
-$('#btnTaken').addEventListener('click',closeTaken);
 
 /* ================= 소리 (Web Audio로 직접 합성, 파일 없음) ================= */
 const SND={ctx:null,master:null,noise:null,on:store('gura-sound')!=='off',vol:(()=>{const v=+store('gura-vol');return store('gura-vol')!=null&&v>=0&&v<=100?v:70})()};
@@ -1124,7 +1112,7 @@ function renderMe(){
   if(hand.dataset.key!==key){
     hand.innerHTML=h.map(id=>cardHTML(id,'')).join('');hand.dataset.key=key;
   }
-  for(const el of hand.children){const id=+el.dataset.id;el.classList.toggle('newcard',newCards.has(id)&&$('#taken').hidden);el.classList.toggle('sel',sel.has(id));el.classList.toggle('cur',id===curId);el.classList.toggle('match',V.rn!=null&&fits(id,V.rn))}
+  for(const el of hand.children){const id=+el.dataset.id;el.classList.toggle('newcard',newCards.has(id));el.classList.toggle('sel',sel.has(id));el.classList.toggle('cur',id===curId);el.classList.toggle('match',V.rn!=null&&fits(id,V.rn))}
   layoutFan();
   const lead=V.st==='play'&&V.t===i&&activeV(i)&&V.rn==null;
   np.hidden=!lead;$('#stage').classList.toggle('leading',lead);
@@ -1387,7 +1375,6 @@ document.addEventListener('keydown',e=>{
     store('gura-keys2',JSON.stringify(KEYS));renderKeys();const nb=$(`#keyList [data-key="${done}"]`);if(nb)nb.focus();return;
   }
   if(!$('#keysOv').hidden){if(e.code==='Escape')closeKeys();return}
-  if(!$('#taken').hidden&&(e.code===KEYS.pick||e.code==='Enter'||e.code==='Escape')){e.preventDefault();closeTaken();return}
   if(e.target.matches('input')||!$('#lobby').hidden||e.ctrlKey||e.metaKey||e.altKey)return;
   if(!V||!(V.st==='play'||V.st==='reveal'))return;  // 대기실·결과 화면에서는 Tab/Enter/Space로 버튼 조작
   const act=Object.keys(KEYS).find(a=>KEYS[a]===e.code);
@@ -1513,7 +1500,15 @@ function buildSeg(id,key,unit,label){
     e.preventDefault();choose(bs[i]);bs[i].focus();
   });
 }
-buildSeg('#segFast','fast','','게임 모드');buildSeg('#segMax','max','명','최대 인원');buildSeg('#segJokers','jokers','장','조커');buildSeg('#segGrace','grace','초','구라 대기 시간');buildSeg('#segTurn','turn','초','턴 제한 시간');
+buildSeg('#segFast','fast','','게임 모드');buildSeg('#segMax','max','명','최대 인원');buildSeg('#segJokers','jokers','장','조커');/* 대기 시간·제한 시간은 직접 입력 (범위 밖이면 가까운 값으로) */
+function bindNum(id,key,lo,hi){
+  const el=$(id);el.value=cfg[key];
+  const fix=()=>{let v=Math.round(+el.value);if(!isFinite(v))v=cfg[key];v=Math.max(lo,Math.min(hi,v));cfg[key]=v;el.value=v};
+  el.addEventListener('input',()=>{const v=Math.round(+el.value);if(isFinite(v)&&v>=lo&&v<=hi)cfg[key]=v});
+  el.addEventListener('change',fix);el.addEventListener('blur',fix);
+  el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();fix();el.blur()}});
+}
+bindNum('#inGrace','grace',0,30);bindNum('#inTurn','turn',5,120);
 $('#inNick').value=store('gura-nick')||'나';
 const invited=(()=>{const q=new URLSearchParams(location.search).get('room');if(q&&/^[a-z0-9]{4}$/i.test(q)){$('#inCode').value=q.toUpperCase();setNote('#netNote','초대받은 방이에요. 참가를 누르세요.');return true}return false})();
 
@@ -1528,7 +1523,9 @@ $('#btnNickEdit').addEventListener('click',openNickEdit);
 $('#btnNickSave').addEventListener('click',()=>closeNickEdit(true));
 $('#inNick').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();closeNickEdit(true)}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeNickEdit(false)}});
 /* 음량 */
-function applyVol(){if(SND.master)SND.master.gain.value=.55*SND.vol/100;$('#volV').textContent=SND.vol+'%';$('#inVol').value=SND.vol}
+function applyVol(){if(SND.master)SND.master.gain.value=.55*SND.vol/100;$('#volV').textContent=SND.vol+'%';$('#inVol').value=SND.vol;$('#mVol').value=SND.vol;$('#mVolV').textContent=SND.vol+'%'}
+$('#mVol').addEventListener('input',e=>{SND.vol=+e.target.value;store('gura-vol',String(SND.vol));applyVol()});
+$('#mVol').addEventListener('change',()=>{audioOn();sfx('pick')});
 $('#inVol').addEventListener('input',e=>{SND.vol=+e.target.value;store('gura-vol',String(SND.vol));applyVol()});
 $('#inVol').addEventListener('change',()=>{audioOn();sfx('pick')});
 applyVol();
@@ -1754,6 +1751,7 @@ function placeLabels(){
   let ax=W/2,ay=Hh/2;
   if(T.ok){const p=new THREE.Vector3(0,.05,0);p.project(T.cam);ax=(p.x+1)/2*W;ay=(1-p.y)/2*Hh}
   T.anchor={x:ax,y:ay};
+  {const d=$('#dim');d.style.setProperty('--cx',ax+'px');d.style.setProperty('--cy',(ay-10)+'px');d.style.setProperty('--rx',Math.min(W*.34,260)+'px');d.style.setProperty('--ry',Math.min(Hh*.26,170)+'px')}
   let by=ay+70;if(T.ok){const q=new THREE.Vector3(0,0,1.3);q.project(T.cam);by=(1-q.y)/2*Hh+14}
   T.anchorBelow=by;
   const pc=$('#pileCount');if(!pc.hidden){pc.style.left=ax+'px';pc.style.top=Math.min(Hh-20,by)+'px'}
