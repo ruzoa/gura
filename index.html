@@ -51,6 +51,8 @@ button:disabled{cursor:not-allowed}
 .chips{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
 .chip{font-size:12px;padding:3px 10px;background:var(--panel);border:1px solid var(--line);border-radius:99px;color:var(--muted);font-variant-numeric:tabular-nums}
 .chip b{color:var(--ink);font-weight:600}
+/* 게임 위 머리글에는 로고만: 설정 칩·키 설정·방 나가기는 테이블의 설정 메뉴로 */
+.top .chips,#btnKeys,#btnLeave{display:none!important}
 .chip{white-space:nowrap}
 .chip.code b{font-family:var(--f-num);letter-spacing:.12em;color:var(--amber)}
 .btn-ghost{background:var(--panel);border:1.5px solid var(--line-strong);border-radius:var(--r-sm);padding:6px 12px;font-size:13px;font-weight:600;box-shadow:0 2px 0 var(--line)}
