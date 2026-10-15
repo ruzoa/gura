@@ -83,8 +83,14 @@ button:disabled{cursor:not-allowed}
 .fsbtn{position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:rgba(255,250,240,.94);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 3px 0 rgba(110,69,38,.25);transition:border-color .15s,color .15s}
 .fsbtn:hover{border-color:var(--wood);color:var(--wood-dark)}
 .fsbtn svg{width:20px;height:20px}
-.fsbtn.snd{right:58px}
-.status{position:absolute;right:106px;top:17px;font-family:var(--f-num);font-size:13px;font-weight:600;color:var(--ink);background:rgba(255,250,240,.94);border:1.5px solid var(--line-strong);padding:3px 10px;border-radius:99px;font-variant-numeric:tabular-nums}
+.fsbtn.cfg{right:58px}
+.fsbtn.snd{right:106px}
+.menu{position:absolute;top:58px;right:10px;z-index:30;width:min(240px,calc(100% - 20px));background:var(--panel);border:1.5px solid var(--line-strong);border-radius:var(--r-md);padding:10px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--sh-panel)}
+.menu-info{display:flex;flex-wrap:wrap;gap:4px}
+.menu-info:empty{display:none}
+.menu .btn{width:100%}
+.menu #mLeave.arm{background:var(--gura);color:var(--gura-ink);border-color:var(--gura-edge);box-shadow:var(--sh-red)}
+.status{position:absolute;right:154px;top:17px;font-family:var(--f-num);font-size:13px;font-weight:600;color:var(--ink);background:rgba(255,250,240,.94);border:1.5px solid var(--line-strong);padding:3px 10px;border-radius:99px;font-variant-numeric:tabular-nums}
 .status.grace{color:var(--gura);border-color:var(--gura)}
 .status:empty{display:none}
 .actions{position:absolute;right:14px;bottom:var(--actB,14px);display:flex;align-items:flex-end;gap:10px;z-index:7}
@@ -241,15 +247,14 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 /* 전체화면: 테이블이 화면을 채우고 손패 패널만 아래에 남김 */
 body.fs{padding-block:6px}
 body.fs .wrap{max-width:none;height:calc(100dvh - 12px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));gap:6px}
-body.fs .top{flex:none}
-body.fs .brand{font-size:24px}
+body.fs .top{display:none}
 body.fs .stage{flex:1;height:auto;min-height:240px}
 body.fs .info{display:none}
 
 /* 손패: 테이블 아래쪽에 부채꼴로 */
 .fan{position:absolute;left:0;right:0;bottom:0;height:var(--fh,150px);pointer-events:none;transform:scale(var(--k,1));transform-origin:50% 100%;z-index:6}
 .fan .card,.fan .card:hover,.fan .card.sel{position:absolute;left:50%;margin-left:-30px;bottom:var(--b,10px);pointer-events:auto;transform-origin:50% calc(100% + var(--R,600px));transform:rotate(var(--a,0rad)) translateY(var(--ly,0px)) scale(var(--sc,1));-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;transition:transform .16s ease-out}
-.fan{touch-action:none}
+.fan,.fan .card{touch-action:none}
 .fan .card.sel{--ly:-30px}
 /* 마우스: 올리면 살짝 올라옴 / 터치: 꾹 누르면 크게 올라와서 손가락에 안 가림 */
 @media (hover:hover){.fan .card:hover{--ly:-16px;z-index:80!important}.fan .card.sel:hover{--ly:-36px}}
@@ -284,6 +289,12 @@ body.fs .info{display:none}
 .numwheel .np.on .wl{font-size:30px}
 .numwheel .np:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
 
+/* 필드 위 지금 숫자 */
+.pilenum{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:58px;height:78px;padding:0 8px;background:var(--paper);border:3px solid var(--rc,var(--ink));border-top-width:7px;border-radius:12px;box-shadow:0 4px 0 var(--rc,var(--ink)),0 12px 22px -10px rgba(59,42,31,.55);pointer-events:none;z-index:4;transition:border-color .2s}
+.pilenum .pn-l{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--muted);line-height:1}
+.pilenum b{font-family:var(--f-display);font-weight:400;font-size:44px;line-height:1;color:var(--rc,var(--ink))}
+.pilenum.pop{animation:pnpop .35s ease-out}
+@keyframes pnpop{0%{transform:translate(-50%,-100%) scale(.6)}60%{transform:translate(-50%,-100%) scale(1.12)}}
 /* 필드 장수와 카드 낼 때 이펙트 */
 .pilecount{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:4px;background:var(--ink);color:var(--paper);border:2px solid var(--mustard);border-radius:99px;padding:2px 11px 2px 8px;font-size:13px;font-weight:600;white-space:nowrap;pointer-events:none;box-shadow:0 3px 0 rgba(59,42,31,.3)}
 .pilecount svg{width:16px;height:16px;color:var(--mustard)}
@@ -355,6 +366,7 @@ body.fs .info{display:none}
     <div class="dim" id="dim"></div>
     <div class="nogl" id="nogl" hidden>3D 화면을 불러오지 못했어요. 게임은 그대로 할 수 있어요.</div>
     <div class="labels" id="labels"></div>
+    <div class="pilenum" id="pileNum" hidden aria-live="polite"><span class="pn-l">지금</span><b id="pileNumV"></b></div>
     <div class="pilecount" id="pileCount" hidden aria-live="polite"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="12" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 21h10a2 2 0 0 0 2-2V7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b id="pileN">0</b>장</div>
     <div class="fxlayer" id="fx" aria-hidden="true"></div>
     <div class="hud-top" id="hudTop" hidden>
@@ -363,6 +375,12 @@ body.fs .info{display:none}
       <div class="lastplay" id="lastplay"></div>
     </div>
     <div class="status" id="status"></div>
+    <button class="fsbtn cfg" id="btnMenu" type="button" aria-label="설정" title="설정" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    <div class="menu" id="menu" hidden role="menu">
+      <div class="menu-info" id="menuInfo"></div>
+      <button type="button" class="btn btn-sub" id="mKeys" role="menuitem">키 설정</button>
+      <button type="button" class="btn btn-sub" id="mLeave" role="menuitem">방 나가기</button>
+    </div>
     <button class="fsbtn snd" id="btnSound" type="button" aria-label="소리 끄기" title="소리 끄기"></button>
     <button class="fsbtn" id="btnFs" type="button" aria-label="전체화면" title="전체화면"></button>
     <div class="verdict" id="verdict" hidden></div>
@@ -910,8 +928,8 @@ function playFx(v){
   const a=(T&&T.anchor)||{x:$('#stage').clientWidth/2,y:$('#stage').clientHeight/2};
   const who=v.ps[L.p]?v.ps[L.p].n:'';
   const d=document.createElement('div');d.className='playfx';d.style.setProperty('--rc',RANK_COLORS[n-1]);
-  d.style.left=a.x+'px';d.style.top=Math.max(40,a.y-46)+'px';
-  d.innerHTML=`<span class="fx-card">${rankLabel(n)}</span><span class="fx-n">×${+L.c}</span><span class="fx-t"><span class="fx-a">"${rankLabel(n)}" ${+L.c}장</span><span class="fx-w">${esc(who)}</span></span>`;
+  d.style.left=a.x+'px';d.style.top=Math.max(40,a.y-112)+'px';
+  d.innerHTML=`<span class="fx-card">${rankLabel(n)}</span><span class="fx-n">×${+L.c}</span>`;
   d.addEventListener('animationend',()=>d.remove());
   const layer=$('#fx');while(layer.children.length>2)layer.firstChild.remove();
   layer.appendChild(d);
@@ -958,8 +976,15 @@ function renderPile(){
   pc.hidden=n<=0||(V&&V.st==='reveal');
   if(n!==lastPileN){$('#pileN').textContent=n;if(n>lastPileN&&lastPileN>=0){pc.classList.remove('bump');void pc.offsetWidth;pc.classList.add('bump')}lastPileN=n}
 }
+let lastPileNum=null;
+function renderPileNum(){
+  const el=$('#pileNum'),rn=V&&V.ps&&V.st==='play'?V.rn:null;
+  el.hidden=rn==null;
+  if(rn!=null&&rn!==lastPileNum){$('#pileNumV').textContent=rankLabel(rn);el.style.setProperty('--rc',RANK_COLORS[rn-1]);el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop')}
+  lastPileNum=rn;
+}
 function renderHUD(){
-  renderPile();
+  renderPile();renderPileNum();
   const inGame=V&&V.ps&&(V.st==='play'||V.st==='reveal'||V.st==='over');
   $('#hudTop').hidden=!inGame;$('#actions').hidden=!inGame;
   if(!inGame){$('#verdict').hidden=true;return}
@@ -1011,6 +1036,7 @@ function renderMe(){
   renderButtons();
 }
 /* 부채꼴 배치: 카드마다 아래쪽 먼 점을 축으로 조금씩 회전 */
+const FAN={n:0,stepPx:20,half:30};
 let lastFanH=-1;
 function layoutFan(){
   const fan=$('#hand'),st=$('#stage'),cards=[...fan.children],n=cards.length;
@@ -1021,6 +1047,7 @@ function layoutFan(){
   const da=step/(R+44),half=da*(n-1)/2;
   const drop=(R+88)*(1-Math.cos(half));
   cards.forEach((c,i)=>{c.style.setProperty('--a',((i-(n-1)/2)*da).toFixed(4)+'rad');c.style.zIndex=i+1});
+  FAN.n=n;FAN.stepPx=(R+44)*Math.sin(da)*k;FAN.half=30*k;   // 화면에서 카드 사이 가로 간격
   fan.style.setProperty('--R',R+'px');fan.style.setProperty('--k',k);fan.style.setProperty('--b',(10+drop).toFixed(1)+'px');
   const fh=n?Math.round((88+drop+46)*k):0;
   fan.style.setProperty('--fh',(fh/k)+'px');
@@ -1168,7 +1195,11 @@ $('#hand').addEventListener('pointerdown',e=>{
 $('#hand').addEventListener('pointermove',e=>{
   if(e.pointerType!=='touch'||TOUCH.id==null)return;
   if(!TOUCH.peek){if(Math.hypot(e.clientX-TOUCH.x,e.clientY-TOUCH.y)>12){clearTimeout(TOUCH.timer);TOUCH.timer=setTimeout(()=>{TOUCH.peek=true},0)}return}
-  const el=document.elementFromPoint(e.clientX,e.clientY),c=el&&el.closest&&el.closest('#hand .card');
+  // 올라온 카드가 손가락을 덮으므로 화면 좌표 대신 부채 가운데로부터의 가로 거리로 카드 고르기
+  const cards=[...$('#hand').children];if(!cards.length)return;
+  const r=$('#stage').getBoundingClientRect(),cx=r.left+r.width/2;
+  const idx=Math.max(0,Math.min(cards.length-1,Math.floor((e.clientX-cx+FAN.half)/Math.max(6,FAN.stepPx)+(cards.length-1)/2)));
+  const c=cards[idx];
   if(c&&c!==TOUCH.el){setPeek(c);sfx('tick')}
 });
 function touchEnd(e,cancel){
@@ -1324,6 +1355,23 @@ $('#btnFs').addEventListener('click',()=>{
   if(fsByApi&&!(document.fullscreenElement||document.webkitFullscreenElement)){document.body.classList.remove('fs');fsByApi=false;setFsLabel()}
 }));
 $('#btnLeave').addEventListener('click',leaveRoom);
+/* 테이블 설정 메뉴 (전체화면 버튼 왼쪽) */
+let leaveArmed=false,leaveTimer=null;
+function disarmLeave(){leaveArmed=false;clearTimeout(leaveTimer);const b=$('#mLeave');b.classList.remove('arm');b.textContent='방 나가기'}
+function closeMenu(){$('#menu').hidden=true;$('#btnMenu').setAttribute('aria-expanded','false');disarmLeave()}
+$('#btnMenu').addEventListener('click',e=>{
+  e.stopPropagation();const m=$('#menu');
+  if(!m.hidden){closeMenu();return}
+  $('#menuInfo').innerHTML=$('#chips').innerHTML;$('#mLeave').hidden=mode==='lobby';
+  m.hidden=false;$('#btnMenu').setAttribute('aria-expanded','true');$('#mKeys').focus();
+});
+document.addEventListener('click',e=>{if(!$('#menu').hidden&&!e.target.closest('#menu')&&!e.target.closest('#btnMenu'))closeMenu()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#menu').hidden){closeMenu();$('#btnMenu').focus()}});
+$('#mKeys').addEventListener('click',()=>{closeMenu();openKeys()});
+$('#mLeave').addEventListener('click',()=>{
+  if(!leaveArmed){leaveArmed=true;const b=$('#mLeave');b.classList.add('arm');b.textContent='정말 나갈까요? 한 번 더 누르세요';leaveTimer=setTimeout(disarmLeave,3000);return}
+  closeMenu();leaveRoom();
+});
 /* 항복: 한 번 누르면 확인 상태, 3초 안에 다시 누르면 항복 */
 let giveUpArmed=false,giveUpTimer=null;
 function disarmGiveUp(){giveUpArmed=false;clearTimeout(giveUpTimer);const b=$('#btnGiveUp');b.classList.remove('arm');b.textContent='항복'}
@@ -1544,11 +1592,14 @@ function placeLabels(){
     const hw=el.offsetWidth/2,hh=el.offsetHeight/2;
     x=Math.max(hw+6,Math.min(W-hw-6,x));y=Math.max(hh+6,Math.min(Hh-hh-6,y));
     // 위쪽 HUD·오른쪽 위 버튼과 겹치면 그 아래로, 오른쪽 아래 행동 버튼과 겹치면 위로
-    for(const r of avoid){
+    // 겹치는 상자의 가운데보다 위면 위로, 아래면 아래로 비켜 감 (두 번 확인)
+    for(let pass=0;pass<2;pass++)for(const r of avoid){
       if(x+hw>r.l&&x-hw<r.r&&y+hh>r.t&&y-hh<r.b){
-        if(r.t<Hh/2)y=r.b+hh+6;else y=r.t-hh-6;
+        y=y<(r.t+r.b)/2?r.t-hh-6:r.b+hh+6;
+        if(y-hh<4)y=r.b+hh+6;
       }
     }
+    y=Math.max(hh+6,Math.min(Hh-hh-6,y));
     el.style.left=x+'px';el.style.top=y+'px';
   });
   // 필드 가운데 위치 (장수 배지와 이펙트 기준)
@@ -1556,6 +1607,7 @@ function placeLabels(){
   if(T.ok){const p=new THREE.Vector3(0,.05,0);p.project(T.cam);ax=(p.x+1)/2*W;ay=(1-p.y)/2*Hh}
   T.anchor={x:ax,y:ay};
   const pc=$('#pileCount');if(!pc.hidden){pc.style.left=ax+'px';pc.style.top=Math.min(Hh-20,ay+44)+'px'}
+  const pn=$('#pileNum');if(!pn.hidden){pn.style.left=ax+'px';pn.style.top=Math.max(84,ay-8)+'px'}
   const vd=$('#verdict');
   if(!vd.hidden){
     if(T.ok){
@@ -1567,7 +1619,7 @@ function placeLabels(){
 }
 function stageRects(){
   const st=$('#stage').getBoundingClientRect(),out=[];
-  for(const id of ['hudTop','btnFs','btnSound','status','actions','numpick','me']){
+  for(const id of ['hudTop','btnFs','btnSound','btnMenu','status','actions','numpick','me']){
     const el=document.getElementById(id);if(!el||el.hidden||!el.offsetWidth)continue;
     const r=el.getBoundingClientRect();out.push({l:r.left-st.left-4,r:r.right-st.left+4,t:r.top-st.top-4,b:r.bottom-st.top+4});
   }
