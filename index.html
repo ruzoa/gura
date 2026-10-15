@@ -145,6 +145,8 @@ button:disabled{cursor:not-allowed}
 .me-name{font-family:var(--f-display);font-size:19px}
 .me-sub{font-size:13px;color:var(--muted)}
 .me-sub b{color:var(--ink);font-family:var(--f-num)}
+.giveup{margin-left:auto;font-size:12px;padding:4px 10px;color:var(--muted)}
+.giveup.arm{background:var(--gura);border-color:var(--gura-edge);color:var(--gura-ink);box-shadow:0 2px 0 var(--gura-edge)}
 .me .bar{height:5px;background:var(--well);border-radius:99px;overflow:hidden}
 .hand-wrap{overflow-x:auto;margin:0 -4px;padding:0 4px}
 .hand{display:flex;padding:28px 4px 10px;width:max-content;min-width:100%}
@@ -275,7 +277,7 @@ body.fs .info{display:none}
   </section>
 
   <section class="me" id="me" aria-label="내 손패">
-    <div class="me-top"><span class="me-name" id="meName">나</span><span class="me-sub" id="meSub">로비에서 방을 만들거나 참가하세요.</span></div>
+    <div class="me-top"><span class="me-name" id="meName">나</span><span class="me-sub" id="meSub">로비에서 방을 만들거나 참가하세요.</span><button class="btn-ghost giveup" id="btnGiveUp" type="button" hidden>항복</button></div>
     <div class="bar" id="meBar"><i></i></div>
     <div class="hand-wrap"><div class="hand" id="hand"></div></div>
     <div class="controls">
@@ -293,6 +295,7 @@ body.fs .info{display:none}
         <li>마지막으로 낸 사람까지 <b>전원이 연속으로 패스</b>하면 필드는 폐기돼요.</li>
         <li>직전 카드에만 <b>구라!</b> 가능. 다음 사람이 내거나 패스하면 끝.</li>
         <li>거짓이면 낸 사람이, 진짜면 외친 사람이 필드를 가져가요.</li>
+        <li><b>클래식</b>은 꼴찌가 나올 때까지 해요. 손패 패널의 <b>항복</b>을 두 번 누르면 남은 순위 중 가장 낮은 순위로 빠져요.</li>
         <li><b>빠른 모드</b>에서는 1등이 나오면 바로 끝나요. 나머지는 남은 카드가 적은 순서예요.</li>
         <li><b>조커</b>는 어떤 숫자로도 인정돼요. 조커를 섞어 내도 거짓이 아니에요.</li>
         <li>덱: 동물 13종 × 4장(같은 동물은 같은 색) + 조커.<br>1 쥐 · 2 토끼 · 3 오리 · 4 고양이 · 5 양 · 6 돼지 · 7 여우 · 8 늑대 · 9 곰 · 10 호랑이 · 11 코끼리 · 12 사자 · 13 고래</li>
@@ -326,7 +329,7 @@ body.fs .info{display:none}
       <h2>방 만들기</h2>
       <div class="field"><label for="inTitle">방 이름</label><input class="txt" id="inTitle" maxlength="20" autocomplete="off"></div>
       <div class="field"><span class="fl">최대 인원</span><div class="seg" id="segMax"></div></div>
-      <div class="field"><span class="fl">게임 모드</span><small>빠른 모드는 1등이 나오면 바로 끝나고, 나머지는 남은 카드가 적은 순서로 순위가 정해져요</small><div class="seg" id="segFast"></div></div>
+      <div class="field"><span class="fl">게임 모드</span><small>클래식은 꼴찌가 나올 때까지 하고 항복할 수 있어요. 빠른 모드는 1등이 나오면 바로 끝나고, 나머지는 남은 카드가 적은 순서로 순위가 정해져요</small><div class="seg" id="segFast"></div></div>
       <div class="field"><span class="fl">조커</span><small>조커는 어떤 숫자로도 인정되는 와일드카드예요</small><div class="seg" id="segJokers"></div></div>
       <div class="field"><span class="fl">구라 대기 시간</span><small>카드가 나온 뒤 다음 사람이 행동하지 못하는 시간</small><div class="seg" id="segGrace"></div></div>
       <div class="field"><span class="fl">턴 제한 시간</span><small>지나면 자동 패스, 라운드 시작자는 가장 작은 카드 1장을 자동으로 내요</small><div class="seg" id="segTurn"></div></div>
@@ -414,7 +417,7 @@ const fits=(id,num)=>isJ(id)||numOf(id)===num;
 const JOKER_C='#efbc4e';
 const BOT_NAMES=['여우','까치','너구리','고양이','두더지','수달'];
 const OPTS={fast:[0,1],max:[3,4,5,6],jokers:[0,1,2],grace:[0,3,5,10],turn:[15,30,60]};
-const OPT_LABEL={fast:['일반','빠른 모드']};
+const OPT_LABEL={fast:['클래식','빠른 모드']};
 const cfg={fast:0,max:4,jokers:0,grace:3,turn:30};
 const PEER_PREFIX='gura-cardgame-room-';
 const ALPH='abcdefghjkmnpqrstuvwxyz23456789';
@@ -456,7 +459,7 @@ function hostStart(){
   H.players.forEach(p=>p.hand=deck.splice(0,per));
   const order=shuffle([...Array(n).keys()]);let k=0;while(deck.length)H.players[order[k++]].hand.push(deck.pop());
   H.players.forEach(p=>p.hand.sort((a,b)=>a-b));
-  Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1});
+  Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,rankBottom:n});
   const first=Math.random()*n|0;
   addLog(`${n}명 게임 시작${H.cfg.jokers?` (조커 ${H.cfg.jokers}장)`:''}. ${H.players[first].name}부터 시작해요.`,'sys');
   newRound(first);
@@ -530,6 +533,20 @@ function finish(i){
   }
   checkEnd();
 }
+function doSurrender(i){
+  if(H.cfg.fast||H.phase!=='play'||i<0||!isActive(i)||H.pending===i)return;
+  const p=H.players[i];
+  if(H.last&&H.last.p===i&&H.last.open){H.last.open=false;H.shouts=[]}   // 항복한 사람의 카드에는 구라를 외칠 수 없음
+  p.hand=[];p.finished=true;p.surrendered=true;p.rank=H.rankBottom--;
+  addLog(`${p.name} 항복! ${p.rank}위`,'lie');
+  const act=H.players.filter(x=>!x.finished);
+  if(act.length<=1){checkEnd();return}
+  if(H.roundNum!=null&&H.last){
+    const everyone=H.players.filter((x,j)=>isActive(j)).length;
+    if(H.passes>=everyone){addLog(`모두 패스. 필드 ${H.field.length}장 폐기.`,'sys');newRound(H.roundStarter);return}
+  }
+  if(H.turn===i)startTurn(nextActive(i));else mark();
+}
 function checkEnd(){
   const act=H.players.filter(p=>!p.finished);
   if(act.length<=1){
@@ -586,6 +603,7 @@ function botTurn(i){
 function hostAct(seat,a){
   if(!H||!a||typeof a!=='object')return;
   if(a.t==='gura'){doShout(seat);return}
+  if(a.t==='surrender'){doSurrender(seat);return}
   if(H.phase!=='play'||seat<0||H.turn!==seat||clock()<H.graceUntil)return;
   if(a.t==='pass'){if(H.roundNum!=null)doPass(seat,false);return}
   if(a.t==='play'&&Array.isArray(a.ids)){
@@ -619,7 +637,7 @@ function snapFor(you){
   const t=clock();
   const s={code:H.code,title:H.title,cfg:H.cfg,st:H.phase,lg:H.log,you};
   if(H.phase==='wait'){s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0}));return s}
-  s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(i===you)o.h=p.hand;return o});
+  s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=1;if(i===you)o.h=p.hand;return o});
   s.t=H.turn;s.rn=H.roundNum;s.fc=H.field.length;
   s.la=H.last?{p:H.last.p,c:H.last.count,o:H.last.open?1:0}:null;
   s.gr=Math.max(0,Math.round(H.graceUntil-t));s.dl=Math.max(0,Math.round(H.deadline-t));
@@ -856,7 +874,7 @@ function renderChips(){
   if(!V||mode==='lobby'){$('#chips').innerHTML='';return}
   const c=V.cfg||cfg;
   $('#chips').innerHTML=(V.code?`<span class="chip code">방 코드 <b>${esc(String(V.code).toUpperCase())}</b></span>`:'<span class="chip"><b>연습 모드</b></span>')+
-    `${c.fast?'<span class="chip"><b>빠른 모드</b></span>':''}<span class="chip">최대 <b>${+c.max}명</b></span><span class="chip">조커 <b>${+c.jokers||0}장</b></span><span class="chip">구라 대기 <b>${+c.grace}초</b></span><span class="chip">턴 <b>${+c.turn}초</b></span>`;
+    `<span class="chip"><b>${c.fast?'빠른 모드':'클래식'}</b></span><span class="chip">최대 <b>${+c.max}명</b></span><span class="chip">조커 <b>${+c.jokers||0}장</b></span><span class="chip">구라 대기 <b>${+c.grace}초</b></span><span class="chip">턴 <b>${+c.turn}초</b></span>`;
 }
 function renderHUD(){
   const inGame=V&&V.ps&&(V.st==='play'||V.st==='reveal'||V.st==='over');
@@ -882,7 +900,7 @@ function renderLabels(){
   box.innerHTML=V.ps.map((p,i)=>{
     if(i===me)return '';
     const on=V.st==='play'&&V.t===i&&activeV(i);
-    return `<div class="seat${on?' on':''}${p.f?' out':''}" data-i="${i}"><div class="nm">${esc(p.n)}${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="ct">${p.f?'탈출':(+p.c+'장')}</div><div class="nt">${esc(p.no||'')}</div><div class="bar" data-bar="${i}"><i></i></div></div>`;
+    return `<div class="seat${on?' on':''}${p.f?' out':''}" data-i="${i}"><div class="nm">${esc(p.n)}${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="ct">${p.f?(p.sr?'항복':'탈출'):(+p.c+'장')}</div><div class="nt">${esc(p.no||'')}</div><div class="bar" data-bar="${i}"><i></i></div></div>`;
   }).join('');
   placeLabels();
 }
@@ -895,7 +913,7 @@ function renderMe(){
     renderButtons();return;
   }
   const p=V.ps[i],h=myHand();
-  $('#meSub').innerHTML=p.f?`<b>${+p.f}위</b>로 탈출했어요.`:`손패 <b>${h.length}</b>장`;
+  $('#meSub').innerHTML=p.f?(p.sr?`항복해서 <b>${+p.f}위</b>예요. 남은 판을 지켜보세요.`:`<b>${+p.f}위</b>로 탈출했어요.`):`손패 <b>${h.length}</b>장`;
   hand.className='hand'+(h.length>16?' denser':h.length>9?' dense':'');
   syncCursor();
   hand.innerHTML=h.map(id=>cardHTML(id,(sel.has(id)?'sel ':'')+(id===curId?'cur ':'')+(V.rn!=null&&fits(id,V.rn)?'match':''))).join('');
@@ -909,6 +927,10 @@ function renderMe(){
   renderButtons();
 }
 function renderButtons(){
+  {const gb=$('#btnGiveUp'),i=myIdx();
+   const show=!!(V&&V.ps&&V.cfg&&!V.cfg.fast&&V.st==='play'&&i>=0&&activeV(i));
+   if(gb.hidden===show)gb.hidden=!show;
+   if(!show&&giveUpArmed)disarmGiveUp();}
   const play=$('#btnPlay'),pass=$('#btnPass'),hint=$('#hint');
   const ready=myReady(),num=chosenNum(),k=sel.size,i=myIdx();
   play.disabled=!(ready&&k>0&&num!=null);
@@ -966,7 +988,7 @@ function renderPanel(){
   }
   if(V.st==='over'){
     const list=V.ps.map((p,i)=>({...p,i})).sort((a,b)=>a.f-b.f);
-    showPanel(`<h2>게임 끝</h2><ol class="ranks">${list.map(p=>`<li class="${p.i===me?'me':''}"><span class="r">${+p.f}위</span><span>${esc(p.n)}</span>${V.cfg&&V.cfg.fast&&p.c>0?`<span class="left">남은 카드 ${+p.c}장</span>`:''}</li>`).join('')}</ol>
+    showPanel(`<h2>게임 끝</h2><ol class="ranks">${list.map(p=>`<li class="${p.i===me?'me':''}"><span class="r">${+p.f}위</span><span>${esc(p.n)}</span>${p.sr?'<span class="left">항복</span>':''}${V.cfg&&V.cfg.fast&&p.c>0?`<span class="left">남은 카드 ${+p.c}장</span>`:''}</li>`).join('')}</ol>
       ${isHost?`<div class="row"><button class="btn btn-red" type="button" data-act="again" data-auto>${H&&H.online?'대기실로':'다시 하기'}</button></div>`:'<p>방장이 다음 판을 열면 대기실로 돌아가요.</p>'}`,'over');
     return;
   }
@@ -1145,6 +1167,13 @@ $('#btnFs').addEventListener('click',()=>{
   if(fsByApi&&!(document.fullscreenElement||document.webkitFullscreenElement)){document.body.classList.remove('fs');fsByApi=false;setFsLabel()}
 }));
 $('#btnLeave').addEventListener('click',leaveRoom);
+/* 항복: 한 번 누르면 확인 상태, 3초 안에 다시 누르면 항복 */
+let giveUpArmed=false,giveUpTimer=null;
+function disarmGiveUp(){giveUpArmed=false;clearTimeout(giveUpTimer);const b=$('#btnGiveUp');b.classList.remove('arm');b.textContent='항복'}
+$('#btnGiveUp').addEventListener('click',()=>{
+  if(!giveUpArmed){giveUpArmed=true;const b=$('#btnGiveUp');b.classList.add('arm');b.textContent='정말 항복할까요? 한 번 더 누르세요';giveUpTimer=setTimeout(disarmGiveUp,3000);return}
+  disarmGiveUp();sendAct({t:'surrender'});
+});
 $('#btnCreate').addEventListener('click',createRoom);
 $('#btnPractice').addEventListener('click',startPractice);
 $('#btnJoinCode').addEventListener('click',()=>{const c=$('#inCode').value.trim().toLowerCase();if(/^[a-z0-9]{4}$/.test(c))joinRoom(c);else setNote('#netNote','방 코드는 영문과 숫자 4자리예요.',true)});
