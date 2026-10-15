@@ -136,6 +136,8 @@ button:disabled{cursor:not-allowed}
 .btn-red{background:var(--gura);color:var(--gura-ink);box-shadow:var(--sh-red)}
 .btn:disabled{opacity:.4;box-shadow:none}
 .linkbox{display:flex;gap:6px}
+.nickrow{display:flex;gap:6px}
+.nickrow .txt{flex:1;width:0}
 .linkbox input{flex:1;width:0;font-size:12px}
 .ranks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .ranks li{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--r-sm);background:var(--well);font-weight:600}
@@ -220,6 +222,21 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .seg.modes button[aria-pressed="true"] small{color:var(--ink)}
 .seg button[aria-pressed="true"]{background:var(--mustard);border-color:var(--mustard-edge);font-weight:600;box-shadow:0 2px 0 var(--mustard-edge)}
 .note{font-size:12px;color:var(--muted);margin:0;min-height:18px}
+.view{display:flex;flex-direction:column;gap:16px}
+.vhead{display:flex;align-items:center;gap:10px}
+.vhead h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:28px;color:var(--gura)}
+.back{width:40px;height:40px;flex:none;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:var(--panel);font-size:20px;line-height:1;box-shadow:0 2px 0 var(--line)}
+.nickline{margin:0;font-size:13px;color:var(--muted)}
+.nickline b{color:var(--ink)}
+.mainmenu{display:flex;flex-direction:column;gap:12px}
+.mm{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:16px 18px;border-radius:var(--r-md);border:2px solid var(--line-strong);background:var(--panel);box-shadow:0 4px 0 var(--line-strong);transition:transform .08s,box-shadow .08s}
+.mm b{font-family:var(--f-display);font-weight:400;font-size:26px;line-height:1.1}
+.mm small{font-size:13px;color:var(--muted)}
+.mm:active{transform:translateY(3px);box-shadow:none}
+.mm-create{background:var(--gura);border-color:var(--gura-edge);box-shadow:0 4px 0 var(--gura-edge);color:var(--gura-ink)}
+.mm-create small{color:rgba(255,250,240,.88)}
+.mm-join{background:var(--mustard);border-color:var(--mustard-edge);box-shadow:0 4px 0 var(--mustard-edge)}
+.mm-join small{color:rgba(59,42,31,.8)}
 .note.warn{color:var(--gura);font-weight:600}
 .joinrow{display:flex;gap:8px}
 .joinrow .txt{flex:1;width:0}
@@ -260,6 +277,11 @@ body.fs .info{display:none}
 @media (hover:hover){.fan .card:hover{--ly:-16px;z-index:80!important}.fan .card.sel:hover{--ly:-36px}}
 .fan .card.peek{--ly:-46px;--sc:1.28;z-index:90!important;transition:transform .12s ease-out}
 .fan .card.sel.peek{--ly:-58px}
+@media (hover:none) and (pointer:coarse){
+  .fan .card.sel{--ly:-16px}
+  .fan .card.peek{--ly:-24px;--sc:1.14}
+  .fan .card.sel.peek{--ly:-30px}
+}
 .fan .card.cur{z-index:70!important}
 .myplate{position:absolute;left:12px;bottom:var(--plateB,14px);width:min(250px,calc(100% - 24px));background:rgba(255,250,240,.95);border:1.5px solid var(--line-strong);border-radius:var(--r-md);padding:7px 10px 8px;display:flex;flex-direction:column;gap:4px;box-shadow:0 3px 0 rgba(110,69,38,.25);z-index:7}
 .myplate.on{border-color:var(--mustard);box-shadow:0 0 0 2px var(--mustard),0 3px 0 rgba(110,69,38,.25)}
@@ -294,6 +316,7 @@ body.fs .info{display:none}
 .pilenum .pn-l{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--muted);line-height:1}
 .pilenum b{font-family:var(--f-display);font-weight:400;font-size:44px;line-height:1;color:var(--rc,var(--ink))}
 .pilenum.pop{animation:pnpop .35s ease-out}
+.pilenum.held{visibility:hidden;animation:none}
 @keyframes pnpop{0%{transform:translate(-50%,-100%) scale(.6)}60%{transform:translate(-50%,-100%) scale(1.12)}}
 /* 필드 장수와 카드 낼 때 이펙트 */
 .pilecount{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:4px;background:var(--ink);color:var(--paper);border:2px solid var(--mustard);border-radius:99px;padding:2px 11px 2px 8px;font-size:13px;font-weight:600;white-space:nowrap;pointer-events:none;box-shadow:0 3px 0 rgba(59,42,31,.3)}
@@ -420,27 +443,20 @@ body.fs .info{display:none}
 
 <div class="ov" id="lobby">
   <div class="lobby">
-    <div>
+    <div class="view" data-view="main">
       <h1>구라!</h1>
       <p class="lead">숫자를 속여 내고, 수상하면 구라를 외치세요. 손패를 먼저 털어낸 사람이 이겨요.</p>
-      <p class="note">키보드: Tab 이동 · ←→ 값 선택 · Enter 실행</p>
-    </div>
-    <div class="field">
-      <label for="inNick">닉네임</label>
-      <input class="txt" id="inNick" maxlength="10" autocomplete="off">
-    </div>
-
-    <div class="sec">
-      <h2>방 참가</h2>
-      <div class="joinrow">
-        <input class="txt code" id="inCode" maxlength="4" placeholder="방 코드" autocomplete="off" aria-label="방 코드">
-        <button class="btn btn-play" id="btnJoinCode" type="button">참가</button>
-      </div>
-      <p class="note" id="netNote">친구에게 받은 4자리 방 코드를 입력하세요.</p>
+      <p class="nickline">닉네임 <b id="nickShow">나</b></p>
+      <nav class="mainmenu" aria-label="로비 메뉴">
+        <button type="button" class="mm mm-create" data-go="create"><b>방 만들기</b><small>모드와 인원을 정하고 친구를 불러요. 봇과 연습도 여기서.</small></button>
+        <button type="button" class="mm mm-join" data-go="join"><b>참여하기</b><small>친구에게 받은 4자리 방 코드로 들어가요.</small></button>
+        <button type="button" class="mm mm-set" data-go="settings"><b>설정</b><small>닉네임과 키보드 키를 바꿔요.</small></button>
+      </nav>
+      <p class="note">키보드: Tab 이동 · ←→ 값 선택 · Enter 실행 · Esc 뒤로</p>
     </div>
 
-    <div class="sec">
-      <h2>방 만들기</h2>
+    <div class="view" data-view="create" hidden>
+      <div class="vhead"><button type="button" class="back" data-go="main" aria-label="뒤로">←</button><h2>방 만들기</h2></div>
       <div class="field"><span class="fl">게임 모드</span><div class="seg modes" id="segFast"></div></div>
       <div class="field"><label for="inTitle">방 이름</label><input class="txt" id="inTitle" maxlength="20" autocomplete="off"></div>
       <div class="field"><span class="fl">최대 인원</span><div class="seg" id="segMax"></div></div>
@@ -453,9 +469,25 @@ body.fs .info{display:none}
       </div>
       <p class="note" id="createNote"></p>
     </div>
-    <div class="sec">
-      <h2>조작</h2>
-      <div class="row"><button class="btn btn-sub" id="btnKeysLobby" type="button">키 설정 열기</button></div>
+
+    <div class="view" data-view="join" hidden>
+      <div class="vhead"><button type="button" class="back" data-go="main" aria-label="뒤로">←</button><h2>참여하기</h2></div>
+      <p class="nickline">닉네임 <b class="nickShow2">나</b> · 설정에서 바꿀 수 있어요</p>
+      <div class="joinrow">
+        <input class="txt code" id="inCode" maxlength="4" placeholder="방 코드" autocomplete="off" aria-label="방 코드">
+        <button class="btn btn-play" id="btnJoinCode" type="button">참가</button>
+      </div>
+      <p class="note" id="netNote">친구에게 받은 4자리 방 코드를 입력하세요.</p>
+    </div>
+
+    <div class="view" data-view="settings" hidden>
+      <div class="vhead"><button type="button" class="back" data-go="main" aria-label="뒤로">←</button><h2>설정</h2></div>
+      <div class="field">
+        <label for="inNick">닉네임</label>
+        <input class="txt" id="inNick" maxlength="10" autocomplete="off">
+        <small>최대 10자. 대기실에서도 바꿀 수 있어요.</small>
+      </div>
+      <div class="field"><span class="fl">조작</span><div class="row"><button class="btn btn-sub" id="btnKeysLobby" type="button">키 설정 열기</button></div></div>
     </div>
   </div>
 </div>
@@ -923,16 +955,20 @@ function cues(v,pv){
   const me=myIdx();
   if(v.st==='play'&&me>=0&&v.t===me&&!(pv.st==='play'&&pv.t===me))setTimeout(()=>sfx('turn'),v.gr>0?Math.min(v.gr,1500):0);
 }
+let pileHoldTimer=null;
 function playFx(v){
   const L=v.la,n=+v.rn;if(!L||!(n>=1&&n<=13))return;
   const a=(T&&T.anchor)||{x:$('#stage').clientWidth/2,y:$('#stage').clientHeight/2};
   const who=v.ps[L.p]?v.ps[L.p].n:'';
   const d=document.createElement('div');d.className='playfx';d.style.setProperty('--rc',RANK_COLORS[n-1]);
-  d.style.left=a.x+'px';d.style.top=Math.max(40,a.y-112)+'px';
+  d.style.left=a.x+'px';d.style.top=Math.max(40,a.y-46)+'px';
   d.innerHTML=`<span class="fx-card">${rankLabel(n)}</span><span class="fx-n">×${+L.c}</span>`;
   d.addEventListener('animationend',()=>d.remove());
   const layer=$('#fx');while(layer.children.length>2)layer.firstChild.remove();
   layer.appendChild(d);
+  // 이펙트가 떠 있는 동안 같은 자리의 '지금' 숫자 카드는 숨겼다가, 끝나면 다시 튀어나옴
+  const pn=$('#pileNum');pn.classList.add('held');clearTimeout(pileHoldTimer);
+  pileHoldTimer=setTimeout(()=>{pn.classList.remove('held');pn.classList.remove('pop');void pn.offsetWidth;pn.classList.add('pop')},1950);
   if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)setTimeout(()=>d.remove(),1800);
 }
 function setSoundIcon(){
@@ -1048,8 +1084,9 @@ function layoutFan(){
   const drop=(R+88)*(1-Math.cos(half));
   cards.forEach((c,i)=>{c.style.setProperty('--a',((i-(n-1)/2)*da).toFixed(4)+'rad');c.style.zIndex=i+1});
   FAN.n=n;FAN.stepPx=(R+44)*Math.sin(da)*k;FAN.half=30*k;   // 화면에서 카드 사이 가로 간격
-  fan.style.setProperty('--R',R+'px');fan.style.setProperty('--k',k);fan.style.setProperty('--b',(10+drop).toFixed(1)+'px');
-  const fh=n?Math.round((88+drop+46)*k):0;
+  fan.style.setProperty('--R',R+'px');fan.style.setProperty('--k',k);fan.style.setProperty('--b',((window.matchMedia&&matchMedia('(pointer:coarse)').matches?2:10)+drop).toFixed(1)+'px');
+  const coarse=window.matchMedia&&matchMedia('(pointer:coarse)').matches;
+  const fh=n?Math.round((88+drop+(coarse?24:46))*k):0;
   fan.style.setProperty('--fh',(fh/k)+'px');
   st.style.setProperty('--plateB',(wide||!n?14:fh+6)+'px');
   st.style.setProperty('--actB',(wide||!n?14:fh+6)+'px');
@@ -1099,12 +1136,22 @@ function showPanel(html,kind){
   const p=$('#panel');p.hidden=false;
   if(html===lastPanelHtml)return;
   const ae=document.activeElement,prevAct=ae&&p.contains(ae)&&ae.dataset?ae.dataset.act:null;
+  const typing=ae&&ae.tagName==='INPUT'&&p.contains(ae)?{id:ae.id,v:ae.value,s:ae.selectionStart,e:ae.selectionEnd}:null;
   $('#panelBody').innerHTML=html;lastPanelHtml=html;
+  if(typing&&typing.id){const el=document.getElementById(typing.id);if(el){el.value=typing.v;el.focus();try{el.setSelectionRange(typing.s,typing.e)}catch(_){}lastPanelKind=kind||'';return}}
   let target=prevAct?p.querySelector(`[data-act="${prevAct}"]:not([disabled])`):null;
   if(!target&&kind!==lastPanelKind)target=p.querySelector('[data-auto]:not([disabled])');
   lastPanelKind=kind||'';
   if(target)target.focus();
 }
+function changeNick(){
+  const inp=$('#waitNick');if(!inp)return;
+  const nk=cleanNick(inp.value);inp.value=nk;$('#inNick').value=nk;saveNick();
+  if(mode==='host'&&H&&H.phase==='wait'){const m=H.members.find(m=>m.host);if(m)m.name=nk;mark()}
+  else if(mode==='guest'&&net.conn&&net.conn.open){try{net.conn.send({t:'hello',nick:nk})}catch(e){}}
+  $('#meName').textContent=nk;sfx('pick');
+}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='waitNick'){e.preventDefault();changeNick()}});
 function hidePanel(){$('#panel').hidden=true;lastPanelHtml='';lastPanelKind=''}
 function renderPanel(){
   if(mode==='closed')return;
@@ -1124,7 +1171,7 @@ function renderPanel(){
     showPanel(`<h2>${esc(V.title||'대기실')}</h2>
       <div><span class="label">방 코드</span><div class="bigcode">${esc(String(V.code||'').toUpperCase())}</div></div>
       ${isHost&&link?`<div class="linkbox"><input class="txt" id="linkTxt" readonly value="${esc(link)}" aria-label="초대 링크"><button class="btn btn-sub" type="button" data-act="copy">링크 복사</button></div><p>이 링크를 보내면 코드가 자동으로 입력돼요.</p>`:''}
-      <ul class="slots">${li}</ul>${foot}`,'wait');
+      <div class="nickrow"><input class="txt" id="waitNick" maxlength="10" value="${esc(me>=0?V.ps[me].n:myNick())}" aria-label="내 닉네임" autocomplete="off"><button class="btn btn-sub" type="button" data-act="nick">이름 바꾸기</button></div><ul class="slots">${li}</ul>${foot}`,'wait');
     return;
   }
   if(V.st==='over'){
@@ -1139,6 +1186,7 @@ $('#panel').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act;
   if(a==='leave'){leaveRoom();return}
+  if(a==='nick'){changeNick();return}
   if(a==='copy'){
     const inp=$('#linkTxt');if(!inp)return;
     const done=()=>{b.textContent='복사됨';setTimeout(()=>{b.textContent='링크 복사'},1500)};
@@ -1403,17 +1451,27 @@ function buildSeg(id,key,unit,label){
 }
 buildSeg('#segFast','fast','','게임 모드');buildSeg('#segMax','max','명','최대 인원');buildSeg('#segJokers','jokers','장','조커');buildSeg('#segGrace','grace','초','구라 대기 시간');buildSeg('#segTurn','turn','초','턴 제한 시간');
 $('#inNick').value=store('gura-nick')||'나';
-const invited=(()=>{const q=new URLSearchParams(location.search).get('room');if(q&&/^[a-z0-9]{4}$/i.test(q)){$('#inCode').value=q.toUpperCase();setNote('#netNote','초대받은 방이에요. 닉네임을 확인하고 Enter를 누르세요.');return true}return false})();
+const invited=(()=>{const q=new URLSearchParams(location.search).get('room');if(q&&/^[a-z0-9]{4}$/i.test(q)){$('#inCode').value=q.toUpperCase();setNote('#netNote','초대받은 방이에요. 참가를 누르세요.');return true}return false})();
 
 /* 로비 Enter 흐름: 닉네임 → (초대 코드가 있으면 참가, 없으면 코드 칸), 방 이름 → 방 만들기 */
-$('#inNick').addEventListener('keydown',e=>{
-  if(e.key!=='Enter')return;e.preventDefault();
-  if(/^[a-z0-9]{4}$/i.test($('#inCode').value.trim()))$('#btnJoinCode').click();else $('#inCode').focus();
-});
+$('#inNick').addEventListener('keydown',e=>{if(e.key!=='Enter')return;e.preventDefault();saveNick();showView('main')});
+$('#inNick').addEventListener('change',saveNick);
 $('#inTitle').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#btnCreate').click()}});
-function focusLobby(){
-  setTimeout(()=>{if($('#lobby').hidden)return;const el=invited?$('#inNick'):$('#inCode');el.focus();if(el.select)el.select()},50);
+let lobbyView='main';
+function showView(v,focus=true){
+  lobbyView=v;
+  document.querySelectorAll('#lobby .view').forEach(el=>{el.hidden=el.dataset.view!==v});
+  const nk=myNick();$('#nickShow').textContent=nk;document.querySelectorAll('.nickShow2').forEach(e=>e.textContent=nk);
+  if(!focus)return;
+  setTimeout(()=>{
+    if($('#lobby').hidden)return;
+    const el=v==='join'?(/^[a-z0-9]{4}$/i.test($('#inCode').value.trim())?$('#btnJoinCode'):$('#inCode')):v==='settings'?$('#inNick'):v==='create'?$('#segFast [tabindex="0"]'):$('#lobby .mm');
+    if(el){el.focus();if(el.select)el.select()}
+  },30);
 }
+$('#lobby').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){if(lobbyView==='settings')saveNick();showView(b.dataset.go)}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#lobby').hidden&&$('#keysOv').hidden&&lobbyView!=='main'){e.preventDefault();if(lobbyView==='settings')saveNick();showView('main')}});
+function focusLobby(){showView(invited?'join':'main')}
 focusLobby();
 
 /* ================= 3D 테이블 ================= */
