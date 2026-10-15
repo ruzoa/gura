@@ -77,7 +77,7 @@ button:disabled{cursor:not-allowed}
 .seat .nt:empty{display:none}
 .seat{overflow:visible}
 .seat .ring{position:absolute;left:-30px;top:50%;width:26px;height:26px;margin-top:-13px;transform:rotate(-90deg);display:none}
-.seat.on .ring{display:block}
+body.no3d .seat.on .ring{display:block}
 .ring circle{fill:none;stroke-width:4}
 .ring .rb{stroke:rgba(59,42,31,.18)}
 .ring .rf{stroke:var(--mustard);stroke-linecap:round;stroke-dasharray:94.25;stroke-dashoffset:var(--off,0);transition:stroke-dashoffset .1s linear}
@@ -100,8 +100,12 @@ button:disabled{cursor:not-allowed}
 .menu{position:absolute;top:58px;right:10px;z-index:30;width:min(240px,calc(100% - 20px));background:var(--panel);border:1.5px solid var(--line-strong);border-radius:var(--r-md);padding:10px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--sh-panel)}
 .menu-info{display:flex;flex-wrap:wrap;gap:4px}
 .menu-info:empty{display:none}
-.menu .btn{width:100%}
-.menu #mLeave.arm{background:var(--gura);color:var(--gura-ink);border-color:var(--gura-edge);box-shadow:var(--sh-red)}
+.menu{width:auto!important}
+.menu-row{display:flex;gap:8px}
+.mbtn{min-width:74px;height:66px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:12px;border:1.5px solid var(--line-strong);background:var(--panel);color:var(--ink);box-shadow:0 3px 0 var(--line-strong);font-size:11.5px;font-weight:600;transition:transform .08s,box-shadow .08s}
+.mbtn svg{width:24px;height:24px}
+.mbtn:active{transform:translateY(3px);box-shadow:none}
+.mbtn.arm{background:var(--gura)!important;border-color:var(--gura-edge)!important;color:var(--gura-ink)!important;box-shadow:0 3px 0 var(--gura-edge)!important}
 .status{position:absolute;right:154px;top:17px;font-family:var(--f-num);font-size:13px;font-weight:600;color:var(--ink);background:rgba(255,250,240,.94);border:1.5px solid var(--line-strong);padding:3px 10px;border-radius:99px;font-variant-numeric:tabular-nums}
 .status.grace{color:var(--gura);border-color:var(--gura)}
 .status:empty{display:none}
@@ -162,8 +166,6 @@ button:disabled{cursor:not-allowed}
 .me-name{font-family:var(--f-display);font-size:19px}
 .me-sub{font-size:13px;color:var(--muted)}
 .me-sub b{color:var(--ink);font-family:var(--f-num)}
-.giveup{margin-left:auto;font-size:12px;padding:4px 10px;color:var(--muted)}
-.giveup.arm{background:var(--gura);border-color:var(--gura-edge);color:var(--gura-ink);box-shadow:0 2px 0 var(--gura-edge)}
 .me .bar{height:5px;background:var(--well);border-radius:99px;overflow:hidden}
 .hand-wrap{overflow-x:auto;margin:0 -4px;padding:0 4px}
 .hand{display:flex;padding:28px 4px 10px;width:max-content;min-width:100%}
@@ -309,8 +311,6 @@ body.kb .fan .card.cur{z-index:70!important}
 .myplate .me-time:empty{display:none}
 .myplate .bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:transparent}
 .myplate .hint{display:none}
-.giveup{width:100%}
-.giveup.arm{background:var(--gura)!important;border-color:var(--gura-edge)!important;color:var(--gura-ink)!important;box-shadow:var(--sh-red)!important}
 
 /* 선언 숫자 고르기: 세로 휠 (W 위 = 큰 수, S 아래 = 작은 수) */
 .numwheel{position:absolute;left:12px;top:50%;transform:translateY(-58%);display:flex;flex-direction:column;align-items:center;gap:3px;background:rgba(255,250,240,.96);border:1.5px solid var(--mustard-edge);border-radius:var(--r-md);padding:5px 6px;box-shadow:0 3px 0 rgba(110,69,38,.25);z-index:8;user-select:none;touch-action:none}
@@ -434,9 +434,11 @@ body.kb .fan .card.cur{z-index:70!important}
     <button class="fsbtn cfg" id="btnMenu" type="button" aria-label="설정" title="설정" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     <div class="menu" id="menu" hidden role="menu">
       <div class="menu-info" id="menuInfo"></div>
-      <button type="button" class="btn btn-sub" id="mKeys" role="menuitem">키 설정</button>
-      <button type="button" class="btn btn-sub giveup" id="btnGiveUp" role="menuitem" hidden>항복</button>
-      <button type="button" class="btn btn-sub" id="mLeave" role="menuitem">방 나가기</button>
+      <div class="menu-row">
+        <button type="button" class="mbtn" id="mKeys" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg><span>키 설정</span></button>
+        <button type="button" class="mbtn giveup" id="btnGiveUp" role="menuitem" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg><span>항복</span></button>
+        <button type="button" class="mbtn" id="mLeave" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/></svg><span>방 나가기</span></button>
+      </div>
     </div>
     <button class="fsbtn snd" id="btnSound" type="button" aria-label="소리 끄기" title="소리 끄기"></button>
     <button class="fsbtn" id="btnFs" type="button" aria-label="전체화면" title="전체화면"></button>
@@ -466,7 +468,7 @@ body.kb .fan .card.cur{z-index:70!important}
         <li>마지막으로 낸 사람까지 <b>전원이 연속으로 패스</b>하면 필드는 폐기돼요.</li>
         <li>직전 카드에만 <b>구라!</b> 가능. 다음 사람이 내거나 패스하면 끝.</li>
         <li>거짓이면 낸 사람이, 진짜면 외친 사람이 필드를 가져가요.</li>
-        <li><b>클래식</b>은 꼴찌가 나올 때까지 해요. 손패 패널의 <b>항복</b>을 두 번 누르면 남은 순위 중 가장 낮은 순위로 빠져요.</li>
+        <li><b>클래식</b>은 꼴찌가 나올 때까지 해요. 설정 메뉴의 <b>항복</b>을 두 번 누르면 남은 순위 중 가장 낮은 순위로 빠져요(모든 모드).</li>
         <li><b>빠른 모드</b>에서는 1등이 나오면 바로 끝나요. 나머지는 남은 카드가 적은 순서예요.</li>
         <li><b>조커</b>는 어떤 숫자로도 인정돼요. 조커를 섞어 내도 거짓이 아니에요.</li>
         <li>덱: 숫자 1~10과 J(11)·Q(12)·K(13), 숫자마다 4장(같은 숫자는 같은 색) + 조커.</li>
@@ -685,7 +687,7 @@ function finish(i){
   checkEnd();
 }
 function doSurrender(i){
-  if(H.cfg.fast||H.phase!=='play'||i<0||!isActive(i)||H.pending===i)return;
+  if(H.phase!=='play'||i<0||!isActive(i)||H.pending===i)return;
   const p=H.players[i];
   if(H.last&&H.last.p===i&&H.last.open){H.last.open=false;H.shouts=[]}   // 항복한 사람의 카드에는 구라를 외칠 수 없음
   p.hand=[];p.finished=true;p.surrendered=true;p.rank=H.rankBottom--;
@@ -947,7 +949,7 @@ function showTaken(ids){
 function closeTaken(){
   if($('#taken').hidden)return;
   $('#taken').hidden=true;clearTimeout(takenTimer);sfx('sweep');
-  markNewCards();newTimer=setTimeout(()=>{newCards=new Set();markNewCards()},2500);
+  markNewCards();
 }
 function markNewCards(){document.querySelectorAll('#hand .card').forEach(c=>c.classList.toggle('newcard',newCards.has(+c.dataset.id)))}
 $('#btnTaken').addEventListener('click',closeTaken);
@@ -1012,7 +1014,7 @@ function cues(v,pv){
     else if(txt.includes('패스'))sfx('pass');
   }
   if(typeof v.fc==='number'&&typeof pv.fc==='number'&&v.fc>pv.fc&&v.la){sfx('play',v.fc-pv.fc);playFx(v)}
-  if(v.st==='reveal'&&v.rv&&pv.st!=='reveal')setTimeout(()=>sfx(v.rv.lie?'lie':'truth'),550);
+  if(v.st==='reveal'&&v.rv&&pv.st!=='reveal'){setTimeout(()=>sfx(v.rv.lie?'lie':'truth'),550);$('#fx').innerHTML='';clearTimeout(pileHoldTimer);$('#pileNum').classList.remove('held')}
   const me=myIdx();
   if(v.st==='play'&&me>=0&&v.t===me&&!(pv.st==='play'&&pv.t===me))setTimeout(()=>sfx('turn'),v.gr>0?Math.min(v.gr,1500):0);
 }
@@ -1125,7 +1127,7 @@ function renderMe(){
   if(hand.dataset.key!==key){
     hand.innerHTML=h.map(id=>cardHTML(id,'')).join('');hand.dataset.key=key;
   }
-  for(const el of hand.children){const id=+el.dataset.id;el.classList.toggle('sel',sel.has(id));el.classList.toggle('cur',id===curId);el.classList.toggle('match',V.rn!=null&&fits(id,V.rn))}
+  for(const el of hand.children){const id=+el.dataset.id;el.classList.toggle('newcard',newCards.has(id)&&$('#taken').hidden);el.classList.toggle('sel',sel.has(id));el.classList.toggle('cur',id===curId);el.classList.toggle('match',V.rn!=null&&fits(id,V.rn))}
   layoutFan();
   const lead=V.st==='play'&&V.t===i&&activeV(i)&&V.rn==null;
   np.hidden=!lead;$('#stage').classList.toggle('leading',lead);
@@ -1167,7 +1169,7 @@ function renderWheel(){
 }
 function renderButtons(){
   {const gb=$('#btnGiveUp'),i=myIdx();
-   const show=!!(V&&V.ps&&V.cfg&&!V.cfg.fast&&V.st==='play'&&i>=0&&activeV(i));
+   const show=!!(V&&V.ps&&V.st==='play'&&i>=0&&activeV(i));
    if(gb.hidden===show)gb.hidden=!show;
    if(!show&&giveUpArmed)disarmGiveUp();}
   const play=$('#btnPlay'),pass=$('#btnPass'),hint=$('#hint');
@@ -1335,7 +1337,7 @@ $('#numpick').addEventListener('click',e=>{const b=e.target.closest('.np');if(!b
 $('#btnPlay').addEventListener('click',()=>{
   if(!myReady()||!sel.size)return;const num=chosenNum();if(num==null)return;
   const ids=myHand().filter(id=>sel.has(id));
-  sendAct({t:'play',ids,num});sel.clear();pickNum=null;renderMe();
+  sendAct({t:'play',ids,num});sel.clear();pickNum=null;newCards=new Set();renderMe();
 });
 $('#btnPass').addEventListener('click',()=>{if(myReady()&&V.rn!=null)sendAct({t:'pass'})});
 $('#btnGura').addEventListener('click',()=>{if(canShoutV())sendAct({t:'gura'})});
@@ -1470,7 +1472,7 @@ $('#btnFs').addEventListener('click',()=>{
 $('#btnLeave').addEventListener('click',leaveRoom);
 /* 테이블 설정 메뉴 (전체화면 버튼 왼쪽) */
 let leaveArmed=false,leaveTimer=null;
-function disarmLeave(){leaveArmed=false;clearTimeout(leaveTimer);const b=$('#mLeave');b.classList.remove('arm');b.textContent='방 나가기'}
+function disarmLeave(){leaveArmed=false;clearTimeout(leaveTimer);const b=$('#mLeave');b.classList.remove('arm');b.querySelector('span').textContent='방 나가기'}
 function closeMenu(){$('#menu').hidden=true;$('#btnMenu').setAttribute('aria-expanded','false');disarmLeave()}
 $('#btnMenu').addEventListener('click',e=>{
   e.stopPropagation();const m=$('#menu');
@@ -1482,14 +1484,14 @@ document.addEventListener('click',e=>{if(!$('#menu').hidden&&!e.target.closest('
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#menu').hidden){closeMenu();$('#btnMenu').focus()}});
 $('#mKeys').addEventListener('click',()=>{closeMenu();openKeys()});
 $('#mLeave').addEventListener('click',()=>{
-  if(!leaveArmed){leaveArmed=true;const b=$('#mLeave');b.classList.add('arm');b.textContent='정말 나갈까요? 한 번 더 누르세요';leaveTimer=setTimeout(disarmLeave,3000);return}
+  if(!leaveArmed){leaveArmed=true;const b=$('#mLeave');b.classList.add('arm');b.querySelector('span').textContent='한 번 더';leaveTimer=setTimeout(disarmLeave,3000);return}
   closeMenu();leaveRoom();
 });
 /* 항복: 한 번 누르면 확인 상태, 3초 안에 다시 누르면 항복 */
 let giveUpArmed=false,giveUpTimer=null;
-function disarmGiveUp(){giveUpArmed=false;clearTimeout(giveUpTimer);const b=$('#btnGiveUp');b.classList.remove('arm');b.textContent='항복'}
+function disarmGiveUp(){giveUpArmed=false;clearTimeout(giveUpTimer);const b=$('#btnGiveUp');b.classList.remove('arm');b.querySelector('span').textContent='항복'}
 $('#btnGiveUp').addEventListener('click',()=>{
-  if(!giveUpArmed){giveUpArmed=true;const b=$('#btnGiveUp');b.classList.add('arm');b.textContent='정말 항복할까요? 한 번 더 누르세요';giveUpTimer=setTimeout(disarmGiveUp,3000);return}
+  if(!giveUpArmed){giveUpArmed=true;const b=$('#btnGiveUp');b.classList.add('arm');b.querySelector('span').textContent='한 번 더';giveUpTimer=setTimeout(disarmGiveUp,3000);return}
   disarmGiveUp();closeMenu();sendAct({t:'surrender'});
 });
 $('#btnCreate').addEventListener('click',createRoom);
@@ -1561,8 +1563,11 @@ function backTex(){return canvasTex(256,372,(g,w,h)=>{
   g.fillStyle='#cc3a2e';rr(g,12,12,w-24,h-24,14);g.fill();
   g.save();rr(g,12,12,w-24,h-24,14);g.clip();g.strokeStyle='rgba(255,255,255,.22)';g.lineWidth=5;
   for(let k=-h;k<w+h;k+=18){g.beginPath();g.moveTo(k,0);g.lineTo(k+h,h);g.stroke()}g.restore();
-  g.fillStyle='#fffcf5';g.beginPath();g.arc(w/2,h/2,46,0,7);g.fill();
-  g.fillStyle='#cc3a2e';g.font='64px "Jua", "Black Han Sans", sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('구',w/2,h/2+4);
+  g.fillStyle='#fffcf5';g.beginPath();g.arc(w/2,h/2,92,0,7);g.fill();
+  g.strokeStyle='#cc3a2e';g.lineWidth=5;g.beginPath();g.arc(w/2,h/2,82,0,7);g.stroke();
+  g.save();g.translate(w/2,h/2);g.rotate(-Math.PI/5);
+  g.fillStyle='#cc3a2e';g.font='62px "Jua", "Black Han Sans", sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('구라!',0,4);
+  g.restore();
 })}
 function drawFace(g,w,h,id){
   const j=isJ(id),n=numOf(id),RC=j?JOKER_C:RANK_COLORS[n-1],k=w/60;   // 60×88 카드를 256×372로 확대
@@ -1584,7 +1589,7 @@ function faceMat(id){
   const m=new THREE.MeshBasicMaterial({map:tex,alphaTest:.4});T.faces.set(id,m);return m;
 }
 function init3D(){
-  if(!window.THREE){$('#nogl').hidden=false;return}
+  if(!window.THREE){$('#nogl').hidden=false;document.body.classList.add('no3d');return}
   try{
     const cv=$('#cv');
     T.r=new THREE.WebGLRenderer({canvas:cv,antialias:true});
@@ -1623,12 +1628,16 @@ function init3D(){
     T.geo=new THREE.PlaneGeometry(.62,.9);
     T.back=new THREE.MeshBasicMaterial({map:backTex(),alphaTest:.4});
     T.ring=new THREE.Mesh(new THREE.TorusGeometry(.62,.055,10,48),new THREE.MeshBasicMaterial({color:0xf2b632}));
+    T.timerBg=new THREE.Mesh(new THREE.RingGeometry(.66,.78,64),new THREE.MeshBasicMaterial({color:0x3b2a1f,transparent:true,opacity:.18,side:THREE.DoubleSide}));
+    T.timerBg.rotation.x=-Math.PI/2;T.timerBg.visible=false;T.scene.add(T.timerBg);
+    T.timerArc=new THREE.Mesh(new THREE.RingGeometry(.66,.78,64,1,0,Math.PI*2),new THREE.MeshBasicMaterial({color:0xf2b632,side:THREE.DoubleSide}));
+    T.timerArc.rotation.x=-Math.PI/2;T.timerArc.visible=false;T.scene.add(T.timerArc);T.timerFrac=-1;
     T.ring.rotation.x=Math.PI/2;T.ring.visible=false;T.scene.add(T.ring);
     if(window.ResizeObserver)new ResizeObserver(resize3D).observe($('#stage'));else window.addEventListener('resize',resize3D);
     resize3D();
     T.ok=true;
     if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{T.back.map=backTex();T.back.needsUpdate=true});
-  }catch(e){$('#nogl').hidden=false;T.ok=false}
+  }catch(e){$('#nogl').hidden=false;document.body.classList.add('no3d');T.ok=false}
 }
 function resize3D(){
   const st=$('#stage'),w=st.clientWidth,h=st.clientHeight;if(!T.r||!w||!h)return;
@@ -1703,9 +1712,15 @@ function frame(){
       if(u.die&&c.position.distanceTo(u.p)<.1)killCard(c);
     }
     if(V&&V.ps&&V.st==='play'&&V.t!=null&&V.t!==myIdx()){
-      T.ring.visible=false;const sp=seatPos(V.t,3.85);T.ring.position.set(sp.x,.03,sp.z);
-      T.ring.material.color.set(t<V.graceAt?0xcc3a2e:0xf2b632);T.ring.scale.setScalar(1+Math.sin(t/260)*.06);
-    }else T.ring.visible=false;
+      T.ring.visible=false;const sp=seatPos(V.t,3.85);
+      const grace=t<V.graceAt,frac=grace?Math.max(0,(V.graceAt-t)/(V.cfg.grace*1000||1)):Math.max(0,Math.min(1,(V.deadAt-t)/(V.cfg.turn*1000)));
+      const q=Math.round(frac*200)/200;
+      if(q!==T.timerFrac){T.timerFrac=q;T.timerArc.geometry.dispose();T.timerArc.geometry=new THREE.RingGeometry(.66,.78,64,1,Math.PI/2,Math.max(.001,q*Math.PI*2))}
+      T.timerArc.material.color.set(grace?0xcc3a2e:0xf2b632);
+      // 카드 더미가 쌓인 각도에 맞춰 시작점이 그 사람 쪽(바깥)을 향하게
+      T.timerArc.rotation.z=seatAngle(V.t);
+      for(const m of [T.timerBg,T.timerArc]){m.visible=true;m.position.set(sp.x,.035,sp.z)}
+    }else{T.ring.visible=false;T.timerBg.visible=false;T.timerArc.visible=false}
     T.r.render(T.scene,T.cam);
   }
   placeLabels();
