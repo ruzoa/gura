@@ -21,7 +21,7 @@
   --text:#e6eee9; --muted:#8ea6aa;
   --paper:#f3ede0; --paper-ink:#1f1c18; --paper-edge:#d8cfbd;
   --gura:#f25246; --gura-ink:#1f1c18; --gold:#efbc4e; --ok:#8fd3c4; --cur:#fff4ef;
-  --fire:#b8352a; --water:#1d6070; --leaf:#4a6b24; --star:#8a6212; --joker:#efbc4e;
+  --joker:#efbc4e;
   --r-xs:4px; --r-sm:8px; --r-md:12px; --r-lg:16px;
   --sh-gold:0 3px 0 #a7802c; --sh-red:0 3px 0 #a82b22; --sh-felt:0 3px 0 #0a1418;
   --f-display:"Black Han Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
@@ -145,12 +145,9 @@ button:disabled{cursor:not-allowed}
 .card .cn{position:absolute;left:6px;top:3px;font-family:var(--f-num);font-weight:600;font-size:18px;line-height:1.1}
 .card .an{position:absolute;left:10px;top:30px;width:40px;height:40px;pointer-events:none}
 .card .ce{position:absolute;left:0;right:0;bottom:4px;text-align:center;font-size:11px;font-weight:600;white-space:nowrap}
-.card[data-e="0"]{border-top:3px solid var(--fire)}.card[data-e="0"] .ce{color:var(--fire)}
-.card[data-e="1"]{border-top:3px solid var(--water)}.card[data-e="1"] .ce{color:var(--water)}
-.card[data-e="2"]{border-top:3px solid var(--leaf)}.card[data-e="2"] .ce{color:var(--leaf)}
-.card[data-e="3"]{border-top:3px solid var(--star)}.card[data-e="3"] .ce{color:var(--star)}
-.card[data-e="4"]{background:var(--table);border-color:var(--joker);color:var(--joker)}
-.card[data-e="4"] .cn,.card[data-e="4"] .ce{color:var(--joker)}
+.card{border-top:3px solid var(--rc,var(--paper-edge))}.card .cn,.card .ce{color:var(--rc)}
+.card.joker{background:var(--table);border:1px solid var(--joker);color:var(--joker)}
+.card.joker .cn,.card.joker .ce{color:var(--joker)}
 .card:hover{transform:translateY(-4px)}
 .card.sel{transform:translateY(-14px);outline:3px solid var(--gold);outline-offset:-1px;z-index:1}
 .card.cur{box-shadow:0 0 0 2px var(--rail),0 0 0 4px var(--cur),0 2px 4px rgba(0,0,0,.35);z-index:2}
@@ -159,7 +156,7 @@ button:disabled{cursor:not-allowed}
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .numpick{display:flex;flex-wrap:wrap;gap:4px;flex-basis:100%}
 .numpick .lb{font-size:12px;color:var(--muted);width:100%}
-.np{width:40px;height:50px;border-radius:var(--r-sm);border:1px solid var(--paper-edge);background:var(--paper);color:var(--paper-ink);font-family:var(--f-num);font-size:12px;font-weight:600;padding:3px 0 2px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;line-height:1}
+.np{color:var(--rc,var(--paper-ink));width:40px;height:50px;border-radius:var(--r-sm);border:1px solid var(--paper-edge);background:var(--paper);color:var(--paper-ink);font-family:var(--f-num);font-size:12px;font-weight:600;padding:3px 0 2px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;line-height:1}
 .np svg{width:26px;height:26px;pointer-events:none}
 .np.on{outline:3px solid var(--gold);outline-offset:-1px;transform:translateY(-3px)}
 .np.soft{outline:2px dashed var(--gold);outline-offset:-1px}
@@ -176,7 +173,7 @@ button:disabled{cursor:not-allowed}
 .log li.lg-gura,.log li.lg-lie{border-color:var(--gura)}
 .log li.lg-gura{color:var(--gura);font-weight:600}
 .log li.lg-lie{color:var(--gura)}
-.log li.lg-truth{border-color:var(--leaf);color:var(--ok)}
+.log li.lg-truth{border-color:var(--ok);color:var(--ok)}
 .log li.lg-fin{border-color:var(--gold);color:var(--gold)}
 .rules{font-size:13px;color:var(--muted);margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
 .rules b{color:var(--text);font-weight:600}
@@ -285,7 +282,7 @@ body.fs .info{display:none}
         <li>직전 카드에만 <b>구라!</b> 가능. 다음 사람이 내거나 패스하면 끝.</li>
         <li>거짓이면 낸 사람이, 진짜면 외친 사람이 필드를 가져가요.</li>
         <li><b>조커</b>는 어떤 숫자로도 인정돼요. 조커를 섞어 내도 거짓이 아니에요.</li>
-        <li>덱: 동물 13종 × 원소 4종(▲불 ●물 ◆숲 ★별) + 조커.<br>1 쥐 · 2 토끼 · 3 오리 · 4 고양이 · 5 양 · 6 돼지 · 7 여우 · 8 늑대 · 9 곰 · 10 호랑이 · 11 코끼리 · 12 사자 · 13 고래</li>
+        <li>덱: 동물 13종 × 4장(같은 동물은 같은 색) + 조커.<br>1 쥐 · 2 토끼 · 3 오리 · 4 고양이 · 5 양 · 6 돼지 · 7 여우 · 8 늑대 · 9 곰 · 10 호랑이 · 11 코끼리 · 12 사자 · 13 고래</li>
       </ol>
     </div>
   </section>
@@ -357,20 +354,50 @@ const pick=a=>a[Math.random()*a.length|0];
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
 
-/* 카드 id: 0~51은 숫자 카드((숫자-1)*4+원소), 52·53은 조커 */
+/* 카드 id: 0~51은 숫자 카드((숫자-1)*4+0~3), 52·53은 조커. 같은 숫자는 같은 동물·같은 색 */
 const isJ=id=>id>=52;
 const numOf=id=>isJ(id)?0:(id>>2)+1;
-const elOf=id=>isJ(id)?4:id&3;
 const labelOf=id=>isJ(id)?'J':String(numOf(id));
 /* 디자인 시스템 '구라 3D 테이블'의 PlayingCard: 숫자마다 동물 하나 (그림은 48×48 SVG) */
-const ANIMALS=[{"n": "쥐", "svg": "<circle cx=\"11\" cy=\"15\" r=\"8\"/><circle cx=\"37\" cy=\"15\" r=\"8\"/><ellipse cx=\"24\" cy=\"28\" rx=\"14\" ry=\"12\"/><circle cx=\"18\" cy=\"25\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"18\" cy=\"25\" r=\"1.2\" fill=\"#1f1c18\"/><circle cx=\"30\" cy=\"25\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"30\" cy=\"25\" r=\"1.2\" fill=\"#1f1c18\"/><circle cx=\"24\" cy=\"35\" r=\"2.4\" fill=\"#f3ede0\"/><path d=\"M4 30h9M4 36l9-3M44 30h-9M44 36l-9-3\" stroke=\"#1f1c18\" stroke-width=\"1.4\" fill=\"none\"/>"}, {"n": "토끼", "svg": "<ellipse cx=\"17\" cy=\"13\" rx=\"5\" ry=\"12\"/><ellipse cx=\"31\" cy=\"13\" rx=\"5\" ry=\"12\"/><ellipse cx=\"17\" cy=\"14\" rx=\"2\" ry=\"8\" fill=\"#f3ede0\"/><ellipse cx=\"31\" cy=\"14\" rx=\"2\" ry=\"8\" fill=\"#f3ede0\"/><circle cx=\"24\" cy=\"32\" r=\"13\"/><circle cx=\"18\" cy=\"29\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"18\" cy=\"29\" r=\"1.2\" fill=\"#1f1c18\"/><circle cx=\"30\" cy=\"29\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"30\" cy=\"29\" r=\"1.2\" fill=\"#1f1c18\"/><circle cx=\"24\" cy=\"36\" r=\"2\" fill=\"#f3ede0\"/>"}, {"n": "오리", "svg": "<circle cx=\"24\" cy=\"24\" r=\"16\"/><path d=\"M20 8q4-6 8 0\" stroke=\"#1f1c18\" stroke-width=\"3\" fill=\"none\" stroke-linecap=\"round\"/><circle cx=\"17\" cy=\"20\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"17\" cy=\"20\" r=\"1.2\" fill=\"#1f1c18\"/><circle cx=\"31\" cy=\"20\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"31\" cy=\"20\" r=\"1.2\" fill=\"#1f1c18\"/><ellipse cx=\"24\" cy=\"33\" rx=\"11\" ry=\"5.5\" fill=\"#f3ede0\" stroke=\"#1f1c18\" stroke-width=\"2\"/><path d=\"M19 33h10\" stroke=\"#1f1c18\" stroke-width=\"1.6\"/>"}, {"n": "고양이", "svg": "<polygon points=\"6,6 22,16 8,30\"/><polygon points=\"42,6 26,16 40,30\"/><circle cx=\"24\" cy=\"29\" r=\"15\"/><circle cx=\"17\" cy=\"26\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"17\" cy=\"26\" r=\"1.2\" fill=\"#1f1c18\"/><circle cx=\"31\" cy=\"26\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"31\" cy=\"26\" r=\"1.2\" fill=\"#1f1c18\"/><polygon points=\"22,32 26,32 24,35\" fill=\"#f3ede0\"/><path d=\"M3 30h9M3 36l9-3M45 30h-9M45 36l-9-3\" stroke=\"#1f1c18\" stroke-width=\"1.4\" fill=\"none\"/>"}, {"n": "양", "svg": "<g fill=\"#f3ede0\" stroke=\"#1f1c18\" stroke-width=\"2.4\"><circle cx=\"12\" cy=\"18\" r=\"8\"/><circle cx=\"24\" cy=\"11\" r=\"9\"/><circle cx=\"36\" cy=\"18\" r=\"8\"/><circle cx=\"10\" cy=\"30\" r=\"7\"/><circle cx=\"38\" cy=\"30\" r=\"7\"/></g><ellipse cx=\"24\" cy=\"31\" rx=\"10\" ry=\"13\"/><circle cx=\"19\" cy=\"28\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"19\" cy=\"28\" r=\"1.2\" fill=\"#1f1c18\"/><circle cx=\"29\" cy=\"28\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"29\" cy=\"28\" r=\"1.2\" fill=\"#1f1c18\"/><ellipse cx=\"24\" cy=\"38\" rx=\"3\" ry=\"2\" fill=\"#f3ede0\"/>"}, {"n": "돼지", "svg": "<polygon points=\"7,10 21,12 10,26\"/><polygon points=\"41,10 27,12 38,26\"/><circle cx=\"24\" cy=\"26\" r=\"16\"/><circle cx=\"16\" cy=\"21\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"16\" cy=\"21\" r=\"1.2\" fill=\"#1f1c18\"/><circle cx=\"32\" cy=\"21\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"32\" cy=\"21\" r=\"1.2\" fill=\"#1f1c18\"/><ellipse cx=\"24\" cy=\"31\" rx=\"8\" ry=\"6\" fill=\"#f3ede0\" stroke=\"#1f1c18\" stroke-width=\"2\"/><circle cx=\"21\" cy=\"31\" r=\"1.5\"/><circle cx=\"27\" cy=\"31\" r=\"1.5\"/>"}, {"n": "여우", "svg": "<polygon points=\"4,4 20,18 28,18 44,4 42,30 24,45 6,30\"/><polygon points=\"12,30 24,45 36,30 24,24\" fill=\"#f3ede0\"/><circle cx=\"16\" cy=\"22\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"16\" cy=\"22\" r=\"1.2\" fill=\"#1f1c18\"/><circle cx=\"32\" cy=\"22\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"32\" cy=\"22\" r=\"1.2\" fill=\"#1f1c18\"/><circle cx=\"24\" cy=\"43\" r=\"2\"/>"}, {"n": "늑대", "svg": "<polygon points=\"9,2 21,16 27,16 39,2 40,28 24,46 8,28\"/><polygon points=\"14,28 24,46 34,28 24,22\" fill=\"#f3ede0\"/><path d=\"M13 22l7 2M35 22l-7 2\" stroke=\"#f3ede0\" stroke-width=\"3\"/><circle cx=\"24\" cy=\"44\" r=\"2\"/>"}, {"n": "곰", "svg": "<circle cx=\"9\" cy=\"12\" r=\"6\"/><circle cx=\"39\" cy=\"12\" r=\"6\"/><circle cx=\"24\" cy=\"27\" r=\"16\"/><ellipse cx=\"24\" cy=\"33\" rx=\"8\" ry=\"6.5\" fill=\"#f3ede0\"/><circle cx=\"16\" cy=\"22\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"16\" cy=\"22\" r=\"1.2\" fill=\"#1f1c18\"/><circle cx=\"32\" cy=\"22\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"32\" cy=\"22\" r=\"1.2\" fill=\"#1f1c18\"/><ellipse cx=\"24\" cy=\"31\" rx=\"3\" ry=\"2\"/>"}, {"n": "호랑이", "svg": "<circle cx=\"9\" cy=\"12\" r=\"5.5\"/><circle cx=\"39\" cy=\"12\" r=\"5.5\"/><circle cx=\"24\" cy=\"27\" r=\"16\"/><path d=\"M24 12v8M16 14l3 7M32 14l-3 7M9 25l6 1M9 31l6-1M39 25l-6 1M39 31l-6-1\" stroke=\"#f3ede0\" stroke-width=\"2.6\" stroke-linecap=\"round\"/><ellipse cx=\"24\" cy=\"35\" rx=\"8\" ry=\"5.5\" fill=\"#f3ede0\"/><circle cx=\"17\" cy=\"25\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"17\" cy=\"25\" r=\"1.2\" fill=\"#1f1c18\"/><circle cx=\"31\" cy=\"25\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"31\" cy=\"25\" r=\"1.2\" fill=\"#1f1c18\"/><ellipse cx=\"24\" cy=\"33\" rx=\"3\" ry=\"2\"/>"}, {"n": "코끼리", "svg": "<circle cx=\"8\" cy=\"22\" r=\"10\"/><circle cx=\"40\" cy=\"22\" r=\"10\"/><circle cx=\"24\" cy=\"22\" r=\"13\"/><circle cx=\"18\" cy=\"19\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"18\" cy=\"19\" r=\"1.2\" fill=\"#1f1c18\"/><circle cx=\"30\" cy=\"19\" r=\"2.6\" fill=\"#f3ede0\"/><circle cx=\"30\" cy=\"19\" r=\"1.2\" fill=\"#1f1c18\"/><path d=\"M24 27v13q0 5-5 5\" stroke=\"#1f1c18\" stroke-width=\"6\" fill=\"none\" stroke-linecap=\"round\"/>"}, {"n": "사자", "svg": "<circle cx=\"24\" cy=\"24\" r=\"22\"/><circle cx=\"24\" cy=\"26\" r=\"13\" fill=\"#f3ede0\" stroke=\"#1f1c18\" stroke-width=\"2\"/><circle cx=\"18\" cy=\"22\" r=\"2.6\" fill=\"#fff\"/><circle cx=\"18\" cy=\"22\" r=\"1.2\" fill=\"#1f1c18\"/><circle cx=\"30\" cy=\"22\" r=\"2.6\" fill=\"#fff\"/><circle cx=\"30\" cy=\"22\" r=\"1.2\" fill=\"#1f1c18\"/><ellipse cx=\"24\" cy=\"29\" rx=\"3\" ry=\"2\"/><path d=\"M24 31v3M19 35q5 3 10 0\" stroke=\"#1f1c18\" stroke-width=\"1.6\" fill=\"none\"/>"}, {"n": "고래", "svg": "<path d=\"M3 30C3 17 15 10 28 14c8 3 12 9 13 14l5-9v20l-5-7C38 39 28 42 18 41 8 40 3 36 3 30z\"/><circle cx=\"14\" cy=\"27\" r=\"2.4\" fill=\"#f3ede0\"/><path d=\"M26 14q1-7 6-9M26 14q-1-7-6-9\" stroke=\"#1f1c18\" stroke-width=\"2.4\" fill=\"none\" stroke-linecap=\"round\"/><path d=\"M8 33q8 4 18 1\" stroke=\"#f3ede0\" stroke-width=\"2\" fill=\"none\"/>"}];
+/* 동물 13종: 숫자마다 고유 색. 굵은 윤곽선 + 큰 하이라이트 눈 + 볼터치의 애니메 풍 */
+const RANK_COLORS=['#c53026','#157568','#b42da2','#5c7010','#6258d5','#aa4c0e','#107093','#c52660','#1f7a2e','#9041c8','#886107','#2b65ca','#905e41'];
+const ANI_NAMES=['쥐','토끼','오리','고양이','양','돼지','여우','늑대','곰','호랑이','코끼리','사자','고래'];
+function aniSvg(n,C){
+  const O='#2b1d1a',K='#fff3de',P='#ff9bb0',W='#fff';
+  const mx=(h,t,a)=>{const p=i=>parseInt(h.substr(1+i*2,2),16),q=i=>Math.round(p(i)+(t[i]-p(i))*a).toString(16).padStart(2,'0');return '#'+q(0)+q(1)+q(2)};
+  const S=mx(C,[0,0,0],.3),Lt=mx(C,[255,255,255],.45);
+  const st=`stroke="${O}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"`;
+  const eye=(x,y,r=3.3)=>`<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r*1.28}" fill="${O}"/><circle cx="${x-1}" cy="${y-1.7}" r="1.4" fill="${W}"/><circle cx="${x+1.1}" cy="${y+1.5}" r=".65" fill="${W}"/>`;
+  const eyes=(y,d=6.6,r)=>eye(24-d,y,r)+eye(24+d,y,r);
+  const blush=(y,d=11)=>`<ellipse cx="${24-d}" cy="${y}" rx="2.7" ry="1.6" fill="${P}" opacity=".85"/><ellipse cx="${24+d}" cy="${y}" rx="2.7" ry="1.6" fill="${P}" opacity=".85"/>`;
+  const mouth=(y)=>`<path d="M21.2 ${y}q1.4 1.8 2.8 0q1.4 1.8 2.8 0" fill="none" stroke="${O}" stroke-width="1.3" stroke-linecap="round"/>`;
+  const nose=(y,c=P)=>`<ellipse cx="24" cy="${y}" rx="1.9" ry="1.4" fill="${c}" ${st.replace('1.7','1')}/>`;
+  const wh=(y)=>`<path d="M4 ${y}l8 1M4 ${y+4}l8-1.5M44 ${y}l-8 1M44 ${y+4}l-8-1.5" stroke="${O}" stroke-width="1" fill="none" stroke-linecap="round" opacity=".7"/>`;
+  const A={
+1:`<circle cx="10.5" cy="14" r="8.2" fill="${C}" ${st}/><circle cx="10.5" cy="14" r="4.6" fill="${P}"/><circle cx="37.5" cy="14" r="8.2" fill="${C}" ${st}/><circle cx="37.5" cy="14" r="4.6" fill="${P}"/><ellipse cx="24" cy="28" rx="16" ry="13.5" fill="${C}" ${st}/><ellipse cx="24" cy="34" rx="6.5" ry="4.6" fill="${K}"/>${eyes(27,6.8)}${blush(32,12)}${nose(32.4,'#ff7f98')}<path d="M24 34.4v1.6" stroke="${O}" stroke-width="1.1"/>${mouth(36.6).replace('M21.2','M21.6')}${wh(26)}`,
+2:`<ellipse cx="16.5" cy="12" rx="5.2" ry="12" fill="${C}" ${st}/><ellipse cx="16.5" cy="13" rx="2.4" ry="8" fill="${P}"/><ellipse cx="31.5" cy="12" rx="5.2" ry="12" fill="${C}" ${st}/><ellipse cx="31.5" cy="13" rx="2.4" ry="8" fill="${P}"/><ellipse cx="24" cy="31.5" rx="16" ry="13" fill="${C}" ${st}/><ellipse cx="24" cy="36" rx="6.5" ry="4.4" fill="${K}"/>${eyes(30,6.8)}${blush(34.5,12)}${nose(34.2,'#ff7f98')}${mouth(38).replace('M21.2','M21.6')}`,
+3:`<path d="M20 10q1-6 5-5 3-3 6 2" fill="${C}" ${st}/><circle cx="24" cy="26" r="17" fill="${C}" ${st}/><ellipse cx="24" cy="34" rx="9.5" ry="5.6" fill="#ffb53d" ${st}/><path d="M18 34h12" stroke="${O}" stroke-width="1.2" stroke-linecap="round"/>${eyes(22.5,8,3.1)}${blush(30,13.5)}<path d="M20 5.5q4-3 8 0" fill="none" stroke="${O}" stroke-width="0"/>`,
+4:`<path d="M5 5l14 8-10 15z" fill="${C}" ${st}/><path d="M8.5 10l7 4-5 8z" fill="${P}"/><path d="M43 5l-14 8 10 15z" fill="${C}" ${st}/><path d="M39.5 10l-7 4 5 8z" fill="${P}"/><ellipse cx="24" cy="29" rx="17.5" ry="14.5" fill="${C}" ${st}/><path d="M24 15.5v5M18.5 16.5l1.5 4M29.5 16.5l-1.5 4" stroke="${S}" stroke-width="1.6" stroke-linecap="round"/><ellipse cx="24" cy="35" rx="6.8" ry="4.6" fill="${K}"/>${eyes(28,7.2)}${blush(33,12.5)}${nose(32,P)}${mouth(36.6).replace('M21.2','M21.6')}${wh(31)}`,
+5:`<g fill="${K}" ${st}><circle cx="11" cy="20" r="8.5"/><circle cx="22" cy="10" r="9"/><circle cx="34" cy="11" r="8.5"/><circle cx="39" cy="22" r="8"/><circle cx="9" cy="32" r="7.5"/><circle cx="40" cy="33" r="7.5"/></g><ellipse cx="9" cy="28" rx="4" ry="2.8" fill="${C}" ${st}/><ellipse cx="39" cy="28" rx="4" ry="2.8" fill="${C}" ${st}/><ellipse cx="24" cy="30" rx="11.5" ry="13.5" fill="${C}" ${st}/><path d="M17 18q7-5 14 0" fill="${K}" ${st}/>${eyes(29,5.2,3)}${blush(34.5,9)}${nose(36,P)}`,
+6:`<path d="M7 11l15 3-9 14z" fill="${C}" ${st}/><path d="M41 11l-15 3 9 14z" fill="${C}" ${st}/><ellipse cx="24" cy="27.5" rx="17.5" ry="16" fill="${C}" ${st}/><ellipse cx="24" cy="33" rx="8.4" ry="6" fill="${Lt}" ${st}/><ellipse cx="21" cy="33" rx="1.5" ry="2" fill="${O}"/><ellipse cx="27" cy="33" rx="1.5" ry="2" fill="${O}"/>${eyes(23.5,8.2,3.1)}${blush(30,13.5)}`,
+7:`<path d="M4 3l16 13-12 10z" fill="${C}" ${st}/><path d="M8 9l7 6-5 5z" fill="${S}"/><path d="M44 3l-16 13 12 10z" fill="${C}" ${st}/><path d="M40 9l-7 6 5 5z" fill="${S}"/><path d="M24 45L5 31Q2 23 7 17Q15 22 24 20Q33 22 41 17Q46 23 43 31z" fill="${C}" ${st}/><path d="M24 45L9 31Q16 37 24 33Q32 37 39 31z" fill="${K}"/><path d="M24 45L5 31Q2 23 7 17Q15 22 24 20Q33 22 41 17Q46 23 43 31z" fill="none" ${st}/>${eyes(26,7.2,3)}${blush(32.5,12.2)}<ellipse cx="24" cy="40" rx="2.6" ry="2" fill="${O}"/>`,
+8:`<path d="M8 1l14 15-13 9z" fill="${C}" ${st}/><path d="M11 8l6 7-5 4z" fill="${S}"/><path d="M40 1l-14 15 13 9z" fill="${C}" ${st}/><path d="M37 8l-6 7 5 4z" fill="${S}"/><path d="M24 46L9 32L6 18Q9 16 14 20Q24 18 34 20Q39 16 42 18L39 32z" fill="${C}" ${st}/><path d="M24 46L11 32Q18 38 24 34Q30 38 37 32z" fill="${K}"/><path d="M5 22l5 3M43 22l-5 3" stroke="${S}" stroke-width="2" stroke-linecap="round"/>${eyes(26,6.6,2.8)}<path d="M13 22l7 2.4M35 22l-7 2.4" stroke="${O}" stroke-width="1.8" stroke-linecap="round"/>${blush(32.5,11.6)}<ellipse cx="24" cy="41.5" rx="2.8" ry="2.2" fill="${O}"/>`,
+9:`<circle cx="9" cy="11.5" r="7" fill="${C}" ${st}/><circle cx="9" cy="11.5" r="3.6" fill="${K}"/><circle cx="39" cy="11.5" r="7" fill="${C}" ${st}/><circle cx="39" cy="11.5" r="3.6" fill="${K}"/><ellipse cx="24" cy="28" rx="17.5" ry="16" fill="${C}" ${st}/><ellipse cx="24" cy="34" rx="8.8" ry="7" fill="${K}"/>${eyes(24.5,8.2,3.1)}${blush(30,14)}<ellipse cx="24" cy="31.5" rx="3.4" ry="2.4" fill="${O}"/><path d="M24 33.5v2.4M21.4 37.4q2.6 2 5.2 0" fill="none" stroke="${O}" stroke-width="1.3" stroke-linecap="round"/>`,
+10:`<circle cx="9" cy="11.5" r="6.5" fill="${C}" ${st}/><circle cx="9" cy="11.5" r="3.2" fill="${K}"/><circle cx="39" cy="11.5" r="6.5" fill="${C}" ${st}/><circle cx="39" cy="11.5" r="3.2" fill="${K}"/><ellipse cx="24" cy="28" rx="17.5" ry="16" fill="${C}" ${st}/><path d="M24 13v8M17 14.5l2.4 6M31 14.5l-2.4 6M7.5 25l5 1M7.5 31l5-1.2M40.5 25l-5 1M40.5 31l-5-1.2" stroke="${S}" stroke-width="2.2" stroke-linecap="round" fill="none"/><ellipse cx="24" cy="35" rx="8" ry="5.6" fill="${K}"/>${eyes(26.5,7.8,3.1)}${blush(32,13.5)}${nose(32.6,'#ff7f98')}${mouth(37).replace('M21.2','M21.6')}`,
+11:`<ellipse cx="8.5" cy="23" rx="8.2" ry="11" fill="${C}" ${st}/><ellipse cx="9.5" cy="23" rx="4" ry="7.4" fill="${P}"/><ellipse cx="39.5" cy="23" rx="8.2" ry="11" fill="${C}" ${st}/><ellipse cx="38.5" cy="23" rx="4" ry="7.4" fill="${P}"/><ellipse cx="24" cy="22" rx="14" ry="14.5" fill="${C}" ${st}/><path d="M24 30v7q0 5.5 5.5 5" fill="none" stroke="${O}" stroke-width="10.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 30v7q0 5.5 5.5 5" fill="none" stroke="${C}" stroke-width="7.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 33.5h6M21 37h6" stroke="${S}" stroke-width="1" stroke-linecap="round"/>${eyes(21,7,3)}${blush(27,12.2)}`,
+12:`<g fill="${S}" ${st}><circle cx="24" cy="6" r="5"/><circle cx="13" cy="9" r="5.5"/><circle cx="35" cy="9" r="5.5"/><circle cx="6.8" cy="19" r="5.5"/><circle cx="41.2" cy="19" r="5.5"/><circle cx="6.4" cy="31" r="5.5"/><circle cx="41.6" cy="31" r="5.5"/><circle cx="12.5" cy="40" r="5.5"/><circle cx="35.5" cy="40" r="5.5"/><circle cx="24" cy="42" r="5"/></g><circle cx="24" cy="24" r="19.5" fill="${S}"/><circle cx="12" cy="12" r="5" fill="${C}" ${st}/><circle cx="36" cy="12" r="5" fill="${C}" ${st}/><circle cx="12" cy="12" r="2.4" fill="${K}"/><circle cx="36" cy="12" r="2.4" fill="${K}"/><ellipse cx="24" cy="26" rx="14.5" ry="13.5" fill="${C}" ${st}/><ellipse cx="24" cy="32" rx="7.4" ry="5.4" fill="${K}"/>${eyes(24,7,3.1)}${blush(30,12.2)}${nose(29.4,'#6b3a2a')}${mouth(34.8).replace('M21.2','M21.6')}`,
+13:`<path d="M36 28Q41 29 43 24Q44 18 41 14Q47 12 46.5 19Q46 24 47 27Q44 32 36 33z" fill="${C}" ${st}/><path d="M3.5 29C3.5 16 14 9 26 11.5q11 2.5 14 14.5q-2 12-16 14Q3.5 41 3.5 29z" fill="${C}" ${st}/><path d="M5 32q9 8 24 4q8-2.600 10-8.500q0 11-14 14.500Q8 44 5 32z" fill="${K}"/><path d="M3.5 29C3.5 16 14 9 26 11.5q11 2.5 14 14.5q-2 12-16 14Q3.5 41 3.5 29z" fill="none" ${st}/><path d="M23 11q-1.500-5-6-7M26 11.200q.5-6 6-8" stroke="#7fd3ff" stroke-width="2.400" fill="none" stroke-linecap="round"/><circle cx="14.500" cy="4.500" r="1.300" fill="#7fd3ff"/><circle cx="33.500" cy="3.500" r="1.300" fill="#7fd3ff"/>${eye(15,25,3.2)}<ellipse cx="9.500" cy="31.500" rx="2.700" ry="1.600" fill="${P}" opacity=".9"/><path d="M16.500 33.500q3 2.600 6 0" fill="none" stroke="${O}" stroke-width="1.300" stroke-linecap="round"/>`
+  };
+  return A[n];
+}
+const ANIMALS=ANI_NAMES.map((n,i)=>({n,svg:aniSvg(i+1,RANK_COLORS[i])}));
 const aniName=n=>n>=1&&n<=13?ANIMALS[n-1].n:'';
 const numName=n=>n>=1&&n<=13?`${n} ${aniName(n)}`:String(n);
 (()=>{const sp=document.createElementNS('http://www.w3.org/2000/svg','svg');sp.setAttribute('width','0');sp.setAttribute('height','0');sp.setAttribute('aria-hidden','true');sp.style.position='absolute';
   sp.innerHTML=ANIMALS.map((a,i)=>`<symbol id="a${i+1}" viewBox="0 0 48 48" fill="#1f1c18">${a.svg}</symbol>`).join('')+'<symbol id="ajk" viewBox="0 0 48 48"><text x="24" y="38" text-anchor="middle" font-size="40" fill="currentColor">★</text></symbol>';
   document.body.prepend(sp)})();
 const fits=(id,num)=>isJ(id)||numOf(id)===num;
-const ELEM=[{k:'불',g:'▲',c:'#b8352a'},{k:'물',g:'●',c:'#1d6070'},{k:'숲',g:'◆',c:'#4a6b24'},{k:'별',g:'★',c:'#8a6212'},{k:'조커',g:'✦',c:'#efbc4e'}];
+const JOKER_C='#efbc4e';
 const BOT_NAMES=['여우','까치','너구리','고양이','두더지','수달'];
 const OPTS={max:[3,4,5,6],jokers:[0,1,2],grace:[0,3,5,10],turn:[15,30,60]};
 const cfg={max:4,jokers:0,grace:3,turn:30};
@@ -797,8 +824,8 @@ function sendAct(a){
 
 /* ================= 렌더 ================= */
 function cardHTML(id,extra){
-  const e=elOf(id),E=ELEM[e],j=isJ(id),n=numOf(id);
-  return `<button type="button" class="card ${extra||''}" data-id="${id}" data-e="${e}" aria-label="${j?'조커':`${n} ${aniName(n)} ${E.k}`}"><span class="cn">${labelOf(id)}</span><svg class="an" viewBox="0 0 48 48" aria-hidden="true"><use href="#${j?'ajk':'a'+n}"/></svg><span class="ce">${j?'조커':`${E.g} ${E.k}`}</span></button>`;
+  const j=isJ(id),n=numOf(id);
+  return `<button type="button" class="card ${j?'joker ':''}${extra||''}" data-id="${id}"${j?'':` style="--rc:${RANK_COLORS[n-1]}"`} aria-label="${j?'조커':`${n} ${aniName(n)}`}"><span class="cn">${labelOf(id)}</span><svg class="an" viewBox="0 0 48 48" aria-hidden="true"><use href="#${j?'ajk':'a'+n}"/></svg><span class="ce">${j?'조커':aniName(n)}</span></button>`;
 }
 function render(){renderChips();renderHUD();renderLabels();renderMe();renderLog();renderPanel()}
 function renderChips(){
@@ -852,7 +879,7 @@ function renderMe(){
   np.hidden=!lead;
   if(lead){
     const cur=chosenNum();let s=`<span class="lb">선언할 동물${cur?`: ${esc(numName(cur))}`:''} (실제 카드와 달라도 돼요) · 키보드 ${esc(keyLabel(KEYS.numDown))} / ${esc(keyLabel(KEYS.numUp))}</span>`;
-    for(let k=1;k<=13;k++)s+=`<button type="button" class="np ${pickNum===k?'on':(pickNum==null&&cur===k?'soft':'')}" data-n="${k}" title="${k} ${aniName(k)}" aria-label="${k} ${aniName(k)}"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#a${k}"/></svg>${k}</button>`;
+    for(let k=1;k<=13;k++)s+=`<button type="button" class="np ${pickNum===k?'on':(pickNum==null&&cur===k?'soft':'')}" data-n="${k}" style="--rc:${RANK_COLORS[k-1]}" title="${k} ${aniName(k)}" aria-label="${k} ${aniName(k)}"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#a${k}"/></svg>${k}</button>`;
     np.innerHTML=s;
   }
   renderButtons();
@@ -1143,20 +1170,20 @@ function backTex(){return canvasTex(256,372,(g,w,h)=>{
   g.fillStyle='#f3ede0';g.beginPath();g.arc(w/2,h/2,46,0,7);g.fill();
   g.fillStyle='#c8402f';g.font='60px "Black Han Sans", sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('구',w/2,h/2+4);
 })}
-const ANI_IMG=ANIMALS.map(a=>{const im=new Image();im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="192" height="192" fill="#1f1c18">${a.svg}</svg>`);return im});
+const ANI_IMG=ANIMALS.map(a=>{const im=new Image();im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="192" height="192">${a.svg}</svg>`);return im});
 function drawFace(g,w,h,id){
-  const E=ELEM[elOf(id)],j=isJ(id),n=numOf(id),k=w/60;   // 60×88 카드를 256×372로 확대
+  const j=isJ(id),n=numOf(id),RC=j?JOKER_C:RANK_COLORS[n-1],k=w/60;   // 60×88 카드를 256×372로 확대
   g.clearRect(0,0,w,h);
   g.save();rr(g,0,0,w,h,8*k);g.clip();
   g.fillStyle=j?'#11222a':'#f3ede0';g.fillRect(0,0,w,h);
-  if(!j){g.fillStyle=E.c;g.fillRect(0,0,w,3*k)}
+  if(!j){g.fillStyle=RC;g.fillRect(0,0,w,3*k)}
   g.restore();
-  g.strokeStyle=j?E.c:'#d8cfbd';g.lineWidth=j?2*k:1*k;rr(g,g.lineWidth/2,g.lineWidth/2,w-g.lineWidth,h-g.lineWidth,8*k);g.stroke();
-  g.fillStyle=j?E.c:'#1f1c18';g.font=`600 ${18*k}px "IBM Plex Mono", monospace`;g.textAlign='left';g.textBaseline='top';g.fillText(labelOf(id),6*k,(j?4:6)*k);
-  if(j){g.fillStyle=E.c;g.font=`${40*k}px sans-serif`;g.textAlign='center';g.textBaseline='alphabetic';g.fillText('★',w/2,(30+38*40/48)*k)}
+  g.strokeStyle=j?RC:'#d8cfbd';g.lineWidth=j?2*k:1*k;rr(g,g.lineWidth/2,g.lineWidth/2,w-g.lineWidth,h-g.lineWidth,8*k);g.stroke();
+  g.fillStyle=RC;g.font=`600 ${18*k}px "IBM Plex Mono", monospace`;g.textAlign='left';g.textBaseline='top';g.fillText(labelOf(id),6*k,(j?4:6)*k);
+  if(j){g.fillStyle=RC;g.font=`${40*k}px sans-serif`;g.textAlign='center';g.textBaseline='alphabetic';g.fillText('★',w/2,(30+38*40/48)*k)}
   else{const im=ANI_IMG[n-1];if(im&&im.complete&&im.naturalWidth)g.drawImage(im,10*k,30*k,40*k,40*k)}
-  g.fillStyle=E.c;g.font=`600 ${11*k}px "IBM Plex Sans KR", sans-serif`;g.textAlign='center';g.textBaseline='bottom';
-  g.fillText(j?'조커':`${E.g} ${E.k}`,w/2,h-4*k);
+  g.fillStyle=RC;g.font=`600 ${11*k}px "IBM Plex Sans KR", sans-serif`;g.textAlign='center';g.textBaseline='bottom';
+  g.fillText(j?'조커':aniName(n),w/2,h-4*k);
 }
 function faceMat(id){
   if(T.faces.has(id))return T.faces.get(id);
