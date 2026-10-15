@@ -155,7 +155,10 @@ button:disabled{cursor:not-allowed}
 .hand.denser .card+.card{margin-left:-26px}
 .card{position:relative;flex:none;width:60px;height:88px;border-radius:8px;border:1px solid var(--paper-edge);background:var(--paper);color:var(--paper-ink);padding:0;display:block;box-shadow:0 2px 0 var(--paper-edge),0 4px 8px -2px rgba(59,42,31,.3);transition:transform .12s}
 .card .cn{position:absolute;left:6px;top:3px;font-family:var(--f-num);font-weight:600;font-size:18px;line-height:1.1}
-.card .an{position:absolute;left:10px;top:30px;width:40px;height:40px;pointer-events:none}
+.card .big{position:absolute;left:0;right:0;top:24px;text-align:center;font-family:var(--f-display);font-size:40px;line-height:1;color:var(--rc);pointer-events:none}
+.card .cn2{position:absolute;right:6px;bottom:3px;transform:rotate(180deg);font-family:var(--f-num);font-weight:600;font-size:13px;line-height:1.1;color:var(--rc)}
+.card.joker .big,.card.joker .cn2{color:var(--joker)}
+.card .cn{font-size:19px}
 .card .ce{position:absolute;left:0;right:0;bottom:4px;text-align:center;font-size:11px;font-weight:600;white-space:nowrap}
 .card{border-top:3px solid var(--rc,var(--paper-edge))}.card .cn,.card .ce{color:var(--rc)}
 .card.joker{background:var(--ink);border:1px solid var(--joker);color:var(--joker)}
@@ -262,7 +265,7 @@ body.fs .info{display:none}
 .giveup{margin-left:auto;font-size:11px;padding:2px 8px;color:var(--muted)}
 .giveup.arm{background:var(--gura);border-color:var(--gura-edge);color:var(--gura-ink);box-shadow:0 2px 0 var(--gura-edge)}
 
-/* 선언 동물 고르기: 세로 휠 (W 위 = 큰 수, S 아래 = 작은 수) */
+/* 선언 숫자 고르기: 세로 휠 (W 위 = 큰 수, S 아래 = 작은 수) */
 .numwheel{position:absolute;left:12px;top:50%;transform:translateY(-58%);display:flex;flex-direction:column;align-items:center;gap:3px;background:rgba(255,250,240,.96);border:1.5px solid var(--mustard-edge);border-radius:var(--r-md);padding:5px 6px;box-shadow:0 3px 0 rgba(110,69,38,.25);z-index:8;user-select:none;touch-action:none}
 .numwheel .wh-t{font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
 .numwheel .wh-arrow{width:100%;border:none;background:var(--well);border-radius:var(--r-xs);padding:2px 0;font-size:12px;line-height:1;color:var(--ink);display:flex;justify-content:center;gap:4px;align-items:center}
@@ -272,9 +275,10 @@ body.fs .info{display:none}
 .numwheel .wh-view::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(var(--panel),rgba(255,250,240,0) 30%,rgba(255,250,240,0) 70%,var(--panel));z-index:2}
 .numwheel .wh-list{list-style:none;margin:0;padding:0;transition:transform .16s ease-out}
 .numwheel .np{all:unset;box-sizing:border-box;height:40px;width:112px;display:flex;align-items:center;gap:6px;padding:0 8px;cursor:pointer;font-family:var(--f-num);font-weight:600;font-size:15px;color:var(--rc)}
-.numwheel .np svg{width:28px;height:28px;flex:none}
-.numwheel .np span{font-family:var(--f-body);font-size:13px}
-.numwheel .np.on{font-size:17px}
+.numwheel .np{justify-content:center}
+.numwheel .np .wl{font-family:var(--f-display);font-size:26px;font-weight:400;line-height:1}
+.numwheel .np .ws{font-size:11px;color:var(--muted);font-weight:500}
+.numwheel .np.on .wl{font-size:30px}
 .numwheel .np:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
 
 /* 필드 장수와 카드 낼 때 이펙트 */
@@ -285,7 +289,7 @@ body.fs .info{display:none}
 @keyframes bump{40%{transform:translate(-50%,-50%) scale(1.25)}}
 .fxlayer{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .playfx{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:8px;background:var(--paper);border:3px solid var(--rc,var(--ink));border-radius:var(--r-md);padding:5px 14px 5px 7px;box-shadow:0 4px 0 var(--rc,var(--ink)),0 14px 24px -10px rgba(59,42,31,.5);white-space:nowrap;animation:fxpop 2s ease-out forwards}
-.playfx svg{width:44px;height:44px;flex:none}
+.playfx .fx-card{width:36px;height:50px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--paper);border:2px solid var(--rc);border-top-width:4px;border-radius:6px;font-family:var(--f-display);font-size:26px;color:var(--rc)}
 .playfx .fx-n{font-family:var(--f-display);font-size:34px;line-height:1;color:var(--rc,var(--ink))}
 .playfx .fx-t{display:flex;flex-direction:column;line-height:1.2}
 .playfx .fx-a{font-weight:600;font-size:14px;color:var(--rc,var(--ink))}
@@ -319,7 +323,7 @@ body.fs .info{display:none}
   .verdict .vw,.verdict .vm{font-size:12px}
   .seat{min-width:78px;padding:4px 8px 0}
   .seat .nm{font-size:12px}
-  .playfx svg{width:36px;height:36px}
+  .playfx .fx-card{width:30px;height:42px;font-size:22px}
   .playfx .fx-n{font-size:28px}
   .me{padding:10px 10px}
   .lobby{padding:18px}
@@ -353,7 +357,6 @@ body.fs .info{display:none}
     <div class="hud-top" id="hudTop" hidden>
       <span class="label">이번 라운드 숫자</span>
       <div class="bignum none" id="bignum">새 라운드</div>
-      <div class="bigani" id="bigani"></div>
       <div class="lastplay" id="lastplay"></div>
     </div>
     <div class="status" id="status"></div>
@@ -388,7 +391,7 @@ body.fs .info{display:none}
         <li><b>클래식</b>은 꼴찌가 나올 때까지 해요. 손패 패널의 <b>항복</b>을 두 번 누르면 남은 순위 중 가장 낮은 순위로 빠져요.</li>
         <li><b>빠른 모드</b>에서는 1등이 나오면 바로 끝나요. 나머지는 남은 카드가 적은 순서예요.</li>
         <li><b>조커</b>는 어떤 숫자로도 인정돼요. 조커를 섞어 내도 거짓이 아니에요.</li>
-        <li>덱: 동물 13종 × 4장(같은 동물은 같은 색) + 조커.<br>1 쥐 · 2 토끼 · 3 오리 · 4 고양이 · 5 양 · 6 돼지 · 7 여우 · 8 늑대 · 9 곰 · 10 호랑이 · 11 코끼리 · 12 사자 · 13 고래</li>
+        <li>덱: 숫자 1~10과 J(11)·Q(12)·K(13), 숫자마다 4장(같은 숫자는 같은 색) + 조커.</li>
       </ol>
     </div>
   </section>
@@ -461,48 +464,14 @@ const pick=a=>a[Math.random()*a.length|0];
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
 
-/* 카드 id: 0~51은 숫자 카드((숫자-1)*4+0~3), 52·53은 조커. 같은 숫자는 같은 동물·같은 색 */
+/* 카드 id: 0~51은 숫자 카드((숫자-1)*4+0~3), 52·53은 조커. 같은 숫자는 같은 색 */
 const isJ=id=>id>=52;
 const numOf=id=>isJ(id)?0:(id>>2)+1;
-const labelOf=id=>isJ(id)?'J':String(numOf(id));
-/* 디자인 시스템 '구라 3D 테이블'의 PlayingCard: 숫자마다 동물 하나 (그림은 48×48 SVG) */
-/* 동물 13종: 숫자마다 고유 색. 굵은 윤곽선 + 큰 하이라이트 눈 + 볼터치의 애니메 풍 */
+const labelOf=id=>isJ(id)?'JK':rankLabel(numOf(id));
+/* 숫자마다 고유 색 (같은 숫자 4장은 같은 색). 11·12·13은 J·Q·K로 표시 */
 const RANK_COLORS=['#c53026','#157568','#b42da2','#5c7010','#6258d5','#aa4c0e','#107093','#c52660','#1f7a2e','#9041c8','#886107','#2b65ca','#905e41'];
-const ANI_NAMES=['쥐','토끼','오리','고양이','양','돼지','여우','늑대','곰','호랑이','코끼리','사자','고래'];
-function aniSvg(n,C){
-  const O='#2b1d1a',K='#fff3de',P='#ff9bb0',W='#fff';
-  const mx=(h,t,a)=>{const p=i=>parseInt(h.substr(1+i*2,2),16),q=i=>Math.round(p(i)+(t[i]-p(i))*a).toString(16).padStart(2,'0');return '#'+q(0)+q(1)+q(2)};
-  const S=mx(C,[0,0,0],.3),Lt=mx(C,[255,255,255],.45);
-  const st=`stroke="${O}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"`;
-  const eye=(x,y,r=3.3)=>`<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r*1.28}" fill="${O}"/><circle cx="${x-1}" cy="${y-1.7}" r="1.4" fill="${W}"/><circle cx="${x+1.1}" cy="${y+1.5}" r=".65" fill="${W}"/>`;
-  const eyes=(y,d=6.6,r)=>eye(24-d,y,r)+eye(24+d,y,r);
-  const blush=(y,d=11)=>`<ellipse cx="${24-d}" cy="${y}" rx="2.7" ry="1.6" fill="${P}" opacity=".85"/><ellipse cx="${24+d}" cy="${y}" rx="2.7" ry="1.6" fill="${P}" opacity=".85"/>`;
-  const mouth=(y)=>`<path d="M21.2 ${y}q1.4 1.8 2.8 0q1.4 1.8 2.8 0" fill="none" stroke="${O}" stroke-width="1.3" stroke-linecap="round"/>`;
-  const nose=(y,c=P)=>`<ellipse cx="24" cy="${y}" rx="1.9" ry="1.4" fill="${c}" ${st.replace('1.7','1')}/>`;
-  const wh=(y)=>`<path d="M4 ${y}l8 1M4 ${y+4}l8-1.5M44 ${y}l-8 1M44 ${y+4}l-8-1.5" stroke="${O}" stroke-width="1" fill="none" stroke-linecap="round" opacity=".7"/>`;
-  const A={
-1:`<circle cx="10.5" cy="14" r="8.2" fill="${C}" ${st}/><circle cx="10.5" cy="14" r="4.6" fill="${P}"/><circle cx="37.5" cy="14" r="8.2" fill="${C}" ${st}/><circle cx="37.5" cy="14" r="4.6" fill="${P}"/><ellipse cx="24" cy="28" rx="16" ry="13.5" fill="${C}" ${st}/><ellipse cx="24" cy="34" rx="6.5" ry="4.6" fill="${K}"/>${eyes(27,6.8)}${blush(32,12)}${nose(32.4,'#ff7f98')}<path d="M24 34.4v1.6" stroke="${O}" stroke-width="1.1"/>${mouth(36.6).replace('M21.2','M21.6')}${wh(26)}`,
-2:`<ellipse cx="16.5" cy="12" rx="5.2" ry="12" fill="${C}" ${st}/><ellipse cx="16.5" cy="13" rx="2.4" ry="8" fill="${P}"/><ellipse cx="31.5" cy="12" rx="5.2" ry="12" fill="${C}" ${st}/><ellipse cx="31.5" cy="13" rx="2.4" ry="8" fill="${P}"/><ellipse cx="24" cy="31.5" rx="16" ry="13" fill="${C}" ${st}/><ellipse cx="24" cy="36" rx="6.5" ry="4.4" fill="${K}"/>${eyes(30,6.8)}${blush(34.5,12)}${nose(34.2,'#ff7f98')}${mouth(38).replace('M21.2','M21.6')}`,
-3:`<path d="M20 10q1-6 5-5 3-3 6 2" fill="${C}" ${st}/><circle cx="24" cy="26" r="17" fill="${C}" ${st}/><ellipse cx="24" cy="34" rx="9.5" ry="5.6" fill="#ffb53d" ${st}/><path d="M18 34h12" stroke="${O}" stroke-width="1.2" stroke-linecap="round"/>${eyes(22.5,8,3.1)}${blush(30,13.5)}<path d="M20 5.5q4-3 8 0" fill="none" stroke="${O}" stroke-width="0"/>`,
-4:`<path d="M5 5l14 8-10 15z" fill="${C}" ${st}/><path d="M8.5 10l7 4-5 8z" fill="${P}"/><path d="M43 5l-14 8 10 15z" fill="${C}" ${st}/><path d="M39.5 10l-7 4 5 8z" fill="${P}"/><ellipse cx="24" cy="29" rx="17.5" ry="14.5" fill="${C}" ${st}/><path d="M24 15.5v5M18.5 16.5l1.5 4M29.5 16.5l-1.5 4" stroke="${S}" stroke-width="1.6" stroke-linecap="round"/><ellipse cx="24" cy="35" rx="6.8" ry="4.6" fill="${K}"/>${eyes(28,7.2)}${blush(33,12.5)}${nose(32,P)}${mouth(36.6).replace('M21.2','M21.6')}${wh(31)}`,
-5:`<g fill="${K}" ${st}><circle cx="11" cy="20" r="8.5"/><circle cx="22" cy="10" r="9"/><circle cx="34" cy="11" r="8.5"/><circle cx="39" cy="22" r="8"/><circle cx="9" cy="32" r="7.5"/><circle cx="40" cy="33" r="7.5"/></g><ellipse cx="9" cy="28" rx="4" ry="2.8" fill="${C}" ${st}/><ellipse cx="39" cy="28" rx="4" ry="2.8" fill="${C}" ${st}/><ellipse cx="24" cy="30" rx="11.5" ry="13.5" fill="${C}" ${st}/><path d="M17 18q7-5 14 0" fill="${K}" ${st}/>${eyes(29,5.2,3)}${blush(34.5,9)}${nose(36,P)}`,
-6:`<path d="M7 11l15 3-9 14z" fill="${C}" ${st}/><path d="M41 11l-15 3 9 14z" fill="${C}" ${st}/><ellipse cx="24" cy="27.5" rx="17.5" ry="16" fill="${C}" ${st}/><ellipse cx="24" cy="33" rx="8.4" ry="6" fill="${Lt}" ${st}/><ellipse cx="21" cy="33" rx="1.5" ry="2" fill="${O}"/><ellipse cx="27" cy="33" rx="1.5" ry="2" fill="${O}"/>${eyes(23.5,8.2,3.1)}${blush(30,13.5)}`,
-7:`<path d="M4 3l16 13-12 10z" fill="${C}" ${st}/><path d="M8 9l7 6-5 5z" fill="${S}"/><path d="M44 3l-16 13 12 10z" fill="${C}" ${st}/><path d="M40 9l-7 6 5 5z" fill="${S}"/><path d="M24 45L5 31Q2 23 7 17Q15 22 24 20Q33 22 41 17Q46 23 43 31z" fill="${C}" ${st}/><path d="M24 45L9 31Q16 37 24 33Q32 37 39 31z" fill="${K}"/><path d="M24 45L5 31Q2 23 7 17Q15 22 24 20Q33 22 41 17Q46 23 43 31z" fill="none" ${st}/>${eyes(26,7.2,3)}${blush(32.5,12.2)}<ellipse cx="24" cy="40" rx="2.6" ry="2" fill="${O}"/>`,
-8:`<path d="M8 1l14 15-13 9z" fill="${C}" ${st}/><path d="M11 8l6 7-5 4z" fill="${S}"/><path d="M40 1l-14 15 13 9z" fill="${C}" ${st}/><path d="M37 8l-6 7 5 4z" fill="${S}"/><path d="M24 46L9 32L6 18Q9 16 14 20Q24 18 34 20Q39 16 42 18L39 32z" fill="${C}" ${st}/><path d="M24 46L11 32Q18 38 24 34Q30 38 37 32z" fill="${K}"/><path d="M5 22l5 3M43 22l-5 3" stroke="${S}" stroke-width="2" stroke-linecap="round"/>${eyes(26,6.6,2.8)}<path d="M13 22l7 2.4M35 22l-7 2.4" stroke="${O}" stroke-width="1.8" stroke-linecap="round"/>${blush(32.5,11.6)}<ellipse cx="24" cy="41.5" rx="2.8" ry="2.2" fill="${O}"/>`,
-9:`<circle cx="9" cy="11.5" r="7" fill="${C}" ${st}/><circle cx="9" cy="11.5" r="3.6" fill="${K}"/><circle cx="39" cy="11.5" r="7" fill="${C}" ${st}/><circle cx="39" cy="11.5" r="3.6" fill="${K}"/><ellipse cx="24" cy="28" rx="17.5" ry="16" fill="${C}" ${st}/><ellipse cx="24" cy="34" rx="8.8" ry="7" fill="${K}"/>${eyes(24.5,8.2,3.1)}${blush(30,14)}<ellipse cx="24" cy="31.5" rx="3.4" ry="2.4" fill="${O}"/><path d="M24 33.5v2.4M21.4 37.4q2.6 2 5.2 0" fill="none" stroke="${O}" stroke-width="1.3" stroke-linecap="round"/>`,
-10:`<circle cx="9" cy="11.5" r="6.5" fill="${C}" ${st}/><circle cx="9" cy="11.5" r="3.2" fill="${K}"/><circle cx="39" cy="11.5" r="6.5" fill="${C}" ${st}/><circle cx="39" cy="11.5" r="3.2" fill="${K}"/><ellipse cx="24" cy="28" rx="17.5" ry="16" fill="${C}" ${st}/><path d="M24 13v8M17 14.5l2.4 6M31 14.5l-2.4 6M7.5 25l5 1M7.5 31l5-1.2M40.5 25l-5 1M40.5 31l-5-1.2" stroke="${S}" stroke-width="2.2" stroke-linecap="round" fill="none"/><ellipse cx="24" cy="35" rx="8" ry="5.6" fill="${K}"/>${eyes(26.5,7.8,3.1)}${blush(32,13.5)}${nose(32.6,'#ff7f98')}${mouth(37).replace('M21.2','M21.6')}`,
-11:`<ellipse cx="8.5" cy="23" rx="8.2" ry="11" fill="${C}" ${st}/><ellipse cx="9.5" cy="23" rx="4" ry="7.4" fill="${P}"/><ellipse cx="39.5" cy="23" rx="8.2" ry="11" fill="${C}" ${st}/><ellipse cx="38.5" cy="23" rx="4" ry="7.4" fill="${P}"/><ellipse cx="24" cy="22" rx="14" ry="14.5" fill="${C}" ${st}/><path d="M24 30v7q0 5.5 5.5 5" fill="none" stroke="${O}" stroke-width="10.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 30v7q0 5.5 5.5 5" fill="none" stroke="${C}" stroke-width="7.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 33.5h6M21 37h6" stroke="${S}" stroke-width="1" stroke-linecap="round"/>${eyes(21,7,3)}${blush(27,12.2)}`,
-12:`<g fill="${S}" ${st}><circle cx="24" cy="6" r="5"/><circle cx="13" cy="9" r="5.5"/><circle cx="35" cy="9" r="5.5"/><circle cx="6.8" cy="19" r="5.5"/><circle cx="41.2" cy="19" r="5.5"/><circle cx="6.4" cy="31" r="5.5"/><circle cx="41.6" cy="31" r="5.5"/><circle cx="12.5" cy="40" r="5.5"/><circle cx="35.5" cy="40" r="5.5"/><circle cx="24" cy="42" r="5"/></g><circle cx="24" cy="24" r="19.5" fill="${S}"/><circle cx="12" cy="12" r="5" fill="${C}" ${st}/><circle cx="36" cy="12" r="5" fill="${C}" ${st}/><circle cx="12" cy="12" r="2.4" fill="${K}"/><circle cx="36" cy="12" r="2.4" fill="${K}"/><ellipse cx="24" cy="26" rx="14.5" ry="13.5" fill="${C}" ${st}/><ellipse cx="24" cy="32" rx="7.4" ry="5.4" fill="${K}"/>${eyes(24,7,3.1)}${blush(30,12.2)}${nose(29.4,'#6b3a2a')}${mouth(34.8).replace('M21.2','M21.6')}`,
-13:`<path d="M36 28Q41 29 43 24Q44 18 41 14Q47 12 46.5 19Q46 24 47 27Q44 32 36 33z" fill="${C}" ${st}/><path d="M3.5 29C3.5 16 14 9 26 11.5q11 2.5 14 14.5q-2 12-16 14Q3.5 41 3.5 29z" fill="${C}" ${st}/><path d="M5 32q9 8 24 4q8-2.600 10-8.500q0 11-14 14.500Q8 44 5 32z" fill="${K}"/><path d="M3.5 29C3.5 16 14 9 26 11.5q11 2.5 14 14.5q-2 12-16 14Q3.5 41 3.5 29z" fill="none" ${st}/><path d="M23 11q-1.500-5-6-7M26 11.200q.5-6 6-8" stroke="#7fd3ff" stroke-width="2.400" fill="none" stroke-linecap="round"/><circle cx="14.500" cy="4.500" r="1.300" fill="#7fd3ff"/><circle cx="33.500" cy="3.500" r="1.300" fill="#7fd3ff"/>${eye(15,25,3.2)}<ellipse cx="9.500" cy="31.500" rx="2.700" ry="1.600" fill="${P}" opacity=".9"/><path d="M16.500 33.500q3 2.600 6 0" fill="none" stroke="${O}" stroke-width="1.300" stroke-linecap="round"/>`
-  };
-  return A[n];
-}
-const ANIMALS=ANI_NAMES.map((n,i)=>({n,svg:aniSvg(i+1,RANK_COLORS[i])}));
-const aniName=n=>n>=1&&n<=13?ANIMALS[n-1].n:'';
-const numName=n=>n>=1&&n<=13?`${n} ${aniName(n)}`:String(n);
-(()=>{const sp=document.createElementNS('http://www.w3.org/2000/svg','svg');sp.setAttribute('width','0');sp.setAttribute('height','0');sp.setAttribute('aria-hidden','true');sp.style.position='absolute';
-  sp.innerHTML=ANIMALS.map((a,i)=>`<symbol id="a${i+1}" viewBox="0 0 48 48" fill="#1f1c18">${a.svg}</symbol>`).join('')+'<symbol id="ajk" viewBox="0 0 48 48"><text x="24" y="38" text-anchor="middle" font-size="40" fill="currentColor">★</text></symbol>';
-  document.body.prepend(sp)})();
+const rankLabel=n=>n===11?'J':n===12?'Q':n===13?'K':String(n);
+const numName=n=>n>=1&&n<=13?rankLabel(n):String(n);
 const fits=(id,num)=>isJ(id)||numOf(id)===num;
 const JOKER_C='#efbc4e';
 const BOT_NAMES=['여우','까치','너구리','고양이','두더지','수달'];
@@ -939,7 +908,7 @@ function playFx(v){
   const who=v.ps[L.p]?v.ps[L.p].n:'';
   const d=document.createElement('div');d.className='playfx';d.style.setProperty('--rc',RANK_COLORS[n-1]);
   d.style.left=a.x+'px';d.style.top=Math.max(40,a.y-46)+'px';
-  d.innerHTML=`<svg viewBox="0 0 48 48"><use href="#a${n}"/></svg><span class="fx-n">×${+L.c}</span><span class="fx-t"><span class="fx-a">${n} ${esc(aniName(n))}</span><span class="fx-w">${esc(who)}</span></span>`;
+  d.innerHTML=`<span class="fx-card">${rankLabel(n)}</span><span class="fx-n">×${+L.c}</span><span class="fx-t"><span class="fx-a">"${rankLabel(n)}" ${+L.c}장</span><span class="fx-w">${esc(who)}</span></span>`;
   d.addEventListener('animationend',()=>d.remove());
   const layer=$('#fx');while(layer.children.length>2)layer.firstChild.remove();
   layer.appendChild(d);
@@ -971,7 +940,7 @@ function sendAct(a){
 /* ================= 렌더 ================= */
 function cardHTML(id,extra){
   const j=isJ(id),n=numOf(id);
-  return `<button type="button" class="card ${j?'joker ':''}${extra||''}" data-id="${id}"${j?'':` style="--rc:${RANK_COLORS[n-1]}"`} aria-label="${j?'조커':`${n} ${aniName(n)}`}"><span class="cn">${labelOf(id)}</span><svg class="an" viewBox="0 0 48 48" aria-hidden="true"><use href="#${j?'ajk':'a'+n}"/></svg><span class="ce">${j?'조커':aniName(n)}</span></button>`;
+  return `<button type="button" class="card ${j?'joker ':''}${extra||''}" data-id="${id}"${j?'':` style="--rc:${RANK_COLORS[n-1]}"`} aria-label="${j?'조커':rankLabel(n)}"><span class="cn">${labelOf(id)}</span><span class="big">${j?'★':rankLabel(n)}</span><span class="cn2" aria-hidden="true">${labelOf(id)}</span></button>`;
 }
 function render(){renderChips();renderHUD();renderLabels();renderMe();renderLog();renderPanel()}
 function renderChips(){
@@ -992,8 +961,7 @@ function renderHUD(){
   $('#hudTop').hidden=!inGame;$('#actions').hidden=!inGame;
   if(!inGame){$('#verdict').hidden=true;return}
   const big=$('#bignum');
-  if(V.rn==null){big.className='bignum none';big.textContent='새 라운드'}else{big.className='bignum';big.textContent=V.rn}
-  $('#bigani').textContent=V.rn==null?'':aniName(V.rn);
+  if(V.rn==null){big.className='bignum none';big.textContent='새 라운드'}else{big.className='bignum';big.textContent=rankLabel(V.rn)}
   const L=V.la;
   $('#lastplay').innerHTML=L?`<em>${esc(V.ps[L.p].n)}</em>: "${esc(numName(+V.rn))}" ${+L.c}장${L.o?'':' · 기회 지남'}`:(V.st==='play'&&V.ps[V.t]?`${esc(V.ps[V.t].n)}이(가) 숫자를 정해요`:'');
   const vd=$('#verdict');
@@ -1058,12 +1026,12 @@ function layoutFan(){
   if(fh!==lastFanH){lastFanH=fh;T.fanH=fh;if(T.ok)resize3D()}
 }
 window.addEventListener('resize',()=>{if(V)layoutFan()});
-/* 선언 동물 세로 휠 */
+/* 선언 숫자 세로 휠 */
 function renderWheel(){
   const np=$('#numpick'),cur=chosenNum()||7,narrow=$('#stage').clientWidth<600,rows=narrow?3:5;
   const order=[13,12,11,10,9,8,7,6,5,4,3,2,1],idx=order.indexOf(cur);
   if(!np.querySelector('.wh-list')){
-    np.innerHTML=`<span class="wh-t">선언할 동물</span><button type="button" class="wh-arrow" data-step="1" aria-label="큰 숫자로">▲<small>${esc(keyLabel(KEYS.numUp))}</small></button><div class="wh-view"><ul class="wh-list">${order.map(k=>`<li><button type="button" class="np" data-n="${k}" style="--rc:${RANK_COLORS[k-1]}" aria-label="${k} ${aniName(k)}"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#a${k}"/></svg>${k}<span>${aniName(k)}</span></button></li>`).join('')}</ul></div><button type="button" class="wh-arrow" data-step="-1" aria-label="작은 숫자로">▼<small>${esc(keyLabel(KEYS.numDown))}</small></button>`;
+    np.innerHTML=`<span class="wh-t">선언할 숫자</span><button type="button" class="wh-arrow" data-step="1" aria-label="큰 숫자로">▲<small>${esc(keyLabel(KEYS.numUp))}</small></button><div class="wh-view"><ul class="wh-list">${order.map(k=>`<li><button type="button" class="np" data-n="${k}" style="--rc:${RANK_COLORS[k-1]}" aria-label="${rankLabel(k)}"><span class="wl">${rankLabel(k)}</span>${k>10?`<span class="ws">${k}</span>`:''}</button></li>`).join('')}</ul></div><button type="button" class="wh-arrow" data-step="-1" aria-label="작은 숫자로">▼<small>${esc(keyLabel(KEYS.numDown))}</small></button>`;
   }
   np.style.setProperty('--rows',rows);
   np.querySelector('.wh-list').style.transform=`translateY(${((rows-1)/2-idx)*40}px)`;
@@ -1079,7 +1047,7 @@ function renderButtons(){
   play.disabled=!(ready&&k>0&&num!=null);
   play.classList.toggle('ready',!play.disabled);
   const main=k?`${k}장 내기`:'내기';
-  const sub=k?(num!=null?`${numName(num)}${V&&V.rn==null?' 선언':''}`:'동물 선택'):keyLabel(KEYS.play);
+  const sub=k?(num!=null?`${numName(num)}${V&&V.rn==null?' 선언':''}`:'숫자 선택'):keyLabel(KEYS.play);
   if($('#playMain').textContent!==main)$('#playMain').textContent=main;
   if($('#playSub').textContent!==sub)$('#playSub').textContent=sub;
   pass.disabled=!(ready&&V.rn!=null);
@@ -1087,8 +1055,8 @@ function renderButtons(){
   if(V&&V.st==='play'&&i>=0&&activeV(i)){
     if(V.t!==i)h=k?`${k}장 골라 뒀어요. 내 차례가 오면 바로 낼 수 있어요.`:'상대 차례에도 카드를 미리 골라 둘 수 있어요.';
     else if(!ready)h='구라 대기 중이에요.';
-    else if(V.rn==null)h=k&&num==null?'조커만 골랐어요. 선언할 동물을 정해 주세요.':'카드를 고르고 선언할 동물을 정하세요.';
-    else h=`"${numName(V.rn)}"로 선언돼요. 점 표시는 진짜 ${aniName(V.rn)} 카드와 조커예요.`;
+    else if(V.rn==null)h=k&&num==null?'조커만 골랐어요. 선언할 숫자를 정해 주세요.':'카드를 고르고 선언할 숫자를 정하세요.';
+    else h=`"${numName(V.rn)}"로 선언돼요. 점 표시는 진짜 ${rankLabel(V.rn)} 카드와 조커예요.`;
   }
   if(hint.textContent!==h)hint.textContent=h;
   $('#me').classList.toggle('on',!!(V&&V.st==='play'&&V.t===i&&i>=0));
@@ -1374,7 +1342,6 @@ function backTex(){return canvasTex(256,372,(g,w,h)=>{
   g.fillStyle='#fffcf5';g.beginPath();g.arc(w/2,h/2,46,0,7);g.fill();
   g.fillStyle='#cc3a2e';g.font='64px "Jua", "Black Han Sans", sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('구',w/2,h/2+4);
 })}
-const ANI_IMG=ANIMALS.map(a=>{const im=new Image();im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="192" height="192">${a.svg}</svg>`);return im});
 function drawFace(g,w,h,id){
   const j=isJ(id),n=numOf(id),RC=j?JOKER_C:RANK_COLORS[n-1],k=w/60;   // 60×88 카드를 256×372로 확대
   g.clearRect(0,0,w,h);
@@ -1383,16 +1350,15 @@ function drawFace(g,w,h,id){
   if(!j){g.fillStyle=RC;g.fillRect(0,0,w,3*k)}
   g.restore();
   g.strokeStyle=j?RC:'#e3d4bb';g.lineWidth=j?2*k:1*k;rr(g,g.lineWidth/2,g.lineWidth/2,w-g.lineWidth,h-g.lineWidth,8*k);g.stroke();
-  g.fillStyle=RC;g.font=`600 ${18*k}px "IBM Plex Mono", monospace`;g.textAlign='left';g.textBaseline='top';g.fillText(labelOf(id),6*k,(j?4:6)*k);
-  if(j){g.fillStyle=RC;g.font=`${40*k}px sans-serif`;g.textAlign='center';g.textBaseline='alphabetic';g.fillText('★',w/2,(30+38*40/48)*k)}
-  else{const im=ANI_IMG[n-1];if(im&&im.complete&&im.naturalWidth)g.drawImage(im,10*k,30*k,40*k,40*k)}
-  g.fillStyle=RC;g.font=`600 ${11*k}px "IBM Plex Sans KR", sans-serif`;g.textAlign='center';g.textBaseline='bottom';
-  g.fillText(j?'조커':aniName(n),w/2,h-4*k);
+  g.fillStyle=RC;g.font=`600 ${19*k}px "IBM Plex Mono", monospace`;g.textAlign='left';g.textBaseline='top';g.fillText(labelOf(id),6*k,(j?4:6)*k);
+  g.fillStyle=RC;g.textAlign='center';g.textBaseline='middle';
+  g.font=j?`${40*k}px sans-serif`:`${40*k}px "Jua", "Black Han Sans", sans-serif`;g.fillText(j?'★':rankLabel(n),w/2,44*k);
+  g.save();g.translate(w-6*k,h-3*k);g.rotate(Math.PI);g.font=`600 ${13*k}px "IBM Plex Mono", monospace`;g.textAlign='left';g.textBaseline='top';g.fillText(labelOf(id),0,0);g.restore();
 }
 function faceMat(id){
   if(T.faces.has(id))return T.faces.get(id);
   const tex=canvasTex(256,372,(g,w,h)=>drawFace(g,w,h,id));
-  if(!isJ(id)){const im=ANI_IMG[numOf(id)-1];if(im&&!im.complete)im.addEventListener('load',()=>{drawFace(tex.image.getContext('2d'),256,372,id);tex.needsUpdate=true},{once:true})}
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{drawFace(tex.image.getContext('2d'),256,372,id);tex.needsUpdate=true});
   const m=new THREE.MeshBasicMaterial({map:tex,alphaTest:.4});T.faces.set(id,m);return m;
 }
 function init3D(){
