@@ -136,6 +136,7 @@ button:disabled{cursor:not-allowed}
 .ranks li:first-child{background:#fbe7b0}
 .ranks li:first-child .r{color:var(--amber)}
 .ranks li.me{outline:2px solid var(--mustard)}
+.ranks .left{margin-left:auto;font-size:12px;font-weight:400;color:var(--muted);font-family:var(--f-num)}
 
 /* 손패 */
 .me{background:var(--panel);border:1.5px solid var(--line-strong);border-radius:var(--r-lg);padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0;box-shadow:var(--sh-panel)}
@@ -292,6 +293,7 @@ body.fs .info{display:none}
         <li>마지막으로 낸 사람까지 <b>전원이 연속으로 패스</b>하면 필드는 폐기돼요.</li>
         <li>직전 카드에만 <b>구라!</b> 가능. 다음 사람이 내거나 패스하면 끝.</li>
         <li>거짓이면 낸 사람이, 진짜면 외친 사람이 필드를 가져가요.</li>
+        <li><b>빠른 모드</b>에서는 1등이 나오면 바로 끝나요. 나머지는 남은 카드가 적은 순서예요.</li>
         <li><b>조커</b>는 어떤 숫자로도 인정돼요. 조커를 섞어 내도 거짓이 아니에요.</li>
         <li>덱: 동물 13종 × 4장(같은 동물은 같은 색) + 조커.<br>1 쥐 · 2 토끼 · 3 오리 · 4 고양이 · 5 양 · 6 돼지 · 7 여우 · 8 늑대 · 9 곰 · 10 호랑이 · 11 코끼리 · 12 사자 · 13 고래</li>
       </ol>
@@ -324,6 +326,7 @@ body.fs .info{display:none}
       <h2>방 만들기</h2>
       <div class="field"><label for="inTitle">방 이름</label><input class="txt" id="inTitle" maxlength="20" autocomplete="off"></div>
       <div class="field"><span class="fl">최대 인원</span><div class="seg" id="segMax"></div></div>
+      <div class="field"><span class="fl">게임 모드</span><small>빠른 모드는 1등이 나오면 바로 끝나고, 나머지는 남은 카드가 적은 순서로 순위가 정해져요</small><div class="seg" id="segFast"></div></div>
       <div class="field"><span class="fl">조커</span><small>조커는 어떤 숫자로도 인정되는 와일드카드예요</small><div class="seg" id="segJokers"></div></div>
       <div class="field"><span class="fl">구라 대기 시간</span><small>카드가 나온 뒤 다음 사람이 행동하지 못하는 시간</small><div class="seg" id="segGrace"></div></div>
       <div class="field"><span class="fl">턴 제한 시간</span><small>지나면 자동 패스, 라운드 시작자는 가장 작은 카드 1장을 자동으로 내요</small><div class="seg" id="segTurn"></div></div>
@@ -410,8 +413,9 @@ const numName=n=>n>=1&&n<=13?`${n} ${aniName(n)}`:String(n);
 const fits=(id,num)=>isJ(id)||numOf(id)===num;
 const JOKER_C='#efbc4e';
 const BOT_NAMES=['여우','까치','너구리','고양이','두더지','수달'];
-const OPTS={max:[3,4,5,6],jokers:[0,1,2],grace:[0,3,5,10],turn:[15,30,60]};
-const cfg={max:4,jokers:0,grace:3,turn:30};
+const OPTS={fast:[0,1],max:[3,4,5,6],jokers:[0,1,2],grace:[0,3,5,10],turn:[15,30,60]};
+const OPT_LABEL={fast:['일반','빠른 모드']};
+const cfg={fast:0,max:4,jokers:0,grace:3,turn:30};
 const PEER_PREFIX='gura-cardgame-room-';
 const ALPH='abcdefghjkmnpqrstuvwxyz23456789';
 const genCode=()=>Array.from({length:4},()=>ALPH[Math.random()*ALPH.length|0]).join('');
@@ -516,7 +520,16 @@ function resolveReveal(){
   if(H.pending===R.L.p){H.pending=null;if(!R.lie){finish(R.L.p);if(H.phase==='over')return}}
   newRound(R.starter);
 }
-function finish(i){const p=H.players[i];p.finished=true;p.rank=H.rankNext++;addLog(`${p.name} 탈출! ${p.rank}위`,'fin');checkEnd()}
+function finish(i){
+  const p=H.players[i];p.finished=true;p.rank=H.rankNext++;addLog(`${p.name} 탈출! ${p.rank}위`,'fin');
+  if(H.cfg.fast&&p.rank===1){
+    // 빠른 모드: 1등이 나오면 끝, 나머지는 남은 카드가 적을수록 높은 순위 (같으면 공동 순위)
+    const rest=H.players.filter(x=>!x.finished);
+    rest.forEach(x=>{x.rank=2+rest.filter(y=>y.hand.length<x.hand.length).length;x.finished=true});
+    addLog('빠른 모드: 1등이 나와서 게임이 끝났어요.','sys');H.phase='over';H.shouts=[];mark();return;
+  }
+  checkEnd();
+}
 function checkEnd(){
   const act=H.players.filter(p=>!p.finished);
   if(act.length<=1){
@@ -843,7 +856,7 @@ function renderChips(){
   if(!V||mode==='lobby'){$('#chips').innerHTML='';return}
   const c=V.cfg||cfg;
   $('#chips').innerHTML=(V.code?`<span class="chip code">방 코드 <b>${esc(String(V.code).toUpperCase())}</b></span>`:'<span class="chip"><b>연습 모드</b></span>')+
-    `<span class="chip">최대 <b>${+c.max}명</b></span><span class="chip">조커 <b>${+c.jokers||0}장</b></span><span class="chip">구라 대기 <b>${+c.grace}초</b></span><span class="chip">턴 <b>${+c.turn}초</b></span>`;
+    `${c.fast?'<span class="chip"><b>빠른 모드</b></span>':''}<span class="chip">최대 <b>${+c.max}명</b></span><span class="chip">조커 <b>${+c.jokers||0}장</b></span><span class="chip">구라 대기 <b>${+c.grace}초</b></span><span class="chip">턴 <b>${+c.turn}초</b></span>`;
 }
 function renderHUD(){
   const inGame=V&&V.ps&&(V.st==='play'||V.st==='reveal'||V.st==='over');
@@ -953,7 +966,7 @@ function renderPanel(){
   }
   if(V.st==='over'){
     const list=V.ps.map((p,i)=>({...p,i})).sort((a,b)=>a.f-b.f);
-    showPanel(`<h2>게임 끝</h2><ol class="ranks">${list.map(p=>`<li class="${p.i===me?'me':''}"><span class="r">${+p.f}위</span><span>${esc(p.n)}</span></li>`).join('')}</ol>
+    showPanel(`<h2>게임 끝</h2><ol class="ranks">${list.map(p=>`<li class="${p.i===me?'me':''}"><span class="r">${+p.f}위</span><span>${esc(p.n)}</span>${V.cfg&&V.cfg.fast&&p.c>0?`<span class="left">남은 카드 ${+p.c}장</span>`:''}</li>`).join('')}</ol>
       ${isHost?`<div class="row"><button class="btn btn-red" type="button" data-act="again" data-auto>${H&&H.online?'대기실로':'다시 하기'}</button></div>`:'<p>방장이 다음 판을 열면 대기실로 돌아가요.</p>'}`,'over');
     return;
   }
@@ -1141,7 +1154,7 @@ $('#inCode').addEventListener('keydown',e=>{if(e.key==='Enter')$('#btnJoinCode')
 function buildSeg(id,key,unit,label){
   const box=$(id);
   box.setAttribute('role','radiogroup');box.setAttribute('aria-label',label);
-  box.innerHTML=OPTS[key].map(v=>`<button type="button" role="radio" data-v="${v}" aria-pressed="${cfg[key]===v}" aria-checked="${cfg[key]===v}" tabindex="${cfg[key]===v?0:-1}">${v}${unit}</button>`).join('');
+  box.innerHTML=OPTS[key].map(v=>`<button type="button" role="radio" data-v="${v}" aria-pressed="${cfg[key]===v}" aria-checked="${cfg[key]===v}" tabindex="${cfg[key]===v?0:-1}">${OPT_LABEL[key]?OPT_LABEL[key][v]:v+unit}</button>`).join('');
   const choose=b=>{cfg[key]=+b.dataset.v;box.querySelectorAll('button').forEach(x=>{const on=x===b;x.setAttribute('aria-pressed',on);x.setAttribute('aria-checked',on);x.tabIndex=on?0:-1});sfx('tick')};
   box.addEventListener('click',e=>{const b=e.target.closest('button');if(b)choose(b)});
   box.addEventListener('keydown',e=>{
@@ -1154,7 +1167,7 @@ function buildSeg(id,key,unit,label){
     e.preventDefault();choose(bs[i]);bs[i].focus();
   });
 }
-buildSeg('#segMax','max','명','최대 인원');buildSeg('#segJokers','jokers','장','조커');buildSeg('#segGrace','grace','초','구라 대기 시간');buildSeg('#segTurn','turn','초','턴 제한 시간');
+buildSeg('#segFast','fast','','게임 모드');buildSeg('#segMax','max','명','최대 인원');buildSeg('#segJokers','jokers','장','조커');buildSeg('#segGrace','grace','초','구라 대기 시간');buildSeg('#segTurn','turn','초','턴 제한 시간');
 $('#inNick').value=store('gura-nick')||'나';
 const invited=(()=>{const q=new URLSearchParams(location.search).get('room');if(q&&/^[a-z0-9]{4}$/i.test(q)){$('#inCode').value=q.toUpperCase();setNote('#netNote','초대받은 방이에요. 닉네임을 확인하고 Enter를 누르세요.');return true}return false})();
 
