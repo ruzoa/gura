@@ -65,7 +65,9 @@ button:disabled{cursor:not-allowed}
 .dim{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 55%,rgba(59,42,31,0) 30%,rgba(59,42,31,.5));opacity:0;transition:opacity .4s}
 .dim.on{opacity:1}
 .nogl{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:13px;text-align:center}
-.labels{position:absolute;inset:0;pointer-events:none}
+.labels{position:absolute;inset:0;pointer-events:none;transition:opacity .25s}
+.stage.revealing .labels{opacity:.12}
+.stage.revealing .myplate{opacity:.35}
 .seat{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:1px;background:rgba(255,250,240,.9);border:1px solid var(--line-strong);border-radius:10px;padding:3px 10px 4px;text-align:center;overflow:hidden;white-space:nowrap;box-shadow:0 2px 6px -2px rgba(59,42,31,.35);transition:border-color .2s,box-shadow .2s}
 .seat.on{border-color:var(--mustard);box-shadow:0 0 0 2px var(--mustard),0 2px 6px -2px rgba(59,42,31,.35)}
 .seat.out{opacity:.6}
@@ -73,7 +75,13 @@ button:disabled{cursor:not-allowed}
 .seat .nm .ct{font-family:var(--f-num);font-weight:500;font-size:11.5px;color:var(--muted);margin-left:5px}
 .seat .nt{font-size:10.5px;color:var(--amber);font-weight:600;line-height:1.2}
 .seat .nt:empty{display:none}
-.seat .bar{position:absolute;left:0;right:0;bottom:0;height:3px;margin:0;background:transparent}
+.seat{overflow:visible}
+.seat .ring{position:absolute;left:-30px;top:50%;width:26px;height:26px;margin-top:-13px;transform:rotate(-90deg);display:none}
+.seat.on .ring{display:block}
+.ring circle{fill:none;stroke-width:4}
+.ring .rb{stroke:rgba(59,42,31,.18)}
+.ring .rf{stroke:var(--mustard);stroke-linecap:round;stroke-dasharray:94.25;stroke-dashoffset:var(--off,0);transition:stroke-dashoffset .1s linear}
+.ring.grace .rf{stroke:var(--gura)}
 .bar i{display:block;height:100%;width:0;background:var(--mustard)}
 .bar.grace i{background:var(--gura)}
 .rk{font-family:var(--f-num);font-size:11px;background:var(--mustard);color:var(--ink);border-radius:var(--r-xs);padding:0 5px;margin-left:4px}
@@ -228,6 +236,15 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .back{width:40px;height:40px;flex:none;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:var(--panel);font-size:20px;line-height:1;box-shadow:0 2px 0 var(--line)}
 .nickline{margin:0;font-size:13px;color:var(--muted)}
 .nickline b{color:var(--ink)}
+div.nickline{display:flex;align-items:center;gap:8px;font-size:15px}
+div.nickline b{font-family:var(--f-display);font-weight:400;font-size:20px}
+.nickbtn{border:1.5px solid var(--line-strong);background:var(--panel);border-radius:99px;padding:2px 12px;font-size:12px;font-weight:600;box-shadow:0 2px 0 var(--line)}
+.nickedit{display:flex;gap:8px}
+.volv{font-family:var(--f-num);font-weight:500;color:var(--muted);margin-left:6px}
+.vol{width:100%;accent-color:var(--gura);height:28px}
+.nickedit .txt{flex:1;width:0}
+.mm{align-items:center;justify-content:center;padding:18px}
+.mm b{font-size:28px}
 .mainmenu{display:flex;flex-direction:column;gap:12px}
 .mm{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:16px 18px;border-radius:var(--r-md);border:2px solid var(--line-strong);background:var(--panel);box-shadow:0 4px 0 var(--line-strong);transition:transform .08s,box-shadow .08s}
 .mm b{font-family:var(--f-display);font-weight:400;font-size:26px;line-height:1.1}
@@ -273,7 +290,7 @@ body.fs .info{display:none}
 .fan,.fan .card{touch-action:none}
 .fan .card.sel{--ly:-30px}
 /* 마우스: 올리면 살짝 올라옴 / 터치: 꾹 누르면 크게 올라와서 손가락에 안 가림 */
-@media (hover:hover){.fan .card:hover{--ly:-16px;z-index:80!important}.fan .card.sel:hover{--ly:-36px}}
+@media (hover:hover){.fan .card:hover{--ly:-16px}.fan .card.sel:hover{--ly:-36px}}
 .fan .card.peek{--ly:-34px;z-index:90!important;transition:transform .12s ease-out}
 .fan .card.sel.peek{--ly:-58px}
 @media (hover:none) and (pointer:coarse){
@@ -281,7 +298,7 @@ body.fs .info{display:none}
   .fan .card.peek{--ly:-22px}
   .fan .card.sel.peek{--ly:-30px}
 }
-.fan .card.cur{z-index:70!important}
+body.kb .fan .card.cur{z-index:70!important}
 .myplate{position:absolute;left:12px;bottom:var(--plateB,14px);display:flex;align-items:baseline;gap:8px;max-width:calc(100% - 24px);background:rgba(255,250,240,.92);border:1px solid var(--line-strong);border-radius:12px;padding:6px 14px 8px;overflow:hidden;white-space:nowrap;box-shadow:0 2px 6px -2px rgba(59,42,31,.35);z-index:7}
 .myplate.on{border-color:var(--mustard);box-shadow:0 0 0 2px var(--mustard),0 2px 6px -2px rgba(59,42,31,.35)}
 .myplate .me-name{font-family:var(--f-display);font-size:18px;line-height:1.1}
@@ -318,6 +335,19 @@ body.fs .info{display:none}
 .pilenum.pop{animation:pnpop .35s ease-out}
 .pilenum.held{visibility:hidden;animation:none}
 @keyframes pnpop{0%{transform:translate(-50%,-100%) scale(.6)}60%{transform:translate(-50%,-100%) scale(1.12)}}
+/* 가져온 카드 보여주기 */
+.taken{position:absolute;left:50%;top:50%;transform:translate(-50%,-62%);z-index:25;width:min(520px,calc(100% - 24px));background:var(--panel);border:2px solid var(--line-strong);border-radius:var(--r-lg);padding:14px 14px 0;display:flex;flex-direction:column;align-items:center;gap:12px;overflow:hidden;box-shadow:0 5px 0 var(--line-strong),0 24px 40px -18px rgba(59,42,31,.6);animation:tkin .25s ease-out}
+@keyframes tkin{from{opacity:0;transform:translate(-50%,-55%) scale(.92)}}
+.taken .tk-h{display:flex;align-items:baseline;gap:8px}
+.taken .tk-h b{font-family:var(--f-display);font-weight:400;font-size:22px;color:var(--wood-dark)}
+.taken .tk-h span{font-family:var(--f-num);font-size:13px;color:var(--muted)}
+.taken .tk-cards{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.taken .tk-cards .card{pointer-events:none}
+.taken .btn small{font-weight:500;opacity:.7;margin-left:4px}
+.taken .tk-bar{align-self:stretch;height:4px;margin:0 -14px;background:var(--well)}
+.taken .tk-bar i{display:block;height:100%;background:var(--mustard);width:100%;transform-origin:left;animation:tkbar var(--tkt,6s) linear forwards}
+@keyframes tkbar{to{transform:scaleX(0)}}
+.fan .card.newcard{box-shadow:0 0 0 3px var(--mustard),0 4px 8px -2px rgba(59,42,31,.3)}
 /* 필드 장수와 카드 낼 때 이펙트 */
 .pilecount{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:4px;background:var(--ink);color:var(--paper);border:2px solid var(--mustard);border-radius:99px;padding:2px 11px 2px 8px;font-size:13px;font-weight:600;white-space:nowrap;pointer-events:none;box-shadow:0 3px 0 rgba(59,42,31,.3)}
 .pilecount svg{width:16px;height:16px;color:var(--mustard)}
@@ -389,6 +419,12 @@ body.fs .info{display:none}
     <div class="pilenum" id="pileNum" hidden aria-live="polite"><span class="pn-l">지금</span><b id="pileNumV"></b></div>
     <div class="pilecount" id="pileCount" hidden aria-live="polite"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="12" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 21h10a2 2 0 0 0 2-2V7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b id="pileN">0</b>장</div>
     <div class="fxlayer" id="fx" aria-hidden="true"></div>
+    <div class="taken" id="taken" hidden role="dialog" aria-labelledby="takenT">
+      <div class="tk-h"><b id="takenT">가져온 카드</b><span id="takenN"></span></div>
+      <div class="tk-cards" id="takenCards"></div>
+      <button type="button" class="btn btn-play" id="btnTaken">손패에 넣기 <small id="takenKey"></small></button>
+      <div class="tk-bar"><i id="takenBar"></i></div>
+    </div>
     <div class="hud-top" id="hudTop" hidden>
       <span class="label">이번 라운드 숫자</span>
       <div class="bignum none" id="bignum">새 라운드</div>
@@ -444,11 +480,15 @@ body.fs .info{display:none}
     <div class="view" data-view="main">
       <h1>구라!</h1>
       <p class="lead">숫자를 속여 내고, 수상하면 구라를 외치세요. 손패를 먼저 털어낸 사람이 이겨요.</p>
-      <p class="nickline">닉네임 <b id="nickShow">나</b></p>
+      <div class="nickline" id="nickLine">닉네임 <b id="nickShow">나</b><button type="button" class="nickbtn" id="btnNickEdit">수정</button></div>
+      <div class="nickedit" id="nickEdit" hidden>
+        <input class="txt" id="inNick" maxlength="10" autocomplete="off" aria-label="닉네임">
+        <button type="button" class="btn btn-play" id="btnNickSave">저장</button>
+      </div>
       <nav class="mainmenu" aria-label="로비 메뉴">
-        <button type="button" class="mm mm-create" data-go="create"><b>방 만들기</b><small>모드와 인원을 정하고 친구를 불러요. 봇과 연습도 여기서.</small></button>
-        <button type="button" class="mm mm-join" data-go="join"><b>참여하기</b><small>친구에게 받은 4자리 방 코드로 들어가요.</small></button>
-        <button type="button" class="mm mm-set" data-go="settings"><b>설정</b><small>닉네임과 키보드 키를 바꿔요.</small></button>
+        <button type="button" class="mm mm-create" data-go="create"><b>방 만들기</b></button>
+        <button type="button" class="mm mm-join" data-go="join"><b>참여하기</b></button>
+        <button type="button" class="mm mm-set" data-go="settings"><b>설정</b></button>
       </nav>
       <p class="note">키보드: Tab 이동 · ←→ 값 선택 · Enter 실행 · Esc 뒤로</p>
     </div>
@@ -470,7 +510,7 @@ body.fs .info{display:none}
 
     <div class="view" data-view="join" hidden>
       <div class="vhead"><button type="button" class="back" data-go="main" aria-label="뒤로">←</button><h2>참여하기</h2></div>
-      <p class="nickline">닉네임 <b class="nickShow2">나</b> · 설정에서 바꿀 수 있어요</p>
+      <p class="nickline">닉네임 <b class="nickShow2">나</b></p>
       <div class="joinrow">
         <input class="txt code" id="inCode" maxlength="4" placeholder="방 코드" autocomplete="off" aria-label="방 코드">
         <button class="btn btn-play" id="btnJoinCode" type="button">참가</button>
@@ -481,9 +521,8 @@ body.fs .info{display:none}
     <div class="view" data-view="settings" hidden>
       <div class="vhead"><button type="button" class="back" data-go="main" aria-label="뒤로">←</button><h2>설정</h2></div>
       <div class="field">
-        <label for="inNick">닉네임</label>
-        <input class="txt" id="inNick" maxlength="10" autocomplete="off">
-        <small>최대 10자. 대기실에서도 바꿀 수 있어요.</small>
+        <label for="inVol">음량 <span id="volV" class="volv"></span></label>
+        <input type="range" id="inVol" min="0" max="100" step="5" class="vol">
       </div>
       <div class="field"><span class="fl">조작</span><div class="row"><button class="btn btn-sub" id="btnKeysLobby" type="button">키 설정 열기</button></div></div>
     </div>
@@ -887,15 +926,39 @@ function applyView(s){
   const mine=myHand();const hs=new Set(mine);for(const id of [...sel])if(!hs.has(id))sel.delete(id);
   if(V.st!=='play'||V.rn!=null)pickNum=null;
   render();sync3D(V,PV);cues(V,PV);
+  // 구라 판정으로 내가 필드를 가져왔으면 어떤 카드였는지 잠깐 보여줌
+  if(PV&&PV.st==='reveal'&&PV.rv&&PV.rv.tk===myIdx()&&V.st!=='reveal'){
+    const before=new Set(PV.ps&&PV.ps[myIdx()]&&PV.ps[myIdx()].h||[]);
+    const got=myHand().filter(id=>!before.has(id));
+    if(got.length)showTaken(got);
+  }
 }
+let takenTimer=null,newCards=new Set(),newTimer=null;
+function showTaken(ids){
+  const box=$('#taken');
+  $('#takenN').textContent=`${ids.length}장`;
+  $('#takenCards').innerHTML=ids.slice().sort((a,b)=>a-b).map(id=>cardHTML(id,'')).join('');
+  $('#takenKey').textContent=keyLabel(KEYS.pick);
+  const sec=Math.min(8,4+ids.length*.4);box.style.setProperty('--tkt',sec+'s');
+  const bar=$('#takenBar');bar.style.animation='none';void bar.offsetWidth;bar.style.animation='';
+  box.hidden=false;clearTimeout(takenTimer);takenTimer=setTimeout(closeTaken,sec*1000);
+  newCards=new Set(ids);clearTimeout(newTimer);
+}
+function closeTaken(){
+  if($('#taken').hidden)return;
+  $('#taken').hidden=true;clearTimeout(takenTimer);sfx('sweep');
+  markNewCards();newTimer=setTimeout(()=>{newCards=new Set();markNewCards()},2500);
+}
+function markNewCards(){document.querySelectorAll('#hand .card').forEach(c=>c.classList.toggle('newcard',newCards.has(+c.dataset.id)))}
+$('#btnTaken').addEventListener('click',closeTaken);
 
 /* ================= 소리 (Web Audio로 직접 합성, 파일 없음) ================= */
-const SND={ctx:null,master:null,noise:null,on:store('gura-sound')!=='off'};
+const SND={ctx:null,master:null,noise:null,on:store('gura-sound')!=='off',vol:(()=>{const v=+store('gura-vol');return store('gura-vol')!=null&&v>=0&&v<=100?v:70})()};
 function audioOn(){
   if(!SND.ctx){
     const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
     try{SND.ctx=new AC()}catch(e){return null}
-    SND.master=SND.ctx.createGain();SND.master.gain.value=.55;SND.master.connect(SND.ctx.destination);
+    SND.master=SND.ctx.createGain();SND.master.gain.value=.55*SND.vol/100;SND.master.connect(SND.ctx.destination);
     const len=SND.ctx.sampleRate*.6,buf=SND.ctx.createBuffer(1,len,SND.ctx.sampleRate),d=buf.getChannelData(0);
     for(let i=0;i<len;i++)d[i]=Math.random()*2-1;SND.noise=buf;
   }
@@ -1019,6 +1082,7 @@ function renderPileNum(){
 }
 function renderHUD(){
   renderPile();renderPileNum();
+  $('#stage').classList.toggle('revealing',!!(V&&V.st==='reveal'));
   const inGame=V&&V.ps&&(V.st==='play'||V.st==='reveal'||V.st==='over');
   $('#hudTop').hidden=!inGame;$('#actions').hidden=!inGame;
   if(!inGame){$('#verdict').hidden=true;return}
@@ -1029,9 +1093,8 @@ function renderHUD(){
   const vd=$('#verdict');
   if(V.st==='reveal'&&V.rv){
     const R=V.rv;vd.hidden=false;
-    vd.innerHTML=`<div class="vw"><b>${esc(V.ps[R.s].n)}</b> → <b>${esc(V.ps[R.p].n)}</b> 구라! · 선언 "${esc(numName(+R.num))}" ${R.ids.length}장</div>
-      <div class="vt ${R.lie?'lie':'truth'}">${R.lie?'거짓말!':'진짜였다'}</div>
-      <div class="vm">${esc(V.ps[R.tk].n)}이(가) ${+R.fc}장 가져가고, ${esc(V.ps[R.stt].n)}이(가) 새 라운드를 시작해요</div>`;
+    vd.innerHTML=`<div class="vw"><b>${esc(V.ps[R.s].n)}</b> → <b>${esc(V.ps[R.p].n)}</b></div>
+      <div class="vt ${R.lie?'lie':'truth'}">${R.lie?'구라!':'진짜였다!'}</div>`;
   }else vd.hidden=true;
 }
 function renderLabels(){
@@ -1041,7 +1104,7 @@ function renderLabels(){
   box.innerHTML=V.ps.map((p,i)=>{
     if(i===me)return '';
     const on=V.st==='play'&&V.t===i&&activeV(i);
-    return `<div class="seat${on?' on':''}${p.f?' out':''}" data-i="${i}"><div class="nm">${esc(p.n)}<span class="ct">${p.f?(p.sr?'항복':'탈출'):(+p.c+'장')}</span>${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="nt">${esc(p.no||'')}</div><div class="bar" data-bar="${i}"><i></i></div></div>`;
+    return `<div class="seat${on?' on':''}${p.f?' out':''}" data-i="${i}"><div class="nm">${esc(p.n)}<span class="ct">${p.f?(p.sr?'항복':'탈출'):(+p.c+'장')}</span>${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="nt">${esc(p.no||'')}</div><svg class="ring" data-ring="${i}" viewBox="0 0 36 36" aria-hidden="true"><circle class="rb" cx="18" cy="18" r="15"/><circle class="rf" cx="18" cy="18" r="15"/></svg></div>`;
   }).join('');
   placeLabels();
 }
@@ -1207,15 +1270,16 @@ function liveUI(t){
   if(!V||!V.ps)return;
   const st=$('#status');
   document.querySelectorAll('[data-bar]').forEach(b=>{b.firstChild.style.width='0';b.classList.remove('grace')});
+  const setRing=(i,frac,grace)=>{const r=document.querySelector(`[data-ring="${i}"]`);if(!r)return;r.style.setProperty('--off',(94.25*(1-Math.max(0,Math.min(1,frac)))).toFixed(1));r.classList.toggle('grace',grace)};
   const meBar=$('#meBar');meBar.firstChild.style.width='0';meBar.classList.remove('grace');
   let meT='',meG=false;
   if(V.st==='play'&&V.ps[V.t]){
     const g=V.graceAt-t,me=myIdx();
     const bar=V.t===me?meBar:document.querySelector(`[data-bar="${V.t}"]`);
     let txt,cls='status';
-    if(g>0){txt=`구라 대기 ${(g/1000).toFixed(1)}초`;cls+=' grace';if(V.t===me){meT=`대기 ${Math.ceil(g/1000)}초`;meG=true}if(bar){bar.classList.add('grace');bar.firstChild.style.width=Math.min(100,g/(V.cfg.grace*1000)*100)+'%'}}
+    if(g>0){txt=`구라 대기 ${(g/1000).toFixed(1)}초`;cls+=' grace';if(V.t===me){meT=`대기 ${Math.ceil(g/1000)}초`;meG=true}if(bar){bar.classList.add('grace');bar.firstChild.style.width=Math.min(100,g/(V.cfg.grace*1000)*100)+'%'}if(V.t!==me)setRing(V.t,g/(V.cfg.grace*1000),true)}
     else{
-      const left=Math.max(0,(V.deadAt-t)/1000);txt=`${V.ps[V.t].n} 차례 · ${Math.ceil(left)}초`;if(bar)bar.firstChild.style.width=Math.min(100,left/V.cfg.turn*100)+'%';
+      const left=Math.max(0,(V.deadAt-t)/1000);txt=`${V.ps[V.t].n} 차례 · ${Math.ceil(left)}초`;if(bar)bar.firstChild.style.width=Math.min(100,left/V.cfg.turn*100)+'%';if(V.t!==me)setRing(V.t,left/V.cfg.turn,false);
       const sec=Math.ceil(left);if(V.t===me)meT=`${sec}초`;
       if(V.t===me&&sec<=5&&sec>0){if(sec!==lastWarnSec){lastWarnSec=sec;sfx('warn',sec<=2)}}else lastWarnSec=-1;
     }
@@ -1324,6 +1388,7 @@ document.addEventListener('keydown',e=>{
     store('gura-keys2',JSON.stringify(KEYS));renderKeys();const nb=$(`#keyList [data-key="${done}"]`);if(nb)nb.focus();return;
   }
   if(!$('#keysOv').hidden){if(e.code==='Escape')closeKeys();return}
+  if(!$('#taken').hidden&&(e.code===KEYS.pick||e.code==='Enter'||e.code==='Escape')){e.preventDefault();closeTaken();return}
   if(e.target.matches('input')||!$('#lobby').hidden||e.ctrlKey||e.metaKey||e.altKey)return;
   if(!V||!(V.st==='play'||V.st==='reveal'))return;  // 대기실·결과 화면에서는 Tab/Enter/Space로 버튼 조작
   const act=Object.keys(KEYS).find(a=>KEYS[a]===e.code);
@@ -1454,7 +1519,20 @@ $('#inNick').value=store('gura-nick')||'나';
 const invited=(()=>{const q=new URLSearchParams(location.search).get('room');if(q&&/^[a-z0-9]{4}$/i.test(q)){$('#inCode').value=q.toUpperCase();setNote('#netNote','초대받은 방이에요. 참가를 누르세요.');return true}return false})();
 
 /* 로비 Enter 흐름: 닉네임 → (초대 코드가 있으면 참가, 없으면 코드 칸), 방 이름 → 방 만들기 */
-$('#inNick').addEventListener('keydown',e=>{if(e.key!=='Enter')return;e.preventDefault();saveNick();showView('main')});
+/* 로비 닉네임: 수정 버튼 → 입력칸, Enter·저장으로 확정, Esc로 취소 */
+function openNickEdit(){$('#nickLine').hidden=true;$('#nickEdit').hidden=false;const i=$('#inNick');i.focus();i.select()}
+function closeNickEdit(save){
+  if(save){$('#inNick').value=($('#inNick').value.trim()||'나').slice(0,10);saveNick()}else $('#inNick').value=store('gura-nick')||'나';
+  $('#nickEdit').hidden=true;$('#nickLine').hidden=false;showView(lobbyView,false);$('#btnNickEdit').focus();
+}
+$('#btnNickEdit').addEventListener('click',openNickEdit);
+$('#btnNickSave').addEventListener('click',()=>closeNickEdit(true));
+$('#inNick').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();closeNickEdit(true)}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeNickEdit(false)}});
+/* 음량 */
+function applyVol(){if(SND.master)SND.master.gain.value=.55*SND.vol/100;$('#volV').textContent=SND.vol+'%';$('#inVol').value=SND.vol}
+$('#inVol').addEventListener('input',e=>{SND.vol=+e.target.value;store('gura-vol',String(SND.vol));applyVol()});
+$('#inVol').addEventListener('change',()=>{audioOn();sfx('pick')});
+applyVol();
 $('#inNick').addEventListener('change',saveNick);
 $('#inTitle').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#btnCreate').click()}});
 let lobbyView='main';
@@ -1465,11 +1543,11 @@ function showView(v,focus=true){
   if(!focus)return;
   setTimeout(()=>{
     if($('#lobby').hidden)return;
-    const el=v==='join'?(/^[a-z0-9]{4}$/i.test($('#inCode').value.trim())?$('#btnJoinCode'):$('#inCode')):v==='settings'?$('#inNick'):v==='create'?$('#segFast [tabindex="0"]'):$('#lobby .mm');
+    const el=v==='join'?(/^[a-z0-9]{4}$/i.test($('#inCode').value.trim())?$('#btnJoinCode'):$('#inCode')):v==='settings'?$('#inVol'):v==='create'?$('#segFast [tabindex="0"]'):$('#lobby .mm');
     if(el){el.focus();if(el.select)el.select()}
   },30);
 }
-$('#lobby').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){if(lobbyView==='settings')saveNick();showView(b.dataset.go)}});
+$('#lobby').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){showView(b.dataset.go)}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#lobby').hidden&&$('#keysOv').hidden&&lobbyView!=='main'){e.preventDefault();if(lobbyView==='settings')saveNick();showView('main')}});
 function focusLobby(){showView(invited?'join':'main')}
 focusLobby();
@@ -1625,7 +1703,7 @@ function frame(){
       if(u.die&&c.position.distanceTo(u.p)<.1)killCard(c);
     }
     if(V&&V.ps&&V.st==='play'&&V.t!=null&&V.t!==myIdx()){
-      T.ring.visible=true;const sp=seatPos(V.t,3.85);T.ring.position.set(sp.x,.03,sp.z);
+      T.ring.visible=false;const sp=seatPos(V.t,3.85);T.ring.position.set(sp.x,.03,sp.z);
       T.ring.material.color.set(t<V.graceAt?0xcc3a2e:0xf2b632);T.ring.scale.setScalar(1+Math.sin(t/260)*.06);
     }else T.ring.visible=false;
     T.r.render(T.scene,T.cam);
