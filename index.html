@@ -174,7 +174,8 @@ body.no3d .seat.on .ring{display:block}
 .card.sel{transform:translateY(-14px);outline:3px solid var(--mustard);outline-offset:-1px;z-index:1}
 body.kb .card.cur{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--cur),0 4px 8px -2px rgba(59,42,31,.3);z-index:2}
 body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin-left:-6px;border:6px solid transparent;border-top:8px solid var(--cur);border-bottom:0}
-.card.match{border:2.5px solid var(--gura)}
+/* 지금 숫자로 낼 수 있는 카드: 살짝 올라오고, 보이는 왼쪽 위에 빨간 점 */
+.card.match::after{content:"";position:absolute;left:9px;top:-13px;width:11px;height:11px;border-radius:50%;background:var(--gura);box-shadow:0 0 0 2px var(--paper),0 1px 3px rgba(28,18,10,.45);pointer-events:none}
 
 .info{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
 @media (max-width:720px){.info{grid-template-columns:minmax(0,1fr)}}
@@ -272,12 +273,14 @@ body.fs .info{display:none}
 .fan{position:absolute;left:0;right:0;bottom:0;height:var(--fh,150px);pointer-events:none;transform:scale(var(--k,1));transform-origin:50% 100%;z-index:6}
 .fan .card,.fan .card:hover,.fan .card.sel{position:absolute;left:50%;margin-left:-30px;bottom:var(--b,10px);pointer-events:auto;transform-origin:50% calc(100% + var(--R,600px));transform:rotate(var(--a,0rad)) translateY(var(--ly,0px)) scale(var(--sc,1));-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;transition:transform .16s ease-out}
 .fan,.fan .card{touch-action:none}
+.fan .card.match{--ly:-9px}
 .fan .card.sel{--ly:-30px}
 /* 마우스: 올리면 살짝 올라옴 / 터치: 꾹 누르면 크게 올라와서 손가락에 안 가림 */
 @media (hover:hover){.fan .card:hover{--ly:-16px}.fan .card.sel:hover{--ly:-36px}}
 .fan .card.peek{--ly:-34px;z-index:90!important;transition:transform .12s ease-out}
 .fan .card.sel.peek{--ly:-58px}
 @media (hover:none) and (pointer:coarse){
+  .fan .card.match{--ly:-6px}
   .fan .card.sel{--ly:-16px}
   .fan .card.peek{--ly:-22px}
   .fan .card.sel.peek{--ly:-30px}
