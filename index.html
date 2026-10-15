@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>구라 3D 테이블</title>
 <meta name="theme-color" content="#f4ead9">
+<meta name="color-scheme" content="only light">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -33,7 +34,7 @@
   --f-display:"Jua","Black Han Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
   --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --f-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
-  color-scheme:light;
+  color-scheme:only light;
   padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 }
 *,*::before,*::after{box-sizing:border-box}
@@ -65,18 +66,19 @@ button:disabled{cursor:not-allowed}
 .dim.on{opacity:1}
 .nogl{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:13px;text-align:center}
 .labels{position:absolute;inset:0;pointer-events:none}
-.seat{position:absolute;transform:translate(-50%,-50%);background:rgba(255,250,240,.94);border:1.5px solid var(--line-strong);border-radius:var(--r-sm);padding:5px 10px 0;min-width:96px;text-align:center;overflow:hidden;box-shadow:0 3px 0 rgba(110,69,38,.25);transition:border-color .2s}
-.seat.on{border-color:var(--mustard);box-shadow:0 0 0 2px var(--mustard),0 3px 0 rgba(110,69,38,.25)}
+.seat{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:1px;background:rgba(255,250,240,.9);border:1px solid var(--line-strong);border-radius:10px;padding:3px 10px 4px;text-align:center;overflow:hidden;white-space:nowrap;box-shadow:0 2px 6px -2px rgba(59,42,31,.35);transition:border-color .2s,box-shadow .2s}
+.seat.on{border-color:var(--mustard);box-shadow:0 0 0 2px var(--mustard),0 2px 6px -2px rgba(59,42,31,.35)}
 .seat.out{opacity:.6}
-.seat .nm{font-weight:600;font-size:13px;white-space:nowrap}
-.seat .ct{font-family:var(--f-num);font-size:12px;color:var(--muted)}
-.seat .nt{font-size:11px;color:var(--amber);font-weight:600;min-height:16px;white-space:nowrap}
-.seat .bar{height:4px;margin:3px -10px 0;background:var(--well)}
+.seat .nm{font-weight:600;font-size:12.5px;line-height:1.25}
+.seat .nm .ct{font-family:var(--f-num);font-weight:500;font-size:11.5px;color:var(--muted);margin-left:5px}
+.seat .nt{font-size:10.5px;color:var(--amber);font-weight:600;line-height:1.2}
+.seat .nt:empty{display:none}
+.seat .bar{position:absolute;left:0;right:0;bottom:0;height:3px;margin:0;background:transparent}
 .bar i{display:block;height:100%;width:0;background:var(--mustard)}
 .bar.grace i{background:var(--gura)}
 .rk{font-family:var(--f-num);font-size:11px;background:var(--mustard);color:var(--ink);border-radius:var(--r-xs);padding:0 5px;margin-left:4px}
 
-.hud-top{position:absolute;left:12px;top:12px;max-width:min(270px,60%);display:flex;flex-direction:column;gap:1px;pointer-events:none;background:rgba(255,250,240,.9);border:1.5px solid var(--line-strong);border-radius:var(--r-md);padding:8px 12px 9px;box-shadow:0 3px 0 rgba(110,69,38,.25)}
+.hud-top{display:none!important;position:absolute;left:12px;top:12px;max-width:min(270px,60%);display:flex;flex-direction:column;gap:1px;pointer-events:none;background:rgba(255,250,240,.9);border:1.5px solid var(--line-strong);border-radius:var(--r-md);padding:8px 12px 9px;box-shadow:0 3px 0 rgba(110,69,38,.25)}
 .label{font-size:11px;letter-spacing:.1em;color:var(--muted);font-weight:600}
 .bignum{font-family:var(--f-display);font-size:54px;line-height:1;color:var(--ink)}
 .bignum.none{font-size:22px;color:var(--muted);line-height:1.3}
@@ -95,21 +97,17 @@ button:disabled{cursor:not-allowed}
 .status{position:absolute;right:154px;top:17px;font-family:var(--f-num);font-size:13px;font-weight:600;color:var(--ink);background:rgba(255,250,240,.94);border:1.5px solid var(--line-strong);padding:3px 10px;border-radius:99px;font-variant-numeric:tabular-nums}
 .status.grace{color:var(--gura);border-color:var(--gura)}
 .status:empty{display:none}
-.actions{position:absolute;right:14px;bottom:var(--actB,14px);display:flex;align-items:flex-end;gap:10px;z-index:7}
-.act{border:none;border-radius:var(--r-md);font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;transition:transform .08s,box-shadow .08s,opacity .2s}
-.act small{font-family:var(--f-num);font-size:10px;font-weight:500;opacity:.75;margin-top:3px}
-.act-pass{width:68px;height:54px;background:var(--panel);color:var(--ink);border:2px solid var(--line-strong);box-shadow:0 4px 0 var(--line-strong);font-size:15px}
-.act-play{min-width:106px;height:66px;padding:0 12px;background:var(--mustard);color:var(--ink);border:2px solid var(--mustard-edge);box-shadow:0 5px 0 var(--mustard-edge);font-family:var(--f-display);font-size:20px;font-weight:400}
-.act-play small{font-family:var(--f-body);font-size:11px;font-weight:600;opacity:.8}
+.actions{position:absolute;right:14px;bottom:var(--actB,14px);display:flex;align-items:center;gap:8px;z-index:7}
+.act{height:56px;min-width:96px;padding:0 14px;border-radius:14px;border:2px solid var(--edge);background:var(--face);color:var(--ink-on);box-shadow:0 4px 0 var(--edge);font-family:var(--f-display);font-size:21px;line-height:1.05;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:transform .08s,box-shadow .08s,opacity .2s}
+.act small{font-family:var(--f-body);font-size:10.5px;font-weight:600;opacity:.75;margin-top:2px}
+.act-pass{--face:var(--panel);--edge:var(--line-strong);--ink-on:var(--ink)}
+.act-play{--face:var(--mustard);--edge:var(--mustard-edge);--ink-on:var(--ink)}
+.act-gura{--face:var(--gura);--edge:var(--gura-edge);--ink-on:var(--gura-ink);font-size:23px}
 .act:active:not(:disabled){transform:translateY(4px);box-shadow:none}
-.act:disabled{opacity:.4;box-shadow:none}
-.act-play.ready{box-shadow:0 5px 0 var(--mustard-edge),0 0 0 4px rgba(242,182,50,.35)}
-.gura{width:106px;height:106px;border-radius:50%;border:3px solid var(--gura-edge);background:var(--gura);color:var(--gura-ink);font-family:var(--f-display);font-size:32px;box-shadow:0 6px 0 var(--gura-edge),0 12px 20px -6px rgba(59,42,31,.45);transition:transform .08s,box-shadow .08s,opacity .2s;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
-.gura small{font-family:var(--f-num);font-size:10px;opacity:.8;margin-top:5px}
-.gura:active:not(:disabled){transform:translateY(5px);box-shadow:0 1px 0 var(--gura-edge)}
-.gura:disabled{opacity:.35;box-shadow:none}
-.gura.ready{animation:pulse 1.2s ease-in-out infinite}
-@keyframes pulse{50%{box-shadow:0 6px 0 var(--gura-edge),0 0 0 10px rgba(204,58,46,.22)}}
+.act:disabled{opacity:.42;box-shadow:0 2px 0 var(--edge);cursor:not-allowed}
+.act-play.ready{box-shadow:0 4px 0 var(--edge),0 0 0 4px rgba(242,182,50,.35)}
+.act-gura.ready{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 4px 0 var(--gura-edge),0 0 0 8px rgba(204,58,46,.25)}}
 .verdict{position:absolute;left:50%;top:8px;z-index:9;transform:translateX(-50%);text-align:center;pointer-events:none;width:min(92%,460px);display:flex;flex-direction:column;gap:5px;align-items:center}
 .verdict .vw,.verdict .vm{font-size:13px;background:rgba(255,250,240,.95);border:1.5px solid var(--line-strong);padding:3px 12px;border-radius:99px}
 .verdict .vw b{color:var(--amber)}
@@ -254,10 +252,9 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 @keyframes blink{50%{opacity:.55}}
 
 @media (max-width:480px){
-  .actions{right:10px;gap:7px}
-  .gura{width:88px;height:88px;font-size:27px}
-  .act-play{min-width:88px;height:58px;font-size:17px}
-  .act-pass{width:58px;height:48px;font-size:14px}
+  .actions{right:10px;left:10px;gap:6px}
+  .act{flex:1;min-width:0;height:50px;font-size:18px;padding:0 6px}
+  .act-gura{font-size:20px}
   .bignum{font-size:44px}
   .hud-top{padding:6px 10px 7px}
   .lobby h1{font-size:44px}
@@ -277,25 +274,26 @@ body.fs .info{display:none}
 .fan .card.sel{--ly:-30px}
 /* 마우스: 올리면 살짝 올라옴 / 터치: 꾹 누르면 크게 올라와서 손가락에 안 가림 */
 @media (hover:hover){.fan .card:hover{--ly:-16px;z-index:80!important}.fan .card.sel:hover{--ly:-36px}}
-.fan .card.peek{--ly:-46px;--sc:1.28;z-index:90!important;transition:transform .12s ease-out}
+.fan .card.peek{--ly:-34px;z-index:90!important;transition:transform .12s ease-out}
 .fan .card.sel.peek{--ly:-58px}
 @media (hover:none) and (pointer:coarse){
   .fan .card.sel{--ly:-16px}
-  .fan .card.peek{--ly:-24px;--sc:1.14}
+  .fan .card.peek{--ly:-22px}
   .fan .card.sel.peek{--ly:-30px}
 }
 .fan .card.cur{z-index:70!important}
-.myplate{position:absolute;left:12px;bottom:var(--plateB,14px);width:min(250px,calc(100% - 24px));background:rgba(255,250,240,.95);border:1.5px solid var(--line-strong);border-radius:var(--r-md);padding:7px 10px 8px;display:flex;flex-direction:column;gap:4px;box-shadow:0 3px 0 rgba(110,69,38,.25);z-index:7}
-.myplate.on{border-color:var(--mustard);box-shadow:0 0 0 2px var(--mustard),0 3px 0 rgba(110,69,38,.25)}
-.myplate .me-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px}
-.myplate .me-name{font-family:var(--f-display);font-size:17px}
-.myplate .me-sub{font-size:12px;color:var(--muted)}
+.myplate{position:absolute;left:12px;bottom:var(--plateB,14px);display:flex;align-items:baseline;gap:8px;max-width:calc(100% - 24px);background:rgba(255,250,240,.92);border:1px solid var(--line-strong);border-radius:12px;padding:6px 14px 8px;overflow:hidden;white-space:nowrap;box-shadow:0 2px 6px -2px rgba(59,42,31,.35);z-index:7}
+.myplate.on{border-color:var(--mustard);box-shadow:0 0 0 2px var(--mustard),0 2px 6px -2px rgba(59,42,31,.35)}
+.myplate .me-name{font-family:var(--f-display);font-size:18px;line-height:1.1}
+.myplate .me-sub{font-size:13px;color:var(--muted)}
 .myplate .me-sub b{color:var(--ink);font-family:var(--f-num)}
-.myplate .bar{height:5px;background:var(--well);border-radius:99px;overflow:hidden}
-.myplate .hint{font-size:11.5px;line-height:1.35;color:var(--muted)}
-.myplate .hint:empty{display:none}
-.giveup{margin-left:auto;font-size:11px;padding:2px 8px;color:var(--muted)}
-.giveup.arm{background:var(--gura);border-color:var(--gura-edge);color:var(--gura-ink);box-shadow:0 2px 0 var(--gura-edge)}
+.myplate .me-time{font-family:var(--f-num);font-size:13px;font-weight:600;color:var(--ink)}
+.myplate .me-time.grace{color:var(--gura)}
+.myplate .me-time:empty{display:none}
+.myplate .bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:transparent}
+.myplate .hint{display:none}
+.giveup{width:100%}
+.giveup.arm{background:var(--gura)!important;border-color:var(--gura-edge)!important;color:var(--gura-ink)!important;box-shadow:var(--sh-red)!important}
 
 /* 선언 숫자 고르기: 세로 휠 (W 위 = 큰 수, S 아래 = 작은 수) */
 .numwheel{position:absolute;left:12px;top:50%;transform:translateY(-58%);display:flex;flex-direction:column;align-items:center;gap:3px;background:rgba(255,250,240,.96);border:1.5px solid var(--mustard-edge);border-radius:var(--r-md);padding:5px 6px;box-shadow:0 3px 0 rgba(110,69,38,.25);z-index:8;user-select:none;touch-action:none}
@@ -314,7 +312,7 @@ body.fs .info{display:none}
 .numwheel .np:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
 
 /* 필드 위 지금 숫자 */
-.pilenum{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:58px;height:78px;padding:0 8px;background:var(--paper);border:3px solid var(--rc,var(--ink));border-top-width:7px;border-radius:12px;box-shadow:0 4px 0 var(--rc,var(--ink)),0 12px 22px -10px rgba(59,42,31,.55);pointer-events:none;z-index:4;transition:border-color .2s}
+.pilenum{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:56px;height:76px;padding:0 8px;background:rgba(255,252,245,.72);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:.88;border:3px solid var(--rc,var(--ink));border-top-width:7px;border-radius:12px;box-shadow:0 4px 0 var(--rc,var(--ink)),0 12px 22px -10px rgba(59,42,31,.55);pointer-events:none;z-index:4;transition:border-color .2s}
 .pilenum .pn-l{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--muted);line-height:1}
 .pilenum b{font-family:var(--f-display);font-weight:400;font-size:44px;line-height:1;color:var(--rc,var(--ink))}
 .pilenum.pop{animation:pnpop .35s ease-out}
@@ -345,8 +343,6 @@ body.fs .info{display:none}
   .chip{font-size:11px;padding:2px 8px}
   .btn-ghost{padding:5px 10px;font-size:12px}
   .stage{height:clamp(440px,72dvh,700px);border-width:4px}
-  .actions{flex-direction:column-reverse;align-items:flex-end}
-  .myplate{width:calc(100% - 128px)}
   .numwheel .wh-view{width:96px}
   .numwheel .wh-t{display:none}
   .stage.leading .myplate .hint{display:none}
@@ -360,7 +356,6 @@ body.fs .info{display:none}
   .status{top:56px;right:10px;font-size:12px}
   .verdict .vt{font-size:42px}
   .verdict .vw,.verdict .vm{font-size:12px}
-  .seat{min-width:78px;padding:4px 8px 0}
   .seat .nm{font-size:12px}
   .playfx .fx-card{width:30px;height:42px;font-size:22px}
   .playfx .fx-n{font-size:28px}
@@ -371,7 +366,7 @@ body.fs .info{display:none}
 }
 
 /* 터치 화면에서는 키보드 키 표시 숨김 */
-@media (hover:none) and (pointer:coarse){.act-pass small,.gura small{display:none}}
+@media (hover:none) and (pointer:coarse){.act small{display:none}}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -404,6 +399,7 @@ body.fs .info{display:none}
     <div class="menu" id="menu" hidden role="menu">
       <div class="menu-info" id="menuInfo"></div>
       <button type="button" class="btn btn-sub" id="mKeys" role="menuitem">키 설정</button>
+      <button type="button" class="btn btn-sub giveup" id="btnGiveUp" role="menuitem" hidden>항복</button>
       <button type="button" class="btn btn-sub" id="mLeave" role="menuitem">방 나가기</button>
     </div>
     <button class="fsbtn snd" id="btnSound" type="button" aria-label="소리 끄기" title="소리 끄기"></button>
@@ -412,13 +408,13 @@ body.fs .info{display:none}
     <div class="actions" id="actions" hidden>
       <button class="act act-pass" id="btnPass" type="button" disabled>패스<small>P</small></button>
       <button class="act act-play" id="btnPlay" type="button" disabled><span id="playMain">내기</span><small id="playSub">Enter</small></button>
-      <button class="gura" id="btnGura" type="button" disabled>구라!<small>G</small></button>
+      <button class="act act-gura" id="btnGura" type="button" disabled>구라!<small>G</small></button>
     </div>
     <div class="numwheel" id="numpick" hidden></div>
     <div class="myplate" id="me" aria-label="내 정보">
-      <div class="me-top"><span class="me-name" id="meName">나</span><span class="me-sub" id="meSub">로비에서 방을 만들거나 참가하세요.</span><button class="btn-ghost giveup" id="btnGiveUp" type="button" hidden>항복</button></div>
+      <span class="me-name" id="meName">나</span><span class="me-sub" id="meSub"></span><span class="me-time" id="meTime"></span>
       <div class="bar" id="meBar"><i></i></div>
-      <div class="hint" id="hint"></div>
+      <div class="hint" id="hint" hidden></div>
     </div>
     <div class="fan" id="hand" aria-label="내 손패"></div>
     <div class="panel" id="panel" hidden><div class="card-sheet" id="panelBody"></div></div>
@@ -963,7 +959,7 @@ function playFx(v){
   const a=(T&&T.anchor)||{x:$('#stage').clientWidth/2,y:$('#stage').clientHeight/2};
   const who=v.ps[L.p]?v.ps[L.p].n:'';
   const d=document.createElement('div');d.className='playfx';d.style.setProperty('--rc',RANK_COLORS[n-1]);
-  d.style.left=a.x+'px';d.style.top=Math.max(40,a.y-46)+'px';
+  d.style.left=a.x+'px';d.style.top=Math.max(46,a.y-100)+'px';
   d.innerHTML=`<span class="fx-card">${rankLabel(n)}</span><span class="fx-n">×${+L.c}</span>`;
   d.addEventListener('animationend',()=>d.remove());
   const layer=$('#fx');while(layer.children.length>2)layer.firstChild.remove();
@@ -1045,7 +1041,7 @@ function renderLabels(){
   box.innerHTML=V.ps.map((p,i)=>{
     if(i===me)return '';
     const on=V.st==='play'&&V.t===i&&activeV(i);
-    return `<div class="seat${on?' on':''}${p.f?' out':''}" data-i="${i}"><div class="nm">${esc(p.n)}${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="ct">${p.f?(p.sr?'항복':'탈출'):(+p.c+'장')}</div><div class="nt">${esc(p.no||'')}</div><div class="bar" data-bar="${i}"><i></i></div></div>`;
+    return `<div class="seat${on?' on':''}${p.f?' out':''}" data-i="${i}"><div class="nm">${esc(p.n)}<span class="ct">${p.f?(p.sr?'항복':'탈출'):(+p.c+'장')}</span>${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="nt">${esc(p.no||'')}</div><div class="bar" data-bar="${i}"><i></i></div></div>`;
   }).join('');
   placeLabels();
 }
@@ -1059,7 +1055,7 @@ function renderMe(){
     renderButtons();return;
   }
   const p=V.ps[i],h=myHand();
-  $('#meSub').innerHTML=p.f?(p.sr?`항복해서 <b>${+p.f}위</b>예요. 남은 판을 지켜보세요.`:`<b>${+p.f}위</b>로 탈출했어요.`):`손패 <b>${h.length}</b>장`;
+  $('#meSub').innerHTML=p.f?(p.sr?`항복해서 <b>${+p.f}위</b>예요. 남은 판을 지켜보세요.`:`<b>${+p.f}위</b>로 탈출했어요.`):`<b>${h.length}</b>장`;
   syncCursor();
   // 같은 카드면 다시 그리지 않고 상태만 바꿔서 마우스 올림·애니메이션이 끊기지 않게
   const key=h.join(',');
@@ -1079,7 +1075,7 @@ let lastFanH=-1;
 function layoutFan(){
   const fan=$('#hand'),st=$('#stage'),cards=[...fan.children],n=cards.length;
   const W=st.clientWidth,wide=W>=820,k=wide?1.2:1;
-  const R=wide?720:560,reserve=wide?2*300:20;
+  const R=wide?720:560,reserve=wide?2*345:20;
   const avail=Math.max(150,(W-reserve)/k);
   let step=n>1?Math.min(40,(avail-60)/(n-1)):0;step=Math.max(step,9);
   const da=step/(R+44),half=da*(n-1)/2;
@@ -1090,7 +1086,7 @@ function layoutFan(){
   const coarse=window.matchMedia&&matchMedia('(pointer:coarse)').matches;
   const fh=n?Math.round((88+drop+(coarse?24:46))*k):0;
   fan.style.setProperty('--fh',(fh/k)+'px');
-  st.style.setProperty('--plateB',(wide||!n?14:fh+6)+'px');
+  st.style.setProperty('--plateB',(wide||!n?14:fh+66)+'px');
   st.style.setProperty('--actB',(wide||!n?14:fh+6)+'px');
   if(fh!==lastFanH){lastFanH=fh;T.fanH=fh;if(T.ok)resize3D()}
 }
@@ -1212,18 +1208,20 @@ function liveUI(t){
   const st=$('#status');
   document.querySelectorAll('[data-bar]').forEach(b=>{b.firstChild.style.width='0';b.classList.remove('grace')});
   const meBar=$('#meBar');meBar.firstChild.style.width='0';meBar.classList.remove('grace');
+  let meT='',meG=false;
   if(V.st==='play'&&V.ps[V.t]){
     const g=V.graceAt-t,me=myIdx();
     const bar=V.t===me?meBar:document.querySelector(`[data-bar="${V.t}"]`);
     let txt,cls='status';
-    if(g>0){txt=`구라 대기 ${(g/1000).toFixed(1)}초`;cls+=' grace';if(bar){bar.classList.add('grace');bar.firstChild.style.width=Math.min(100,g/(V.cfg.grace*1000)*100)+'%'}}
+    if(g>0){txt=`구라 대기 ${(g/1000).toFixed(1)}초`;cls+=' grace';if(V.t===me){meT=`대기 ${Math.ceil(g/1000)}초`;meG=true}if(bar){bar.classList.add('grace');bar.firstChild.style.width=Math.min(100,g/(V.cfg.grace*1000)*100)+'%'}}
     else{
       const left=Math.max(0,(V.deadAt-t)/1000);txt=`${V.ps[V.t].n} 차례 · ${Math.ceil(left)}초`;if(bar)bar.firstChild.style.width=Math.min(100,left/V.cfg.turn*100)+'%';
-      const sec=Math.ceil(left);
+      const sec=Math.ceil(left);if(V.t===me)meT=`${sec}초`;
       if(V.t===me&&sec<=5&&sec>0){if(sec!==lastWarnSec){lastWarnSec=sec;sfx('warn',sec<=2)}}else lastWarnSec=-1;
     }
     if(st.textContent!==txt)st.textContent=txt;if(st.className!==cls)st.className=cls;
   }else if(st.textContent)st.textContent='';
+  {const mt=$('#meTime');if(mt.textContent!==meT)mt.textContent=meT;mt.classList.toggle('grace',meG)}
   const can=canShoutV(),gb=$('#btnGura');
   if(gb.disabled===can){gb.disabled=!can;gb.classList.toggle('ready',can)}
   renderButtons();
@@ -1427,7 +1425,7 @@ let giveUpArmed=false,giveUpTimer=null;
 function disarmGiveUp(){giveUpArmed=false;clearTimeout(giveUpTimer);const b=$('#btnGiveUp');b.classList.remove('arm');b.textContent='항복'}
 $('#btnGiveUp').addEventListener('click',()=>{
   if(!giveUpArmed){giveUpArmed=true;const b=$('#btnGiveUp');b.classList.add('arm');b.textContent='정말 항복할까요? 한 번 더 누르세요';giveUpTimer=setTimeout(disarmGiveUp,3000);return}
-  disarmGiveUp();sendAct({t:'surrender'});
+  disarmGiveUp();closeMenu();sendAct({t:'surrender'});
 });
 $('#btnCreate').addEventListener('click',createRoom);
 $('#btnPractice').addEventListener('click',startPractice);
@@ -1647,7 +1645,7 @@ function placeLabels(){
   const avoid=stageRects();
   document.querySelectorAll('#labels .seat').forEach(el=>{
     const i=+el.dataset.i;let x,y;
-    if(T.ok){const p=seatPos(i,4.55);p.y=.9;p.project(T.cam);x=(p.x+1)/2*W;y=(1-p.y)/2*Hh}
+    if(T.ok){const p=seatPos(i,3.85);p.y=0;p.project(T.cam);x=(p.x+1)/2*W;y=(1-p.y)/2*Hh+16+el.offsetHeight/2}
     else{const a=seatAngle(i);x=W/2+Math.sin(a)*W*.38;y=Hh/2+Math.cos(a)*Hh*.36}
     const hw=el.offsetWidth/2,hh=el.offsetHeight/2;
     x=Math.max(hw+6,Math.min(W-hw-6,x));y=Math.max(hh+6,Math.min(Hh-hh-6,y));
@@ -1666,8 +1664,10 @@ function placeLabels(){
   let ax=W/2,ay=Hh/2;
   if(T.ok){const p=new THREE.Vector3(0,.05,0);p.project(T.cam);ax=(p.x+1)/2*W;ay=(1-p.y)/2*Hh}
   T.anchor={x:ax,y:ay};
-  const pc=$('#pileCount');if(!pc.hidden){pc.style.left=ax+'px';pc.style.top=Math.min(Hh-20,ay+44)+'px'}
-  const pn=$('#pileNum');if(!pn.hidden){pn.style.left=ax+'px';pn.style.top=Math.max(84,ay-8)+'px'}
+  let by=ay+70;if(T.ok){const q=new THREE.Vector3(0,0,1.3);q.project(T.cam);by=(1-q.y)/2*Hh+14}
+  T.anchorBelow=by;
+  const pc=$('#pileCount');if(!pc.hidden){pc.style.left=ax+'px';pc.style.top=Math.min(Hh-20,by)+'px'}
+  const pn=$('#pileNum');if(!pn.hidden){pn.style.left=ax+'px';pn.style.top=Math.max(84,ay-62)+'px'}
   const vd=$('#verdict');
   if(!vd.hidden){
     if(T.ok){
