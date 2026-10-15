@@ -171,7 +171,7 @@ body.no3d .seat.on .ring{display:block}
 .card.sel{transform:translateY(-14px);outline:3px solid var(--mustard);outline-offset:-1px;z-index:1}
 body.kb .card.cur{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--cur),0 4px 8px -2px rgba(59,42,31,.3);z-index:2}
 body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin-left:-6px;border:6px solid transparent;border-top:8px solid var(--cur);border-bottom:0}
-.card.match::after{content:"";position:absolute;left:50%;bottom:-10px;width:7px;height:7px;margin-left:-3.5px;border-radius:50%;background:var(--mustard);box-shadow:0 0 0 1.5px var(--mustard-edge)}
+.card.match{border:2.5px solid var(--gura)}
 
 .info{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
 @media (max-width:720px){.info{grid-template-columns:minmax(0,1fr)}}
@@ -209,6 +209,7 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .seg.modes button[aria-pressed="true"] small{color:var(--ink)}
 .seg button[aria-pressed="true"]{background:var(--mustard);border-color:var(--mustard-edge);font-weight:600;box-shadow:0 2px 0 var(--mustard-edge)}
 .note{font-size:12px;color:var(--muted);margin:0;min-height:18px}
+.note.sdark{color:var(--gura);line-height:1.45;margin-top:6px}
 .view{display:flex;flex-direction:column;gap:16px}
 .vhead{display:flex;align-items:center;gap:10px}
 .vhead h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:28px;color:var(--gura)}
@@ -321,6 +322,17 @@ body.kb .fan .card.cur{z-index:70!important}
 .pilecount.bump{animation:bump .4s ease-out}
 @keyframes bump{40%{transform:translate(-50%,-50%) scale(1.25)}}
 .fxlayer{position:absolute;inset:0;z-index:6;pointer-events:none;overflow:hidden}
+/* 외침 말풍선 (나중에 이모티콘도 같은 자리에) */
+.bubbles{position:absolute;inset:0;z-index:10;pointer-events:none;overflow:hidden}
+.bubble{position:absolute;width:132px;height:96px;transform:translate(-50%,-100%);display:flex;align-items:center;justify-content:center;padding-bottom:14px;animation:bubin .32s cubic-bezier(.2,1.6,.4,1) both,bubout .3s ease-in forwards;animation-delay:0s,var(--life,2.2s);filter:drop-shadow(0 4px 6px rgba(28,18,10,.35))}
+.bubble.below{transform:translate(-50%,0);padding:14px 0 0}
+.bubble svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.bubble.below svg{transform:scaleY(-1)}
+.bubble svg path{fill:var(--paper);stroke:var(--ink);stroke-width:3;stroke-linejoin:round}
+.bubble .bt{position:relative;font-family:var(--f-display);font-size:30px;line-height:1;color:var(--gura);transform:rotate(-6deg)}
+.bubble .be{position:relative;font-size:38px;line-height:1}
+@keyframes bubin{from{opacity:0;scale:.3}}
+@keyframes bubout{to{opacity:0;scale:.85}}
 .playfx{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:8px;background:var(--paper);border:3px solid var(--rc,var(--ink));border-radius:var(--r-md);padding:5px 14px 5px 7px;box-shadow:0 4px 0 var(--rc,var(--ink)),0 14px 24px -10px rgba(59,42,31,.5);white-space:nowrap;animation:fxpop 2s ease-out forwards}
 .playfx .fx-card{width:36px;height:50px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--paper);border:2px solid var(--rc);border-top-width:4px;border-radius:6px;font-family:var(--f-display);font-size:26px;color:var(--rc)}
 .playfx .fx-n{font-family:var(--f-display);font-size:34px;line-height:1;color:var(--rc,var(--ink))}
@@ -369,6 +381,7 @@ body.kb .fan .card.cur{z-index:70!important}
     <div class="pilenum" id="pileNum" hidden aria-live="polite"><span class="pn-l">지금</span><b id="pileNumV"></b></div>
     <div class="pilecount" id="pileCount" hidden aria-live="polite"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="12" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 21h10a2 2 0 0 0 2-2V7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b id="pileN">0</b>장</div>
     <div class="fxlayer" id="fx" aria-hidden="true"></div>
+    <div class="bubbles" id="bubbles" aria-hidden="true"></div>
     <div class="status" id="status"></div>
     <button class="fsbtn cfg" id="btnMenu" type="button" aria-label="설정" title="설정" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     <div class="menu" id="menu" hidden role="menu">
@@ -429,6 +442,7 @@ body.kb .fan .card.cur{z-index:70!important}
         <button type="button" class="mm mm-set" data-go="settings"><b>설정</b></button>
       </nav>
       <p class="note">키보드: Tab 이동 · ←→ 값 선택 · Enter 실행 · Esc 뒤로</p>
+      <p class="note sdark" id="sdarkNote" hidden>삼성 인터넷 다크 모드에서는 카드가 회색으로 보일 수 있어요. 브라우저 설정 → 실험실(Labs) → <b>웹사이트 다크 테마 사용</b>을 켜거나 다크 모드를 끄면 원래 색으로 보여요.</p>
     </div>
 
     <div class="view" data-view="create" hidden>
@@ -873,6 +887,7 @@ function applyView(s){
 }
 let newCards=new Set();
 function showTaken(ids){newCards=new Set(ids);markNewCards();sfx('sweep')}
+function seeNewCard(el){if(!el||!el.classList.contains('newcard'))return;newCards.delete(+el.dataset.id);el.classList.remove('newcard')}
 function markNewCards(){document.querySelectorAll('#hand .card').forEach(c=>c.classList.toggle('newcard',newCards.has(+c.dataset.id)))}
 
 /* ================= 소리 (Web Audio로 직접 합성, 파일 없음) ================= */
@@ -935,11 +950,36 @@ function cues(v,pv){
     else if(txt.includes('패스'))sfx('pass');
   }
   if(typeof v.fc==='number'&&typeof pv.fc==='number'&&v.fc>pv.fc&&v.la){sfx('play',v.fc-pv.fc);playFx(v)}
-  if(v.st==='reveal'&&v.rv&&pv.st!=='reveal'){setTimeout(()=>sfx(v.rv.lie?'lie':'truth'),550);$('#fx').innerHTML='';clearTimeout(pileHoldTimer);$('#pileNum').classList.remove('held')}
+  if(v.st==='reveal'&&v.rv&&pv.st!=='reveal'){setTimeout(()=>sfx(v.rv.lie?'lie':'truth'),550);$('#fx').innerHTML='';showBubble(v.rv.s,'<span class="bt">구라!</span>');clearTimeout(pileHoldTimer);$('#pileNum').classList.remove('held')}
   const me=myIdx();
   if(v.st==='play'&&me>=0&&v.t===me&&!(pv.st==='play'&&pv.t===me))setTimeout(()=>sfx('turn'),v.gr>0?Math.min(v.gr,1500):0);
 }
 let pileHoldTimer=null;
+/* 말풍선: i번 자리(내 자리면 내 정보 칸) 위에 뾰족한 외침 풍선. html에 이모티콘을 넣어도 됨 */
+function burstPath(){
+  const cx=66,cy=40,pts=[],N=18;
+  for(let k=0;k<N;k++){
+    const a=-Math.PI/2+k/N*Math.PI*2,out=k%2===0;
+    let rx=out?64:50,ry=out?40:29;
+    if(k===N/2)ry=58;                       // 아래쪽 꼭지 하나를 길게 → 말하는 사람 가리킴
+    pts.push((cx+Math.cos(a)*rx).toFixed(1)+','+(cy+Math.sin(a)*ry).toFixed(1));
+  }
+  return 'M'+pts.join('L')+'Z';
+}
+function showBubble(i,html,life){
+  const st=$('#stage'),sr=st.getBoundingClientRect();
+  const el=i===myIdx()?$('#me'):document.querySelector(`#labels .seat[data-i="${i}"]`);
+  if(!el)return;
+  const r=el.getBoundingClientRect(),x=Math.max(70,Math.min(sr.width-70,r.left-sr.left+r.width/2));
+  let y=r.top-sr.top-4,below=false;
+  if(y<100){y=r.bottom-sr.top+4;below=true}
+  const box=$('#bubbles');box.querySelectorAll(`[data-i="${i}"]`).forEach(b=>b.remove());
+  const b=document.createElement('div');b.className='bubble'+(below?' below':'');b.dataset.i=i;
+  b.style.left=x+'px';b.style.top=y+'px';b.style.setProperty('--life',(life||2200)+'ms');
+  b.innerHTML=`<svg viewBox="0 0 132 100" aria-hidden="true"><path d="${burstPath()}"/></svg>${html}`;
+  b.addEventListener('animationend',e=>{if(e.animationName==='bubout')b.remove()});
+  box.appendChild(b);
+}
 function playFx(v){
   const L=v.la,n=+v.rn;if(!L||!(n>=1&&n<=13))return;
   const a=(T&&T.anchor)||{x:$('#stage').clientWidth/2,y:$('#stage').clientHeight/2};
@@ -1208,9 +1248,11 @@ const TOUCH={id:null,t0:0,x:0,y:0,timer:null,peek:false,el:null,suppress:0};
 function setPeek(el){if(TOUCH.el===el)return;if(TOUCH.el)TOUCH.el.classList.remove('peek');TOUCH.el=el;if(el)el.classList.add('peek')}
 function toggleCard(id){curId=id;sel.has(id)?sel.delete(id):sel.add(id);sfx('pick');renderMe()}
 $('#hand').addEventListener('contextmenu',e=>e.preventDefault());
+$('#hand').addEventListener('pointerover',e=>{if(e.pointerType!=='touch')seeNewCard(e.target.closest('.card'))});
 $('#hand').addEventListener('pointerdown',e=>{
   if(e.pointerType!=='touch')return;
   const b=e.target.closest('.card');if(!b)return;
+  seeNewCard(b);
   TOUCH.id=+b.dataset.id;TOUCH.t0=Date.now();TOUCH.x=e.clientX;TOUCH.y=e.clientY;TOUCH.peek=false;
   clearTimeout(TOUCH.timer);
   TOUCH.timer=setTimeout(()=>{TOUCH.peek=true;setPeek(b);sfx('tick');if(navigator.vibrate)try{navigator.vibrate(8)}catch(_){}},300);
@@ -1223,7 +1265,7 @@ $('#hand').addEventListener('pointermove',e=>{
   const r=$('#stage').getBoundingClientRect(),cx=r.left+r.width/2;
   const idx=Math.max(0,Math.min(cards.length-1,Math.floor((e.clientX-cx+FAN.half)/Math.max(6,FAN.stepPx)+(cards.length-1)/2)));
   const c=cards[idx];
-  if(c&&c!==TOUCH.el){setPeek(c);sfx('tick')}
+  if(c&&c!==TOUCH.el){setPeek(c);seeNewCard(c);sfx('tick')}
 });
 function touchEnd(e,cancel){
   if(e.pointerType!=='touch'||TOUCH.id==null)return;
@@ -1423,6 +1465,7 @@ function buildSeg(id,key,unit,label){
     e.preventDefault();choose(bs[i]);bs[i].focus();
   });
 }
+try{if(/SamsungBrowser/i.test(navigator.userAgent)&&matchMedia('(prefers-color-scheme: dark)').matches)$('#sdarkNote').hidden=false}catch(e){}
 buildSeg('#segFast','fast','','게임 모드');buildSeg('#segMax','max','명','최대 인원');buildSeg('#segJokers','jokers','장','조커');/* 대기 시간·제한 시간은 직접 입력 (범위 밖이면 가까운 값으로) */
 function bindNum(id,key,lo,hi){
   const el=$(id);el.value=cfg[key];
