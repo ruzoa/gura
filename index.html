@@ -248,10 +248,13 @@ body.fs .info{display:none}
 
 /* 손패: 테이블 아래쪽에 부채꼴로 */
 .fan{position:absolute;left:0;right:0;bottom:0;height:var(--fh,150px);pointer-events:none;transform:scale(var(--k,1));transform-origin:50% 100%;z-index:6}
-.fan .card,.fan .card:hover,.fan .card.sel{position:absolute;left:50%;margin-left:-30px;bottom:var(--b,10px);pointer-events:auto;transform-origin:50% calc(100% + var(--R,600px));transform:rotate(var(--a,0rad)) translateY(var(--ly,0px));transition:transform .16s ease-out}
-.fan .card:hover{--ly:-16px;z-index:80!important}
+.fan .card,.fan .card:hover,.fan .card.sel{position:absolute;left:50%;margin-left:-30px;bottom:var(--b,10px);pointer-events:auto;transform-origin:50% calc(100% + var(--R,600px));transform:rotate(var(--a,0rad)) translateY(var(--ly,0px)) scale(var(--sc,1));-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;transition:transform .16s ease-out}
+.fan{touch-action:none}
 .fan .card.sel{--ly:-30px}
-.fan .card.sel:hover{--ly:-36px}
+/* 마우스: 올리면 살짝 올라옴 / 터치: 꾹 누르면 크게 올라와서 손가락에 안 가림 */
+@media (hover:hover){.fan .card:hover{--ly:-16px;z-index:80!important}.fan .card.sel:hover{--ly:-36px}}
+.fan .card.peek{--ly:-46px;--sc:1.28;z-index:90!important;transition:transform .12s ease-out}
+.fan .card.sel.peek{--ly:-58px}
 .fan .card.cur{z-index:70!important}
 .myplate{position:absolute;left:12px;bottom:var(--plateB,14px);width:min(250px,calc(100% - 24px));background:rgba(255,250,240,.95);border:1.5px solid var(--line-strong);border-radius:var(--r-md);padding:7px 10px 8px;display:flex;flex-direction:column;gap:4px;box-shadow:0 3px 0 rgba(110,69,38,.25);z-index:7}
 .myplate.on{border-color:var(--mustard);box-shadow:0 0 0 2px var(--mustard),0 3px 0 rgba(110,69,38,.25)}
@@ -1150,7 +1153,34 @@ function liveUI(t){
 }
 
 /* 입력 */
-$('#hand').addEventListener('click',e=>{const b=e.target.closest('.card');if(!b)return;const id=+b.dataset.id;curId=id;sel.has(id)?sel.delete(id):sel.add(id);sfx('pick');renderMe()});
+/* 터치: 짧게 탭하면 선택, 꾹 누르면 카드가 올라와서 미리 보기(손가락을 옆으로 밀면 다른 카드 보기), 떼면 선택 안 함 */
+const TOUCH={id:null,t0:0,x:0,y:0,timer:null,peek:false,el:null,suppress:0};
+function setPeek(el){if(TOUCH.el===el)return;if(TOUCH.el)TOUCH.el.classList.remove('peek');TOUCH.el=el;if(el)el.classList.add('peek')}
+function toggleCard(id){curId=id;sel.has(id)?sel.delete(id):sel.add(id);sfx('pick');renderMe()}
+$('#hand').addEventListener('contextmenu',e=>e.preventDefault());
+$('#hand').addEventListener('pointerdown',e=>{
+  if(e.pointerType!=='touch')return;
+  const b=e.target.closest('.card');if(!b)return;
+  TOUCH.id=+b.dataset.id;TOUCH.t0=Date.now();TOUCH.x=e.clientX;TOUCH.y=e.clientY;TOUCH.peek=false;
+  clearTimeout(TOUCH.timer);
+  TOUCH.timer=setTimeout(()=>{TOUCH.peek=true;setPeek(b);sfx('tick');if(navigator.vibrate)try{navigator.vibrate(8)}catch(_){}},300);
+});
+$('#hand').addEventListener('pointermove',e=>{
+  if(e.pointerType!=='touch'||TOUCH.id==null)return;
+  if(!TOUCH.peek){if(Math.hypot(e.clientX-TOUCH.x,e.clientY-TOUCH.y)>12){clearTimeout(TOUCH.timer);TOUCH.timer=setTimeout(()=>{TOUCH.peek=true},0)}return}
+  const el=document.elementFromPoint(e.clientX,e.clientY),c=el&&el.closest&&el.closest('#hand .card');
+  if(c&&c!==TOUCH.el){setPeek(c);sfx('tick')}
+});
+function touchEnd(e,cancel){
+  if(e.pointerType!=='touch'||TOUCH.id==null)return;
+  clearTimeout(TOUCH.timer);
+  const quick=!TOUCH.peek&&Date.now()-TOUCH.t0<300&&Math.hypot(e.clientX-TOUCH.x,e.clientY-TOUCH.y)<=12;
+  if(quick&&!cancel)toggleCard(TOUCH.id);
+  setPeek(null);TOUCH.id=null;TOUCH.peek=false;TOUCH.suppress=Date.now();
+}
+$('#hand').addEventListener('pointerup',e=>touchEnd(e,false));
+$('#hand').addEventListener('pointercancel',e=>touchEnd(e,true));
+$('#hand').addEventListener('click',e=>{if(Date.now()-TOUCH.suppress<700)return;const b=e.target.closest('.card');if(!b)return;const id=+b.dataset.id;curId=id;sel.has(id)?sel.delete(id):sel.add(id);sfx('pick');renderMe()});
 (()=>{const w=$('#numpick');let acc=0,ty=null;
   w.addEventListener('wheel',e=>{e.preventDefault();acc+=e.deltaY;if(Math.abs(acc)>=40){stepNum(acc<0?1:-1);acc=0}},{passive:false});
   w.addEventListener('touchstart',e=>{ty=e.touches[0].clientY},{passive:true});
