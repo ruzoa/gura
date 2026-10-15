@@ -6,6 +6,8 @@
 <title>구라 3D 테이블</title>
 <meta name="theme-color" content="#f4ead9">
 <meta name="color-scheme" content="only light">
+<meta name="supported-color-schemes" content="light only">
+<meta name="darkreader-lock">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -176,7 +178,7 @@ body.no3d .seat.on .ring{display:block}
 .hand{display:flex;padding:28px 4px 10px;width:max-content;min-width:100%}
 .hand.dense .card+.card{margin-left:-14px}
 .hand.denser .card+.card{margin-left:-26px}
-.card{position:relative;flex:none;width:60px;height:88px;border-radius:8px;border:1px solid var(--paper-edge);background:var(--paper);color:var(--paper-ink);padding:0;display:block;box-shadow:0 2px 0 var(--paper-edge),0 4px 8px -2px rgba(59,42,31,.3);transition:transform .12s}
+.card{position:relative;flex:none;width:60px;height:88px;border-radius:8px;border:1px solid var(--paper-edge);background:var(--paper) linear-gradient(var(--paper),var(--paper));color:var(--paper-ink);-webkit-appearance:none;appearance:none;forced-color-adjust:none;color-scheme:only light;padding:0;display:block;box-shadow:0 2px 0 var(--paper-edge),0 4px 8px -2px rgba(59,42,31,.3);transition:transform .12s}
 .card .cn{position:absolute;left:6px;top:3px;font-family:var(--f-num);font-weight:600;font-size:18px;line-height:1.1}
 .card .big{position:absolute;left:0;right:0;top:24px;text-align:center;font-family:var(--f-display);font-size:40px;line-height:1;color:var(--rc);pointer-events:none}
 .card .cn2{position:absolute;right:6px;bottom:3px;transform:rotate(180deg);font-family:var(--f-num);font-weight:600;font-size:13px;line-height:1.1;color:var(--rc)}
@@ -184,7 +186,7 @@ body.no3d .seat.on .ring{display:block}
 .card .cn{font-size:19px}
 .card .ce{position:absolute;left:0;right:0;bottom:4px;text-align:center;font-size:11px;font-weight:600;white-space:nowrap}
 .card{border-top:3px solid var(--rc,var(--paper-edge))}.card .cn,.card .ce{color:var(--rc)}
-.card.joker{background:var(--ink);border:1px solid var(--joker);color:var(--joker)}
+.card.joker{background:var(--ink) linear-gradient(var(--ink),var(--ink));border:1px solid var(--joker);color:var(--joker)}
 .card.joker .cn,.card.joker .ce{color:var(--joker)}
 .card:hover{transform:translateY(-4px)}
 .card.sel{transform:translateY(-14px);outline:3px solid var(--mustard);outline-offset:-1px;z-index:1}
@@ -572,7 +574,7 @@ const OPTS={fast:[0,1],max:[2,3,4,5,6],jokers:[0,1,2],grace:[0,3,5,10],turn:[15,
 const OPT_LABEL={fast:['클래식','빠른 모드']};
 const MODE_DESC=['꼴찌가 나올 때까지','1등이 나오면 끝'];
 const OPT_HTML={fast:v=>`<b>${OPT_LABEL.fast[v]}</b><small>${MODE_DESC[v]}</small>`};
-const cfg={fast:0,max:4,jokers:0,grace:3,turn:30};
+const cfg={fast:0,max:4,jokers:2,grace:3,turn:30};
 const PEER_PREFIX='gura-cardgame-room-';
 const ALPH='abcdefghjkmnpqrstuvwxyz23456789';
 const genCode=()=>Array.from({length:4},()=>ALPH[Math.random()*ALPH.length|0]).join('');
