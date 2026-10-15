@@ -1162,7 +1162,7 @@ function faceMat(id){
   if(T.faces.has(id))return T.faces.get(id);
   const tex=canvasTex(256,372,(g,w,h)=>drawFace(g,w,h,id));
   if(!isJ(id)){const im=ANI_IMG[numOf(id)-1];if(im&&!im.complete)im.addEventListener('load',()=>{drawFace(tex.image.getContext('2d'),256,372,id);tex.needsUpdate=true},{once:true})}
-  const m=new THREE.MeshBasicMaterial({map:tex});T.faces.set(id,m);return m;
+  const m=new THREE.MeshBasicMaterial({map:tex,alphaTest:.4});T.faces.set(id,m);return m;
 }
 function init3D(){
   if(!window.THREE){$('#nogl').hidden=false;return}
@@ -1185,7 +1185,7 @@ function init3D(){
     const table=new THREE.Mesh(new THREE.CylinderGeometry(4.9,4.9,.3,72),[side,top,side]);table.position.y=-.15;T.scene.add(table);
     const rim=new THREE.Mesh(new THREE.TorusGeometry(4.95,.2,14,96),new THREE.MeshStandardMaterial({color:0x5a3a24,roughness:.55}));rim.rotation.x=Math.PI/2;T.scene.add(rim);
     T.geo=new THREE.PlaneGeometry(.62,.9);
-    T.back=new THREE.MeshBasicMaterial({map:backTex()});
+    T.back=new THREE.MeshBasicMaterial({map:backTex(),alphaTest:.4});
     T.ring=new THREE.Mesh(new THREE.TorusGeometry(.62,.045,10,48),new THREE.MeshBasicMaterial({color:0xefbc4e}));
     T.ring.rotation.x=Math.PI/2;T.ring.visible=false;T.scene.add(T.ring);
     if(window.ResizeObserver)new ResizeObserver(resize3D).observe($('#stage'));else window.addEventListener('resize',resize3D);
