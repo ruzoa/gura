@@ -10,9 +10,12 @@
 <meta name="darkreader-lock">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="구라">
-<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22%EA%B5%AC%EB%9D%BC%22%2C%22short_name%22%3A%22%EA%B5%AC%EB%9D%BC%22%2C%22display%22%3A%22fullscreen%22%2C%22background_color%22%3A%22%23f4ead9%22%2C%22theme_color%22%3A%22%23f4ead9%22%7D">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="속고 속이는 막장 카드게임">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -324,12 +327,12 @@ body.kb .fan .card.cur{z-index:70!important}
 .fxlayer{position:absolute;inset:0;z-index:6;pointer-events:none;overflow:hidden}
 /* 외침 말풍선 (나중에 이모티콘도 같은 자리에) */
 .bubbles{position:absolute;inset:0;z-index:10;pointer-events:none;overflow:hidden}
-.bubble{position:absolute;width:132px;height:96px;transform:translate(-50%,-100%);display:flex;align-items:center;justify-content:center;padding-bottom:14px;animation:bubin .32s cubic-bezier(.2,1.6,.4,1) both,bubout .3s ease-in forwards;animation-delay:0s,var(--life,2.2s);filter:drop-shadow(0 4px 6px rgba(28,18,10,.35))}
-.bubble.below{transform:translate(-50%,0);padding:14px 0 0}
+.bubble{position:absolute;width:132px;height:104px;transform:translate(-30%,-100%);display:flex;align-items:center;justify-content:center;padding-bottom:22px;animation:bubin .32s cubic-bezier(.2,1.6,.4,1) both,bubout .3s ease-in forwards;animation-delay:0s,var(--life,2.2s);filter:drop-shadow(0 4px 6px rgba(28,18,10,.35))}
+.bubble.below{transform:translate(-30%,0);padding:22px 0 0}
 .bubble svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .bubble.below svg{transform:scaleY(-1)}
-.bubble svg path{fill:var(--paper);stroke:var(--ink);stroke-width:3;stroke-linejoin:round}
-.bubble .bt{position:relative;font-family:var(--f-display);font-size:30px;line-height:1;color:var(--gura);transform:rotate(-6deg)}
+.bubble svg path{fill:var(--gura);stroke:var(--gura-edge);stroke-width:3.5;stroke-linejoin:round}
+.bubble .bt{position:relative;font-family:var(--f-display);font-size:31px;line-height:1;color:var(--gura-ink);transform:rotate(-5deg);text-shadow:0 2px 0 var(--gura-edge)}
 .bubble .be{position:relative;font-size:38px;line-height:1}
 @keyframes bubin{from{opacity:0;scale:.3}}
 @keyframes bubout{to{opacity:0;scale:.85}}
@@ -957,12 +960,12 @@ function cues(v,pv){
 let pileHoldTimer=null;
 /* 말풍선: i번 자리(내 자리면 내 정보 칸) 위에 뾰족한 외침 풍선. html에 이모티콘을 넣어도 됨 */
 function burstPath(){
-  const cx=66,cy=40,pts=[],N=18;
+  const cx=66,cy=42,pts=[],N=20;
   for(let k=0;k<N;k++){
     const a=-Math.PI/2+k/N*Math.PI*2,out=k%2===0;
-    let rx=out?64:50,ry=out?40:29;
-    if(k===N/2)ry=58;                       // 아래쪽 꼭지 하나를 길게 → 말하는 사람 가리킴
-    pts.push((cx+Math.cos(a)*rx).toFixed(1)+','+(cy+Math.sin(a)*ry).toFixed(1));
+    let x=cx+Math.cos(a)*(out?62:52),y=cy+Math.sin(a)*(out?40:31);
+    if(k===N/2+2){x=cx-30;y=cy+60}       // 왼쪽 아래로 뻗은 꼬리 → 외친 사람 가리킴
+    pts.push(x.toFixed(1)+','+y.toFixed(1));
   }
   return 'M'+pts.join('L')+'Z';
 }
@@ -976,7 +979,7 @@ function showBubble(i,html,life){
   const box=$('#bubbles');box.querySelectorAll(`[data-i="${i}"]`).forEach(b=>b.remove());
   const b=document.createElement('div');b.className='bubble'+(below?' below':'');b.dataset.i=i;
   b.style.left=x+'px';b.style.top=y+'px';b.style.setProperty('--life',(life||2200)+'ms');
-  b.innerHTML=`<svg viewBox="0 0 132 100" aria-hidden="true"><path d="${burstPath()}"/></svg>${html}`;
+  b.innerHTML=`<svg viewBox="0 0 132 104" aria-hidden="true"><path d="${burstPath()}"/></svg>${html}`;
   b.addEventListener('animationend',e=>{if(e.animationName==='bubout')b.remove()});
   box.appendChild(b);
 }
@@ -1399,6 +1402,9 @@ function setFsLabel(){
   b.innerHTML=on?ICON_MIN:ICON_MAX;
   const t=on?'전체화면 끄기':'전체화면';b.setAttribute('aria-label',t);b.title=t;
 }
+/* 홈 화면 앱으로 실행하면 처음부터 테이블이 화면을 채우게 */
+try{if(matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches||navigator.standalone)document.body.classList.add('fs','app')}catch(e){}
+if('serviceWorker' in navigator&&location.protocol==='https:')window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 setFsLabel();
 $('#btnFs').addEventListener('click',()=>{
   const on=!document.body.classList.contains('fs');
