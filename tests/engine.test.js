@@ -1,6 +1,6 @@
 /* 엔진 테스트: index.html의 방장 엔진(공통) + games/*.js를 node에서 그대로 돌립니다.
    실행: node tests/engine.test.js
-   내용: 대부호 규칙 단위 테스트 + 두 게임 모두 봇끼리 여러 설정으로 끝까지 자동 대전(멈춤·카드 수·순위 확인) */
+   내용: 대부호·쿼리도 규칙 단위 테스트 + 쿼리도 규칙 무작위 대조 + 모든 게임 봇끼리 여러 설정으로 끝까지 자동 대전(멈춤·카드 수·순위 확인) */
 const fs=require('fs'),path=require('path'),vm=require('vm');
 const root=path.join(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
@@ -146,6 +146,7 @@ function playOutQ(n,over,lvs){
 }
 globalThis.playOutQ=playOutQ;
 }`,'quoridor.cases.js');
+run('{'+fs.readFileSync(path.join(__dirname,'quoridor.fuzz.js'),'utf8')+'}','quoridor.fuzz.js');
 run(`
 let qt=0;
 for(let rep=0;rep<48;rep++){

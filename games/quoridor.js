@@ -289,9 +289,10 @@ G.engine={
     const per=wallsPer(+H.cfg.walls||10,cnt);
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,rankBottom:n,known:{}});
     const Q={n,cnt,sd:[],pos:[],done:[],wl:[],B:mkB(),walls:[],lm:null};
+    H.rankBottom=cnt;   // 항복 순위는 실제로 말을 가진 사람 수 기준
     H.players.forEach((p,i)=>{
       if(i<cnt){Q.sd.push(seats[i]);Q.pos.push(SIDE_START[seats[i]].slice());Q.done.push(0);Q.wl.push(per);p.hand=PAWN()}
-      else{Q.sd.push(0);Q.pos.push(null);Q.done.push(1);Q.wl.push(0);p.hand=[];p.finished=true;p.rank=n}   // 자리가 모자라면(5명 이상) 구경만 함
+      else{Q.sd.push(0);Q.pos.push(null);Q.done.push(1);Q.wl.push(0);p.hand=[];p.finished=true;p.rank=i+1}   // 자리가 모자라면(5명 이상) 구경만 함 (보통은 최대 인원 4명이라 생기지 않음)
     });
     H.q=Q;
     const first=Math.random()*cnt|0;
@@ -423,15 +424,15 @@ function boardHTML(S,me){
     out.push(wallLine(w[0],w[1],w[2],PDARK[w[3]%4],.2,1,''));
     out.push(wallLine(w[0],w[1],w[2],PCOL[w[3]%4],.12,1,''));
   }
-  // 말 (도착한 말은 흐리게 순위만 표시)
+  // 도착한 말은 흐리게 순위만 표시 (다른 말이 그 칸을 지나갈 수 있으므로 살아 있는 말보다 먼저 그림)
   for(let i=0;i<S.n;i++){
-    const p=S.pos[i];if(!p)continue;
+    const p=S.pos[i];if(!p||!S.done[i])continue;
+    const [vr,vc]=rc(p[0],p[1],k),cx=vc+.5,cy=vr+.5,col=PCOL[i%4],rk=V.ps[i]&&V.ps[i].f;
+    out.push(`<circle cx="${cx}" cy="${cy}" r=".3" fill="${col}" opacity=".28" stroke="${col}" stroke-width=".05"/><text x="${cx}" y="${cy+.11}" text-anchor="middle" font-size=".34" font-weight="700" fill="#3b2a1f" opacity=".75">${rk?+rk:''}</text>`);
+  }
+  for(let i=0;i<S.n;i++){
+    const p=S.pos[i];if(!p||S.done[i])continue;
     const [vr,vc]=rc(p[0],p[1],k),cx=vc+.5,cy=vr+.5,col=PCOL[i%4];
-    if(S.done[i]){
-      const rk=V.ps[i]&&V.ps[i].f;
-      out.push(`<circle cx="${cx}" cy="${cy}" r=".3" fill="${col}" opacity=".28" stroke="${col}" stroke-width=".05"/><text x="${cx}" y="${cy+.11}" text-anchor="middle" font-size=".34" font-weight="700" fill="#3b2a1f" opacity=".75">${rk?+rk:''}</text>`);
-      continue;
-    }
     const on=V.st==='play'&&V.t===i;
     if(on)out.push(`<circle class="qd-pulse" cx="${cx}" cy="${cy}" r=".42" fill="none" stroke="${col}" stroke-width=".06"/>`);
     out.push(`<circle cx="${cx}" cy="${cy+.04}" r=".33" fill="#000" opacity=".22"/><circle cx="${cx}" cy="${cy}" r=".33" fill="${col}" stroke="#fffaf0" stroke-width=".07"/><circle cx="${cx-.09}" cy="${cy-.1}" r=".09" fill="#fff" opacity=".45"/>`);
@@ -470,8 +471,17 @@ function drawHint(){
 }
 function fit(){
   if(!elQd||elQd.hidden)return;
-  const bd=elQd.querySelector('.qd-bd'),s=Math.floor(Math.min(bd.clientWidth,bd.clientHeight));
-  if(s>0){elSvg.style.width=elSvg.style.height=s+'px'}
+  const bd=elQd.querySelector('.qd-bd'),bw=bd.clientWidth,bh=bd.clientHeight;
+  let s=Math.min(bw,bh),top='50%';
+  // 넓고 낮은 화면(가로 휴대폰·PC): 아래쪽 '내 정보'와 '벽 놓기' 버튼 사이로 보드를 더 키움
+  const st=$('#stage').getBoundingClientRect(),br=bd.getBoundingClientRect(),me=$('#me'),act=$('#actions');
+  const pr=Math.max(240,me&&!me.hidden?me.getBoundingClientRect().right-st.left:0);   // 내 정보 칸은 글자에 따라 폭이 바뀌므로 넉넉히 잡아서 보드가 흔들리지 않게
+  const al=Math.min(st.width-140,act&&!act.hidden?act.getBoundingClientRect().left-st.left:st.width);
+  const cx=br.left-st.left+bw/2;
+  const big=Math.floor(Math.min(bw,bh+(st.bottom-br.bottom)-10,2*Math.min(cx-pr-10,al-10-cx)));
+  if(big>s){s=big;top=(s/2)+'px'}
+  s=Math.floor(s);
+  if(s>0){elSvg.style.width=elSvg.style.height=s+'px';elSvg.style.top=top}
 }
 function drawAll(){
   if(!QS||!elMain)return;
@@ -508,9 +518,12 @@ G.hud=inGame=>{
 G.handMarks=()=>{};
 G.me=(i,h)=>{
   $('#numpick').hidden=true;
-  const p=V.ps[i];if(!p||p.f||!V.q)return;
+  const p=V.ps[i];if(!p||!V.q)return;
+  if(p.f){if(!p.sr)$('#meSub').innerHTML=`<b>${+p.f}위</b>로 도착했습니다.`;return}
   $('#meSub').innerHTML=`남은 벽 <b>${+V.q.wl[i]}</b>개`;
 };
+G.specNote='관전 중입니다. 모든 말과 벽이 보입니다.';
+G.no3D=true;   // 3D 테이블을 쓰지 않음: 공통 코드가 그리기를 쉬어서 휴대폰 배터리를 아낌
 G.buttons=()=>{
   const play=$('#btnPlay'),can=!!(pend&&qMode==='wall'&&myTurnNow());
   $('#btnPass').hidden=true;$('#btnGura').hidden=true;
@@ -560,9 +573,11 @@ G.init=()=>{
 .stage.qd{background:radial-gradient(ellipse at 50% 38%,#f3e4c2 0%,#e2c89a 70%,#d3b27c 100%)}
 .stage.qd #cv,.stage.qd #dim{visibility:hidden}
 .stage.qd .labels{visibility:hidden}
+.stage.qd .nogl{display:none}
+.specbar:not([hidden])~#qd .qd-bar{margin-top:30px}
 .stage.qd .actions{left:auto}
 .stage.qd .myplate{max-width:calc(100% - 150px)}
-#qd{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 10px 82px;pointer-events:none;min-height:0}
+#qd{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 10px 82px;pointer-events:none;min-height:0}
 #qd[hidden]{display:none}
 #qd .qd-bar{min-height:44px;display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start;max-width:calc(100% - 188px);pointer-events:none}
 #qd .qd-p{position:relative;display:flex;align-items:center;gap:6px;padding:4px 10px 6px;border-radius:12px;background:rgba(255,250,240,.92);border:1.5px solid var(--line-strong,#cdb391);font-size:13px;line-height:1.15;overflow:hidden;white-space:nowrap;max-width:100%}

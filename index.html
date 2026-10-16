@@ -1104,7 +1104,7 @@ function scanRooms(cb){
   peer.on('open',()=>{
     for(let k=0;k<PUB_SLOTS;k++){
       const c=peer.connect(PUB_PREFIX+k,{reliable:true});
-      c.on('data',d=>{if(d&&d.t==='room'&&/^[a-z0-9]{4}$/.test(d.code||'')){rooms.set(d.code,{code:d.code,title:cleanNick(d.title||'')||'공개 방',host:d.host?cleanNick(d.host):'',n:+d.n||0,max:+d.max||0,ph:String(d.ph||''),fast:+d.fast?1:0,g:GAMES[d.g]?d.g:'gura',maxn:+d.maxn||14,jk:+d.jk||0,sp:+d.sp||0,spm:d.spm==null?8:+d.spm||0})}});
+      c.on('data',d=>{if(d&&d.t==='room'&&/^[a-z0-9]{4}$/.test(d.code||'')){rooms.set(d.code,{code:d.code,title:cleanNick(d.title||'')||'공개 방',host:d.host?cleanNick(d.host):'',n:+d.n||0,max:+d.max||0,ph:String(d.ph||''),fast:+d.fast?1:0,g:GAMES[d.g]?d.g:'gura',maxn:+d.maxn||14,jk:+d.jk||0,wl:+d.wl||0,sp:+d.sp||0,spm:d.spm==null?8:+d.spm||0})}});
     }
     setTimeout(finish,3500);
   });
@@ -1654,7 +1654,7 @@ function renderMe(){
   $('#me').hidden=!(V&&V.ps&&V.st!=='wait'&&mode!=='lobby');
   if(!V||!V.ps||V.st==='wait'||i<0){
     hand.innerHTML='';hand.dataset.key='';np.hidden=true;np.innerHTML='';layoutFan();
-    $('#meSub').textContent=mode==='lobby'?'로비에서 방을 만들거나 참가합니다.':(V&&V.st!=='wait'&&i<0?(V.jn?'다음 판에 참가합니다.':'관전 중입니다. 다른 사람의 패는 볼 수 없습니다.'):'게임 시작을 기다리는 중입니다.');
+    $('#meSub').textContent=mode==='lobby'?'로비에서 방을 만들거나 참가합니다.':(V&&V.st!=='wait'&&i<0?(V.jn?'다음 판에 참가합니다.':G.specNote||'관전 중입니다. 다른 사람의 패는 볼 수 없습니다.'):'게임 시작을 기다리는 중입니다.');
     renderButtons();return;
   }
   const p=V.ps[i],h=myHand();
@@ -1781,7 +1781,8 @@ function renderPanel(){
       const c=V.cfg,minMax=Math.max(2,V.ps.length);
       const nowN=Math.max(2,V.ps.length),cardInfo=G.cardInfo(c,nowN);
       const rules=G.ruleSet.map(d=>{const on=!!(+c[d.k]);return `<div class="stp tg"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="sw${on?'':' right'}" role="switch" aria-checked="${on}" aria-label="${d.label}" data-act="tog:${d.k}"><i></i></button></div></div>`}).join('');
-      const gpick=`<div class="stp"><div class="stp-t"><b>게임</b><small>${esc(G.lead)}</small></div><div class="row modepick" role="radiogroup" aria-label="게임">${GAME_IDS.map(id=>`<button class="btn ${c.game===id?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${c.game===id}" data-act="game:${id}">${esc(GAMES[id].name)}</button>`).join('')}</div></div>`;
+      const tooMany=GAME_IDS.filter(id=>GAMES[id].maxHi&&V.ps.length>GAMES[id].maxHi);   // 인원 제한이 있는 게임(쿼리도 4명)은 지금 인원이 넘으면 고를 수 없음
+      const gpick=`<div class="stp"><div class="stp-t"><b>게임</b><small>${esc(G.lead)}${tooMany.length?`<br>${tooMany.map(id=>`${esc(GAMES[id].name)}은(는) 최대 ${GAMES[id].maxHi}명`).join(', ')}까지 할 수 있습니다.`:''}</small></div><div class="row modepick" role="radiogroup" aria-label="게임">${GAME_IDS.map(id=>`<button class="btn ${c.game===id?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${c.game===id}" data-act="game:${id}"${tooMany.includes(id)?' disabled':''}>${esc(GAMES[id].name)}</button>`).join('')}</div></div>`;
       const rows=roomSetOf(G).map(d=>{const v=+(c[d.k]??cfg[d.k]),lo=d.k==='max'?minMax:d.k==='spec'?(Array.isArray(V.sv)?V.sv.length:0):d.lo;
         return `<div class="stp"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="stp-b" data-act="dec:${d.k}" aria-label="${d.label} 줄이기"${v<=lo?' disabled':''}>−</button><input class="txt stp-v" id="st_${d.k}" type="number" inputmode="numeric" min="${lo}" max="${d.hi}" step="${d.step}" value="${v}" aria-label="${d.label}"><span class="stp-u">${d.unit}</span><button type="button" class="stp-b" data-act="inc:${d.k}" aria-label="${d.label} 늘리기"${v>=d.hi?' disabled':''}>+</button></div></div>`}).join('');
       showPanel(`<div class="vhead"><button type="button" class="back" data-act="setclose" aria-label="대기실로">←</button><h2>방 설정</h2></div>
@@ -2464,7 +2465,7 @@ function frame(){
       T.timerArc.rotation.z=seatAngle(V.t);
       for(const m of [T.timerBg,T.timerArc]){m.visible=true;m.position.set(sp.x,.035,sp.z)}
     }else{T.ring.visible=false;T.timerBg.visible=false;T.timerArc.visible=false}
-    T.r.render(T.scene,T.cam);
+    if(!G.no3D)T.r.render(T.scene,T.cam);   // 3D 테이블을 쓰지 않는 게임(쿼리도)은 그리기를 쉼
   }
   placeLabels();
   liveUI(t);
