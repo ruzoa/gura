@@ -1138,6 +1138,111 @@ function setSoundIcon(){
 }
 $('#btnSound').addEventListener('click',()=>{SND.on=!SND.on;store('gura-sound',SND.on?'on':'off');setSoundIcon();if(SND.on){audioOn();setTimeout(()=>sfx('pick'),30)}});
 setSoundIcon();
+   /* ================= 카페 재즈 BGM (Swing Jazz Trio Sequencer) ================= */
+const BGM = {
+  timer: null,
+  step: 0,
+  playing: false,
+
+  // 4마디 재즈 코드 진행: Dm9 -> G13 -> Cmaj9 -> A7alt (16스텝 = 4마디 x 4박자)
+  // 1) 어쿠스틱 업라이트 워킹 베이스 라인 (Hz)
+  bass: [
+    73.42, 82.41, 87.31, 92.50,  // Dm7: D2 - E2 - F2 - F#2
+    98.00, 110.00, 123.47, 73.42,// G7:  G2 - A2 - B2 - D2
+    65.41, 73.42, 82.41, 98.00,  // Cmaj7: C2 - D2 - E2 - G2
+    110.00, 98.00, 87.31, 82.41  // A7:  A2 - G2 - F2 - E2
+  ],
+
+  // 2) 일렉트릭 피아노(Rhodes) 재즈 보이싱 코드
+  chords: [
+    [293.66, 349.23, 440.00, 523.25], // Dm7 (D4, F4, A4, C5)
+    [246.94, 349.23, 392.00, 440.00], // G9  (B3, F4, G4, A4)
+    [261.63, 329.63, 392.00, 493.88], // Cmaj7 (C4, E4, G4, B4)
+    [277.18, 349.23, 440.00, 523.25]  // A7#5#9 (C#4, F4, A4, C5)
+  ],
+
+  // 3) 카페 피아노 고음역대 애드리브 멜로디용 스케일 (Hz)
+  licks: [523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77, 1046.50],
+
+  // 피아노 화음 연주 헬퍼
+  playChord(notes, dur, delay = 0, vol = 0.022) {
+    notes.forEach((f, idx) => {
+      // 손가락으로 살짝 굴려 치는 느낌(아르페지오 스트럼)을 위해 0.012초씩 미세 딜레이
+      tone(f, dur, { type: 'sine', vol, attack: 0.02, at: delay + idx * 0.012 });
+    });
+  },
+
+  start() {
+    if (this.playing) return;
+    this.playing = true;
+    this.step = 0;
+
+    const tick = () => {
+      if (!this.playing) return;
+      const c = SND.ctx;
+
+      // 오디오가 켜져 있고, '구라!' 판정(reveal) 연출 중이 아닐 때만 연주
+      if (c && SND.on && c.state === 'running' && !(V && V.st === 'reveal')) {
+        const idx = this.step % 16;
+        const bar = Math.floor(idx / 4); // 현재 마디 (0~3)
+        const beat = idx % 4;            // 마디 내 박자 (0, 1, 2, 3)
+
+        // [1] 워킹 베이스: 매 박자마다 묵직하고 따뜻하게 둥-둥- 연주
+        const bf = this.bass[idx];
+        if (bf) {
+          tone(bf, 0.36, { type: 'triangle', vol: 0.065, attack: 0.015, slide: bf * 0.99 });
+        }
+
+        // [2] 재즈 브러시 드럼 (스윙 라이드 심벌 & 하이햇)
+        // 정박 브러시 터치
+        hiss(0.05, { freq: 6200, q: 2.2, vol: 0.018 });
+        // 2박, 4박(beat 1, 3)에 하이햇 액센트 + 스윙 엇박(0.28초 뒤)에 '치-키' 리듬 추가
+        if (beat === 1 || beat === 3) {
+          hiss(0.08, { freq: 4800, q: 1.6, vol: 0.032 });
+          hiss(0.04, { freq: 6800, q: 2.8, vol: 0.022, at: 0.28 });
+        }
+
+        // [3] 재즈 피아노 컴핑 (Comping - 리드미컬한 화음 반주)
+        const chord = this.chords[bar];
+        if (beat === 0) {
+          // 각 마디 첫 박자에 부드럽게 화음 깔아주기
+          this.playChord(chord, 0.55, 0, 0.024);
+        } else if (beat === 2 && Math.random() < 0.75) {
+          // 3박자 뒤 스윙 엇박 타이밍에 짧고 세련된 리듬 커팅 반주
+          this.playChord(chord, 0.28, 0.26, 0.02);
+        }
+
+        // [4] 은은한 피아노 즉흥 멜로디 (매번 조금씩 다르게 연주되어 지루함 방지)
+        if (Math.random() < 0.42) {
+          const note = pick(this.licks);
+          const swingDelay = Math.random() < 0.6 ? 0.27 : 0; // 스윙 엇박 반영
+          tone(note, 0.24, { type: 'sine', vol: 0.028, attack: 0.01, at: swingDelay });
+        }
+
+        this.step++;
+      }
+
+      // 기본 템포: 1박자당 약 430ms (약 140 BPM의 여유로운 카페 스윙 템포)
+      this.timer = setTimeout(tick, 430);
+    };
+
+    tick();
+  },
+
+  stop() {
+    this.playing = false;
+    clearTimeout(this.timer);
+    this.timer = null;
+  }
+};
+
+// 사용자가 화면을 처음 클릭하거나 키를 누를 때 BGM 자동 시작
+['pointerdown', 'keydown'].forEach(ev => {
+  document.addEventListener(ev, () => {
+    audioOn();
+    BGM.start();
+  }, { once: true, passive: true });
+});
 function myIdx(){return V&&V.ps&&Number.isInteger(V.you)&&V.you>=0&&V.you<V.ps.length?V.you:-1}
 function myHand(){const i=myIdx();return i>=0&&Array.isArray(V.ps[i].h)?V.ps[i].h:[]}
 function activeV(i){const p=V.ps[i];return p&&!p.f&&p.c>0}
