@@ -648,7 +648,7 @@ const ROOM_SET=[
   {k:'jokers',label:'별카드',unit:'장',lo:0,hi:4,step:1,desc:'모든 자음으로 인정되는 카드'},
   {k:'maxn',label:'자음 수',unit:'자',lo:4,hi:19,step:1,desc:'14자 = ㄱ~ㅎ, 15자부터 ㄲ·ㄸ·ㅃ·ㅆ·ㅉ 순으로 추가. 자음마다 4장'},
   {k:'grace',label:'대기 시간',unit:'초',lo:0,hi:30,step:1,desc:'카드를 내고 다음 사람이 기다리는 시간'},
-  {k:'turn',label:'제한 시간',unit:'초',lo:5,hi:120,step:5,desc:'제한 시간 지나면 패스 <br> 첫 플레이어의 경우 1장을 자동으로 냅니다'}];
+  {k:'turn',label:'제한 시간',unit:'초',lo:5,hi:120,step:5,desc:'제한 시간 지나면 패스 <br> 첫 플레이어는 다음 사람에게 순서가 넘어갑니다'}];
 try{const sv=JSON.parse(store('gura-roomcfg')||'null');if(sv)for(const d of ROOM_SET)if(Number.isFinite(+sv[d.k]))cfg[d.k]=Math.max(d.lo,Math.min(d.hi,Math.round(+sv[d.k])))}catch(e){}
 function saveRoomCfg(c){const o={};for(const d of ROOM_SET)o[d.k]=c[d.k];store('gura-roomcfg',JSON.stringify(o))}
 let roomSetOpen=false;
@@ -800,8 +800,10 @@ function checkEnd(){
 function timeout(){
   const i=H.turn,p=H.players[i];
   if(H.roundNum==null){
-    const id=p.hand[0];const num=isJ(id)?1+(Math.random()*(H.cfg.maxn||14)|0):numOf(id);
-    addLog(`${p.name} 시간 초과. 가장 작은 카드 1장 자동 제출.`,'sys');doPlay(i,[id],num);
+    // 라운드 첫 사람이 시간을 넘기면 카드를 내지 않고 다음 사람이 이 라운드를 시작
+    H.seatNote[i]='시간 초과';
+    addLog(`${p.name} 시간 초과. 다음 사람이 시작합니다.`,'sys');
+    startTurn(nextActive(i));
   }else doPass(i,true);
 }
 function planBotShouts(i,t){
