@@ -1,0 +1,526 @@
+/* ===== 구라! 게임 모듈 =====
+   공통 코드(index.html)가 GAMES.gura의 함수를 불러서 이 게임의 규칙·봇·카드·화면을 그림.
+   카드 id: 0~(자음 수*4-1)은 자음 카드((순번-1)*4+0~3), 100~103은 별카드.
+   순번 1~14 = 기본 자음 ㄱ~ㅎ, 15~19 = 쌍자음 ㄲ ㄸ ㅃ ㅆ ㅉ. 같은 자음은 같은 색 */
+(function(){
+const G={id:'gura',name:'구라!',short:'구라',lead:'속고 속이는 막장 카드게임',brand:'구라!',brandPx:62};
+
+/* ---------- 카드 ---------- */
+let MAXN=14;   // 이번 방에서 쓰는 자음 수 (방 설정에서 4~19)
+const numOf=id=>isJ(id)?0:(id>>2)+1;
+const labelOf=id=>isJ(id)?'★':rankLabel(numOf(id));
+const GLYPH=['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ','ㄲ','ㄸ','ㅃ','ㅆ','ㅉ'];
+const DICT=['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];   // 화면에 늘어놓는 순서 (사전 순)
+const DOUBLE_OF={15:1,16:3,17:6,18:7,19:9};   // 쌍자음 → 짝이 되는 기본 자음 순번
+const isDbl=n=>n>=15;
+const dpos=n=>DICT.indexOf(GLYPH[n-1]);
+/* 자음마다 고유 색. 쌍자음은 짝이 되는 기본 자음과 같은 계열의 진한 색 (+ 카드 위 두 줄) */
+const BASE_COLORS=['#c53026','#157568','#b42da2','#5c7010','#6258d5','#aa4c0e','#107093','#c52660','#1f7a2e','#9041c8','#886107','#2b65ca','#905e41','#0b8a8a'];
+const darkHex=(h,k)=>'#'+[1,3,5].map(i=>Math.round(parseInt(h.slice(i,i+2),16)*k).toString(16).padStart(2,'0')).join('');
+const RANK_COLORS=[...BASE_COLORS,...[15,16,17,18,19].map(n=>darkHex(BASE_COLORS[DOUBLE_OF[n]-1],.62))];
+const rankLabel=n=>GLYPH[n-1]||String(n);
+const numName=n=>n>=1&&n<=19?rankLabel(n):String(n);
+// 손패 정렬: 사전 순, 별카드는 맨 뒤
+const cmpCard=(a,b)=>(isJ(a)-isJ(b))||(isJ(a)?a-b:(dpos(numOf(a))-dpos(numOf(b)))||a-b);
+// 선언 휠 순서 (위→아래 = ㄱ→ㅎ)
+const wheelOrder=()=>Array.from({length:MAXN},(_,k)=>k+1).sort((a,b)=>dpos(a)-dpos(b));
+const fits=(id,num)=>isJ(id)||numOf(id)===num;
+const cardHTML=(id,extra)=>{
+  const j=isJ(id),n=numOf(id);
+  return `<button type="button" class="card ${j?'joker ':''}${!j&&isDbl(n)?'dbl ':''}${extra||''}" data-id="${id}"${j?'':` style="--rc:${RANK_COLORS[n-1]}"`} aria-label="${j?'별카드':rankLabel(n)}"><span class="cn">${labelOf(id)}</span><span class="big">${j?'★':rankLabel(n)}</span><span class="cn2" aria-hidden="true">${labelOf(id)}</span></button>`;
+};
+Object.assign(G,{labelOf,cmpCard,cardHTML});
+/* 3D 카드 앞면 (60×88 카드를 256×372로 확대) */
+G.drawFace=function(g,w,h,id){
+  const j=isJ(id),n=numOf(id),RC=j?JOKER_C:RANK_COLORS[n-1],k=w/60;
+  g.clearRect(0,0,w,h);
+  g.save();rr(g,0,0,w,h,8*k);g.clip();
+  g.fillStyle=j?'#3b2a1f':'#fffcf5';g.fillRect(0,0,w,h);
+  if(!j){g.fillStyle=RC;if(isDbl(n)){g.fillRect(0,0,w,2.4*k);g.fillRect(0,4.4*k,w,2.4*k)}else g.fillRect(0,0,w,3*k)}
+  g.restore();
+  g.strokeStyle=j?RC:'#e3d4bb';g.lineWidth=j?2*k:1*k;rr(g,g.lineWidth/2,g.lineWidth/2,w-g.lineWidth,h-g.lineWidth,8*k);g.stroke();
+  g.fillStyle=RC;g.font=`600 ${19*k}px "IBM Plex Mono", "Jua", monospace`;g.textAlign='left';g.textBaseline='top';g.fillText(labelOf(id),6*k,(j?4:6)*k);
+  g.fillStyle=RC;g.textAlign='center';g.textBaseline='middle';
+  g.font=j?`${40*k}px sans-serif`:`${40*k}px "Jua", "Black Han Sans", sans-serif`;g.fillText(j?'★':rankLabel(n),w/2,44*k);
+  g.save();g.translate(w-6*k,h-3*k);g.rotate(Math.PI);g.font=`600 ${13*k}px "IBM Plex Mono", "Jua", monospace`;g.textAlign='left';g.textBaseline='top';g.fillText(labelOf(id),0,0);g.restore();
+};
+
+/* ---------- 규칙 설명·방 설정 ---------- */
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 손에 든 카드를 먼저 털어낸 사람이 <b>승리</b>합니다</li><li><b>시작</b> : 첫 번째 플레이어가 자음 하나를 정하고 1장 이상 <b>뒷면으로</b> 냅니다</li><li><b>진행</b> : 돌아가며 해당 자음 카드를 뒷면으로 내거나 <b>패스</b>합니다</li><li><b>구라!</b> : 정해진 자음이 아닌 다른 카드를 낸 것 같다면 누구든 <b>구라!</b>를 외칠 수 있습니다</li><li><b>판정</b> : <b>거짓</b>이면 카드를 낸 사람이, <b>진짜</b>면 구라!를 외친 사람이 쌓인 카드를 전부 가져갑니다</li><li><b>패스</b> : 만약 모든 플레이어가 패스를 하면 쌓인 카드는 버려집니다.</li><li><b>별카드</b> : 모든 자음으로 인정됩니다</li></ol>';
+G.modeDesc=['꼴찌가 나올 때까지','1등이 나오면 끝'];
+G.defaults={jokers:2,maxn:14,grace:3,turn:30};
+G.roomSet=[
+  {k:'jokers',label:'별카드',unit:'장',lo:0,hi:4,step:1,desc:'모든 자음으로 인정되는 카드'},
+  {k:'maxn',label:'자음 수',unit:'자',lo:4,hi:19,step:1,desc:'14자 = ㄱ~ㅎ, 15자부터 ㄲ·ㄸ·ㅃ·ㅆ·ㅉ 순으로 추가. 자음마다 4장'},
+  {k:'grace',label:'대기 시간',unit:'초',lo:0,hi:30,step:1,desc:'카드를 내고 다음 사람이 기다리는 시간'},
+  {k:'turn',label:'제한 시간',unit:'초',lo:5,hi:120,step:5,desc:'제한 시간 지나면 패스 <br> 첫 플레이어는 다음 사람에게 순서가 넘어갑니다'}];
+G.ruleSet=[];
+G.cfgChips=c=>`<span class="chip">자음 <b>${+c.maxn||14}자</b></span><span class="chip">별카드 <b>${+c.jokers||0}장</b></span><span class="chip">대기 시간 <b>${+c.grace}초</b></span><span class="chip">제한 시간 <b>${+c.turn}초</b></span>`;
+G.cfgSum=c=>`별카드 ${+c.jokers||0}장 · 자음 ${+c.maxn||14}자 · 대기 시간 ${+c.grace}초 · 제한 시간 ${+c.turn}초`;
+G.roomSub=x=>`자음 ${x.maxn||14}자 · ★${x.jk}`;
+G.pubExtra=c=>({maxn:c.maxn||14});
+G.cardInfo=(c,nowN)=>{
+  const total=(+c.maxn||14)*4+(+c.jokers||0),perNow=Math.floor(total/nowN),perFull=Math.floor(total/Math.max(2,+c.max));
+  return `<p class="cardinfo${perFull<5?' warn':''}">카드 ${total}장 · 지금 ${nowN}명이면 1인당 약 ${perNow}장${+c.max>nowN?` · ${+c.max}명이 다 차면 약 ${perFull}장`:''}${perFull<5?'<br>1인당 5장 미만이라 판이 너무 빨리 끝날 수 있습니다. 자음 수나 별카드를 늘리는 것을 추천합니다.':''}${+c.max>=7?'<br>7~8명 방은 제한 시간 20초, 대기 시간 2초 정도로 짧게 하면 덜 지루합니다.':''}</p>`;
+};
+G.rankTitle=()=>'';
+G.finLabel=()=>'탈출';
+G.noEmotes=[];
+G.keys={gura:'KeyF',numUp:'KeyW',numDown:'KeyS'};
+G.keyActions=[
+  {a:'gura',n:'구라!',d:'직전에 낸 카드를 의심합니다'},
+  {a:'numUp',n:'선언 자음 이전',d:'라운드를 시작할 때 선언할 자음을 이전 자음(위)으로 바꿉니다'},
+  {a:'numDown',n:'선언 자음 다음',d:'라운드를 시작할 때 선언할 자음을 다음 자음(아래)으로 바꿉니다'}];
+
+/* ---------- 방장 엔진 (규칙 처리) ---------- */
+const REVEAL_PAUSE=1000;   // 구라! 외친 뒤 카드를 펼치기 전까지 잠깐 뜸 들이기
+function newRound(st){
+  H.roundNum=null;H.roundStarter=null;H.last=null;H.passes=0;H.field=[];H.seatNote={};H.shouts=[];
+  if(!isActive(st))st=nextActive(st);
+  H.graceUntil=0;startTurn(st);
+}
+function startTurn(i){
+  if(i<0){checkEnd();return}
+  H.turn=i;
+  const base=Math.max(clock(),H.graceUntil);
+  H.deadline=base+H.cfg.turn*1000;
+  H.botActAt=H.players[i].bot?base+rand(900,2100):0;
+  mark();
+}
+function closeChance(){
+  if(H.last)H.last.open=false;
+  H.shouts=[];
+  if(H.pending!=null){const f=H.pending;H.pending=null;finish(f)}
+}
+function doPlay(i,ids,num){
+  closeChance();if(H.phase!=='play')return;
+  if(H.roundNum==null){H.roundNum=num;H.roundStarter=i}
+  const p=H.players[i],set=new Set(ids);
+  p.hand=p.hand.filter(id=>!set.has(id));
+  H.field.push(...ids);
+  H.last={p:i,ids,count:ids.length,open:true};H.passes=0;
+  H.seatNote={[i]:`"${numName(H.roundNum)}" ${ids.length}장`};
+  addLog(`${p.name}: "${numName(H.roundNum)}" ${ids.length}장`);
+  if(!p.hand.length){H.pending=i;addLog(`${p.name} 마지막 카드! 구라가 없으면 탈출.`,'sys')}
+  const t=clock();H.graceUntil=t+H.cfg.grace*1000;
+  planBotShouts(i,t);
+  startTurn(nextActive(i));
+}
+function doPass(i,auto){
+  closeChance();if(H.phase!=='play')return;
+  H.passes++;H.seatNote[i]=auto?'시간 초과':'패스';
+  addLog(`${H.players[i].name} ${auto?'시간 초과 ':''}패스`,'sys');
+  // 마지막으로 낸 사람을 포함해 남은 사람 전원이 연속으로 패스해야 폐기
+  const everyone=H.players.filter((p,j)=>isActive(j)).length;
+  if(H.passes>=everyone){addLog(`모두 패스. 필드 ${H.field.length}장 폐기.`,'sys');newRound(H.roundStarter);return}
+  startTurn(nextActive(i));
+}
+function canShoutH(s){return H&&H.phase==='play'&&H.last&&H.last.open&&s!==H.last.p&&s>=0&&isActive(s)}
+function doShout(s){
+  if(!canShoutH(s))return;
+  const L=H.last;L.open=false;H.shouts=[];
+  const lie=L.ids.some(id=>!fits(id,H.roundNum));
+  H.phase='reveal';
+  H.reveal={s,L,lie,taker:lie?L.p:s,starter:lie?s:L.p,num:H.roundNum,fc:H.field.length,until:clock()+3600+REVEAL_PAUSE};
+  addLog(`${H.players[s].name}: "구라!" → ${H.players[L.p].name}`,'gura');
+  mark();
+}
+function resolveReveal(){
+  const R=H.reveal;H.reveal=null;H.phase='play';
+  {const tk=R.taker,other=R.lie?R.s:R.L.p;   // 가져가는 봇은 😭/😵, 이긴 쪽 봇은 가끔 🤣
+   if(H.players[tk]&&H.players[tk].bot&&Math.random()<.4)botEmote(tk,R.fc>=8?'dizzy':'cry',500+Math.random()*700);
+   if(H.players[other]&&H.players[other].bot&&Math.random()<.25)botEmote(other,'lol',900+Math.random()*900);}
+  const t=H.players[R.taker];t.hand.push(...H.field);t.hand.sort(cmpCard);
+  H.known=H.known||{};const kn=new Set(H.known[R.taker]||[]);R.L.ids.forEach(id=>kn.add(id));H.known[R.taker]=[...kn];   // 모두가 본 카드 (봇이 기억)
+  addLog(R.lie?`걸렸다! ${t.name} ${R.fc}장 가져감.`:`진짜였다. ${t.name} ${R.fc}장 가져감.`,R.lie?'lie':'truth');
+  H.field=[];
+  if(H.pending===R.L.p){H.pending=null;if(!R.lie){finish(R.L.p);if(H.phase==='over')return}}
+  newRound(R.starter);
+}
+function finish(i){
+  const p=H.players[i];p.finished=true;p.rank=H.rankNext++;addLog(`${p.name} 탈출! ${p.rank}위`,'fin');
+  if(H.cfg.fast&&p.rank===1){
+    // 빠른 모드: 1등이 나오면 끝, 나머지는 남은 카드가 적을수록 높은 순위 (같으면 공동 순위)
+    const rest=H.players.filter(x=>!x.finished);
+    rest.forEach(x=>{x.rank=2+rest.filter(y=>y.hand.length<x.hand.length).length;x.finished=true});
+    addLog('빠른 모드: 1등이 나와서 게임이 끝났습니다.','sys');H.phase='over';H.shouts=[];mark();return;
+  }
+  checkEnd();
+}
+function doSurrender(i){
+  if(H.phase!=='play'||i<0||!isActive(i)||H.pending===i)return;
+  const p=H.players[i];
+  if(H.last&&H.last.p===i&&H.last.open){H.last.open=false;H.shouts=[]}   // 항복한 사람의 카드에는 구라를 외칠 수 없음
+  p.hand=[];p.finished=true;p.surrendered=true;p.rank=H.rankBottom--;
+  addLog(`${p.name} 항복! ${p.rank}위`,'lie');
+  const act=H.players.filter(x=>!x.finished);
+  if(act.length<=1){checkEnd();return}
+  if(H.roundNum!=null&&H.last){
+    const everyone=H.players.filter((x,j)=>isActive(j)).length;
+    if(H.passes>=everyone){addLog(`모두 패스. 필드 ${H.field.length}장 폐기.`,'sys');newRound(H.roundStarter);return}
+  }
+  if(H.turn===i)startTurn(nextActive(i));else mark();
+}
+function checkEnd(){
+  const act=H.players.filter(p=>!p.finished);
+  if(act.length<=1){
+    if(act.length===1){act[0].finished=true;act[0].rank=H.rankNext++}
+    addLog('게임 종료','sys');H.phase='over';mark();
+    H.players.forEach((p,i)=>{if(p.bot&&Math.random()<.5)botEmote(i,'gg',800+Math.random()*1600)});
+  }
+}
+function timeout(){
+  const i=H.turn,p=H.players[i];
+  if(H.roundNum==null){
+    // 라운드 첫 사람이 시간을 넘기면 카드를 내지 않고 다음 사람이 이 라운드를 시작
+    H.seatNote[i]='시간 초과';
+    addLog(`${p.name} 시간 초과. 다음 사람이 시작합니다.`,'sys');
+    startTurn(nextActive(i));
+  }else doPass(i,true);
+}
+function botTruthProb(b,j,i){
+  const num=H.roundNum,c=H.last.count,J=H.cfg.jokers||0,F=4+J;
+  const fit=id=>fits(id,num);
+  const myFit=b.hand.filter(fit).length;
+  const known=H.known||{};
+  let otherFit=0,claimFit=0;
+  for(const [k,ids] of Object.entries(known)){const kk=+k;if(kk===j)continue;const n=ids.filter(fit).length;if(kk===i)claimFit=Math.min(n,H.players[i].hand.length+c);else otherFit+=Math.min(n,H.players[kk].hand.length)}
+  const earlier=H.field.length-c;                    // 이번 라운드에 먼저 나온 장수 (일부는 거짓이었을 수 있음)
+  const maxFit=F-myFit-otherFit;
+  if(c>maxFit)return 0;                              // 남은 카드로는 불가능 → 확실한 거짓
+  const R=Math.max(0,maxFit-earlier*.6-claimFit);
+  let pool=earlier;H.players.forEach((p,k)=>{if(k!==j)pool+=p.hand.length});pool+=c-claimFit;
+  const h0=H.players[i].hand.length+c-claimFit,need=c-claimFit;
+  if(need<=0)return .92;
+  const q=Math.max(0,Math.min(1,R/Math.max(1,pool)));
+  // 이항분포로 '그만큼 진짜를 가지고 있을' 확률
+  let pt=0;for(let x=need;x<=h0;x++){let comb=1;for(let y=0;y<x;y++)comb=comb*(h0-y)/(y+1);pt+=comb*Math.pow(q,x)*Math.pow(1-q,h0-x)}
+  return Math.max(0,Math.min(1,pt));
+}
+function planBotShouts(i,t){
+  const num=H.roundNum,claimed=H.last.count,J=H.cfg.jokers;
+  H.players.forEach((b,j)=>{
+    if(!b.bot||j===i||!isActive(j)||(b.away&&t<b.awayAt+AWAY_WAIT))return;
+    const lv=botLv(b);
+    const own=b.hand.filter(id=>numOf(id)===num).length;
+    const ownJ=b.hand.filter(isJ).length;
+    let pr;
+    if(lv===2){
+      // 어려움: 남은 카드를 세서 거짓일 확률을 계산하고, 판돈(쌓인 카드)·상대가 끝나기 직전인지 따져 외침
+      const pLie=1-botTruthProb(b,j,i);
+      let thr=.5+Math.min(.15,H.field.length*.012);
+      if(!H.players[i].hand.length)thr=.28;          // 마지막 카드는 웬만하면 확인
+      else if(H.players[i].hand.length<=2)thr-=.1;
+      if(b.hand.length<=3)thr+=.08;                   // 내가 끝나기 직전이면 조심
+      pr=pLie>=thr?Math.min(.97,.55+(pLie-thr)*1.6):pLie*.08;
+    }else if(own+claimed>4+J-ownJ)pr=lv===0?.6:.95;
+    else{
+      pr=.05+.12*(claimed-1)+.13*own;
+      if(own+claimed>4)pr+=.25;
+      if(!H.players[i].hand.length)pr+=.35;
+      pr-=Math.min(.15,H.field.length*.008);pr=Math.max(.02,Math.min(.9,pr));
+      if(lv===0)pr*=.45;
+    }
+    if(Math.random()<pr){
+      const g=Math.max(H.cfg.grace*1000,1400);
+      H.shouts.push({p:j,at:t+(lv===2?rand(300,Math.min(g,1100)):lv===0?rand(700,g):rand(350,g))});
+    }
+  });
+  H.shouts.sort((a,b)=>a.at-b.at);
+}
+function botTurn(i){
+  const lv=botLv(H.players[i]);
+  if(lv===2){botTurnHard(i);return}
+  const easy=lv===0;
+  const h=H.players[i].hand,jk=h.filter(isJ),plain=h.filter(id=>!isJ(id));
+  if(H.roundNum==null){
+    if(!plain.length){doPlay(i,jk.slice(),1+(Math.random()*(H.cfg.maxn||14)|0));return}
+    const g=new Map();plain.forEach(id=>{const n=numOf(id);if(!g.has(n))g.set(n,[]);g.get(n).push(id)});
+    let best=null;for(const [n,cs] of g)if(!best||cs.length>best[1].length||(cs.length===best[1].length&&Math.random()<.5))best=[n,cs];
+    const ids=best[1].slice(),rest=plain.filter(id=>numOf(id)!==best[0]);
+    if(rest.length&&Math.random()<(easy?.1:.3))ids.push(pick(rest));
+    doPlay(i,ids,best[0]);
+  }else{
+    const num=H.roundNum,mine=plain.filter(id=>numOf(id)===num),rest=plain.filter(id=>numOf(id)!==num);
+    if(mine.length){const ids=mine.slice();if(rest.length&&Math.random()<.25)ids.push(pick(rest));doPlay(i,ids,num)}
+    else if(jk.length&&(h.length<=4||Math.random()<.5)){doPlay(i,[jk[0]],num)}
+    else{
+      const pb=((h.length>8?.45:.3)-Math.min(.2,H.field.length*.012))*(easy?.5:1);
+      if(rest.length&&Math.random()<pb)doPlay(i,shuffle(rest.slice()).slice(0,(rest.length>1&&Math.random()<.2)?2:1),num);
+      else doPass(i);
+    }
+  }
+}
+function botTurnHard(i){
+  const P=H.players[i],h=P.hand,jk=h.filter(isJ),plain=h.filter(id=>!isJ(id)),J=H.cfg.jokers||0,F=4+J;
+  const others=H.players.filter((p,k)=>k!==i&&isActive(k)).length;
+  const byNum=new Map();plain.forEach(id=>{const n=numOf(id);if(!byNum.has(n))byNum.set(n,[]);byNum.get(n).push(id)});
+  if(H.roundNum==null){
+    if(!plain.length){doPlay(i,jk.slice(),1+(Math.random()*(H.cfg.maxn||14)|0));return}
+    // 가장 많이 가진 자음으로 시작, 손패가 많으면 다른 카드 1장을 슬쩍 섞음 (처음 내는 장수는 의심을 덜 받음)
+    let best=null;for(const [n,cs] of byNum)if(!best||cs.length>best[1].length||(cs.length===best[1].length&&Math.random()<.5))best=[n,cs];
+    const ids=best[1].slice(),rest=plain.filter(id=>numOf(id)!==best[0]);
+    if(h.length-ids.length<=jk.length)ids.push(...jk);          // 별카드로 마무리 가능하면 한 번에
+    else if(rest.length&&h.length>5&&ids.length<=2&&Math.random()<.55)ids.push(pick(rest));
+    doPlay(i,ids,best[0]);return;
+  }
+  const num=H.roundNum,mine=byNum.get(num)||[],rest=plain.filter(id=>numOf(id)!==num);
+  const claimedSoFar=H.field.length;
+  const last=h.length-mine.length<=jk.length;                    // 진짜 + 별카드로 다 털 수 있음
+  if(mine.length||(last&&jk.length)){
+    const ids=mine.slice();
+    if(last)ids.push(...jk);
+    else if(rest.length&&h.length>4&&claimedSoFar+ids.length+1<=F-1&&Math.random()<.4)ids.push(pick(rest));   // 진짜에 1장 섞기
+    doPlay(i,ids,num);return;
+  }
+  // 진짜가 없음: 별카드로 버틸지, 거짓말할지, 패스할지
+  const suspicious=claimedSoFar+1>F-1;                           // 이미 너무 많이 나옴 → 거짓말하면 들킬 확률 큼
+  const risk=Math.min(.95,.2+claimedSoFar*.09+(others>=3?.08:0)+(suspicious?.5:0));
+  const stake=H.field.length+1;                                  // 들키면 가져갈 장수
+  if(jk.length&&(h.length<=5||risk>.5)){doPlay(i,[jk[0]],num);return}
+  const wantBluff=rest.length&&(1-risk)*h.length>stake*.35&&!suspicious;
+  if(wantBluff&&Math.random()<.85){
+    // 같은 자음끼리 묶어서 버리면 나중에 정리하기 좋음 → 가장 적게 가진 자음부터 1장
+    const sorted=rest.slice().sort((a,b)=>(byNum.get(numOf(a)).length-byNum.get(numOf(b)).length));
+    doPlay(i,[sorted[0]],num);return;
+  }
+  doPass(i);
+}
+/* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
+G._test={newRound,doPlay,doPass,doShout,resolveReveal,botTurn,fits,numOf};
+G.engine={
+  /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
+  start(){
+    const n=H.players.length;
+    const N=H.cfg.maxn||13;
+    const deck=shuffle([...Array(N*4).keys(),...Array(H.cfg.jokers).fill(0).map((_,k)=>JOKER_BASE+k)]),per=Math.floor(deck.length/n);
+    H.players.forEach(p=>p.hand=deck.splice(0,per));
+    const order=shuffle([...Array(n).keys()]);let k=0;while(deck.length)H.players[order[k++]].hand.push(deck.pop());
+    H.players.forEach(p=>p.hand.sort(cmpCard));
+    Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,rankBottom:n,known:{}});
+    const first=Math.random()*n|0;
+    addLog(`${n}명 게임 시작${H.cfg.jokers?` (별카드 ${H.cfg.jokers}장)`:''}. ${H.players[first].name}부터 시작합니다.`,'sys');
+    newRound(first);
+  },
+  act(seat,a){
+    if(a.t==='gura'){doShout(seat);return}
+    if(a.t==='surrender'){doSurrender(seat);return}
+    if(H.phase!=='play'||seat<0||H.turn!==seat||clock()<H.graceUntil)return;
+    if(a.t==='pass'){if(H.roundNum!=null)doPass(seat,false);return}
+    if(a.t==='play'&&Array.isArray(a.ids)){
+      const hand=new Set(H.players[seat].hand);
+      const ids=[...new Set(a.ids)].filter(id=>Number.isInteger(id)&&hand.has(id));
+      if(!ids.length||ids.length!==a.ids.length)return;
+      let num=H.roundNum;
+      if(num==null){num=a.num;if(!Number.isInteger(num)||num<1||num>(H.cfg.maxn||14))return}
+      doPlay(seat,ids,num);
+    }
+  },
+  tick(t){
+    if(H.phase==='reveal'&&t>=H.reveal.until)resolveReveal();
+    else if(H.phase==='play'){
+      for(const pl of H.shouts)if(t>=pl.at&&canShoutH(pl.p)){doShout(pl.p);break}
+      if(H.phase==='play'){
+        H.shouts=H.shouts.filter(pl=>t<pl.at);
+        const cur=H.players[H.turn];
+        if(t>=H.deadline)timeout();
+        else if(cur.bot&&H.botActAt&&t>=H.botActAt&&t>=H.graceUntil&&!(cur.away&&t<cur.awayAt+AWAY_WAIT))botTurn(H.turn);
+      }
+    }
+  },
+  snap(s,you,t){
+    s.rn=H.roundNum;s.fc=H.field.length;
+    s.la=H.last?{p:H.last.p,c:H.last.count,o:H.last.open?1:0}:null;
+    s.gr=Math.max(0,Math.round(H.graceUntil-t));s.dl=Math.max(0,Math.round(H.deadline-t));
+    if(H.reveal){const R=H.reveal;s.rv={s:R.s,p:R.L.p,ids:R.L.ids.slice(),lie:R.lie?1:0,tk:R.taker,stt:R.starter,fc:R.fc,num:R.num}}
+  },
+  /* 저장해 둔 방을 다시 열 때: 꺼져 있던 시간(d)만큼 밀기 */
+  restore(d){
+    if(H.reveal&&typeof H.reveal.until==='number')H.reveal.until+=d;
+    (H.shouts||[]).forEach(x=>x.at+=d);
+    if(H.reveal&&H.last&&H.reveal.L)H.reveal.L=H.last;
+  },
+  emoPhase:ph=>ph==='play'||ph==='reveal'||ph==='over'
+};
+
+/* ---------- 화면 (모든 참가자) ---------- */
+let revealReadyAt=0,pileHoldTimer=null,lastPileN=-1,lastPileNum=null;
+function canShoutV(){const i=myIdx();return V&&V.st==='play'&&V.la&&V.la.o&&i>=0&&i!==V.la.p&&activeV(i)}
+function chosenNum(){
+  if(!V)return null;if(V.rn!=null)return V.rn;if(pickNum!=null)return pickNum;
+  const first=myHand().find(id=>sel.has(id)&&!isJ(id));return first!=null?numOf(first):null;
+}
+function renderPile(){
+  const pc=$('#pileCount'),n=V&&V.ps&&(V.st==='play'||V.st==='reveal')?(+V.fc||0):0;
+  pc.hidden=n<=0||(V&&V.st==='reveal');
+  if(n!==lastPileN){$('#pileN').textContent=n;if(n>lastPileN&&lastPileN>=0){pc.classList.remove('bump');void pc.offsetWidth;pc.classList.add('bump')}lastPileN=n}
+}
+function renderPileNum(){
+  const el=$('#pileNum'),rn=V&&V.ps&&V.st==='play'?V.rn:null;
+  el.hidden=rn==null;
+  if(rn!=null&&rn!==lastPileNum){$('#pileNumV').textContent=rankLabel(rn);el.style.setProperty('--rc',RANK_COLORS[rn-1]);el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop')}
+  lastPileNum=rn;
+}
+/* 선언 자음 세로 휠 */
+function renderWheel(){
+  const order=wheelOrder(),np=$('#numpick'),cur=chosenNum()||order[order.length>>1],narrow=$('#stage').clientWidth<600,rows=narrow?3:5;
+  const idx=Math.max(0,order.indexOf(cur));
+  if(!np.querySelector('.wh-list')){
+    np.innerHTML=`<span class="wh-t">선언할 자음</span><button type="button" class="wh-arrow" data-step="1" aria-label="이전 자음">▲<small>${esc(keyLabel(KEYS.numUp))}</small></button><div class="wh-view"><ul class="wh-list">${order.map(k=>`<li><button type="button" class="np" data-n="${k}" style="--rc:${RANK_COLORS[k-1]}" aria-label="${rankLabel(k)}"><span class="wl">${rankLabel(k)}</span></button></li>`).join('')}</ul></div><button type="button" class="wh-arrow" data-step="-1" aria-label="다음 자음">▼<small>${esc(keyLabel(KEYS.numDown))}</small></button>`;
+  }
+  np.style.setProperty('--rows',rows);
+  np.querySelector('.wh-list').style.transform=`translateY(${((rows-1)/2-idx)*40}px)`;
+  np.querySelectorAll('.np').forEach(b=>b.classList.toggle('on',+b.dataset.n===cur));
+  np.querySelectorAll('.wh-arrow').forEach(a=>a.disabled=(+a.dataset.step>0?idx<=0:idx>=order.length-1));
+}
+function stepNum(d,wrap){
+  if($('#numpick').hidden)return;
+  // d=+1 → 위(이전 자음), d=-1 → 아래(다음 자음)
+  const order=wheelOrder(),L=order.length,c=chosenNum();
+  let pos=c!=null?order.indexOf(c):(d>0?L:-1);
+  pos-=d;
+  if(!wrap){pos=Math.max(0,Math.min(L-1,pos));if(order[pos]===c)return}
+  else pos=((pos%L)+L)%L;
+  pickNum=order[pos];
+  sfx('tick');renderMe();
+}
+/* 카드를 냈을 때 테이블 가운데에 "ㄱ ×3" 이펙트 */
+function playFx(v){
+  const L=v.la,n=+v.rn;if(!L||!(n>=1&&n<=19))return;
+  const a=(T&&T.anchor)||{x:$('#stage').clientWidth/2,y:$('#stage').clientHeight/2};
+  const d=document.createElement('div');d.className='playfx';d.style.setProperty('--rc',RANK_COLORS[n-1]);
+  d.style.left=a.x+'px';d.style.top=Math.max(46,a.y-100)+'px';
+  d.innerHTML=`<span class="fx-card">${rankLabel(n)}</span><span class="fx-n">×${+L.c}</span>`;
+  d.addEventListener('animationend',()=>d.remove());
+  const layer=$('#fx');while(layer.children.length>2)layer.firstChild.remove();
+  layer.appendChild(d);
+  // 이펙트가 떠 있는 동안 같은 자리의 '지금' 자음 카드는 숨겼다가, 끝나면 다시 튀어나옴
+  const pn=$('#pileNum');pn.classList.add('held');clearTimeout(pileHoldTimer);
+  pileHoldTimer=setTimeout(()=>{pn.classList.remove('held');pn.classList.remove('pop');void pn.offsetWidth;pn.classList.add('pop')},1950);
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)setTimeout(()=>d.remove(),1800);
+}
+/* 새 상태를 받았을 때 (그리기 전 / 그린 뒤) */
+G.preView=()=>{
+  {const mn=Math.max(4,Math.min(19,+(V.cfg&&V.cfg.maxn)||14));if(mn!==MAXN){MAXN=mn;const w=$('#numpick');if(w)w.innerHTML=''}}
+  if(V.st!=='play'||V.rn!=null)pickNum=null;
+};
+G.postView=()=>{
+  // 구라 판정으로 내가 필드를 가져왔으면 어떤 카드였는지 잠깐 보여줌
+  if(PV&&PV.st==='reveal'&&PV.rv&&PV.rv.tk===myIdx()&&V.st!=='reveal'){
+    const before=new Set(PV.ps&&PV.ps[myIdx()]&&PV.ps[myIdx()].h||[]);
+    const got=myHand().filter(id=>!before.has(id));
+    if(got.length)showTaken(got);
+  }
+};
+/* 진행 기록에 맞춘 효과음 (처리했으면 true) */
+G.logCue=(txt,cls)=>{
+  if(cls==='gura'){sfx('gura');return true}
+  if(cls==='lie'||cls==='truth'){sfx('sweep');return true}
+  if(cls!=='fin'&&txt.includes('폐기')){sfx('sweep');return true}
+  return false;
+};
+G.cues=(v,pv)=>{
+  if(typeof v.fc==='number'&&typeof pv.fc==='number'&&v.fc>pv.fc&&v.la){sfx('play',v.fc-pv.fc);playFx(v)}
+  if(v.st==='reveal'&&v.rv&&pv.st!=='reveal'){setTimeout(()=>sfx(v.rv.lie?'lie':'truth'),550+REVEAL_PAUSE);revealReadyAt=Date.now()+REVEAL_PAUSE;renderHUD();setTimeout(()=>{if(V&&V.st==='reveal')renderHUD()},REVEAL_PAUSE+20);$('#fx').innerHTML='';showBubble(v.rv.s,'<span class="bt">구라!</span>',T&&T.ok?2400:REVEAL_PAUSE+150,'real');/* 3D에서는 펼쳐진 카드가 앞에서 말풍선을 가림, 3D가 없으면 카드 공개 때 사라짐 */clearTimeout(pileHoldTimer);$('#pileNum').classList.remove('held')}
+};
+G.hud=inGame=>{
+  renderPile();renderPileNum();
+  $('#stage').classList.toggle('revealing',!!(V&&V.st==='reveal'));
+  const vd=$('#verdict');
+  if(!inGame){vd.hidden=true;return}
+  if(V.st==='reveal'&&V.rv&&Date.now()<revealReadyAt){vd.hidden=true;vd.dataset.k=''}
+  else if(V.st==='reveal'&&V.rv){
+    const R=V.rv,key=[R.s,R.p,R.lie,R.fc].join('|');
+    // 상태가 새로 와도 같은 판정이면 다시 그리지 않음 (다시 그리면 튀어나오는 효과가 한 번 더 재생됨)
+    if(vd.dataset.k!==key){
+      vd.innerHTML=`<div class="vw"><b>${esc(V.ps[R.s].n)}</b> → <b>${esc(V.ps[R.p].n)}</b></div>
+      <div class="vt ${R.lie?'lie':'truth'}">${R.lie?'걸렸다!':'진짜였다'}</div>`;
+      vd.dataset.k=key;
+    }
+    if(vd.hidden)vd.hidden=false;
+  }else{vd.hidden=true;vd.dataset.k=''}
+};
+/* 손패 표시: 지금 자음과 맞는 카드 표시, 라운드를 시작하는 차례면 선언 자음 휠 */
+G.handMarks=(i,h,hand)=>{for(const el of hand.children){const id=+el.dataset.id;el.classList.toggle('match',V.rn!=null&&fits(id,V.rn))}};
+G.me=(i,h)=>{
+  const np=$('#numpick'),lead=V.st==='play'&&V.t===i&&activeV(i)&&V.rn==null;
+  np.hidden=!lead;
+  if(lead)renderWheel();else np.innerHTML='';
+};
+G.buttons=()=>{
+  const play=$('#btnPlay'),pass=$('#btnPass');
+  const ready=myReady(),num=chosenNum(),k=sel.size;
+  play.disabled=!(ready&&k>0&&num!=null);
+  play.classList.toggle('ready',!play.disabled);
+  const main=k?`${k}장 내기`:'내기';
+  const sub=k?(num!=null?`${numName(num)}${V&&V.rn==null?' 선언':''}`:'자음 선택'):keyLabel(KEYS.play);
+  if($('#playMain').textContent!==main)$('#playMain').textContent=main;
+  if($('#playSub').textContent!==sub)$('#playSub').textContent=sub;
+  pass.disabled=!(ready&&V.rn!=null);
+};
+G.live=()=>{const can=canShoutV(),gb=$('#btnGura');if(gb.disabled===can){gb.disabled=!can;gb.classList.toggle('ready',can)}};
+G.play=()=>{
+  if(!myReady()||!sel.size)return;const num=chosenNum();if(num==null)return;
+  const ids=myHand().filter(id=>sel.has(id));
+  sendAct({t:'play',ids,num});sel.clear();pickNum=null;newCards=new Set();renderMe();
+};
+G.pass=()=>{if(myReady()&&V.rn!=null)sendAct({t:'pass'})};
+G.keyPhase=st=>st==='play'||st==='reveal';
+/* 이 게임에만 있는 키 (처리했으면 true) */
+G.onKey=(act,e)=>{
+  if(act==='numUp'||act==='numDown'){stepNum(act==='numUp'?1:-1,true);return true}
+  if(act==='gura'){if(!e.repeat&&canShoutV())sendAct({t:'gura'});return true}
+  return false;
+};
+/* 3D 테이블 가운데: 뒷면으로 쌓이는 카드, 구라! 때 펼침 */
+G.field3D=(v,pv,me)=>{
+  const prevReveal=pv&&pv.st==='reveal'&&pv.rv;
+  if(v.fc===0&&T.field.length){
+    for(const c of T.field){
+      const u=c.userData;
+      if(prevReveal){const tk=prevReveal.tk;const tp=tk===me?nearMe():seatPos(tk,3.85);u.p.set(tp.x,.3,tp.z);u.s=.5;u.rx=Math.PI/2}
+      else{u.p.set(u.p.x*.3,-.6,-7.5);u.s=.6}
+      u.die=true;
+    }
+    T.field=[];
+  }
+  if(v.fc>T.field.length){
+    let from=null;if(pv&&v.la){from=v.la.p===me?nearMe():seatPos(v.la.p,3.9);from.y=.8}
+    while(T.field.length<v.fc){
+      const spot=fieldSpot(T.field.length);
+      const c=makeCard(from||spot,Math.PI/2,rand(-.6,.6),1);c.userData.p.copy(spot);T.field.push(c);
+    }
+  }else while(T.field.length>(v.fc||0))killCard(T.field.pop());
+  if(v.st==='reveal'&&v.rv&&Array.isArray(v.rv.ids)&&!(pv&&pv.st==='reveal'))setTimeout(()=>{
+    // 뜸 들인 뒤 카드 공개 (그 사이 판정이 끝났으면 건너뜀)
+    if(!T.ok||!V||V.st!=='reveal'||!V.rv||V.rv.s!==v.rv.s||V.rv.fc!==v.rv.fc)return;
+    const ids=v.rv.ids,k=ids.length,start=T.field.length-k;
+    ids.forEach((id,j)=>{
+      const c=T.field[start+j];if(!c||!Number.isInteger(id))return;
+      c.children[0].material=faceMat(id);
+      c.children.forEach(m=>{m.material=onTopMat(m.material);m.renderOrder=60});   // 공개 카드는 3D 말풍선보다 앞
+      c.userData.p.set((j-(k-1)/2)*.95,2.3,1.2);c.userData.rx=-.72;c.userData.ry=0;c.userData.s=1.55;
+    });
+  },REVEAL_PAUSE);
+};
+/* 이 게임으로 바뀔 때 / 다른 게임으로 바뀔 때 */
+G.enter=()=>{$('#btnGura').hidden=false};
+G.leave=()=>{
+  for(const id of ['#pileNum','#pileCount','#verdict','#numpick'])$(id).hidden=true;
+  $('#numpick').innerHTML='';$('#btnGura').hidden=true;$('#stage').classList.remove('revealing');$('#fx').innerHTML='';
+  lastPileN=-1;lastPileNum=null;
+};
+/* 처음 한 번: 휠·구라! 버튼 */
+G.init=()=>{
+  const w=$('#numpick');let acc=0,ty=null;
+  w.addEventListener('wheel',e=>{e.preventDefault();acc+=e.deltaY;if(Math.abs(acc)>=40){stepNum(acc<0?1:-1);acc=0}},{passive:false});
+  w.addEventListener('touchstart',e=>{ty=e.touches[0].clientY},{passive:true});
+  w.addEventListener('touchmove',e=>{if(ty==null)return;const dy=e.touches[0].clientY-ty;if(Math.abs(dy)>=26){stepNum(dy>0?1:-1);ty=e.touches[0].clientY}},{passive:true});
+  w.addEventListener('touchend',()=>{ty=null});
+  w.addEventListener('click',e=>{const a=e.target.closest('.wh-arrow');if(a){stepNum(+a.dataset.step)}});
+  w.addEventListener('click',e=>{const b=e.target.closest('.np');if(!b)return;pickNum=+b.dataset.n;renderMe()});
+  $('#btnGura').addEventListener('click',()=>{if(canShoutV())sendAct({t:'gura'})});
+};
+
+(window.GAMES=window.GAMES||{}).gura=G;
+})();
