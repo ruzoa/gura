@@ -1567,12 +1567,16 @@ const SFX={
   emo_mad(){tone(110,.16,{type:'square',vol:.05});tone(98,.22,{type:'square',vol:.05,at:.14});hiss(.2,{freq:600,q:.8,vol:.05,at:.02})}, // 부글부글
   emo_hurry(){for(let k=0;k<6;k++)tone(k%2?880:1175,.06,{type:'square',vol:.035,at:k*.07})},                                          // 따르릉
   emo_smile(){[523,659,784].forEach((f,k)=>tone(f,.14,{type:'triangle',vol:.075,at:k*.07}))},                                         // 밝은 화음
-  // 줴~ 줴~~ 야~ : 보내 주신 예시 소리의 억양을 분석해서 맞춤 (낮게 끄는 줴 → 올라갔다 내려오는 줴 → 내려가는 야)
+  // 줴~ 줴~~ 야~ : 예시 소리의 음·박자 그대로, 다른 이모티콘처럼 부드럽고 통통 튀게
+  //  (빠르게 톡 튀어나와 금방 줄어드는 소리 + 한 옥타브 위 맑은 소리를 살짝 겹침, 음마다 시작에 작게 튀어 오름)
   emo_gg(){
-    const v={type:'triangle',vol:.095,attack:.02,sus:.7};
-    tone(290,.3,{...v,slide:262});
-    tone(435,.44,{...v,at:.34,path:[[.15,525],[.44,370]]});
-    tone(333,.3,{...v,at:.82,slide:262});
+    const v={type:'triangle',vol:.1,attack:.006,sus:.3},hi={type:'sine',vol:.035,attack:.004};
+    const note=(at,d,path)=>{const f0=path[0][1]*.88;
+      tone(f0,d,{...v,at,path:[[.035,path[0][1]],...path.slice(1)]});
+      tone(f0*2,d*.5,{...hi,at,path:[[.035,path[0][1]*2],...path.slice(1).map(([t,f])=>[Math.min(t,d*.5),f*2])]});};
+    note(0,.3,[[0,290],[.3,262]]);
+    note(.34,.44,[[0,435],[.15,525],[.44,370]]);
+    note(.82,.3,[[0,333],[.3,262]]);
   },
   turn(){tone(660,.12,{type:'triangle',vol:.17});tone(990,.22,{type:'triangle',vol:.17,at:.1})},
   gura(){tone(240,.38,{type:'sawtooth',vol:.15,slide:150});tone(360,.38,{type:'square',vol:.06,slide:225});hiss(.18,{freq:900,vol:.18})},
