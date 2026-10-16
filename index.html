@@ -645,7 +645,7 @@ function doShout(s){
 function resolveReveal(){
   const R=H.reveal;H.reveal=null;H.phase='play';
   const t=H.players[R.taker];t.hand.push(...H.field);t.hand.sort((a,b)=>a-b);
-  addLog(R.lie?`거짓말! ${t.name} ${R.fc}장 가져감.`:`진짜였다. ${t.name} ${R.fc}장 가져감.`,R.lie?'lie':'truth');
+  addLog(R.lie?`걸렸다! ${t.name} ${R.fc}장 가져감.`:`진짜였다. ${t.name} ${R.fc}장 가져감.`,R.lie?'lie':'truth');
   H.field=[];
   if(H.pending===R.L.p){H.pending=null;if(!R.lie){finish(R.L.p);if(H.phase==='over')return}}
   newRound(R.starter);
@@ -1310,7 +1310,7 @@ function renderHUD(){
   if(V.st==='reveal'&&V.rv){
     const R=V.rv;vd.hidden=false;
     vd.innerHTML=`<div class="vw"><b>${esc(V.ps[R.s].n)}</b> → <b>${esc(V.ps[R.p].n)}</b></div>
-      <div class="vt ${R.lie?'lie':'truth'}">${R.lie?'구라!':'진짜였다?'}</div>`;
+      <div class="vt ${R.lie?'lie':'truth'}">${R.lie?'걸렸다!':'진짜였다?'}</div>`;
   }else vd.hidden=true;
 }
 function renderLabels(){
