@@ -1537,7 +1537,10 @@ function tone(f,dur,o={}){
   const c=SND.ctx;if(!c||!SND.on||c.state!=='running')return;
   const t=c.currentTime+(o.at||0),os=c.createOscillator(),g=c.createGain();
   os.type=o.type||'sine';os.frequency.setValueAtTime(f,t);if(o.slide)os.frequency.exponentialRampToValueAtTime(o.slide,t+dur);
-  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(o.vol||.2,t+(o.attack||.006));g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  if(o.path)o.path.forEach(([dt,fq])=>os.frequency.exponentialRampToValueAtTime(fq,t+dt));   // 음 높이를 여러 번 꺾기: [[시간, Hz], ...]
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(o.vol||.2,t+(o.attack||.006));
+  if(o.sus)g.gain.setValueAtTime(o.vol||.2,t+dur*o.sus);   // sus: 소리를 그 비율만큼 유지한 뒤 줄임 (길게 끄는 소리)
+  g.gain.exponentialRampToValueAtTime(.0001,t+dur);
   os.connect(g);g.connect(o.bus==='bgm'?SND.bgm:SND.fx);os.start(t);os.stop(t+dur+.03);
 }
 function hiss(dur,o={}){
@@ -1564,8 +1567,13 @@ const SFX={
   emo_mad(){tone(110,.16,{type:'square',vol:.05});tone(98,.22,{type:'square',vol:.05,at:.14});hiss(.2,{freq:600,q:.8,vol:.05,at:.02})}, // 부글부글
   emo_hurry(){for(let k=0;k<6;k++)tone(k%2?880:1175,.06,{type:'square',vol:.035,at:k*.07})},                                          // 따르릉
   emo_smile(){[523,659,784].forEach((f,k)=>tone(f,.14,{type:'triangle',vol:.075,at:k*.07}))},                                         // 밝은 화음
-  // 아 줴 줴↗ 야↘~ : 원본 소리의 음 높이(Hz)를 따르고, 다른 이모티콘처럼 촘촘하게 (0.15초 간격, 마지막은 길게)
-  emo_gg(){[[277,.14,0,285],[280,.15,.15,290],[460,.18,.3,530],[372,.42,.47,250]].forEach(([f,d,at,sl])=>tone(f,d,{type:'triangle',vol:.09,at,slide:sl,attack:.012}))},
+  // 줴~ 줴~~ 야~ : 보내 주신 예시 소리의 억양을 분석해서 맞춤 (낮게 끄는 줴 → 올라갔다 내려오는 줴 → 내려가는 야)
+  emo_gg(){
+    const v={type:'triangle',vol:.095,attack:.02,sus:.7};
+    tone(290,.3,{...v,slide:262});
+    tone(435,.44,{...v,at:.34,path:[[.15,525],[.44,370]]});
+    tone(333,.3,{...v,at:.82,slide:262});
+  },
   turn(){tone(660,.12,{type:'triangle',vol:.17});tone(990,.22,{type:'triangle',vol:.17,at:.1})},
   gura(){tone(240,.38,{type:'sawtooth',vol:.15,slide:150});tone(360,.38,{type:'square',vol:.06,slide:225});hiss(.18,{freq:900,vol:.18})},
   lie(){tone(392,.16,{type:'square',vol:.09});tone(330,.16,{type:'square',vol:.09,at:.17});tone(262,.45,{type:'square',vol:.09,at:.34,slide:190})},
