@@ -168,7 +168,7 @@ body.nofs .fsbtn.snd{right:106px}
 .slots .tag{margin-left:auto;font-size:11px;color:var(--muted);font-weight:600}
 .slots .tag.host{color:var(--amber)}
 .slots .slot-emo{width:30px;height:30px;flex:none;margin:-5px -6px -5px 4px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--panel);font-size:16px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 0 var(--line)}
-.slots .botlv{margin-left:auto;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;border:1.5px solid var(--line-strong);background:var(--panel);color:var(--ink);line-height:1.2}
+.slots .botlv{margin-left:auto;box-sizing:border-box;width:4.6em;flex:none;text-align:center;font-size:11px;font-weight:700;padding:3px 0;border-radius:99px;border:1.5px solid var(--line-strong);background:var(--panel);color:var(--ink);line-height:1.2}
 .slots .botlv+.tag{margin-left:6px}
 .slots .botlv.lv0{color:var(--ok);border-color:#9bc4a8}
 .slots .botlv.lv2{color:var(--gura);border-color:#e3a59d}
@@ -738,10 +738,6 @@ function hostAddBot(force){
   const used=new Set(H.members.map(m=>m.name));
   const nm=BOT_NAMES.map(n=>n+' 봇').find(n=>!used.has(n))||'봇';
   H.members.push({name:nm,bot:true,conn:null,host:false,lv:1});mark();
-}
-function hostRemoveBot(){
-  if(H.phase!=='wait')return;
-  for(let i=H.members.length-1;i>=0;i--)if(H.members[i].bot){H.members.splice(i,1);mark();return}
 }
 function hostStart(){
   if(!H||(H.phase!=='wait'&&H.phase!=='over'))return;
@@ -1766,7 +1762,7 @@ function renderPanel(){
     const specHtml=sv.length||spm?`<div class="specs"><span class="label">관전 ${sv.length}/${spm}명</span>${sv.map((n,k)=>{const mine=!!V.spec&&n===myNick();
       return `<span class="sp-n${mine?' me':''}" data-s="${k}">${esc(n)}${mine?' (나)':''}${isHost?`<button type="button" class="kick" data-act="kicksp:${k}" data-name="${esc(n)}" aria-label="${esc(n)} 내보내기" title="내보내기">✕</button>`:''}</span>`}).join('')||'<span class="sp-none">없음</span>'}</div>`:'';
     let foot;
-    if(isHost)foot=`<div class="row"><button class="btn btn-sub" type="button" data-act="addbot" ${full?'disabled':''}>봇 추가</button><button class="btn btn-sub" type="button" data-act="rmbot" ${V.ps.some(p=>p.b)?'':'disabled'}>봇 빼기</button></div>
+    if(isHost)foot=`<div class="row"><button class="btn btn-sub" type="button" data-act="addbot" ${full?'disabled':''}>봇 추가</button></div>
       <div class="row"><button class="btn btn-red" type="button" data-act="start" data-auto>게임 시작</button></div><p>혼자면 봇 1명이 채워집니다.</p>`;
     else if(me<0&&V.spec)foot=`<p>관전 중입니다.${full?' 빈 자리가 생기면 참가할 수 있습니다.':''}</p><div class="row"><button class="btn btn-red" type="button" data-act="join" data-auto ${full?'disabled':''}>참가하기</button></div>`;
     else if(me<0)foot='<p>자리를 받는 중입니다.</p>';
@@ -1847,7 +1843,6 @@ $('#panel').addEventListener('click',e=>{
   if(a.startsWith('botlv:')){const i=+a.slice(6),m=H&&H.members[i];if(mode==='host'&&H.phase==='wait'&&m&&m.bot&&m.name===b.dataset.name){m.lv=((m.lv??1)+1)%3;sfx('tick');mark()}return}
   if(a==='mode0'||a==='mode1'){if(H.phase==='wait'){H.cfg={...H.cfg,fast:a==='mode1'?1:0};mark()}return}
   if(a==='addbot')hostAddBot();
-  else if(a==='rmbot')hostRemoveBot();
   else if(a==='start')hostStart();
   else if(a==='again'){H.phase='wait';roomSetOpen=false;mark()}
   else if(a==='restart')hostStart();
