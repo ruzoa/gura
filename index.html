@@ -1564,7 +1564,7 @@ const SFX={
   emo_mad(){tone(110,.16,{type:'square',vol:.05});tone(98,.22,{type:'square',vol:.05,at:.14});hiss(.2,{freq:600,q:.8,vol:.05,at:.02})}, // 부글부글
   emo_hurry(){for(let k=0;k<6;k++)tone(k%2?880:1175,.06,{type:'square',vol:.035,at:k*.07})},                                          // 따르릉
   emo_smile(){[523,659,784].forEach((f,k)=>tone(f,.14,{type:'triangle',vol:.075,at:k*.07}))},                                         // 밝은 화음
-  emo_gg(){[[523,.11,0],[523,.11,.13],[440,.09,.26]].forEach(([f,d,at])=>tone(f,d,{type:'triangle',vol:.085,at}));tone(440,.42,{type:'triangle',vol:.09,at:.36,slide:330})},   // 줴 줴 이 야~ (말 억양 흉내)
+  emo_gg(){[[392,.07,0],[523,.11,.09],[523,.11,.22]].forEach(([f,d,at])=>tone(f,d,{type:'triangle',vol:.085,at}));tone(440,.42,{type:'triangle',vol:.09,at:.35,slide:330})},   // 아 줴 줴 야~ (말 억양 흉내)
   turn(){tone(660,.12,{type:'triangle',vol:.17});tone(990,.22,{type:'triangle',vol:.17,at:.1})},
   gura(){tone(240,.38,{type:'sawtooth',vol:.15,slide:150});tone(360,.38,{type:'square',vol:.06,slide:225});hiss(.18,{freq:900,vol:.18})},
   lie(){tone(392,.16,{type:'square',vol:.09});tone(330,.16,{type:'square',vol:.09,at:.17});tone(262,.45,{type:'square',vol:.09,at:.34,slide:190})},
