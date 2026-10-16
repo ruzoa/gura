@@ -146,6 +146,8 @@ body.no3d .seat.on .ring{display:block}
 .slots li.empty{color:var(--muted);font-weight:400;border:1.5px dashed var(--line-strong);background:none}
 .slots .tag{margin-left:auto;font-size:11px;color:var(--muted);font-weight:600}
 .slots .tag.host{color:var(--amber)}
+.slots .kick{width:26px;height:26px;flex:none;margin:-4px -6px -4px 2px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--panel);color:var(--gura);font-size:12px;font-weight:700;line-height:1;padding:0}
+.slots .kick:hover{background:var(--gura);color:var(--gura-ink);border-color:var(--gura-edge)}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 .row>*{flex:1}
 .btn{border:none;border-radius:var(--r-sm);padding:11px 16px;font-weight:600;font-size:14px;transition:transform .08s,box-shadow .08s}
@@ -964,6 +966,7 @@ function hostConn(conn){
     net.conns.add(conn);
     if(d.t==='hello'){
       const nick=cleanNick(d.nick),cid=typeof d.cid==='string'?d.cid.slice(0,40):'';
+      if(cid&&(H.banned||[]).includes(cid)){net.conns.delete(conn);try{conn.send({t:'kicked'})}catch(e){}setTimeout(()=>{try{conn.close()}catch(e){}},300);return}
       const take=x=>{if(x.conn&&x.conn!==conn){net.conns.delete(x.conn);try{x.conn.close()}catch(e){}}x.conn=conn};
       let m=H.members.find(m=>m.conn===conn);
       if(!m&&cid){m=H.members.find(x=>!x.bot&&!x.host&&x.cid===cid);if(m){take(m);m.away=false}}
@@ -999,6 +1002,17 @@ function hostConn(conn){
     mark();
   };
   conn.on('close',gone);conn.on('error',gone);
+}
+function hostKick(i){
+  const m=H.members[i];if(!m||m.host)return;
+  H.members.splice(i,1);
+  if(!m.bot){
+    if(m.cid)H.banned=[...new Set([...(H.banned||[]),m.cid])];
+    const c=m.conn;
+    if(c){net.conns.delete(c);try{c.send({t:'kicked'})}catch(e){}setTimeout(()=>{try{c.close()}catch(e){}},300)}
+    addLog(`${m.name} 님을 내보냈습니다.`,'sys');
+  }
+  mark();
 }
 function noPeerLib(){return typeof Peer==='undefined'}
 function setNote(id,txt,warn){const el=$(id);el.textContent=txt;el.className='note'+(warn?' warn':'')}
@@ -1062,7 +1076,7 @@ function createRoom(){
 function guestHello(conn){try{conn.send({t:'hello',nick:myNick(),cid:CID})}catch(e){}}
 function saveGuest(){if(mode==='guest'&&net.code)store('gura-guest',JSON.stringify({code:net.code,at:Date.now()}))}
 function wireGuestConn(conn){
-  conn.on('data',d=>{if(net.conn!==conn)return;if(d&&typeof d==='object'&&d.t==='state'&&d.s&&typeof d.s==='object'){if(Date.now()-(net.savedAt||0)>5000){net.savedAt=Date.now();saveGuest()}applyView(d.s)}});
+  conn.on('data',d=>{if(net.conn!==conn)return;if(d&&d.t==='kicked'){guestKicked();return}if(d&&typeof d==='object'&&d.t==='state'&&d.s&&typeof d.s==='object'){if(Date.now()-(net.savedAt||0)>5000){net.savedAt=Date.now();saveGuest()}applyView(d.s)}});
   conn.on('close',()=>{if(mode==='guest'&&net.conn===conn)guestReconnect()});
   conn.on('error',()=>{if(mode==='guest'&&net.conn===conn)guestReconnect()});
 }
@@ -1192,6 +1206,12 @@ function randomJoin(){
     const pick=ok[0];setNote('#randNote',`${pick.title} 방에 들어가는 중입니다…`);
     joinRoom(pick.code);
   });
+}
+function guestKicked(){
+  if(mode!=='guest')return;
+  mode='closed';unstore('gura-guest');
+  if(net.retry){clearTimeout(net.retry.timer);net.retry=null}
+  showPanel('<h2>방에서 나왔습니다</h2><p>방장이 이 방에서 내보냈습니다. 이 방에는 다시 들어갈 수 없습니다.</p><div class="row"><button class="btn btn-play" type="button" data-act="leave" data-auto>로비로</button></div>','kicked');
 }
 function hostGone(){
   if(mode!=='guest')return;
@@ -1745,7 +1765,7 @@ function renderPanel(){
   const me=myIdx(),isHost=mode==='host';
   if(V.st==='wait'){
     const max=+V.cfg.max;
-    let li=V.ps.map((p,i)=>`<li>${esc(p.n)}${i===me?' (나)':''}<span class="tag ${p.hs?'host':''}">${p.hs?'방장':p.b?'봇':p.aw?'연결 끊김':'참가자'}</span></li>`).join('');
+    let li=V.ps.map((p,i)=>`<li>${esc(p.n)}${i===me?' (나)':''}<span class="tag ${p.hs?'host':''}">${p.hs?'방장':p.b?'봇':p.aw?'연결 끊김':'참가자'}</span>${isHost&&!p.hs?`<button type="button" class="kick" data-act="kick:${i}" data-name="${esc(p.n)}" aria-label="${esc(p.n)} 내보내기" title="내보내기">✕</button>`:''}</li>`).join('');
     for(let k=V.ps.length;k<max;k++)li+='<li class="empty">빈 자리</li>';
     const full=V.ps.length>=max;
     let foot;
@@ -1798,6 +1818,10 @@ $('#panel').addEventListener('click',e=>{
     if(b.classList.contains('back')&&mode==='host'&&H&&H.online&&H.members.some(m=>!m.host&&!m.bot)&&!confirm('방장이 나가면 방이 닫힙니다. 나가시겠습니까?'))return;
     leaveRoom();return}
   if(a.startsWith('emo:')){sendEmote(a.slice(4));return}
+  if(a.startsWith('kick:')){
+    const i=+a.slice(5),nm=b.dataset.name||'';
+    if(mode==='host'&&H&&H.phase==='wait'&&H.members[i]&&!H.members[i].host&&H.members[i].name===nm&&(H.members[i].bot||confirm(`${nm}님을 방에서 내보낼까요?\n내보낸 사람은 이 방에 다시 들어올 수 없습니다.`)))hostKick(i);
+    return}
   if(a==='setopen'){roomSetOpen=true;renderPanel();return}
   if(a==='setclose'){roomSetOpen=false;renderPanel();return}
   if(/^(inc|dec):/.test(a)){if(e.detail!==0)return;const [op,k]=a.split(':');const d=ROOM_SET.find(x=>x.k===k);if(d&&H)setRoomCfg(k,(+H.cfg[k])+(op==='inc'?d.step:-d.step));return}
