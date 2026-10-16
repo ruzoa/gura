@@ -461,12 +461,13 @@ body.kb .fan .card.cur{z-index:70!important}
     <div class="box"><h3>진행 기록</h3><ol class="log" id="log"></ol></div>
     <div class="box"><h3>플레이 방법</h3>
       <ol class="rules">
-        <li>첫번째 플레이어가 숫자 하나를 정하고 1장 이상 <b>뒷면으로</b> 냅니다</li>
-        <li>모든 플레이어는 돌아가며 해당 숫자 카드를 뒷면으로 냅니다</li>
-        <li>상대방이 다른 카드를 낸 것 같다면  <b>구라!</b>를 외칩니다</li>
-        <li><b>거짓</b>이면 카드를 낸 사람이, <b>진짜</b>면 외친 사람이 쌓인 카드들을 가져갑니다</li>
-        <li>모든 플레이어가 패스를 하면 쌓인 카드들은 <b>폐기</b>됩니다</li>
-        <li><b>별카드</b>는 어떤 숫자로도 인정됩니다</li>
+        <li><b>목표</b> : 손에 든 카드를 먼저 털어낸 사람이 <b>승리</b>합니다</li>
+        <li><b>시작</b> : 첫 번째 플레이어가 숫자 하나를 정하고 1장 이상 <b>뒷면으로</b> 냅니다</li>
+        <li><b>진행</b> : 돌아가며 해당 숫자 카드를 뒷면으로 내거나 <b>패스</b>합니다
+        <li><b>구라!</b> : 정해진 숫자가 아닌 다른 카드를 낸 것 같다면 누구든 <b>구라!</b>를 외칠 수 있습니다</li>
+        <li><b>판정</b> : <b>거짓</b>이면 카드를 낸 사람이, <b>진짜</b>면 구라!를 외친 사람이 쌓인 카드를 전부 가져갑니다</li>
+        <li><b>패스</b> : 만약 모든 플레이어가 패스를 하면 쌓인 카드는 버려집니다.</li>
+        <li><b>별카드</b> : 모든 숫자로 인정됩니다</li>
       </ol>
     </div>
   </section>
@@ -1405,7 +1406,7 @@ function renderHUD(){
   if(V.st==='reveal'&&V.rv){
     const R=V.rv;vd.hidden=false;
     vd.innerHTML=`<div class="vw"><b>${esc(V.ps[R.s].n)}</b> → <b>${esc(V.ps[R.p].n)}</b></div>
-      <div class="vt ${R.lie?'lie':'truth'}">${R.lie?'걸렸다!':'진짜였다?'}</div>`;
+      <div class="vt ${R.lie?'lie':'truth'}">${R.lie?'걸렸다!':'진짜였다'}</div>`;
   }else vd.hidden=true;
 }
 function renderLabels(){
