@@ -1574,10 +1574,10 @@ const SFX={
   emo_hurry(){for(let k=0;k<6;k++)tone(k%2?880:1175,.06,{type:'square',vol:.035,at:k*.07})},                                          // 따르릉
   emo_smile(){[523,659,784].forEach((f,k)=>tone(f,.14,{type:'triangle',vol:.075,at:k*.07}))},                                         // 밝은 화음
   // 줴~ 줴~~ 야~ : 예시 소리의 억양(음 높이·박자·끌기)을 분석해서 맞춤, 소리는 실로폰처럼
-  //  (맑은 사인파 몸통 + 채로 때리는 순간의 높은 '딩' 소리를 음마다 짧게 겹침)
+  //  (사인파만: 맑은 몸통 + 채로 때리는 순간의 높은 '딩' 소리를 음마다 짧게 겹침)
   emo_gg(){
-    const v={type:'sine',vol:.13,attack:.004,sus:.7},w={type:'triangle',vol:.03,attack:.004,sus:.7};
-    const note=(at,d,f,o)=>{tone(f,d,{...v,at,...o});tone(f,d,{...w,at,...o});
+    const v={type:'sine',vol:.15,attack:.004,sus:.7};   // 사인파만 사용
+    const note=(at,d,f,o)=>{tone(f,d,{...v,at,...o});
       tone(f*4,.05,{type:'sine',vol:.045,at,attack:.002});tone(f*2.76,.09,{type:'sine',vol:.03,at,attack:.002})};
     const k=1/1.44;   // 빠르기 (처음보다 1.44배 = 1.2배 × 1.2배)
     note(0,.3*k,290,{slide:262});
