@@ -423,9 +423,9 @@ body.kb .fan .card.cur{z-index:70!important}
         <li>첫번째 플레이어가 숫자 하나를 정하고 1장 이상 <b>뒷면으로</b> 냅니다</li>
         <li>모든 플레이어는 돌아가며 해당 숫자 카드를 뒷면으로 냅니다</li>
         <li>상대방이 다른 카드를 낸 것 같다면  <b>구라!</b>를 외치세요</li>
-        <li>거짓이면 카드를 낸 사람이, 진짜면 외친 사람이 쌓인 카드들을 가져갑니다</li>
-        <li>모든 플레이어가 패스를 하면 쌓인 카드들은 폐기됩니다</li>
-        <li><b>조커</b>는 어떤 숫자로도 인정됩니다</li>
+        <li><b>거짓</b>이면 카드를 낸 사람이, <b>진짜</b>면 외친 사람이 쌓인 카드들을 가져갑니다</li>
+        <li>모든 플레이어가 패스를 하면 쌓인 카드들은 <b>폐기</b>됩니다</li>
+        <li><b>별카드</b>는 어떤 숫자로도 인정됩니다</li>
       </ol>
     </div>
   </section>
@@ -456,7 +456,7 @@ body.kb .fan .card.cur{z-index:70!important}
       <div class="field"><span class="fl">게임 모드</span><div class="seg modes" id="segFast"></div></div>
       <div class="field"><label for="inTitle">방 이름</label><input class="txt" id="inTitle" maxlength="20" autocomplete="off"></div>
       <div class="field"><span class="fl">최대 인원</span><div class="seg" id="segMax"></div></div>
-      <div class="field"><span class="fl">조커</span><div class="seg" id="segJokers"></div></div>
+      <div class="field"><span class="fl">별카드</span><div class="seg" id="segJokers"></div></div>
       <div class="field"><label for="inGrace">구라 대기 시간</label><small>카드가 나온 뒤 다음 사람이 행동하지 못하는 시간 (0~30초)</small><div class="numin"><input class="txt" type="number" id="inGrace" min="0" max="30" step="1" inputmode="numeric"><span>초</span></div></div>
       <div class="field"><label for="inTurn">제한 시간</label><small>지나면 자동 패스, 첫 플레이어는 카드 1장을 자동으로 냅니다 (5~120초)</small><div class="numin"><input class="txt" type="number" id="inTurn" min="5" max="120" step="1" inputmode="numeric"><span>초</span></div></div>
       <div class="row">
@@ -512,7 +512,7 @@ const pick=a=>a[Math.random()*a.length|0];
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
 
-/* 카드 id: 0~51은 숫자 카드((숫자-1)*4+0~3), 52·53은 조커. 같은 숫자는 같은 색 */
+/* 카드 id: 0~51은 숫자 카드((숫자-1)*4+0~3), 52·53은 별카드. 같은 숫자는 같은 색 */
 const isJ=id=>id>=52;
 const numOf=id=>isJ(id)?0:(id>>2)+1;
 const labelOf=id=>isJ(id)?'JK':rankLabel(numOf(id));
@@ -575,7 +575,7 @@ function hostStart(){
   H.players.forEach(p=>p.hand.sort((a,b)=>a-b));
   Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,rankBottom:n});
   const first=Math.random()*n|0;
-  addLog(`${n}명 게임 시작${H.cfg.jokers?` (조커 ${H.cfg.jokers}장)`:''}. ${H.players[first].name}부터 시작해요.`,'sys');
+  addLog(`${n}명 게임 시작${H.cfg.jokers?` (별카드 ${H.cfg.jokers}장)`:''}. ${H.players[first].name}부터 시작해요.`,'sys');
   newRound(first);
 }
 function newRound(st){
