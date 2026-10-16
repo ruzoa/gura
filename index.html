@@ -146,6 +146,7 @@ body.no3d .seat.on .ring{display:block}
 .slots li.empty{color:var(--muted);font-weight:400;border:1.5px dashed var(--line-strong);background:none}
 .slots .tag{margin-left:auto;font-size:11px;color:var(--muted);font-weight:600}
 .slots .tag.host{color:var(--amber)}
+.slots .slot-emo{width:30px;height:30px;flex:none;margin:-5px -6px -5px 4px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--panel);font-size:16px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 0 var(--line)}
 .slots .kick{width:26px;height:26px;flex:none;margin:-4px -6px -4px 2px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--panel);color:var(--gura);font-size:12px;font-weight:700;line-height:1;padding:0}
 .slots .kick:hover{background:var(--gura);color:var(--gura-ink);border-color:var(--gura-edge)}
 .row{display:flex;gap:8px;flex-wrap:wrap}
@@ -1683,12 +1684,17 @@ function renderHUD(){
   $('#actions').hidden=!inGame;
   if(!inGame){$('#verdict').hidden=true;return}
   const vd=$('#verdict');
-  if(V.st==='reveal'&&V.rv&&Date.now()<revealReadyAt){vd.hidden=true}
+  if(V.st==='reveal'&&V.rv&&Date.now()<revealReadyAt){vd.hidden=true;vd.dataset.k=''}
   else if(V.st==='reveal'&&V.rv){
-    const R=V.rv;vd.hidden=false;
-    vd.innerHTML=`<div class="vw"><b>${esc(V.ps[R.s].n)}</b> → <b>${esc(V.ps[R.p].n)}</b></div>
+    const R=V.rv,key=[R.s,R.p,R.lie,R.fc].join('|');
+    // 상태가 새로 와도 같은 판정이면 다시 그리지 않음 (다시 그리면 튀어나오는 효과가 한 번 더 재생됨)
+    if(vd.dataset.k!==key){
+      vd.innerHTML=`<div class="vw"><b>${esc(V.ps[R.s].n)}</b> → <b>${esc(V.ps[R.p].n)}</b></div>
       <div class="vt ${R.lie?'lie':'truth'}">${R.lie?'걸렸다!':'진짜였다'}</div>`;
-  }else vd.hidden=true;
+      vd.dataset.k=key;
+    }
+    if(vd.hidden)vd.hidden=false;
+  }else{vd.hidden=true;vd.dataset.k=''}
 }
 function renderLabels(){
   const box=$('#labels');
@@ -1830,7 +1836,7 @@ function renderPanel(){
   const me=myIdx(),isHost=mode==='host';
   if(V.st==='wait'){
     const max=+V.cfg.max;
-    let li=V.ps.map((p,i)=>`<li data-i="${i}">${esc(p.n)}${i===me?' (나)':''}<span class="tag ${p.hs?'host':''}">${p.hs?'방장':p.b?'봇':p.aw?'연결 끊김':'참가자'}</span>${isHost&&!p.hs?`<button type="button" class="kick" data-act="kick:${i}" data-name="${esc(p.n)}" aria-label="${esc(p.n)} 내보내기" title="내보내기">✕</button>`:''}</li>`).join('');
+    let li=V.ps.map((p,i)=>`<li data-i="${i}">${esc(p.n)}${i===me?' (나)':''}<span class="tag ${p.hs?'host':''}">${p.hs?'방장':p.b?'봇':p.aw?'연결 끊김':'참가자'}</span>${i===me?'<button type="button" class="slot-emo emo-open" data-act="emopad" aria-label="이모티콘" title="이모티콘">😊</button>':''}${isHost&&!p.hs?`<button type="button" class="kick" data-act="kick:${i}" data-name="${esc(p.n)}" aria-label="${esc(p.n)} 내보내기" title="내보내기">✕</button>`:''}</li>`).join('');
     for(let k=V.ps.length;k<max;k++)li+='<li class="empty">빈 자리</li>';
     const full=V.ps.length>=max;
     let foot;
@@ -1862,7 +1868,7 @@ function renderPanel(){
       <div class="coderow"><div><span class="label">방 코드</span><div class="codewrap"><div class="bigcode">${esc(shownCode(V.code))}</div><button type="button" class="eyebtn" data-act="hidecode" aria-pressed="${hideCode}" aria-label="${hideCode?'방 코드 보이기':'방 코드 가리기'}" title="${hideCode?'방 코드·링크 보이기':'방 코드·링크 가리기'}">${hideCode?EYE_OFF:EYE_ON}</button></div></div>${V.code?pubCtl:''}</div>
 
       ${isHost&&link?`<div class="linkbox"><input class="txt" id="linkTxt" ${hideCode?'type="password"':''} readonly value="${esc(link)}" aria-label="초대 링크"><button class="btn btn-sub" type="button" data-act="copy">링크 복사</button></div><p>이 링크를 보내면 코드가 자동으로 입력됩니다.</p>`:''}
-      <ul class="slots">${li}</ul>${me>=0?'<div class="row"><button type="button" class="btn btn-sub emo-open" data-act="emopad">😊 이모티콘</button></div>':''}${sum}${foot}`,'wait');
+      <ul class="slots">${li}</ul>${sum}${foot}`,'wait');
     return;
   }
   if(V.st==='over'){
