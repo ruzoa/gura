@@ -1490,7 +1490,13 @@ function renderEmoPad(){
 }
 function openEmoPad(anchor){
   renderEmoPad();const pad=$('#emoPad'),st=$('#stage').getBoundingClientRect(),pr=(anchor||$('#me')).getBoundingClientRect();
-  pad.hidden=false;pad.style.left=Math.max(8,pr.left-st.left)+'px';pad.style.top=Math.max(8,pr.top-st.top-pad.offsetHeight-8)+'px';
+  pad.hidden=false;
+  // 버튼 위에 띄우되 화면(테이블) 밖으로 나가지 않게: 오른쪽 끝 버튼이면 왼쪽으로 당기고, 위에 자리가 없으면 아래로
+  const W=st.width,Hh=st.height,pw=pad.offsetWidth,ph=pad.offsetHeight;
+  const want=pr.width>120?pr.left-st.left:pr.left-st.left+pr.width/2-pw/2;   // 넓은 내 정보 칸은 왼쪽 맞춤, 작은 버튼은 가운데 맞춤
+  const x=Math.min(W-pw-8,want);
+  let y=pr.top-st.top-ph-8;if(y<8)y=Math.min(Hh-ph-8,pr.bottom-st.top+8);
+  pad.style.left=Math.max(8,x)+'px';pad.style.top=Math.max(8,y)+'px';
   $('#btnEmo').setAttribute('aria-expanded','true');
 }
 function closeEmoPad(){$('#emoPad').hidden=true;$('#btnEmo').setAttribute('aria-expanded','false')}
@@ -1567,16 +1573,15 @@ const SFX={
   emo_mad(){tone(110,.16,{type:'square',vol:.05});tone(98,.22,{type:'square',vol:.05,at:.14});hiss(.2,{freq:600,q:.8,vol:.05,at:.02})}, // 부글부글
   emo_hurry(){for(let k=0;k<6;k++)tone(k%2?880:1175,.06,{type:'square',vol:.035,at:k*.07})},                                          // 따르릉
   emo_smile(){[523,659,784].forEach((f,k)=>tone(f,.14,{type:'triangle',vol:.075,at:k*.07}))},                                         // 밝은 화음
-  // 줴~ 줴~~ 야~ : 예시 소리의 음·박자 그대로, 다른 이모티콘처럼 부드럽고 통통 튀게
-  //  (빠르게 톡 튀어나와 금방 줄어드는 소리 + 한 옥타브 위 맑은 소리를 살짝 겹침, 음마다 시작에 작게 튀어 오름)
+  // 줴~ 줴~~ 야~ : 예시 소리의 억양(음 높이·박자·끌기)을 분석해서 맞춤, 소리는 실로폰처럼
+  //  (맑은 사인파 몸통 + 채로 때리는 순간의 높은 '딩' 소리를 음마다 짧게 겹침)
   emo_gg(){
-    const v={type:'triangle',vol:.1,attack:.006,sus:.3},hi={type:'sine',vol:.035,attack:.004};
-    const note=(at,d,path)=>{const f0=path[0][1]*.88;
-      tone(f0,d,{...v,at,path:[[.035,path[0][1]],...path.slice(1)]});
-      tone(f0*2,d*.5,{...hi,at,path:[[.035,path[0][1]*2],...path.slice(1).map(([t,f])=>[Math.min(t,d*.5),f*2])]});};
-    note(0,.3,[[0,290],[.3,262]]);
-    note(.34,.44,[[0,435],[.15,525],[.44,370]]);
-    note(.82,.3,[[0,333],[.3,262]]);
+    const v={type:'sine',vol:.13,attack:.004,sus:.7},w={type:'triangle',vol:.03,attack:.004,sus:.7};
+    const note=(at,d,f,o)=>{tone(f,d,{...v,at,...o});tone(f,d,{...w,at,...o});
+      tone(f*4,.05,{type:'sine',vol:.045,at,attack:.002});tone(f*2.76,.09,{type:'sine',vol:.03,at,attack:.002})};
+    note(0,.3,290,{slide:262});
+    note(.34,.44,435,{path:[[.15,525],[.44,370]]});
+    note(.82,.3,333,{slide:262});
   },
   turn(){tone(660,.12,{type:'triangle',vol:.17});tone(990,.22,{type:'triangle',vol:.17,at:.1})},
   gura(){tone(240,.38,{type:'sawtooth',vol:.15,slide:150});tone(360,.38,{type:'square',vol:.06,slide:225});hiss(.18,{freq:900,vol:.18})},
