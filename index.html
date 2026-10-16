@@ -574,7 +574,7 @@ body.kb .fan .card.cur{z-index:70!important}
         <input type="range" id="inBgm" min="0" max="100" step="5" class="vol">
       </div>
       <div class="field"><span class="fl">배경</span><div class="seg bgseg" id="segBg"></div></div>
-      <div class="field"><span class="fl">다른 사람 이모티콘</span><div class="seg emoseg" id="segEmo"></div></div>
+      <div class="field"><span class="fl">이모티콘</span><div class="seg emoseg" id="segEmo"></div></div>
       <div class="field"><span class="fl">조작</span><div class="row"><button class="btn btn-sub" id="btnKeysLobby" type="button">키 설정 열기</button></div></div>
     </div>
   </div>
@@ -1830,7 +1830,7 @@ function liveUI(t){
     const g=V.graceAt-t,me=myIdx();
     const bar=V.t===me?meBar:document.querySelector(`[data-bar="${V.t}"]`);
     let txt,cls='status';
-    if(g>0){txt=`구라 타임 ${(g/1000).toFixed(1)}초`;cls+=' grace';if(V.t===me){meT=`구라 타임 ${Math.ceil(g/1000)}초`;meG=true}if(bar){bar.classList.add('grace');bar.firstChild.style.width=Math.min(100,g/(V.cfg.grace*1000)*100)+'%'}if(V.t!==me)setRing(V.t,1,true)}
+    if(g>0){txt=`대기 시간 ${(g/1000).toFixed(1)}초`;cls+=' grace';if(V.t===me){meT=`대기 ${Math.ceil(g/1000)}초`;meG=true}if(bar){bar.classList.add('grace');bar.firstChild.style.width=Math.min(100,g/(V.cfg.grace*1000)*100)+'%'}if(V.t!==me)setRing(V.t,1,true)}
     else{
       const left=Math.max(0,(V.deadAt-t)/1000);txt=`${V.ps[V.t].n} 차례 · ${Math.ceil(left)}초`;if(bar)bar.firstChild.style.width=Math.min(100,left/V.cfg.turn*100)+'%';if(V.t!==me)setRing(V.t,left/V.cfg.turn,false);
       const sec=Math.ceil(left);if(V.t===me)meT=`${sec}초`;
@@ -2079,7 +2079,7 @@ function buildSeg(id,key,unit,label){
   });
 }
 try{if(/SamsungBrowser/i.test(navigator.userAgent)&&matchMedia('(prefers-color-scheme: dark)').matches)$('#sdarkNote').hidden=false}catch(e){}
-buildSeg('#segFast','fast','','게임 모드');buildSeg('#segPub','pub','','공개 설정');/* 대기 시간·제한 시간은 직접 입력 (범위 밖이면 가까운 값으로) */
+buildSeg('#segFast','fast','','게임 모드');buildSeg('#segPub','pub','','공개 설정');/* 대기 시간·제한 시간 등은 대기실 방 설정에서 조절 (범위 밖이면 가까운 값으로) */
 $('#inNick').value=store('gura-nick')||'나';
 const invited=(()=>{const q=new URLSearchParams(location.search).get('room');if(q&&/^[a-z0-9]{4}$/i.test(q)){$('#inCode').value=q.toUpperCase();setNote('#netNote','초대받은 방입니다. 참가를 누르면 들어갑니다.');return true}return false})();
 
