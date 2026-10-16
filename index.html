@@ -95,8 +95,11 @@ body.no3d .seat.on .ring{display:block}
 .fsbtn{position:absolute;top:10px;right:10px;z-index:7;width:40px;height:40px;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:rgba(255,250,240,.94);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 3px 0 rgba(110,69,38,.25);transition:border-color .15s,color .15s}
 .fsbtn:hover{border-color:var(--wood);color:var(--wood-dark)}
 .fsbtn svg{width:20px;height:20px}
-.fsbtn.cfg{right:58px}
-.fsbtn.snd{right:106px}
+.fsbtn.fs{right:58px}
+.fsbtn.cfg{right:106px}
+.fsbtn.snd{right:154px}
+body.nofs .fsbtn.cfg{right:58px}
+body.nofs .fsbtn.snd{right:106px}
 .menu{position:absolute;top:58px;right:10px;z-index:30;width:min(240px,calc(100% - 20px));background:var(--panel);border:1.5px solid var(--line-strong);border-radius:var(--r-md);padding:10px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--sh-panel)}
 .menu-info{display:flex;flex-wrap:wrap;gap:4px}
 .menu-info:empty{display:none}
@@ -506,7 +509,6 @@ body.kb .fan .card.cur{z-index:70!important}
       <div class="menu-bg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.3 1.8 3.5 1.8 3.5-1.8 3.5-1.8"/><line x1="9" y1="9.5" x2="9.01" y2="9.5"/><line x1="15" y1="9.5" x2="15.01" y2="9.5"/></svg><span class="mv-t">이모티콘</span><div class="seg emoseg" id="mEmo"></div></div>
       <div class="menu-row">
         <button type="button" class="mbtn" id="mRules" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg><span>게임 방법</span></button>
-        <button type="button" class="mbtn" id="mFs" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg><span>전체화면</span></button>
       </div>
       <div class="menu-row">
         <button type="button" class="mbtn" id="mKeys" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg><span>키 설정</span></button>
@@ -515,6 +517,7 @@ body.kb .fan .card.cur{z-index:70!important}
       </div>
     </div>
     <button class="fsbtn snd" id="btnSound" type="button" aria-label="소리 끄기" title="소리 끄기"></button>
+    <button class="fsbtn fs" id="btnFs" type="button" aria-label="전체화면" title="전체화면"></button>
     <button class="fsbtn" id="btnLog" type="button" aria-label="진행 기록" title="진행 기록" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg><i class="dot" hidden></i></button>
     <div class="logpanel" id="logPanel" hidden role="dialog" aria-label="진행 기록"><h3>진행 기록</h3><ol class="log" id="log"></ol><p class="log-empty">아직 기록이 없습니다.</p></div>
     <div class="verdict" id="verdict" hidden></div>
@@ -2314,10 +2317,16 @@ try{if(matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matc
 if('serviceWorker' in navigator&&location.protocol==='https:')window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
 const fsReq=document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen;
-function setFsLabel(){const b=$('#mFs');if(!b)return;b.hidden=isApp||!fsReq;b.querySelector('span').textContent=fsEl()?'전체화면 끄기':'전체화면'}
+const ICON_MAX='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+const ICON_MIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+/* 전체화면 버튼(설정 오른쪽): 브라우저 주소창까지 숨김. 앱으로 실행했거나 지원하지 않으면 버튼을 숨기고 다른 버튼을 오른쪽으로 당김 */
+function setFsLabel(){
+  const b=$('#btnFs'),no=isApp||!fsReq;b.hidden=no;document.body.classList.toggle('nofs',no);
+  const on=!!fsEl();b.innerHTML=on?ICON_MIN:ICON_MAX;const t=on?'전체화면 끄기':'전체화면';b.title=t;b.setAttribute('aria-label',t);
+}
 setFsLabel();
-$('#mFs').addEventListener('click',()=>{
-  closeMenu();
+$('#btnFs').addEventListener('click',()=>{
+  closeMenu();closeLog();
   if(fsEl()){const ex=document.exitFullscreen||document.webkitExitFullscreen;if(ex)try{const r=ex.call(document);if(r&&r.catch)r.catch(()=>{})}catch(e){}}
   else if(fsReq){try{const r=fsReq.call(document.documentElement);if(r&&r.catch)r.catch(()=>{})}catch(e){}}
 });
@@ -2352,7 +2361,7 @@ function closeMenu(){$('#menu').hidden=true;$('#btnMenu').setAttribute('aria-exp
 $('#btnMenu').addEventListener('click',e=>{
   e.stopPropagation();const m=$('#menu');
   if(!m.hidden){closeMenu();return}
-  closeLog();setFsLabel();
+  closeLog();
   $('#menuInfo').innerHTML=roomInfoHTML();$('#mLeave').hidden=mode==='lobby';
   m.hidden=false;$('#btnMenu').setAttribute('aria-expanded','true');$('#mKeys').focus();
 });
@@ -2844,7 +2853,7 @@ function placeLabels(){
 }
 function stageRects(){
   const st=$('#stage').getBoundingClientRect(),out=[];
-  for(const id of ['btnLog','btnSound','btnMenu','actions','numpick','me']){
+  for(const id of ['btnLog','btnFs','btnSound','btnMenu','actions','numpick','me']){
     const el=document.getElementById(id);if(!el||el.hidden||!el.offsetWidth)continue;
     const r=el.getBoundingClientRect();out.push({l:r.left-st.left-4,r:r.right-st.left+4,t:r.top-st.top-4,b:r.bottom-st.top+4});
   }
