@@ -222,6 +222,16 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .orline{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin:6px 0 2px}
 .orline::before,.orline::after{content:"";flex:1;height:1px;background:var(--line-strong)}
 .btn.wide{width:100%}
+.coderow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.pubsw{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted);padding-bottom:6px}
+.pubsw span.on{color:var(--ink)}
+.sw{position:relative;width:52px;height:28px;flex:none;border-radius:99px;border:1.5px solid var(--mustard-edge);background:var(--mustard);padding:0;transition:background .18s}
+.sw.right{background:var(--well);border-color:var(--line-strong)}
+.sw i{position:absolute;top:2px;left:2px;width:21px;height:21px;border-radius:50%;background:var(--paper);box-shadow:0 1px 3px rgba(28,18,10,.35);transition:left .18s}
+.sw.right i{left:25px}
+.maxpick{display:flex;flex-direction:column;gap:4px}
+.maxpick .seg button{padding:5px 0;font-size:13px}
+.maxpick .seg button:disabled{opacity:.35;cursor:default}
 .pubtag{display:inline-block;margin-left:8px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;vertical-align:middle;background:var(--well);color:var(--muted);border:1px solid var(--line-strong)}
 .pubtag.on{background:#fbe7b0;color:var(--amber);border-color:var(--mustard-edge)}
 .note.sdark{color:var(--gura);line-height:1.45;margin-top:6px}
@@ -1495,8 +1505,15 @@ function renderPanel(){
     else if(me<0)foot=full?'<p>방이 가득 찼어요. 게임이 시작되면 관전할 수 있어요.</p>':'<p>자리를 받는 중이에요.</p>';
     else foot=`<p><b>${OPT_LABEL.fast[V.cfg.fast?1:0]}</b> · ${MODE_DESC[V.cfg.fast?1:0]}</p><p>방장이 게임을 시작하기를 기다리는 중이에요.</p>`;
     const link=V.code?roomLink(String(V.code)):'';
-    showPanel(`<h2>${esc(V.title||'대기실')}</h2>
-      <div><span class="label">방 코드</span><div class="bigcode">${esc(String(V.code||'').toUpperCase())}</div><span class="pubtag${V.cfg.pub?' on':''}">${V.cfg.pub?'공개 방':'비공개 방'}</span>${isHost?`<button class="btn btn-sub" type="button" data-act="pub" style="margin-left:8px;padding:4px 10px;font-size:12px">${V.cfg.pub?'비공개로':'공개로'}</button>`:''}</div>
+    const pubOn=!!V.cfg.pub;
+    // 방장: 공개(왼쪽)/비공개(오른쪽) 슬라이드 스위치, 참가자: 표시만
+    const pubCtl=isHost?`<div class="pubsw"><span class="${pubOn?'on':''}">공개</span><button type="button" class="sw${pubOn?'':' right'}" role="switch" aria-checked="${!pubOn}" aria-label="비공개 방" data-act="pub"><i></i></button><span class="${pubOn?'':'on'}">비공개</span></div>`
+      :`<span class="pubtag${pubOn?' on':''}">${pubOn?'공개 방':'비공개 방'}</span>`;
+    // 방장: 인원 수 다시 정하기 (지금 들어와 있는 사람보다 적게는 못 줄임)
+    const maxCtl=isHost?`<div class="maxpick"><span class="label">최대 인원</span><div class="seg" role="radiogroup" aria-label="최대 인원">${OPTS.max.map(v=>`<button type="button" role="radio" aria-pressed="${v===max}" aria-checked="${v===max}" data-act="max${v}"${v<V.ps.length?' disabled':''}>${v}명</button>`).join('')}</div></div>`:'';
+    showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="방 나가기" title="방 나가기">←</button><h2>${esc(V.title||'대기실')}</h2></div>
+      <div class="coderow"><div><span class="label">방 코드</span><div class="bigcode">${esc(String(V.code||'').toUpperCase())}</div></div>${V.code?pubCtl:''}</div>
+      ${maxCtl}
       ${isHost&&link?`<div class="linkbox"><input class="txt" id="linkTxt" readonly value="${esc(link)}" aria-label="초대 링크"><button class="btn btn-sub" type="button" data-act="copy">링크 복사</button></div><p>이 링크를 보내면 코드가 자동으로 입력돼요.</p>`:''}
       <div class="nickrow"><input class="txt" id="waitNick" maxlength="10" value="${esc(me>=0?V.ps[me].n:myNick())}" aria-label="내 닉네임" autocomplete="off"><button class="btn btn-sub" type="button" data-act="nick">이름 바꾸기</button></div><ul class="slots">${li}</ul>${foot}`,'wait');
     return;
@@ -1512,7 +1529,11 @@ function renderPanel(){
 $('#panel').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act;
-  if(a==='leave'){leaveRoom();return}
+  if(a==='leave'){
+    // 방장이 나가면 방이 없어지므로, 다른 사람이 있으면 한 번 확인
+    if(b.classList.contains('back')&&mode==='host'&&H&&H.online&&H.members.some(m=>!m.host&&!m.bot)&&!confirm('방장이 나가면 방이 닫혀요. 나갈까요?'))return;
+    leaveRoom();return}
+  if(/^max[2-6]$/.test(a)){if(mode==='host'&&H&&H.phase==='wait'){const n=+a.slice(3);if(n>=H.members.length){H.cfg={...H.cfg,max:n};mark()}}return}
   if(a==='pub'){if(mode==='host'&&H&&H.online){H.cfg={...H.cfg,pub:H.cfg.pub?0:1};mark()}return}
   if(a==='nick'){changeNick();return}
   if(a==='copy'){
