@@ -337,11 +337,11 @@ body.kb .fan .card.cur{z-index:70!important}
 .fxlayer{position:absolute;inset:0;z-index:6;pointer-events:none;overflow:hidden}
 /* 외침 말풍선 (나중에 이모티콘도 같은 자리에) */
 .bubbles{position:absolute;inset:0;z-index:10;pointer-events:none;overflow:hidden}
-.bubble{position:absolute;width:220px;height:180px;margin:-90px 0 0 -110px;display:flex;align-items:center;justify-content:center;animation:bubin .32s cubic-bezier(.2,1.6,.4,1) both,bubout .3s ease-in forwards;animation-delay:0s,var(--life,2.2s);filter:drop-shadow(0 4px 6px rgba(28,18,10,.35))}
+.bubble{position:absolute;width:calc(220px*var(--bk,1));height:calc(180px*var(--bk,1));margin:calc(-90px*var(--bk,1)) 0 0 calc(-110px*var(--bk,1));display:flex;align-items:center;justify-content:center;animation:bubin .32s cubic-bezier(.2,1.6,.4,1) both,bubout .3s ease-in forwards;animation-delay:0s,var(--life,2.2s);filter:drop-shadow(0 4px 6px rgba(28,18,10,.35))}
 .bubble svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .bubble svg path{fill:var(--gura);stroke:var(--gura-edge);stroke-width:3.5;stroke-linejoin:round}
-.bubble .bt{position:relative;font-family:var(--f-display);font-size:31px;line-height:1;color:var(--gura-ink);transform:rotate(-5deg);text-shadow:0 2px 0 var(--gura-edge)}
-.bubble .be{position:relative;font-size:38px;line-height:1}
+.bubble .bt{position:relative;font-family:var(--f-display);font-size:calc(31px*var(--bk,1));line-height:1;color:var(--gura-ink);transform:rotate(-5deg);text-shadow:0 2px 0 var(--gura-edge)}
+.bubble .be{position:relative;font-size:calc(38px*var(--bk,1));line-height:1}
 @keyframes bubin{from{opacity:0;scale:.3}}
 @keyframes bubout{to{opacity:0;scale:.85}}
 .playfx{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:8px;background:var(--paper);border:3px solid var(--rc,var(--ink));border-radius:var(--r-md);padding:5px 14px 5px 7px;box-shadow:0 4px 0 var(--rc,var(--ink)),0 14px 24px -10px rgba(59,42,31,.5);white-space:nowrap;animation:fxpop 2s ease-out forwards}
@@ -1120,13 +1120,14 @@ function showBubble(i,html,life){
   let dx=A.x-lx,dy=A.y-ly,len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;
   if(i===myIdx()){dx=.55;dy=-.83}   // 내 정보 칸은 왼쪽 아래 → 오른쪽 위로
   const ext=Math.abs(dx)*r.width/2+Math.abs(dy)*r.height/2;
-  const dist=BUB.tail+ext+2;
+  const k=Math.max(1,Math.min(2.2,W/900,Hh/620));   // 큰 화면(QHD 전체화면 등)에서는 비율대로 크게
+  const dist=BUB.tail*k+ext+2;
   let bx=lx+dx*dist,by=ly+dy*dist;
-  bx=Math.max(BUB.rx+6,Math.min(W-BUB.rx-6,bx));by=Math.max(BUB.ry+6,Math.min(Hh-BUB.ry-6,by));
+  bx=Math.max(BUB.rx*k+6,Math.min(W-BUB.rx*k-6,bx));by=Math.max(BUB.ry*k+6,Math.min(Hh-BUB.ry*k-6,by));
   const ang=Math.atan2(ly-by,lx-bx);
   const box=$('#bubbles');box.querySelectorAll(`[data-i="${i}"]`).forEach(b=>b.remove());
   const b=document.createElement('div');b.className='bubble';b.dataset.i=i;
-  b.style.left=bx+'px';b.style.top=by+'px';b.style.setProperty('--life',(life||2200)+'ms');
+  b.style.left=bx+'px';b.style.top=by+'px';b.style.setProperty('--life',(life||2200)+'ms');b.style.setProperty('--bk',k);
   b.innerHTML=`<svg viewBox="0 0 ${BUB.w} ${BUB.h}" aria-hidden="true"><path d="${burstPath(ang)}"/></svg>${html}`;
   b.addEventListener('animationend',e=>{if(e.animationName==='bubout')b.remove()});
   setTimeout(()=>b.remove(),(life||2200)+500);   // 윈도우 '애니메이션 효과 끄기' 등으로 애니메이션이 안 돌 때 대비
@@ -1915,25 +1916,6 @@ function buildEnv(sc,meadow){
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(120,120),toon({map:floorTex,rim:0}));floor.rotation.x=-Math.PI/2;floor.position.y=GY;floor.receiveShadow=true;sc.add(floor);
     const rug=new THREE.Mesh(new THREE.CircleGeometry(7.4,72),toon({color:0xb0705a,rim:0}));rug.rotation.x=-Math.PI/2;rug.position.y=GY+.01;rug.receiveShadow=true;sc.add(rug);
     const rug2=new THREE.Mesh(new THREE.RingGeometry(6.7,6.95,72),new THREE.MeshBasicMaterial({color:0xd9a441}));rug2.rotation.x=-Math.PI/2;rug2.position.y=GY+.02;sc.add(rug2);
-    const r=gfxRng(9);
-    // 뒤쪽 벽 + 창문
-    const wall=new THREE.Mesh(new THREE.PlaneGeometry(60,14),toon({color:0xe9d3b0,rim:0}));wall.position.set(0,GY+7,-15);wall.receiveShadow=true;sc.add(wall);
-    const wain=new THREE.Mesh(new THREE.PlaneGeometry(60,2.2),toon({color:0x8a5530,rim:0}));wain.position.set(0,GY+1.1,-14.98);sc.add(wain);
-    const glassM=new THREE.MeshBasicMaterial({color:0xcfe6ee}),frameM=new THREE.MeshBasicMaterial({color:0x6b4126});
-    [-9,-3,3,9].forEach(x=>{
-      const f=new THREE.Mesh(new THREE.PlaneGeometry(4,5),frameM);f.position.set(x,GY+6,-14.96);sc.add(f);
-      const gl=new THREE.Mesh(new THREE.PlaneGeometry(3.5,4.5),glassM);gl.position.set(x,GY+6,-14.94);sc.add(gl);
-      const bar=new THREE.Mesh(new THREE.PlaneGeometry(.18,4.5),frameM);bar.position.set(x,GY+6,-14.92);sc.add(bar);
-      const bar2=new THREE.Mesh(new THREE.PlaneGeometry(3.5,.18),frameM);bar2.position.set(x,GY+6,-14.92);sc.add(bar2);
-    });
-    // 화분
-    const potM=toon({color:0xc06a48,rim:.2}),leafA=toon({color:0x5c9a48,rim:.22}),leafB=toon({color:0x76ad52,rim:.22});
-    [[-8,-6],[8.5,-5],[-9.5,3],[9.5,4],[-4,-11],[5,-11.5]].forEach(([x,z])=>{
-      const g=new THREE.Group();g.position.set(x,GY,z);g.scale.setScalar(.9+r()*.5);
-      const pot=new THREE.Mesh(new THREE.CylinderGeometry(.55,.4,.9,18),potM);pot.position.y=.45;pot.castShadow=true;g.add(pot);hull(new THREE.CylinderGeometry(.6,.45,.95,18),pot,g);
-      [[0,1.5,0,.75],[.45,1.15,.2,.5],[-.4,1.2,-.1,.55]].forEach(([cx,cy,cz,cr],j)=>{const c=new THREE.Mesh(new THREE.SphereGeometry(cr,16,12),j%2?leafB:leafA);c.position.set(cx,cy,cz);c.castShadow=true;g.add(c);hull(new THREE.SphereGeometry(cr*1.06,16,12),c,g)});
-      sc.add(g);
-    });
   }
 }
 function init3D(){
