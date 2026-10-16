@@ -568,7 +568,7 @@ body.kb .fan .card.cur{z-index:70!important}
   <div class="lobby">
     <div class="view" data-view="main">
       <h1>구라!</h1>
-      <p class="lead">구라! · 대부호 · 친구들과 즐기는 카드게임</p>
+      <p class="lead">구라! · 대부호 · 쿼리도 · 친구들과 즐기는 게임</p>
       <div class="nickline" id="nickLine">닉네임 <b id="nickShow">나</b><button type="button" class="nickbtn" id="btnNickEdit">수정</button></div>
       <div class="nickedit" id="nickEdit" hidden>
         <input class="txt" id="inNick" maxlength="10" autocomplete="off" aria-label="닉네임">
@@ -657,6 +657,7 @@ body.kb .fan .card.cur{z-index:70!important}
 <!-- 게임별 규칙·봇·카드·화면: games/*.js. 공통 코드(아래)는 G(지금 게임)의 함수를 부름 -->
 <script src="games/gura.js"></script>
 <script src="games/president.js"></script>
+<script src="games/quoridor.js"></script>
 <script>
 /* ================= 공통 ================= */
 const $=s=>document.querySelector(s);
@@ -672,7 +673,7 @@ const isJ=id=>id>=JOKER_BASE;
 const JOKER_C='#efbc4e';
 /* ===== 게임 목록 =====
    G = 지금 화면에 보이는 게임, EG() = 방장 엔진이 돌리는 게임 (방장 화면에서는 둘이 같음) */
-const GAME_IDS=['gura','president'];
+const GAME_IDS=['gura','president','quoridor'];
 let G=GAMES.gura;
 const EG=()=>(H&&H.cfg&&GAMES[H.cfg.game])||GAMES.gura;
 const gameOf=id=>GAMES[id]||GAMES.gura;
@@ -694,7 +695,7 @@ const BOT_LV=['쉬움','보통','어려움'];
 const COMMON_SET=[
   {k:'max',label:'최대 인원',unit:'명',lo:2,hi:8,step:1,desc:'현재 인원보다 적게 줄일 수 없습니다'},
   {k:'spec',label:'관전 인원',unit:'명',lo:0,hi:8,step:1,desc:'게임 중이거나 방이 가득 차면 관전으로 들어옵니다'}];
-const roomSetOf=g=>[...COMMON_SET,...g.roomSet];
+const roomSetOf=g=>[...COMMON_SET.map(d=>d.k==='max'&&g.maxHi?{...d,hi:g.maxHi}:d),...g.roomSet];   // g.maxHi: 그 게임의 최대 인원 (쿼리도 4명)
 const cfgKey=id=>id==='gura'?'gura-roomcfg':'gura-roomcfg-'+id;
 /* 게임별로 저장해 둔 방 설정 (없으면 기본값). 범위 밖이면 가까운 값으로 */
 function cfgFor(id){
@@ -752,7 +753,10 @@ function hostStart(){
 /* 대기실에서 방장이 게임 종류 바꾸기: 인원·관전·공개·모드는 그대로, 나머지는 그 게임에 저장해 둔 설정 */
 function hostSetGame(id){
   if(mode!=='host'||!H||H.phase!=='wait'||!GAMES[id]||H.cfg.game===id)return;
+  const mx=GAMES[id].maxHi;   // 인원 제한이 있는 게임: 지금 인원이 넘으면 바꾸지 않음
+  if(mx&&H.members.length>mx){addLog(`${GAMES[id].name}은(는) 최대 ${mx}명까지 할 수 있습니다.`,'sys');mark();return}
   const keep={max:Math.max(H.cfg.max,H.members.length),spec:H.cfg.spec,pub:H.cfg.pub,fast:H.cfg.fast};
+  if(mx)keep.max=Math.min(keep.max,mx);
   H.cfg={...cfgFor(id),...keep};store('gura-game',id);
   if(GAMES[id].engine.reset)GAMES[id].engine.reset();
   addLog(`게임을 ${GAMES[id].name}(으)로 바꿨습니다.`,'sys');
