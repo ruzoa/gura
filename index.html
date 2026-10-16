@@ -1446,7 +1446,7 @@ function cues(v,pv){
     else if(txt.includes('패스'))sfx('pass');
   }
   if(typeof v.fc==='number'&&typeof pv.fc==='number'&&v.fc>pv.fc&&v.la){sfx('play',v.fc-pv.fc);playFx(v)}
-  if(v.st==='reveal'&&v.rv&&pv.st!=='reveal'){setTimeout(()=>sfx(v.rv.lie?'lie':'truth'),550+REVEAL_PAUSE);revealReadyAt=Date.now()+REVEAL_PAUSE;renderHUD();setTimeout(()=>{if(V&&V.st==='reveal')renderHUD()},REVEAL_PAUSE+20);$('#fx').innerHTML='';showBubble(v.rv.s,'<span class="bt">구라!</span>',REVEAL_PAUSE+150,'real');/* 카드가 펼쳐질 때 말풍선은 사라짐 */clearTimeout(pileHoldTimer);$('#pileNum').classList.remove('held')}
+  if(v.st==='reveal'&&v.rv&&pv.st!=='reveal'){setTimeout(()=>sfx(v.rv.lie?'lie':'truth'),550+REVEAL_PAUSE);revealReadyAt=Date.now()+REVEAL_PAUSE;renderHUD();setTimeout(()=>{if(V&&V.st==='reveal')renderHUD()},REVEAL_PAUSE+20);$('#fx').innerHTML='';showBubble(v.rv.s,'<span class="bt">구라!</span>',T&&T.ok?2400:REVEAL_PAUSE+150,'real');/* 3D에서는 펼쳐진 카드가 앞에서 말풍선을 가림, 3D가 없으면 카드 공개 때 사라짐 */clearTimeout(pileHoldTimer);$('#pileNum').classList.remove('held')}
   const me=myIdx();
   if(v.st==='play'&&me>=0&&v.t===me&&!(pv.st==='play'&&pv.t===me))setTimeout(()=>sfx('turn'),v.gr>0?Math.min(v.gr,1500):0);
 }
@@ -1480,6 +1480,7 @@ function burstPath(ang){
 }
 function showBubble(i,html,life,kind){
   kind=kind||'real';
+  if((kind==='real'||kind==='q')&&T&&T.ok&&V&&V.st!=='wait'&&show3DBubble(i,kind,life))return;
   const st=$('#stage'),sr=st.getBoundingClientRect(),W=sr.width,Hh=sr.height;
   const inWait=V&&V.st==='wait';
   const el=inWait?document.querySelector(`#panel .slots li[data-i="${i}"]`):i===myIdx()?$('#me'):document.querySelector(`#labels .seat[data-i="${i}"]`);
@@ -2324,7 +2325,7 @@ function buildEmoSeg(box){
   box.setAttribute('role','radiogroup');box.setAttribute('aria-label','다른 사람 이모티콘');
   box.innerHTML='<button type="button" role="radio" data-v="on">보기</button><button type="button" role="radio" data-v="off">끄기</button>';
   box.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const off=b.dataset.v==='off';if(off===emoOff)return;
-    emoOff=off;store('gura-emo-off',off?'1':'0');if(off)$('#bubbles').querySelectorAll('.bubble.soft,.bubble.q').forEach(x=>x.remove());syncEmoSeg();sfx('tick')});
+    emoOff=off;store('gura-emo-off',off?'1':'0');if(off){$('#bubbles').querySelectorAll('.bubble.soft,.bubble.q').forEach(x=>x.remove());if(T&&T.bubbles)T.bubbles.filter(b=>b.kind==='q').forEach(killBubble)}syncEmoSeg();sfx('tick')});
 }
 buildEmoSeg($('#segEmo'));buildEmoSeg($('#mEmo'));syncEmoSeg();
 function buildEnv(sc,meadow){
@@ -2448,6 +2449,54 @@ function makeCard(pos,rx,ry,s){
 function killCard(c){T.scene.remove(c);T.cards.delete(c)}
 function fieldSpot(k){const a=k*2.399,r=.25+Math.min(.85,k*.06);return new THREE.Vector3(Math.cos(a)*r,.02+k*.012,Math.sin(a)*r)}
 function nearMe(){return new THREE.Vector3(0,1.6,6.6)}
+/* ===== 3D 말풍선 (구라! / 구라?) — 테이블 안에 떠 있어서 앞쪽 카드가 자연스럽게 가림 ===== */
+T.bubbles=[];T.bubTex={};
+function bubbleTex(kind){
+  if(T.bubTex[kind])return T.bubTex[kind];
+  const W=440,Hc=360,draw=(g)=>{
+    g.clearRect(0,0,W,Hc);g.save();g.scale(2,2);
+    const path=new Path2D(burstPath(Math.PI/2));   // 꼬리는 아래(말한 사람 쪽)로
+    g.lineJoin='round';g.lineWidth=4;
+    g.fillStyle=kind==='q'?'#f2b632':'#cc3a2e';g.strokeStyle=kind==='q'?'#c08a17':'#922519';
+    g.fill(path);g.stroke(path);g.restore();
+    g.textAlign='center';g.textBaseline='middle';g.font='64px Jua, "Black Han Sans", sans-serif';
+    g.save();g.translate(W/2,Hc*.46);g.rotate(-.09);
+    if(kind==='q'){g.fillStyle='rgba(255,250,240,.6)';g.fillText('구라?',0,4);g.fillStyle='#3b2a1f';g.fillText('구라?',0,0)}
+    else{g.fillStyle='#922519';g.fillText('구라!',0,4);g.fillStyle='#fffaf0';g.fillText('구라!',0,0)}
+    g.restore();
+  };
+  const tex=canvasTex(W,Hc,draw);T.bubTex[kind]=tex;
+  if(document.fonts&&document.fonts.load)document.fonts.load('64px Jua').then(()=>{draw(tex.image.getContext('2d'));tex.needsUpdate=true}).catch(()=>{});
+  return tex;
+}
+function show3DBubble(i,kind,life){
+  try{
+    if(!T.scene)return false;
+    T.bubbles.filter(b=>b.i===i).forEach(killBubble);
+    const me=myIdx();
+    const base=i===me?seatPos(i,2.5):seatPos(i,3.55);base.y=i===me?1.25:1.85;
+    const mat=new THREE.SpriteMaterial({map:bubbleTex(kind),transparent:true,depthTest:true,depthWrite:false,fog:false});
+    const sp=new THREE.Sprite(mat);sp.position.copy(base);sp.renderOrder=5;
+    // 멀리 있는 자리도 너무 작아지지 않게 거리만큼 살짝 키움
+    const d=T.cam.position.distanceTo(base),k=Math.pow(d/10,.55);
+    T.scene.add(sp);
+    T.bubbles.push({i,kind,sp,mat,t0:clock(),life:life||1600,w:1.85*k});
+    return true;
+  }catch(e){return false}
+}
+function killBubble(b){if(b.sp.parent)b.sp.parent.remove(b.sp);b.mat.dispose();T.bubbles=T.bubbles.filter(x=>x!==b)}
+function updBubbles(t){
+  for(const b of [...T.bubbles]){
+    const a=t-b.t0;if(a>b.life+300){killBubble(b);continue}
+    // 튀어나오기(살짝 넘쳤다가 제자리) → 유지 → 작아지며 사라짐
+    let s=a<320?(()=>{const x=a/320;return .3+.7*(1+2.2*Math.pow(x-1,3)+1.2*Math.pow(x-1,2))})():1;
+    let op=1;if(a>b.life){const x=(a-b.life)/300;op=1-x;s*=1-.15*x}
+    b.mat.opacity=Math.max(0,op);
+    b.sp.scale.set(b.w*s,b.w*s*360/440,1);
+    b.mat.rotation=b.kind==='q'?Math.sin(a/160)*.08:Math.sin(a/90)*.02;   // 구라?는 갸웃갸웃
+    b.sp.position.y+= (Math.sin(a/300)*.0015);
+  }
+}
 function sync3D(v,pv){
   if(!T.ok)return;
   if(!v||!v.ps||v.st==='wait'){
@@ -2496,6 +2545,7 @@ function frame(){
   const t=clock(),dt=Math.min(.05,(t-lastFrame)/1000);lastFrame=t;
   if(T.ok){
     GFX_U.time.value=t/1000;
+    if(T.bubbles.length)updBubbles(t);
     const k=1-Math.exp(-dt*7);
     for(const c of [...T.cards]){
       const u=c.userData;c.position.lerp(u.p,k);c.rotation.x+=(u.rx-c.rotation.x)*k;c.rotation.y+=(u.ry-c.rotation.y)*k;
