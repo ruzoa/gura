@@ -220,6 +220,29 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .seg.modes button[aria-pressed="true"] small{color:var(--ink)}
 .seg button[aria-pressed="true"]{background:var(--mustard);border-color:var(--mustard-edge);font-weight:600;box-shadow:0 2px 0 var(--mustard-edge)}
 .note{font-size:12px;color:var(--muted);margin:0;min-height:18px}
+.vhead .refresh{margin-left:auto;width:40px;height:40px;flex:none;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:var(--panel);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 2px 0 var(--line)}
+.vhead .refresh svg{width:19px;height:19px}
+.vhead .refresh.spin svg{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#randNote:empty{display:none}
+.roomlist{display:flex;flex-direction:column;gap:7px;max-height:min(46vh,380px);overflow-y:auto;margin:2px -4px 0;padding:2px 4px 4px}
+.roomlist.loading .room:not(.sk){opacity:.6}
+.rl-h{font-size:12px;font-weight:600;color:var(--muted);margin-top:4px}
+.rl-h b{color:var(--ink);font-family:var(--f-num)}
+.rl-empty{font-size:12.5px;color:var(--muted);margin:0;line-height:1.6}
+.linkbtn{border:none;background:none;padding:0;color:var(--gura);font-weight:600;text-decoration:underline;font-size:inherit}
+.room{display:flex;flex-direction:column;gap:2px;text-align:left;width:100%;padding:10px 12px;border-radius:var(--r-md);border:1.5px solid var(--line-strong);background:var(--paper);box-shadow:0 2px 0 var(--line);color:var(--ink)}
+.room:hover:not(:disabled){border-color:var(--mustard-edge)}
+.room .rm-top{display:flex;align-items:baseline;gap:8px}
+.room .rm-t{font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.room .rm-n{font-family:var(--f-num);font-size:13px;font-weight:600;color:var(--amber)}
+.room .rm-sub{font-size:12px;color:var(--muted)}
+.room .rm-st{font-size:11.5px;font-weight:600;color:var(--ok)}
+.room.closed{background:var(--well);box-shadow:none;opacity:.75}
+.room.closed .rm-st{color:var(--muted)}
+.room:disabled{cursor:default}
+.room.sk{height:66px;background:linear-gradient(90deg,var(--well),var(--paper),var(--well));background-size:200% 100%;animation:sk 1.2s linear infinite;box-shadow:none}
+@keyframes sk{to{background-position:-200% 0}}
 .orline{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin:6px 0 2px}
 .orline::before,.orline::after{content:"";flex:1;height:1px;background:var(--line-strong)}
 .btn.wide{width:100%}
@@ -529,16 +552,17 @@ body.kb .fan .card.cur{z-index:70!important}
     </div>
 
     <div class="view" data-view="join" hidden>
-      <div class="vhead"><button type="button" class="back" data-go="main" aria-label="뒤로">←</button><h2>참여하기</h2></div>
+      <div class="vhead"><button type="button" class="back" data-go="main" aria-label="뒤로">←</button><h2>참여하기</h2><button type="button" class="refresh" id="btnRooms" aria-label="방 목록 새로고침" title="방 목록 새로고침"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button></div>
       <p class="nickline">닉네임 <b class="nickShow2">나</b></p>
+      <button class="btn btn-red wide" id="btnRandom" type="button">랜덤 방 참여</button>
+      <p class="note" id="randNote"></p>
+      <div class="roomlist" id="roomList" aria-live="polite"></div>
+      <div class="orline"><span>코드로 참여</span></div>
       <div class="joinrow">
         <input class="txt code" id="inCode" maxlength="4" placeholder="방 코드" autocomplete="off" aria-label="방 코드">
         <button class="btn btn-play" id="btnJoinCode" type="button">참가</button>
       </div>
-      <p class="note" id="netNote">친구에게 받은 4자리 방 코드를 입력합니다.</p>
-      <div class="orline"><span>또는</span></div>
-      <button class="btn btn-red wide" id="btnRandom" type="button">랜덤 방 참여</button>
-      <p class="note" id="randNote">공개된 방 중 자리가 남은 곳에 바로 들어갑니다.</p>
+      <p class="note" id="netNote">비공개 방은 친구에게 받은 4자리 코드로 들어갑니다.</p>
     </div>
 
     <div class="view" data-view="settings" hidden>
@@ -900,7 +924,7 @@ let hideCode=store('gura-hidecode')==='1';
 const EYE_ON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',EYE_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
 const shownCode=c=>hideCode?'••••':String(c||'').toUpperCase();
 const PUB_PREFIX='gura-cardgame-pub-',PUB_SLOTS=16;
-function pubInfo(){return {t:'room',code:H.code,title:H.title,n:H.members.filter(m=>!m.away).length,max:H.cfg.max,ph:H.phase,fast:H.cfg.fast?1:0}}
+function pubInfo(){const hm=H.members.find(m=>m.host);return {t:'room',code:H.code,title:H.title,host:hm?hm.name:'',n:H.members.filter(m=>!m.away).length,max:H.cfg.max,ph:H.phase,fast:H.cfg.fast?1:0,maxn:H.cfg.maxn||14,jk:H.cfg.jokers||0}}
 function pubSync(){
   const want=!!(H&&H.online&&H.cfg.pub&&mode==='host'&&!noPeerLib());
   if(want&&!net.pub&&!net.pubBusy&&clock()>=(net.pubRetryAt||0))claimSlot(shuffle([...Array(PUB_SLOTS).keys()]),0);
@@ -1102,30 +1126,72 @@ function retryOnce(){
   wireGuestConn(conn);
   conn.on('error',()=>{clearTimeout(to);if(net.retry===R)next()});
 }
-function randomJoin(){
-  if(noPeerLib()){setNote('#randNote','온라인 연결 라이브러리를 불러오지 못했습니다. 새로고침이 필요합니다.',true);return}
-  if(net.peer||mode!=='lobby')return;
-  saveNick();
-  const btn=$('#btnRandom');btn.disabled=true;setNote('#randNote','공개 방을 찾는 중입니다…');
-  const peer=new Peer(),rooms=new Map();let done=false;
+/* 공개 방 찾기: 알림판 16자리에 동시에 물어보고 3.5초 동안 답을 모음 */
+let roomScan=null,roomCache=[],roomScanAt=0;
+function scanRooms(cb){
+  if(noPeerLib()){cb(null);return}
+  if(roomScan){roomScan.cbs.push(cb);return}
+  const peer=new Peer(),rooms=new Map(),S={cbs:[cb]};roomScan=S;let done=false;
   const finish=()=>{
-    if(done)return;done=true;try{peer.destroy()}catch(e){}btn.disabled=false;
-    const ok=[...rooms.values()].filter(x=>x.ph==='wait'&&x.n<x.max);
-    if(!ok.length){setNote('#randNote','지금 들어갈 수 있는 공개 방이 없습니다. 공개 방을 직접 만들어 보십시오.',true);return}
-    // 사람이 더 많은 방을 조금 더 우선 (빨리 시작할 수 있게)
-    ok.sort((a,b)=>(b.n-a.n)||(Math.random()-.5));
-    const pick=ok[0];setNote('#randNote',`${pick.title||'공개 방'} 방에 들어가는 중입니다…`);
-    joinRoom(pick.code);
+    if(done)return;done=true;try{peer.destroy()}catch(e){}roomScan=null;
+    roomCache=[...rooms.values()];roomScanAt=Date.now();S.cbs.forEach(f=>{try{f(roomCache)}catch(e){}});
   };
   peer.on('open',()=>{
     for(let k=0;k<PUB_SLOTS;k++){
       const c=peer.connect(PUB_PREFIX+k,{reliable:true});
-      c.on('data',d=>{if(d&&d.t==='room'&&/^[a-z0-9]{4}$/.test(d.code||'')){rooms.set(d.code,{code:d.code,title:cleanNick(d.title||''),n:+d.n||0,max:+d.max||0,ph:String(d.ph||'')})}});
+      c.on('data',d=>{if(d&&d.t==='room'&&/^[a-z0-9]{4}$/.test(d.code||'')){rooms.set(d.code,{code:d.code,title:cleanNick(d.title||'')||'공개 방',host:d.host?cleanNick(d.host):'',n:+d.n||0,max:+d.max||0,ph:String(d.ph||''),fast:+d.fast?1:0,maxn:+d.maxn||14,jk:+d.jk||0})}});
     }
     setTimeout(finish,3500);
   });
   peer.on('error',e=>{if(e&&e.type==='peer-unavailable')return;if(!peer.open)finish()});
   setTimeout(finish,9000);
+}
+const roomOpen=x=>x.ph==='wait'&&x.n<x.max;
+function roomCard(x){
+  const open=roomOpen(x),st=x.ph==='wait'?(open?'대기 중':'가득 참'):x.ph==='over'?'결과 보는 중':'게임 중';
+  return `<button type="button" class="room${open?'':' closed'}" data-code="${esc(x.code)}" ${x.ph==='wait'&&!open?'disabled':''}>
+    <span class="rm-top"><b class="rm-t">${esc(x.title)}</b><span class="rm-n">${x.n}/${x.max}명</span></span>
+    <span class="rm-sub">${x.host?`방장 ${esc(x.host)} · `:''}${x.fast?'빠른 모드':'클래식'} · 자음 ${x.maxn}자 · ★${x.jk}</span>
+    <span class="rm-st">${st}${!open&&x.ph!=='wait'?' · 눌러서 관전':''}</span></button>`;
+}
+function renderRooms(list,loading){
+  const box=$('#roomList');
+  if(loading&&!list){box.innerHTML='<div class="room sk"></div><div class="room sk"></div>';return}
+  if(list===null){box.innerHTML='<p class="note warn">온라인 연결 라이브러리를 불러오지 못했습니다. 새로고침이 필요합니다.</p>';return}
+  const open=list.filter(roomOpen).sort((a,b)=>(b.n-a.n)||a.title.localeCompare(b.title));
+  const rest=list.filter(x=>!roomOpen(x)).sort((a,b)=>(a.ph==='wait')-(b.ph==='wait')||a.title.localeCompare(b.title));
+  let h='';
+  h+=`<div class="rl-h">들어갈 수 있는 방 <b>${open.length}</b></div>`;
+  h+=open.length?open.map(roomCard).join(''):'<p class="rl-empty">지금 들어갈 수 있는 공개 방이 없습니다. <button type="button" class="linkbtn" data-go="create" data-pub="1">공개 방 만들기</button></p>';
+  if(rest.length)h+=`<div class="rl-h">게임 중 · 가득 찬 방 <b>${rest.length}</b></div>`+rest.map(roomCard).join('');
+  box.innerHTML=h;box.classList.toggle('loading',!!loading);
+}
+function refreshRooms(){
+  const btn=$('#btnRooms');btn.classList.add('spin');btn.disabled=true;
+  renderRooms(roomCache.length?roomCache:undefined,true);
+  scanRooms(list=>{btn.classList.remove('spin');btn.disabled=false;renderRooms(list,false)});
+}
+$('#btnRooms').addEventListener('click',refreshRooms);
+$('#roomList').addEventListener('click',e=>{
+  const b=e.target.closest('.room[data-code]');if(!b||b.disabled||mode!=='lobby'||net.peer)return;
+  const x=roomCache.find(r=>r.code===b.dataset.code);
+  setNote('#randNote',`${x?x.title:'방'}에 ${x&&!roomOpen(x)?'관전으로 ':''}들어가는 중입니다…`);
+  joinRoom(b.dataset.code);
+});
+function randomJoin(){
+  if(noPeerLib()){setNote('#randNote','온라인 연결 라이브러리를 불러오지 못했습니다. 새로고침이 필요합니다.',true);return}
+  if(net.peer||mode!=='lobby')return;
+  saveNick();
+  const btn=$('#btnRandom');btn.disabled=true;setNote('#randNote','공개 방을 찾는 중입니다…');
+  scanRooms(list=>{
+    btn.disabled=false;renderRooms(list,false);
+    const ok=(list||[]).filter(roomOpen);
+    if(!ok.length){setNote('#randNote','지금 들어갈 수 있는 공개 방이 없습니다. 공개 방을 직접 만들어 보십시오.',true);return}
+    // 사람이 더 많은 방을 조금 더 우선 (빨리 시작할 수 있게)
+    ok.sort((a,b)=>(b.n-a.n)||(Math.random()-.5));
+    const pick=ok[0];setNote('#randNote',`${pick.title} 방에 들어가는 중입니다…`);
+    joinRoom(pick.code);
+  });
 }
 function hostGone(){
   if(mode!=='guest')return;
@@ -2057,14 +2123,16 @@ function showView(v,focus=true){
   lobbyView=v;
   document.querySelectorAll('#lobby .view').forEach(el=>{el.hidden=el.dataset.view!==v});
   const nk=myNick();$('#nickShow').textContent=nk;document.querySelectorAll('.nickShow2').forEach(e=>e.textContent=nk);
+  if(v==='join'&&mode==='lobby'&&!roomScan)refreshRooms();
   if(!focus)return;
   setTimeout(()=>{
     if($('#lobby').hidden)return;
-    const el=v==='join'?(/^[a-z0-9]{4}$/i.test($('#inCode').value.trim())?$('#btnJoinCode'):$('#inCode')):v==='settings'?$('#inVol'):v==='create'?$('#segFast [tabindex="0"]'):$('#lobby .mm');
+    const coarse=window.matchMedia&&matchMedia('(pointer:coarse)').matches;   // 폰: 키보드가 바로 올라오지 않게
+    const el=v==='join'?(/^[a-z0-9]{4}$/i.test($('#inCode').value.trim())?$('#btnJoinCode'):coarse?null:$('#btnRandom')):v==='settings'?$('#inVol'):v==='create'?$('#segFast [tabindex="0"]'):$('#lobby .mm');
     if(el){el.focus();if(el.select)el.select()}
   },30);
 }
-$('#lobby').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){showView(b.dataset.go)}});
+$('#lobby').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){if(b.dataset.pub){const pb=$('#segPub [data-v="1"]');if(pb)pb.click()}showView(b.dataset.go)}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#lobby').hidden&&$('#keysOv').hidden&&lobbyView!=='main'){e.preventDefault();if(lobbyView==='settings')saveNick();showView('main')}});
 function focusLobby(){showView(invited?'join':'main')}
 /* 페이지를 열었을 때 10분 안에 하던 방이 있으면 이어서 */
