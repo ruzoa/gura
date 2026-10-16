@@ -155,8 +155,6 @@ body.no3d .seat.on .ring{display:block}
 .btn-red{background:var(--gura);color:var(--gura-ink);box-shadow:var(--sh-red)}
 .btn:disabled{opacity:.4;box-shadow:none}
 .linkbox{display:flex;gap:6px}
-.nickrow{display:flex;gap:6px}
-.nickrow .txt{flex:1;width:0}
 .linkbox input{flex:1;width:0;font-size:12px}
 .ranks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .ranks li{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--r-sm);background:var(--well);font-weight:600}
@@ -1577,7 +1575,7 @@ function roomInfoHTML(){
   if(!V||mode==='lobby')return '';
   const c=V.cfg||cfg;
   return (V.code?`<span class="chip code">방 코드 <b>${esc(shownCode(V.code))}</b></span>`:'<span class="chip"><b>연습 모드</b></span>')+
-    `<span class="chip"><b>${c.fast?'빠른 모드':'클래식'}</b></span><span class="chip">최대 <b>${+c.max}명</b></span><span class="chip">자음 <b>${+c.maxn||14}자</b></span><span class="chip">별카드 <b>${+c.jokers||0}장</b></span>${V.code?`<span class="chip"><b>${c.pub?'공개':'비공개'}</b></span>`:''}<span class="chip">구라 타임 <b>${+c.grace}초</b></span><span class="chip">턴 <b>${+c.turn}초</b></span>`;
+    `<span class="chip"><b>${c.fast?'빠른 모드':'클래식'}</b></span><span class="chip">최대 <b>${+c.max}명</b></span><span class="chip">자음 <b>${+c.maxn||14}자</b></span><span class="chip">별카드 <b>${+c.jokers||0}장</b></span>${V.code?`<span class="chip"><b>${c.pub?'공개':'비공개'}</b></span>`:''}<span class="chip">대기 시간 <b>${+c.grace}초</b></span><span class="chip">제한 시간 <b>${+c.turn}초</b></span>`;
 }
 let lastPileN=-1;
 function renderPile(){
@@ -1706,14 +1704,6 @@ function showPanel(html,kind){
   lastPanelKind=kind||'';
   if(target)target.focus();
 }
-function changeNick(){
-  const inp=$('#waitNick');if(!inp)return;
-  const nk=cleanNick(inp.value);inp.value=nk;$('#inNick').value=nk;saveNick();
-  if(mode==='host'&&H&&H.phase==='wait'){const m=H.members.find(m=>m.host);if(m)m.name=nk;mark()}
-  else if(mode==='guest'&&net.conn&&net.conn.open){guestHello(net.conn)}
-  $('#meName').textContent=nk;sfx('pick');
-}
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='waitNick'){e.preventDefault();changeNick()}});
 /* 방장이 방 설정 값 바꾸기 (범위 밖이면 가까운 값으로) */
 function setRoomCfg(k,v){
   if(mode!=='host'||!H||H.phase!=='wait')return;
@@ -1780,12 +1770,12 @@ function renderPanel(){
       return;
     }
     const c=V.cfg;
-    const sum=`<p class="cfgsum"><b>${OPT_LABEL.fast[c.fast?1:0]}</b> · 최대 ${+c.max}명 · 별카드 ${+c.jokers||0}장 · 자음 ${+c.maxn||14}자 · 구라 타임 ${+c.grace}초 · 턴 ${+c.turn}초</p>`;
+    const sum=`<p class="cfgsum"><b>${OPT_LABEL.fast[c.fast?1:0]}</b> · 최대 ${+c.max}명 · 별카드 ${+c.jokers||0}장 · 자음 ${+c.maxn||14}자 · 대기 시간 ${+c.grace}초 · 제한 시간 ${+c.turn}초</p>`;
     showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="방 나가기" title="방 나가기">←</button><h2>${esc(V.title||'대기실')}</h2>${isHost?'<button type="button" class="btn btn-sub setbtn" data-act="setopen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>방 설정</span></button>':''}</div>
       <div class="coderow"><div><span class="label">방 코드</span><div class="codewrap"><div class="bigcode">${esc(shownCode(V.code))}</div><button type="button" class="eyebtn" data-act="hidecode" aria-pressed="${hideCode}" aria-label="${hideCode?'방 코드 보이기':'방 코드 가리기'}" title="${hideCode?'방 코드·링크 보이기':'방 코드·링크 가리기'}">${hideCode?EYE_OFF:EYE_ON}</button></div></div>${V.code?pubCtl:''}</div>
 
       ${isHost&&link?`<div class="linkbox"><input class="txt" id="linkTxt" ${hideCode?'type="password"':''} readonly value="${esc(link)}" aria-label="초대 링크"><button class="btn btn-sub" type="button" data-act="copy">링크 복사</button></div><p>이 링크를 보내면 코드가 자동으로 입력됩니다.</p>`:''}
-      <div class="nickrow"><input class="txt" id="waitNick" maxlength="10" value="${esc(me>=0?V.ps[me].n:myNick())}" aria-label="내 닉네임" autocomplete="off"><button class="btn btn-sub" type="button" data-act="nick">이름 바꾸기</button></div><ul class="slots">${li}</ul>${sum}${foot}`,'wait');
+      <ul class="slots">${li}</ul>${sum}${foot}`,'wait');
     return;
   }
   if(V.st==='over'){
@@ -1810,7 +1800,6 @@ $('#panel').addEventListener('click',e=>{
   if(a==='setclose'){roomSetOpen=false;renderPanel();return}
   if(/^(inc|dec):/.test(a)){if(e.detail!==0)return;const [op,k]=a.split(':');const d=ROOM_SET.find(x=>x.k===k);if(d&&H)setRoomCfg(k,(+H.cfg[k])+(op==='inc'?d.step:-d.step));return}
   if(a==='pub'){if(mode==='host'&&H&&H.online){H.cfg={...H.cfg,pub:H.cfg.pub?0:1};mark()}return}
-  if(a==='nick'){changeNick();return}
   if(a==='copy'){
     const inp=$('#linkTxt');if(!inp)return;
     const done=()=>{b.textContent='복사됨';setTimeout(()=>{b.textContent='링크 복사'},1500)};
