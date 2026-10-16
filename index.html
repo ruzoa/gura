@@ -106,7 +106,7 @@ body.no3d .seat.on .ring{display:block}
 .menu-bg svg{width:20px;height:20px;flex:none}
 .menu-bg .seg{flex:1}
 .menu-bg .seg button{padding:5px 0;font-family:var(--f-body);font-size:13px}
-.seg.bgseg button,.seg.pubseg button{font-family:var(--f-body)}
+.seg.bgseg button,.seg.pubseg button,.seg.emoseg button{font-family:var(--f-body)}
 .menu-vol b{font-family:var(--f-num);font-size:12px;font-weight:500;color:var(--muted);width:36px;text-align:right}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .mbtn{min-width:74px;height:66px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:12px;border:1.5px solid var(--line-strong);background:var(--panel);color:var(--ink);box-shadow:0 3px 0 var(--line-strong);font-size:11.5px;font-weight:600;transition:transform .08s,box-shadow .08s}
@@ -340,7 +340,6 @@ body.kb .fan .card.cur{z-index:70!important}
 .emopad button.q{background:var(--mustard);border-color:var(--mustard-edge);font-family:var(--f-display);font-size:16px;color:var(--ink)}
 .emopad button.tx{font-family:var(--f-display);font-size:19px;color:var(--wood-dark)}
 .emopad button small{position:absolute;right:3px;bottom:1px;font-family:var(--f-num);font-size:9px;color:var(--muted)}
-.emopad .emo-off{grid-column:1/-1;width:auto;height:auto;display:block;font-size:12px;font-weight:600;padding:6px 0;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:var(--well);color:var(--muted)}
 .emopad:disabled,.emopad button:disabled{opacity:.4}
 .seat.muted .nm::after{content:" 🔇";font-size:10px}
 .myplate .me-name{font-family:var(--f-display);font-size:18px;line-height:1.1}
@@ -454,6 +453,7 @@ body.kb .fan .card.cur{z-index:70!important}
       <label class="menu-vol" title="효과음"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg><span class="mv-t">효과음</span><input type="range" id="mVol" min="0" max="100" step="5" aria-label="효과음 음량"><b id="mVolV"></b></label>
       <label class="menu-vol" title="배경음악"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span class="mv-t">배경음악</span><input type="range" id="mBgm" min="0" max="100" step="5" aria-label="배경음악 음량"><b id="mBgmV"></b></label>
       <div class="menu-bg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.5"/></svg><span class="mv-t">배경</span><div class="seg bgseg" id="mBg"></div></div>
+      <div class="menu-bg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.3 1.8 3.5 1.8 3.5-1.8 3.5-1.8"/><line x1="9" y1="9.5" x2="9.01" y2="9.5"/><line x1="15" y1="9.5" x2="15.01" y2="9.5"/></svg><span class="mv-t">이모티콘</span><div class="seg emoseg" id="mEmo"></div></div>
       <div class="menu-row">
         <button type="button" class="mbtn" id="mKeys" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg><span>키 설정</span></button>
         <button type="button" class="mbtn giveup" id="btnGiveUp" role="menuitem" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg><span>항복</span></button>
@@ -552,6 +552,7 @@ body.kb .fan .card.cur{z-index:70!important}
         <input type="range" id="inBgm" min="0" max="100" step="5" class="vol">
       </div>
       <div class="field"><span class="fl">배경</span><div class="seg bgseg" id="segBg"></div></div>
+      <div class="field"><span class="fl">다른 사람 이모티콘</span><div class="seg emoseg" id="segEmo"></div></div>
       <div class="field"><span class="fl">조작</span><div class="row"><button class="btn btn-sub" id="btnKeysLobby" type="button">키 설정 열기</button></div></div>
     </div>
   </div>
@@ -1186,7 +1187,7 @@ function showNewEmotes(v,pv){
     const em=EMOTES.find(x=>x.k===k);if(!em||!v.ps||!v.ps[p])continue;
     if(emoOff||(emoMuted.has(v.ps[p].n)&&p!==myIdx()))continue;
     showBubble(+p,emoteHTML(em),1600,em.q?'q':'soft');
-    sfx(em.q?'emoq':'emo');
+    sfx('emo_'+em.k);
   }
   emoSeen=Math.max(emoSeen,top);
 }
@@ -1199,7 +1200,7 @@ function sendEmote(k){
 }
 function renderEmoPad(){
   $('#emoPad').innerHTML=EMOTES.map(em=>`<button type="button" role="menuitem" data-emo="${em.k}" class="${em.q?'q':em.t?'tx':''}" aria-label="${em.n}" title="${em.n}">${em.q?'구라?':em.e||esc(em.t)}<small>${esc(keyLabel(KEYS['emo_'+em.k]||''))}</small></button>`).join('')
-    +`<button type="button" class="emo-off" data-emooff>${emoOff?'이모티콘 보기 켜기':'다른 사람 이모티콘 끄기'}</button>`;
+;
 }
 function openEmoPad(){
   renderEmoPad();const pad=$('#emoPad'),st=$('#stage').getBoundingClientRect(),pr=$('#me').getBoundingClientRect();
@@ -1210,7 +1211,6 @@ function closeEmoPad(){$('#emoPad').hidden=true;$('#btnEmo').setAttribute('aria-
 $('#btnEmo').addEventListener('click',e=>{e.stopPropagation();$('#emoPad').hidden?openEmoPad():closeEmoPad()});
 $('#emoPad').addEventListener('click',e=>{
   e.stopPropagation();
-  if(e.target.closest('[data-emooff]')){emoOff=!emoOff;store('gura-emo-off',emoOff?'1':'0');if(emoOff)$('#bubbles').querySelectorAll('.bubble.soft,.bubble.q').forEach(b=>b.remove());renderEmoPad();return}
   const b=e.target.closest('[data-emo]');if(b)sendEmote(b.dataset.emo);
 });
 document.addEventListener('click',e=>{if(!$('#emoPad').hidden&&!e.target.closest('#emoPad')&&!e.target.closest('#btnEmo'))closeEmoPad()});
@@ -1261,8 +1261,18 @@ const SFX={
   pick(){tone(880,.05,{type:'triangle',vol:.09});tone(1320,.04,{type:'triangle',vol:.05,at:.03})},
   play(n=1){for(let k=0;k<Math.min(n,4);k++){hiss(.08,{freq:2200,q:.9,vol:.3,at:k*.055});tone(140,.07,{type:'triangle',vol:.18,at:k*.055})}},
   pass(){tone(330,.09,{vol:.13});tone(247,.13,{vol:.11,at:.08})},
-  emo(){tone(740,.07,{type:'triangle',vol:.08});tone(988,.09,{type:'triangle',vol:.06,at:.05})},
-  emoq(){tone(300,.22,{type:'triangle',vol:.12,slide:620})},
+  // 이모티콘 소리: 이름 = 'emo_' + 이모티콘 키
+  emo_gq(){tone(300,.22,{type:'triangle',vol:.12,slide:620});tone(620,.12,{type:'triangle',vol:.06,at:.2,slide:560})},             // 띠용?
+  emo_shh(){hiss(.55,{freq:3800,q:1.4,vol:.07,sweep:3000})},                                                                        // 쉬―
+  emo_plz(){tone(587,.22,{vol:.07,attack:.03});tone(784,.34,{vol:.07,attack:.04,at:.16})},                                           // 제발~ (부드러운 두 음)
+  emo_omg(){tone(420,.32,{type:'sawtooth',vol:.045,slide:1250});tone(1250,.16,{type:'sawtooth',vol:.03,at:.3,slide:1150})},          // 끄아악 (치솟음)
+  emo_lol(){[880,784,880,784,698].forEach((f,k)=>tone(f,.07,{type:'triangle',vol:.075,at:k*.075}))},                                  // 하하하하
+  emo_dizzy(){[620,520,560,440,480,330].forEach((f,k)=>tone(f,.12,{type:'sine',vol:.07,at:k*.09,slide:f*.86}))},                    // 빙글빙글 내려감
+  emo_cry(){tone(520,.36,{vol:.07,slide:380});tone(470,.46,{vol:.07,at:.34,slide:320})},                                             // 엉엉
+  emo_mad(){tone(110,.16,{type:'square',vol:.05});tone(98,.22,{type:'square',vol:.05,at:.14});hiss(.2,{freq:600,q:.8,vol:.05,at:.02})}, // 부글부글
+  emo_hurry(){for(let k=0;k<6;k++)tone(k%2?880:1175,.06,{type:'square',vol:.035,at:k*.07})},                                          // 따르릉
+  emo_smile(){[523,659,784].forEach((f,k)=>tone(f,.14,{type:'triangle',vol:.075,at:k*.07}))},                                         // 밝은 화음
+  emo_gg(){tone(784,.12,{type:'triangle',vol:.09});tone(1047,.32,{type:'triangle',vol:.09,at:.12})},                                  // 따-단
   turn(){tone(660,.12,{type:'triangle',vol:.17});tone(990,.22,{type:'triangle',vol:.17,at:.1})},
   gura(){tone(240,.38,{type:'sawtooth',vol:.15,slide:150});tone(360,.38,{type:'square',vol:.06,slide:225});hiss(.18,{freq:900,vol:.18})},
   lie(){tone(392,.16,{type:'square',vol:.09});tone(330,.16,{type:'square',vol:.09,at:.17});tone(262,.45,{type:'square',vol:.09,at:.34,slide:190})},
@@ -2160,6 +2170,15 @@ function buildBgSeg(box){
   box.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&b.dataset.v!==GFX_ENV){setEnv(b.dataset.v);sfx('tick')}});
 }
 buildBgSeg($('#segBg'));buildBgSeg($('#mBg'));
+/* 다른 사람 이모티콘 보기/끄기 (게임 중 메뉴와 로비 설정이 서로 연동) */
+function syncEmoSeg(){document.querySelectorAll('.emoseg button').forEach(b=>{const on=(b.dataset.v==='off')===emoOff;b.setAttribute('aria-pressed',on);b.setAttribute('aria-checked',on)})}
+function buildEmoSeg(box){
+  box.setAttribute('role','radiogroup');box.setAttribute('aria-label','다른 사람 이모티콘');
+  box.innerHTML='<button type="button" role="radio" data-v="on">보기</button><button type="button" role="radio" data-v="off">끄기</button>';
+  box.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const off=b.dataset.v==='off';if(off===emoOff)return;
+    emoOff=off;store('gura-emo-off',off?'1':'0');if(off)$('#bubbles').querySelectorAll('.bubble.soft,.bubble.q').forEach(x=>x.remove());syncEmoSeg();sfx('tick')});
+}
+buildEmoSeg($('#segEmo'));buildEmoSeg($('#mEmo'));syncEmoSeg();
 function buildEnv(sc,meadow){
   const GY=-1.55;
   if(meadow){
