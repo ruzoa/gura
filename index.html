@@ -106,7 +106,7 @@ body.no3d .seat.on .ring{display:block}
 .menu-bg svg{width:20px;height:20px;flex:none}
 .menu-bg .seg{flex:1}
 .menu-bg .seg button{padding:5px 0;font-family:var(--f-body);font-size:13px}
-.seg.bgseg button{font-family:var(--f-body)}
+.seg.bgseg button,.seg.pubseg button{font-family:var(--f-body)}
 .menu-vol b{font-family:var(--f-num);font-size:12px;font-weight:500;color:var(--muted);width:36px;text-align:right}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .mbtn{min-width:74px;height:66px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:12px;border:1.5px solid var(--line-strong);background:var(--panel);color:var(--ink);box-shadow:0 3px 0 var(--line-strong);font-size:11.5px;font-weight:600;transition:transform .08s,box-shadow .08s}
@@ -219,6 +219,11 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .seg.modes button[aria-pressed="true"] small{color:var(--ink)}
 .seg button[aria-pressed="true"]{background:var(--mustard);border-color:var(--mustard-edge);font-weight:600;box-shadow:0 2px 0 var(--mustard-edge)}
 .note{font-size:12px;color:var(--muted);margin:0;min-height:18px}
+.orline{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin:6px 0 2px}
+.orline::before,.orline::after{content:"";flex:1;height:1px;background:var(--line-strong)}
+.btn.wide{width:100%}
+.pubtag{display:inline-block;margin-left:8px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;vertical-align:middle;background:var(--well);color:var(--muted);border:1px solid var(--line-strong)}
+.pubtag.on{background:#fbe7b0;color:var(--amber);border-color:var(--mustard-edge)}
 .note.sdark{color:var(--gura);line-height:1.45;margin-top:6px}
 .view{display:flex;flex-direction:column;gap:16px}
 .vhead{display:flex;align-items:center;gap:10px}
@@ -463,6 +468,7 @@ body.kb .fan .card.cur{z-index:70!important}
       <div class="vhead"><button type="button" class="back" data-go="main" aria-label="뒤로">←</button><h2>방 만들기</h2></div>
       <div class="field"><span class="fl">게임 모드</span><div class="seg modes" id="segFast"></div></div>
       <div class="field"><label for="inTitle">방 이름</label><input class="txt" id="inTitle" maxlength="20" autocomplete="off"></div>
+      <div class="field"><span class="fl">공개 설정</span><small>공개 방은 누구나 '랜덤 방 참여'로 들어올 수 있어요</small><div class="seg pubseg" id="segPub"></div></div>
       <div class="field"><span class="fl">최대 인원</span><div class="seg" id="segMax"></div></div>
       <div class="field"><span class="fl">별카드</span><div class="seg" id="segJokers"></div></div>
       <div class="field"><label for="inGrace">구라 대기 시간</label><small>카드가 나온 뒤 다음 사람이 행동하지 못하는 시간 (0~30초)</small><div class="numin"><input class="txt" type="number" id="inGrace" min="0" max="30" step="1" inputmode="numeric"><span>초</span></div></div>
@@ -482,6 +488,9 @@ body.kb .fan .card.cur{z-index:70!important}
         <button class="btn btn-play" id="btnJoinCode" type="button">참가</button>
       </div>
       <p class="note" id="netNote">친구에게 받은 4자리 방 코드를 입력하세요.</p>
+      <div class="orline"><span>또는</span></div>
+      <button class="btn btn-red wide" id="btnRandom" type="button">랜덤 방 참여</button>
+      <p class="note" id="randNote">공개된 방 중 자리가 남은 곳에 바로 들어가요.</p>
     </div>
 
     <div class="view" data-view="settings" hidden>
@@ -536,11 +545,11 @@ const numName=n=>n>=1&&n<=13?rankLabel(n):String(n);
 const fits=(id,num)=>isJ(id)||numOf(id)===num;
 const JOKER_C='#efbc4e';
 const BOT_NAMES=['여우','까치','너구리','고양이','두더지','수달'];
-const OPTS={fast:[0,1],max:[2,3,4,5,6],jokers:[0,1,2]};
-const OPT_LABEL={fast:['클래식','빠른 모드']};
+const OPTS={fast:[0,1],max:[2,3,4,5,6],jokers:[0,1,2],pub:[0,1]};
+const OPT_LABEL={fast:['클래식','빠른 모드'],pub:['비공개','공개']};
 const MODE_DESC=['꼴찌가 나올 때까지','1등이 나오면 끝'];
 const OPT_HTML={fast:v=>`<b>${OPT_LABEL.fast[v]}</b><small>${MODE_DESC[v]}</small>`};
-const cfg={fast:0,max:4,jokers:2,grace:3,turn:30};
+const cfg={fast:0,max:4,jokers:2,grace:3,turn:30,pub:0};
 const PEER_PREFIX='gura-cardgame-room-';
 const ALPH='abcdefghjkmnpqrstuvwxyz23456789';
 const genCode=()=>Array.from({length:4},()=>ALPH[Math.random()*ALPH.length|0]).join('');
@@ -550,7 +559,7 @@ function unstore(k){try{localStorage.removeItem(k)}catch(e){}}
 const CID=(()=>{let c=store('gura-cid');if(!c||!/^[a-z0-9]{8,32}$/.test(c)){c=Math.random().toString(36).slice(2,10)+Date.now().toString(36);store('gura-cid',c)}return c})();
 const RESUME_MS=10*60*1000;   // 새로고침·앱 전환 뒤 이 시간 안이면 방을 이어서 열기
 
-const net={peer:null,conn:null,conns:new Set(),code:'',retry:null,savedAt:0};
+const net={peer:null,conn:null,conns:new Set(),code:'',retry:null,savedAt:0,pub:null,pubBusy:false,pubRetryAt:0};
 let mode='lobby';           // lobby | host | guest | closed
 let V=null, PV=null;        // 지금 화면 상태, 직전 상태
 const sel=new Set(); let pickNum=null;
@@ -790,8 +799,30 @@ function saveHost(){
   if(!H||!H.online||mode!=='host')return;
   try{localStorage.setItem('gura-host',JSON.stringify({at:Date.now(),ck:clock(),H},(k,v)=>k==='conn'?undefined:v))}catch(e){}
 }
+const PUB_PREFIX='gura-cardgame-pub-',PUB_SLOTS=16;
+function pubInfo(){return {t:'room',code:H.code,title:H.title,n:H.members.filter(m=>!m.away).length,max:H.cfg.max,ph:H.phase,fast:H.cfg.fast?1:0}}
+function pubSync(){
+  const want=!!(H&&H.online&&H.cfg.pub&&mode==='host'&&!noPeerLib());
+  if(want&&!net.pub&&!net.pubBusy&&clock()>=(net.pubRetryAt||0))claimSlot(shuffle([...Array(PUB_SLOTS).keys()]),0);
+  if(!want&&net.pub){try{net.pub.destroy()}catch(e){}net.pub=null}
+}
+function claimSlot(order,k){
+  net.pubBusy=true;
+  const p=new Peer(PUB_PREFIX+order[k]);let ok=false;
+  p.on('open',()=>{ok=true;net.pubBusy=false;
+    if(!(H&&H.online&&H.cfg.pub&&mode==='host')){try{p.destroy()}catch(e){}return}
+    net.pub=p});
+  p.on('connection',c=>{c.on('open',()=>{try{if(H)c.send(pubInfo())}catch(e){}setTimeout(()=>{try{c.close()}catch(e){}},2000)})});
+  p.on('disconnected',()=>{if(net.pub===p&&!p.destroyed){try{p.reconnect()}catch(e){}}});
+  p.on('error',e=>{
+    if(ok)return;try{p.destroy()}catch(_){}
+    if(e.type==='unavailable-id'&&k+1<order.length){claimSlot(order,k+1);return}
+    net.pubBusy=false;net.pubRetryAt=clock()+20000;   // 자리가 다 찼거나 연결 문제 → 잠시 뒤 다시
+  });
+}
 function flush(){
   flushQueued=false;if(!H)return;
+  pubSync();
   applyView(snapFor(hostSeat()));
   if(H.online){
     saveHost();
@@ -977,6 +1008,31 @@ function retryOnce(){
   wireGuestConn(conn);
   conn.on('error',()=>{clearTimeout(to);if(net.retry===R)next()});
 }
+function randomJoin(){
+  if(noPeerLib()){setNote('#randNote','온라인 연결 라이브러리를 불러오지 못했어요. 새로고침해 주세요.',true);return}
+  if(net.peer||mode!=='lobby')return;
+  saveNick();
+  const btn=$('#btnRandom');btn.disabled=true;setNote('#randNote','공개 방을 찾는 중이에요…');
+  const peer=new Peer(),rooms=new Map();let done=false;
+  const finish=()=>{
+    if(done)return;done=true;try{peer.destroy()}catch(e){}btn.disabled=false;
+    const ok=[...rooms.values()].filter(x=>x.ph==='wait'&&x.n<x.max);
+    if(!ok.length){setNote('#randNote','지금 들어갈 수 있는 공개 방이 없어요. 공개 방을 직접 만들어 보세요.',true);return}
+    // 사람이 더 많은 방을 조금 더 우선 (빨리 시작할 수 있게)
+    ok.sort((a,b)=>(b.n-a.n)||(Math.random()-.5));
+    const pick=ok[0];setNote('#randNote',`${pick.title||'공개 방'} 방에 들어가는 중이에요…`);
+    joinRoom(pick.code);
+  };
+  peer.on('open',()=>{
+    for(let k=0;k<PUB_SLOTS;k++){
+      const c=peer.connect(PUB_PREFIX+k,{reliable:true});
+      c.on('data',d=>{if(d&&d.t==='room'&&/^[a-z0-9]{4}$/.test(d.code||'')){rooms.set(d.code,{code:d.code,title:cleanNick(d.title||''),n:+d.n||0,max:+d.max||0,ph:String(d.ph||'')})}});
+    }
+    setTimeout(finish,3500);
+  });
+  peer.on('error',e=>{if(e&&e.type==='peer-unavailable')return;if(!peer.open)finish()});
+  setTimeout(finish,9000);
+}
 function hostGone(){
   if(mode!=='guest')return;
   mode='closed';unstore('gura-guest');
@@ -987,6 +1043,7 @@ function leaveRoom(){
   if(net.conn){try{net.conn.close()}catch(e){}net.conn=null}
   if(net.peer){try{net.peer.destroy()}catch(e){}net.peer=null}
   if(net.retry){clearTimeout(net.retry.timer);net.retry=null}
+  if(net.pub){try{net.pub.destroy()}catch(e){}net.pub=null}
   if(mode==='host')unstore('gura-host');
   unstore('gura-guest');net.code='';
   H=null;V=null;PV=null;mode='lobby';sel.clear();pickNum=null;
@@ -994,7 +1051,7 @@ function leaveRoom(){
   focusLobby();
   render();sync3D(null,null);
 }
-window.addEventListener('beforeunload',()=>{saveHost();if(net.peer)try{net.peer.destroy()}catch(e){}});
+window.addEventListener('beforeunload',()=>{saveHost();if(net.peer)try{net.peer.destroy()}catch(e){}if(net.pub)try{net.pub.destroy()}catch(e){}});
 window.addEventListener('pagehide',saveHost);
 /* 앱 전환 후 돌아왔을 때: 끊긴 연결 되살리기 */
 document.addEventListener('visibilitychange',()=>{
@@ -1285,7 +1342,7 @@ function roomInfoHTML(){
   if(!V||mode==='lobby')return '';
   const c=V.cfg||cfg;
   return (V.code?`<span class="chip code">방 코드 <b>${esc(String(V.code).toUpperCase())}</b></span>`:'<span class="chip"><b>연습 모드</b></span>')+
-    `<span class="chip"><b>${c.fast?'빠른 모드':'클래식'}</b></span><span class="chip">최대 <b>${+c.max}명</b></span><span class="chip">별카드 <b>${+c.jokers||0}장</b></span><span class="chip">구라 대기 <b>${+c.grace}초</b></span><span class="chip">턴 <b>${+c.turn}초</b></span>`;
+    `<span class="chip"><b>${c.fast?'빠른 모드':'클래식'}</b></span><span class="chip">최대 <b>${+c.max}명</b></span><span class="chip">별카드 <b>${+c.jokers||0}장</b></span>${V.code?`<span class="chip"><b>${c.pub?'공개':'비공개'}</b></span>`:''}<span class="chip">구라 대기 <b>${+c.grace}초</b></span><span class="chip">턴 <b>${+c.turn}초</b></span>`;
 }
 let lastPileN=-1;
 function renderPile(){
@@ -1439,7 +1496,7 @@ function renderPanel(){
     else foot=`<p><b>${OPT_LABEL.fast[V.cfg.fast?1:0]}</b> · ${MODE_DESC[V.cfg.fast?1:0]}</p><p>방장이 게임을 시작하기를 기다리는 중이에요.</p>`;
     const link=V.code?roomLink(String(V.code)):'';
     showPanel(`<h2>${esc(V.title||'대기실')}</h2>
-      <div><span class="label">방 코드</span><div class="bigcode">${esc(String(V.code||'').toUpperCase())}</div></div>
+      <div><span class="label">방 코드</span><div class="bigcode">${esc(String(V.code||'').toUpperCase())}</div><span class="pubtag${V.cfg.pub?' on':''}">${V.cfg.pub?'공개 방':'비공개 방'}</span>${isHost?`<button class="btn btn-sub" type="button" data-act="pub" style="margin-left:8px;padding:4px 10px;font-size:12px">${V.cfg.pub?'비공개로':'공개로'}</button>`:''}</div>
       ${isHost&&link?`<div class="linkbox"><input class="txt" id="linkTxt" readonly value="${esc(link)}" aria-label="초대 링크"><button class="btn btn-sub" type="button" data-act="copy">링크 복사</button></div><p>이 링크를 보내면 코드가 자동으로 입력돼요.</p>`:''}
       <div class="nickrow"><input class="txt" id="waitNick" maxlength="10" value="${esc(me>=0?V.ps[me].n:myNick())}" aria-label="내 닉네임" autocomplete="off"><button class="btn btn-sub" type="button" data-act="nick">이름 바꾸기</button></div><ul class="slots">${li}</ul>${foot}`,'wait');
     return;
@@ -1456,6 +1513,7 @@ $('#panel').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act;
   if(a==='leave'){leaveRoom();return}
+  if(a==='pub'){if(mode==='host'&&H&&H.online){H.cfg={...H.cfg,pub:H.cfg.pub?0:1};mark()}return}
   if(a==='nick'){changeNick();return}
   if(a==='copy'){
     const inp=$('#linkTxt');if(!inp)return;
@@ -1708,6 +1766,7 @@ $('#btnCreate').addEventListener('click',createRoom);
 $('#btnPractice').addEventListener('click',startPractice);
 $('#btnJoinCode').addEventListener('click',()=>{const c=$('#inCode').value.trim().toLowerCase();if(/^[a-z0-9]{4}$/.test(c))joinRoom(c);else setNote('#netNote','방 코드는 영문과 숫자 4자리예요.',true)});
 $('#inCode').addEventListener('keydown',e=>{if(e.key==='Enter')$('#btnJoinCode').click()});
+$('#btnRandom').addEventListener('click',randomJoin);
 
 /* 로비 설정 버튼: 라디오 그룹처럼 Tab으로 들어가고 ←→ (또는 A/D)로 값 변경 */
 function buildSeg(id,key,unit,label){
@@ -1727,7 +1786,7 @@ function buildSeg(id,key,unit,label){
   });
 }
 try{if(/SamsungBrowser/i.test(navigator.userAgent)&&matchMedia('(prefers-color-scheme: dark)').matches)$('#sdarkNote').hidden=false}catch(e){}
-buildSeg('#segFast','fast','','게임 모드');buildSeg('#segMax','max','명','최대 인원');buildSeg('#segJokers','jokers','장','별카드');/* 대기 시간·제한 시간은 직접 입력 (범위 밖이면 가까운 값으로) */
+buildSeg('#segFast','fast','','게임 모드');buildSeg('#segMax','max','명','최대 인원');buildSeg('#segPub','pub','','공개 설정');buildSeg('#segJokers','jokers','장','별카드');/* 대기 시간·제한 시간은 직접 입력 (범위 밖이면 가까운 값으로) */
 function bindNum(id,key,lo,hi){
   const el=$(id);el.value=cfg[key];
   const fix=()=>{let v=Math.round(+el.value);if(!isFinite(v))v=cfg[key];v=Math.max(lo,Math.min(hi,v));cfg[key]=v;el.value=v};
