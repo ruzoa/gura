@@ -642,7 +642,8 @@ const OPTS={fast:[0,1],max:[2,3,4,5,6,7,8],jokers:[0,1,2,3,4],pub:[0,1]};
 const OPT_LABEL={fast:['클래식','빠른 모드'],pub:['비공개','공개']};
 const MODE_DESC=['꼴찌가 나올 때까지','1등이 나오면 끝'];
 const OPT_HTML={fast:v=>`<b>${OPT_LABEL.fast[v]}</b><small>${MODE_DESC[v]}</small>`};
-const cfg={fast:0,max:4,jokers:2,grace:3,turn:30,pub:0,maxn:14};
+const cfg={fast:0,max:4,jokers:2,grace:3,turn:30,pub:0,maxn:14,botlv:1};
+const BOT_LV=['쉬움','보통','어려움'];
 /* 방 설정 항목: 대기실의 '방 설정'에서 −/+ 버튼으로 조절 */
 const ROOM_SET=[
   {k:'max',label:'최대 인원',unit:'명',lo:2,hi:8,step:1,desc:'현재 인원보다 적게 줄일 수 없습니다'},
@@ -650,8 +651,8 @@ const ROOM_SET=[
   {k:'maxn',label:'자음 수',unit:'자',lo:4,hi:19,step:1,desc:'14자 = ㄱ~ㅎ, 15자부터 ㄲ·ㄸ·ㅃ·ㅆ·ㅉ 순으로 추가. 자음마다 4장'},
   {k:'grace',label:'대기 시간',unit:'초',lo:0,hi:30,step:1,desc:'카드를 내고 다음 사람이 기다리는 시간'},
   {k:'turn',label:'제한 시간',unit:'초',lo:5,hi:120,step:5,desc:'제한 시간 지나면 패스 <br> 첫 플레이어는 다음 사람에게 순서가 넘어갑니다'}];
-try{const sv=JSON.parse(store('gura-roomcfg')||'null');if(sv)for(const d of ROOM_SET)if(Number.isFinite(+sv[d.k]))cfg[d.k]=Math.max(d.lo,Math.min(d.hi,Math.round(+sv[d.k])))}catch(e){}
-function saveRoomCfg(c){const o={};for(const d of ROOM_SET)o[d.k]=c[d.k];store('gura-roomcfg',JSON.stringify(o))}
+try{const sv=JSON.parse(store('gura-roomcfg')||'null');if(sv){for(const d of ROOM_SET)if(Number.isFinite(+sv[d.k]))cfg[d.k]=Math.max(d.lo,Math.min(d.hi,Math.round(+sv[d.k])));if([0,1,2].includes(+sv.botlv))cfg.botlv=+sv.botlv}}catch(e){}
+function saveRoomCfg(c){const o={botlv:+c.botlv||0};for(const d of ROOM_SET)o[d.k]=c[d.k];store('gura-roomcfg',JSON.stringify(o))}
 let roomSetOpen=false;
 const PEER_PREFIX='gura-cardgame-room-';
 const ALPH='abcdefghjkmnpqrstuvwxyz23456789';
@@ -699,7 +700,7 @@ function hostStart(){
   H.players.forEach(p=>p.hand=deck.splice(0,per));
   const order=shuffle([...Array(n).keys()]);let k=0;while(deck.length)H.players[order[k++]].hand.push(deck.pop());
   H.players.forEach(p=>p.hand.sort(cmpCard));
-  Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,rankBottom:n});
+  Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,rankBottom:n,known:{}});
   const first=Math.random()*n|0;
   addLog(`${n}명 게임 시작${H.cfg.jokers?` (별카드 ${H.cfg.jokers}장)`:''}. ${H.players[first].name}부터 시작합니다.`,'sys');
   newRound(first);
@@ -761,6 +762,7 @@ function resolveReveal(){
    if(H.players[tk]&&H.players[tk].bot&&Math.random()<.4)botEmote(tk,R.fc>=8?'dizzy':'cry',500+Math.random()*700);
    if(H.players[other]&&H.players[other].bot&&Math.random()<.25)botEmote(other,'lol',900+Math.random()*900);}
   const t=H.players[R.taker];t.hand.push(...H.field);t.hand.sort(cmpCard);
+  H.known=H.known||{};const kn=new Set(H.known[R.taker]||[]);R.L.ids.forEach(id=>kn.add(id));H.known[R.taker]=[...kn];   // 모두가 본 카드 (봇이 기억)
   addLog(R.lie?`걸렸다! ${t.name} ${R.fc}장 가져감.`:`진짜였다. ${t.name} ${R.fc}장 가져감.`,R.lie?'lie':'truth');
   H.field=[];
   if(H.pending===R.L.p){H.pending=null;if(!R.lie){finish(R.L.p);if(H.phase==='over')return}}
@@ -807,39 +809,76 @@ function timeout(){
     startTurn(nextActive(i));
   }else doPass(i,true);
 }
+/* 봇이 보기에 i번이 방금 낸 카드가 진짜일 확률 (공개된 정보만 사용) */
+function botTruthProb(b,j,i){
+  const num=H.roundNum,c=H.last.count,J=H.cfg.jokers||0,F=4+J;
+  const fit=id=>fits(id,num);
+  const myFit=b.hand.filter(fit).length;
+  const known=H.known||{};
+  let otherFit=0,claimFit=0;
+  for(const [k,ids] of Object.entries(known)){const kk=+k;if(kk===j)continue;const n=ids.filter(fit).length;if(kk===i)claimFit=Math.min(n,H.players[i].hand.length+c);else otherFit+=Math.min(n,H.players[kk].hand.length)}
+  const earlier=H.field.length-c;                    // 이번 라운드에 먼저 나온 장수 (일부는 거짓이었을 수 있음)
+  const maxFit=F-myFit-otherFit;
+  if(c>maxFit)return 0;                              // 남은 카드로는 불가능 → 확실한 거짓
+  const R=Math.max(0,maxFit-earlier*.6-claimFit);
+  let pool=earlier;H.players.forEach((p,k)=>{if(k!==j)pool+=p.hand.length});pool+=c-claimFit;
+  const h0=H.players[i].hand.length+c-claimFit,need=c-claimFit;
+  if(need<=0)return .92;
+  const q=Math.max(0,Math.min(1,R/Math.max(1,pool)));
+  // 이항분포로 '그만큼 진짜를 가지고 있을' 확률
+  let pt=0;for(let x=need;x<=h0;x++){let comb=1;for(let y=0;y<x;y++)comb=comb*(h0-y)/(y+1);pt+=comb*Math.pow(q,x)*Math.pow(1-q,h0-x)}
+  return Math.max(0,Math.min(1,pt));
+}
+const botLv=b=>b&&b.lv!=null?b.lv:(+H.cfg.botlv||0);   // 봇마다 따로 정할 수도 있게
 function planBotShouts(i,t){
   const num=H.roundNum,claimed=H.last.count,J=H.cfg.jokers;
   H.players.forEach((b,j)=>{
     if(!b.bot||j===i||!isActive(j)||(b.away&&t<b.awayAt+AWAY_WAIT))return;
+    const lv=botLv(b);
     const own=b.hand.filter(id=>numOf(id)===num).length;
     const ownJ=b.hand.filter(isJ).length;
     let pr;
-    if(own+claimed>4+J-ownJ)pr=.95;
+    if(lv===2){
+      // 어려움: 남은 카드를 세서 거짓일 확률을 계산하고, 판돈(쌓인 카드)·상대가 끝나기 직전인지 따져 외침
+      const pLie=1-botTruthProb(b,j,i);
+      let thr=.5+Math.min(.15,H.field.length*.012);
+      if(!H.players[i].hand.length)thr=.28;          // 마지막 카드는 웬만하면 확인
+      else if(H.players[i].hand.length<=2)thr-=.1;
+      if(b.hand.length<=3)thr+=.08;                   // 내가 끝나기 직전이면 조심
+      pr=pLie>=thr?Math.min(.97,.55+(pLie-thr)*1.6):pLie*.08;
+    }else if(own+claimed>4+J-ownJ)pr=lv===0?.6:.95;
     else{
       pr=.05+.12*(claimed-1)+.13*own;
       if(own+claimed>4)pr+=.25;
       if(!H.players[i].hand.length)pr+=.35;
       pr-=Math.min(.15,H.field.length*.008);pr=Math.max(.02,Math.min(.9,pr));
+      if(lv===0)pr*=.45;
     }
-    if(Math.random()<pr)H.shouts.push({p:j,at:t+rand(350,Math.max(H.cfg.grace*1000,1400))});
+    if(Math.random()<pr){
+      const g=Math.max(H.cfg.grace*1000,1400);
+      H.shouts.push({p:j,at:t+(lv===2?rand(300,Math.min(g,1100)):lv===0?rand(700,g):rand(350,g))});
+    }
   });
   H.shouts.sort((a,b)=>a.at-b.at);
 }
 function botTurn(i){
+  const lv=botLv(H.players[i]);
+  if(lv===2){botTurnHard(i);return}
+  const easy=lv===0;
   const h=H.players[i].hand,jk=h.filter(isJ),plain=h.filter(id=>!isJ(id));
   if(H.roundNum==null){
     if(!plain.length){doPlay(i,jk.slice(),1+(Math.random()*(H.cfg.maxn||14)|0));return}
     const g=new Map();plain.forEach(id=>{const n=numOf(id);if(!g.has(n))g.set(n,[]);g.get(n).push(id)});
     let best=null;for(const [n,cs] of g)if(!best||cs.length>best[1].length||(cs.length===best[1].length&&Math.random()<.5))best=[n,cs];
     const ids=best[1].slice(),rest=plain.filter(id=>numOf(id)!==best[0]);
-    if(rest.length&&Math.random()<.3)ids.push(pick(rest));
+    if(rest.length&&Math.random()<(easy?.1:.3))ids.push(pick(rest));
     doPlay(i,ids,best[0]);
   }else{
     const num=H.roundNum,mine=plain.filter(id=>numOf(id)===num),rest=plain.filter(id=>numOf(id)!==num);
     if(mine.length){const ids=mine.slice();if(rest.length&&Math.random()<.25)ids.push(pick(rest));doPlay(i,ids,num)}
     else if(jk.length&&(h.length<=4||Math.random()<.5)){doPlay(i,[jk[0]],num)}
     else{
-      const pb=(h.length>8?.45:.3)-Math.min(.2,H.field.length*.012);
+      const pb=((h.length>8?.45:.3)-Math.min(.2,H.field.length*.012))*(easy?.5:1);
       if(rest.length&&Math.random()<pb)doPlay(i,shuffle(rest.slice()).slice(0,(rest.length>1&&Math.random()<.2)?2:1),num);
       else doPass(i);
     }
@@ -858,6 +897,42 @@ function hostEmote(seat,k){
   mark();
 }
 function botEmote(seat,k,delay){setTimeout(()=>{if(H&&H.players[seat]&&H.players[seat].bot)hostEmote(seat,k)},delay||600)}
+/* 어려움 봇: 들킬 위험을 따져서 진짜/거짓/패스 고르기 */
+function botTurnHard(i){
+  const P=H.players[i],h=P.hand,jk=h.filter(isJ),plain=h.filter(id=>!isJ(id)),J=H.cfg.jokers||0,F=4+J;
+  const others=H.players.filter((p,k)=>k!==i&&isActive(k)).length;
+  const byNum=new Map();plain.forEach(id=>{const n=numOf(id);if(!byNum.has(n))byNum.set(n,[]);byNum.get(n).push(id)});
+  if(H.roundNum==null){
+    if(!plain.length){doPlay(i,jk.slice(),1+(Math.random()*(H.cfg.maxn||14)|0));return}
+    // 가장 많이 가진 자음으로 시작, 손패가 많으면 다른 카드 1장을 슬쩍 섞음 (처음 내는 장수는 의심을 덜 받음)
+    let best=null;for(const [n,cs] of byNum)if(!best||cs.length>best[1].length||(cs.length===best[1].length&&Math.random()<.5))best=[n,cs];
+    const ids=best[1].slice(),rest=plain.filter(id=>numOf(id)!==best[0]);
+    if(h.length-ids.length<=jk.length)ids.push(...jk);          // 별카드로 마무리 가능하면 한 번에
+    else if(rest.length&&h.length>5&&ids.length<=2&&Math.random()<.55)ids.push(pick(rest));
+    doPlay(i,ids,best[0]);return;
+  }
+  const num=H.roundNum,mine=byNum.get(num)||[],rest=plain.filter(id=>numOf(id)!==num);
+  const claimedSoFar=H.field.length;
+  const last=h.length-mine.length<=jk.length;                    // 진짜 + 별카드로 다 털 수 있음
+  if(mine.length||(last&&jk.length)){
+    const ids=mine.slice();
+    if(last)ids.push(...jk);
+    else if(rest.length&&h.length>4&&claimedSoFar+ids.length+1<=F-1&&Math.random()<.4)ids.push(pick(rest));   // 진짜에 1장 섞기
+    doPlay(i,ids,num);return;
+  }
+  // 진짜가 없음: 별카드로 버틸지, 거짓말할지, 패스할지
+  const suspicious=claimedSoFar+1>F-1;                           // 이미 너무 많이 나옴 → 거짓말하면 들킬 확률 큼
+  const risk=Math.min(.95,.2+claimedSoFar*.09+(others>=3?.08:0)+(suspicious?.5:0));
+  const stake=H.field.length+1;                                  // 들키면 가져갈 장수
+  if(jk.length&&(h.length<=5||risk>.5)){doPlay(i,[jk[0]],num);return}
+  const wantBluff=rest.length&&(1-risk)*h.length>stake*.35&&!suspicious;
+  if(wantBluff&&Math.random()<.85){
+    // 같은 자음끼리 묶어서 버리면 나중에 정리하기 좋음 → 가장 적게 가진 자음부터 1장
+    const sorted=rest.slice().sort((a,b)=>(byNum.get(numOf(a)).length-byNum.get(numOf(b)).length));
+    doPlay(i,[sorted[0]],num);return;
+  }
+  doPass(i);
+}
 function hostAct(seat,a){
   if(!H||!a||typeof a!=='object')return;
   if(a.t==='emo'){hostEmote(seat,String(a.k||''));return}
@@ -1863,12 +1938,13 @@ function renderPanel(){
         return `<div class="stp"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="stp-b" data-act="dec:${d.k}" aria-label="${d.label} 줄이기"${v<=lo?' disabled':''}>−</button><input class="txt stp-v" id="st_${d.k}" type="number" inputmode="numeric" min="${lo}" max="${d.hi}" step="${d.step}" value="${v}" aria-label="${d.label}"><span class="stp-u">${d.unit}</span><button type="button" class="stp-b" data-act="inc:${d.k}" aria-label="${d.label} 늘리기"${v>=d.hi?' disabled':''}>+</button></div></div>`}).join('');
       showPanel(`<div class="vhead"><button type="button" class="back" data-act="setclose" aria-label="대기실로">←</button><h2>방 설정</h2></div>
         <div class="stp"><div class="stp-t"><b>게임 모드</b><small>${MODE_DESC[c.fast?1:0]}</small></div><div class="row modepick" role="radiogroup" aria-label="게임 모드">${[0,1].map(v=>`<button class="btn ${(c.fast?1:0)===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${(c.fast?1:0)===v}" data-act="mode${v}">${OPT_LABEL.fast[v]}</button>`).join('')}</div></div>
+        <div class="stp"><div class="stp-t"><b>봇 난이도</b><small>${['구라를 잘 안 외치고 거짓말도 서툽니다','적당히 의심하고 가끔 거짓말합니다','남은 카드를 세서 의심하고, 들킬 위험을 따져 거짓말합니다'][+c.botlv||0]}</small></div><div class="row modepick" role="radiogroup" aria-label="봇 난이도">${[0,1,2].map(v=>`<button class="btn ${(+c.botlv||0)===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${(+c.botlv||0)===v}" data-act="botlv${v}">${BOT_LV[v]}</button>`).join('')}</div></div>
         ${rows}${cardInfo}
         <div class="row"><button class="btn btn-red" type="button" data-act="setclose" data-auto>완료</button></div>`,'roomset');
       return;
     }
     const c=V.cfg;
-    const sum=`<p class="cfgsum"><b>${OPT_LABEL.fast[c.fast?1:0]}</b> · 최대 ${+c.max}명 · 별카드 ${+c.jokers||0}장 · 자음 ${+c.maxn||14}자 · 대기 시간 ${+c.grace}초 · 제한 시간 ${+c.turn}초</p>`;
+    const sum=`<p class="cfgsum"><b>${OPT_LABEL.fast[c.fast?1:0]}</b> · 최대 ${+c.max}명 · 별카드 ${+c.jokers||0}장 · 자음 ${+c.maxn||14}자 · 대기 시간 ${+c.grace}초 · 제한 시간 ${+c.turn}초${V.ps.some(p=>p.b)?` · 봇 ${BOT_LV[+c.botlv||0]}`:''}</p>`;
     showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="방 나가기" title="방 나가기">←</button><h2>${esc(V.title||'대기실')}</h2>${isHost?'<button type="button" class="btn btn-sub setbtn" data-act="setopen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>방 설정</span></button>':''}</div>
       <div class="coderow"><div><span class="label">방 코드</span><div class="codewrap"><div class="bigcode">${esc(shownCode(V.code))}</div><button type="button" class="eyebtn" data-act="hidecode" aria-pressed="${hideCode}" aria-label="${hideCode?'방 코드 보이기':'방 코드 가리기'}" title="${hideCode?'방 코드·링크 보이기':'방 코드·링크 가리기'}">${hideCode?EYE_OFF:EYE_ON}</button></div></div>${V.code?pubCtl:''}</div>
 
@@ -1911,6 +1987,7 @@ $('#panel').addEventListener('click',e=>{
     return;
   }
   if(!H)return;
+  if(/^botlv[0-2]$/.test(a)){if(H.phase==='wait'){H.cfg={...H.cfg,botlv:+a.slice(5)};saveRoomCfg(H.cfg);mark()}return}
   if(a==='mode0'||a==='mode1'){if(H.phase==='wait'){H.cfg={...H.cfg,fast:a==='mode1'?1:0};mark()}return}
   if(a==='addbot')hostAddBot();
   else if(a==='rmbot')hostRemoveBot();
