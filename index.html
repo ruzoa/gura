@@ -358,10 +358,11 @@ div.nickline b{font-family:var(--f-display);font-weight:400;font-size:20px}
 }
 
 /* 전체화면: 테이블이 화면을 채우고 손패 패널만 아래에 남김 */
-body.fs{padding-block:6px}
-body.fs .wrap{max-width:none;height:calc(100dvh - 12px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));gap:6px}
+/* 테두리 없이 화면 끝까지 (노치·홈 바 영역만 비움) */
+body.fs{padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);overflow:hidden;background:#3b2a1f}
+body.fs .wrap{max-width:none;height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));gap:0}
 body.fs .top{display:none}
-body.fs .stage{flex:1;height:auto;min-height:240px}
+body.fs .stage{flex:1;height:auto;min-height:240px;border:0;border-radius:0;box-shadow:none}
 body.fs .info{display:none}
 
 /* 손패: 테이블 아래쪽에 부채꼴로 */
