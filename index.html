@@ -76,7 +76,7 @@ button:disabled{cursor:not-allowed}
 .seat .nm .ct{font-family:var(--f-num);font-weight:500;font-size:11.5px;color:var(--muted);margin-left:5px}
 .seat .nt{font-size:10.5px;color:var(--amber);font-weight:600;line-height:1.2}
 .seat .nt:empty{display:none}
-.seat{overflow:visible}
+.seat{overflow:visible;pointer-events:auto;cursor:pointer}
 .seat .ring{position:absolute;left:-30px;top:50%;width:26px;height:26px;margin-top:-13px;transform:rotate(-90deg);display:none}
 body.no3d .seat.on .ring{display:block}
 .ring circle{fill:none;stroke-width:4}
@@ -331,6 +331,18 @@ body.kb .card.cur.match::after{top:-28px}
 body.kb .fan .card.cur{z-index:70!important}
 .myplate{position:absolute;left:12px;bottom:var(--plateB,14px);display:flex;align-items:baseline;gap:8px;max-width:calc(100% - 24px);background:rgba(255,250,240,.92);border:1px solid var(--line-strong);border-radius:12px;padding:6px 14px 8px;overflow:hidden;white-space:nowrap;box-shadow:0 2px 6px -2px rgba(59,42,31,.35);z-index:7}
 .myplate.on{border-color:var(--mustard);box-shadow:0 0 0 2px var(--mustard),0 2px 6px -2px rgba(59,42,31,.35)}
+.emobtn{align-self:center;width:30px;height:30px;flex:none;margin:-2px 2px -2px -6px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--panel);font-size:16px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 0 var(--line)}
+.emobtn[aria-expanded="true"]{background:var(--mustard);border-color:var(--mustard-edge)}
+.emobtn.cool{opacity:.45}
+.emopad{position:absolute;z-index:12;display:grid;grid-template-columns:repeat(4,50px);gap:6px;padding:8px;background:var(--panel);border:1.5px solid var(--line-strong);border-radius:var(--r-md);box-shadow:0 8px 24px -8px rgba(28,18,10,.45)}
+.emopad button{position:relative;width:50px;height:50px;border-radius:12px;border:1.5px solid var(--line);background:var(--paper);font-size:26px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center}
+.emopad button:hover{border-color:var(--wood)}
+.emopad button.q{background:var(--mustard);border-color:var(--mustard-edge);font-family:var(--f-display);font-size:16px;color:var(--ink)}
+.emopad button.tx{font-family:var(--f-display);font-size:19px;color:var(--wood-dark)}
+.emopad button small{position:absolute;right:3px;bottom:1px;font-family:var(--f-num);font-size:9px;color:var(--muted)}
+.emopad .emo-off{grid-column:1/-1;width:auto;height:auto;display:block;font-size:12px;font-weight:600;padding:6px 0;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:var(--well);color:var(--muted)}
+.emopad:disabled,.emopad button:disabled{opacity:.4}
+.seat.muted .nm::after{content:" 🔇";font-size:10px}
 .myplate .me-name{font-family:var(--f-display);font-size:18px;line-height:1.1}
 .myplate .me-sub{font-size:13px;color:var(--muted)}
 .myplate .me-sub b{color:var(--ink);font-family:var(--f-num)}
@@ -377,7 +389,13 @@ body.kb .fan .card.cur{z-index:70!important}
 .bubble svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .bubble svg path{fill:var(--gura);stroke:var(--gura-edge);stroke-width:3.5;stroke-linejoin:round}
 .bubble .bt{position:relative;font-family:var(--f-display);font-size:calc(31px*var(--bk,1));line-height:1;color:var(--gura-ink);transform:rotate(-5deg);text-shadow:0 2px 0 var(--gura-edge)}
-.bubble .be{position:relative;font-size:calc(38px*var(--bk,1));line-height:1}
+.bubble .be{position:relative;font-size:calc(44px*var(--bk,1));line-height:1}
+.bubble.q svg path{fill:var(--mustard);stroke:var(--mustard-edge)}
+.bubble.q .bt{color:var(--ink);text-shadow:0 2px 0 rgba(255,250,240,.6)}
+.bubble.q .qm{display:inline-block;animation:qwob .5s ease-in-out infinite alternate;transform-origin:50% 90%}
+@keyframes qwob{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
+.bubble.soft svg path{fill:var(--paper);stroke:var(--line-strong);stroke-width:3}
+.bubble.soft .bt{color:var(--wood-dark);text-shadow:none;transform:none;font-size:calc(34px*var(--bk,1));letter-spacing:.04em}
 @keyframes bubin{from{opacity:0;scale:.3}}
 @keyframes bubout{to{opacity:0;scale:.85}}
 .playfx{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:8px;background:var(--paper);border:3px solid var(--rc,var(--ink));border-radius:var(--r-md);padding:5px 14px 5px 7px;box-shadow:0 4px 0 var(--rc,var(--ink)),0 14px 24px -10px rgba(59,42,31,.5);white-space:nowrap;animation:fxpop 2s ease-out forwards}
@@ -452,9 +470,11 @@ body.kb .fan .card.cur{z-index:70!important}
     </div>
     <div class="numwheel" id="numpick" hidden></div>
     <div class="myplate" id="me" aria-label="내 정보">
+      <button type="button" class="emobtn" id="btnEmo" aria-label="이모티콘" aria-haspopup="true" aria-expanded="false" title="이모티콘">😊</button>
       <span class="me-name" id="meName">나</span><span class="me-sub" id="meSub"></span><span class="me-time" id="meTime"></span>
       <div class="bar" id="meBar"><i></i></div>
     </div>
+    <div class="emopad" id="emoPad" hidden role="menu" aria-label="이모티콘"></div>
     <div class="fan" id="hand" aria-label="내 손패"></div>
     <div class="panel" id="panel" hidden><div class="card-sheet" id="panelBody"></div></div>
   </section>
@@ -586,6 +606,13 @@ const cmpCard=(a,b)=>(isJ(a)-isJ(b))||(isJ(a)?a-b:(dpos(numOf(a))-dpos(numOf(b))
 const wheelOrder=()=>Array.from({length:MAXN},(_,k)=>k+1).sort((a,b)=>dpos(a)-dpos(b));
 const fits=(id,num)=>isJ(id)||numOf(id)===num;
 const JOKER_C='#efbc4e';
+/* 이모티콘: 1~0, - 키 순서. q = 구라?(노란 뾰족 풍선), 나머지는 크림색 둥근 풍선 */
+const EMOTES=[
+  {k:'gq',t:'구라?',n:'구라?',q:1},
+  {k:'shh',e:'🤫',n:'쉿'},{k:'plz',e:'🙏',n:'제발'},{k:'omg',e:'😱',n:'놀람'},{k:'lol',e:'🤣',n:'빵 터짐'},
+  {k:'dizzy',e:'😵',n:'멘붕'},{k:'cry',e:'😭',n:'슬픔'},{k:'mad',e:'😡',n:'화남'},{k:'hurry',e:'⏰',n:'재촉'},
+  {k:'smile',e:'😊',n:'좋음'},{k:'gg',t:'GG',n:'GG'}];
+const EMO_KEYS=['Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','Digit8','Digit9','Digit0','Minus'];
 const BOT_NAMES=['여우','까치','너구리','고양이','두더지','수달','부엉이','다람쥐'];
 const OPTS={fast:[0,1],max:[2,3,4,5,6,7,8],jokers:[0,1,2,3,4],pub:[0,1]};
 const OPT_LABEL={fast:['클래식','빠른 모드'],pub:['비공개','공개']};
@@ -706,6 +733,9 @@ function doShout(s){
 }
 function resolveReveal(){
   const R=H.reveal;H.reveal=null;H.phase='play';
+  {const tk=R.taker,other=R.lie?R.s:R.L.p;   // 가져가는 봇은 😭/😵, 이긴 쪽 봇은 가끔 🤣
+   if(H.players[tk]&&H.players[tk].bot&&Math.random()<.4)botEmote(tk,R.fc>=8?'dizzy':'cry',500+Math.random()*700);
+   if(H.players[other]&&H.players[other].bot&&Math.random()<.25)botEmote(other,'lol',900+Math.random()*900);}
   const t=H.players[R.taker];t.hand.push(...H.field);t.hand.sort(cmpCard);
   addLog(R.lie?`걸렸다! ${t.name} ${R.fc}장 가져감.`:`진짜였다. ${t.name} ${R.fc}장 가져감.`,R.lie?'lie':'truth');
   H.field=[];
@@ -741,6 +771,7 @@ function checkEnd(){
   if(act.length<=1){
     if(act.length===1){act[0].finished=true;act[0].rank=H.rankNext++}
     addLog('게임 종료','sys');H.phase='over';mark();
+    H.players.forEach((p,i)=>{if(p.bot&&Math.random()<.5)botEmote(i,'gg',800+Math.random()*1600)});
   }
 }
 function timeout(){
@@ -789,8 +820,19 @@ function botTurn(i){
   }
 }
 /* 사람(나 또는 참가자)의 행동을 검증해서 처리 */
+function hostEmote(seat,k){
+  if(!H||seat<0||!H.players[seat]||!(H.phase==='play'||H.phase==='reveal'||H.phase==='over'))return;
+  if(!EMOTES.some(em=>em.k===k))return;
+  const t=clock();H.emoAt=H.emoAt||{};
+  if(t-(H.emoAt[seat]||0)<1500)return;   // 도배 방지 (한 사람당 1.5초)
+  H.emoAt[seat]=t;H.emoSeq=(H.emoSeq||0)+1;
+  H.emos=(H.emos||[]).concat([[H.emoSeq,seat,k]]).slice(-8);
+  mark();
+}
+function botEmote(seat,k,delay){setTimeout(()=>{if(H&&H.players[seat]&&H.players[seat].bot)hostEmote(seat,k)},delay||600)}
 function hostAct(seat,a){
   if(!H||!a||typeof a!=='object')return;
+  if(a.t==='emo'){hostEmote(seat,String(a.k||''));return}
   if(a.t==='gura'){doShout(seat);return}
   if(a.t==='surrender'){doSurrender(seat);return}
   if(H.phase!=='play'||seat<0||H.turn!==seat||clock()<H.graceUntil)return;
@@ -834,6 +876,7 @@ function snapFor(you){
   if(H.phase==='wait'){s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0}));return s}
   s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=1;if(p.away)o.aw=1;if(i===you)o.h=p.hand.slice();return o});
   s.t=H.turn;s.rn=H.roundNum;s.fc=H.field.length;
+  if(H.emos&&H.emos.length)s.em=H.emos;
   s.la=H.last?{p:H.last.p,c:H.last.count,o:H.last.open?1:0}:null;
   s.gr=Math.max(0,Math.round(H.graceUntil-t));s.dl=Math.max(0,Math.round(H.deadline-t));
   if(H.reveal){const R=H.reveal;s.rv={s:R.s,p:R.L.p,ids:R.L.ids.slice(),lie:R.lie?1:0,tk:R.taker,stt:R.starter,fc:R.fc,num:R.num}}
@@ -1096,7 +1139,7 @@ function leaveRoom(){
   if(net.pub){try{net.pub.destroy()}catch(e){}net.pub=null}
   if(mode==='host')unstore('gura-host');
   unstore('gura-guest');net.code='';
-  roomSetOpen=false;
+  roomSetOpen=false;emoSeen=-1;closeEmoPad();
   H=null;V=null;PV=null;mode='lobby';sel.clear();pickNum=null;
   $('#lobby').hidden=false;$('#panel').hidden=true;lastPanelHtml='';lastPanelKind='';
   focusLobby();
@@ -1123,7 +1166,7 @@ function applyView(s){
   {const mn=Math.max(4,Math.min(19,+(s.cfg&&s.cfg.maxn)||14));if(mn!==MAXN){MAXN=mn;const w=$('#numpick');if(w)w.innerHTML=''}}
   const mine=myHand();const hs=new Set(mine);for(const id of [...sel])if(!hs.has(id))sel.delete(id);
   if(V.st!=='play'||V.rn!=null)pickNum=null;
-  render();sync3D(V,PV);cues(V,PV);
+  render();sync3D(V,PV);cues(V,PV);showNewEmotes(V,PV);
   // 구라 판정으로 내가 필드를 가져왔으면 어떤 카드였는지 잠깐 보여줌
   if(PV&&PV.st==='reveal'&&PV.rv&&PV.rv.tk===myIdx()&&V.st!=='reveal'){
     const before=new Set(PV.ps&&PV.ps[myIdx()]&&PV.ps[myIdx()].h||[]);
@@ -1132,6 +1175,51 @@ function applyView(s){
   }
 }
 let newCards=new Set();
+let emoSeen=-1,emoMuted=new Set(),emoOff=store('gura-emo-off')==='1';
+function emoteHTML(em){return em.q?'<span class="bt">구라<span class="qm">?</span></span>':em.e?`<span class="be">${em.e}</span>`:`<span class="bt">${esc(em.t)}</span>`}
+function showNewEmotes(v,pv){
+  const list=Array.isArray(v.em)?v.em:[];
+  const top=list.length?+list[list.length-1][0]:0;
+  if(emoSeen<0||!pv||!(pv.st==='play'||pv.st==='reveal'||pv.st==='over')){emoSeen=Math.max(emoSeen,top);if(!pv)return}
+  for(const [sq,p,k] of list){
+    if(+sq<=emoSeen)continue;
+    const em=EMOTES.find(x=>x.k===k);if(!em||!v.ps||!v.ps[p])continue;
+    if(emoOff||(emoMuted.has(v.ps[p].n)&&p!==myIdx()))continue;
+    showBubble(+p,emoteHTML(em),1600,em.q?'q':'soft');
+    sfx(em.q?'emoq':'emo');
+  }
+  emoSeen=Math.max(emoSeen,top);
+}
+let emoCoolUntil=0;
+function sendEmote(k){
+  if(!V||myIdx()<0||!(V.st==='play'||V.st==='reveal'||V.st==='over'))return;
+  const now=Date.now();if(now<emoCoolUntil)return;
+  emoCoolUntil=now+1600;const b=$('#btnEmo');b.classList.add('cool');setTimeout(()=>b.classList.remove('cool'),1600);
+  sendAct({t:'emo',k});closeEmoPad();
+}
+function renderEmoPad(){
+  $('#emoPad').innerHTML=EMOTES.map(em=>`<button type="button" role="menuitem" data-emo="${em.k}" class="${em.q?'q':em.t?'tx':''}" aria-label="${em.n}" title="${em.n}">${em.q?'구라?':em.e||esc(em.t)}<small>${esc(keyLabel(KEYS['emo_'+em.k]||''))}</small></button>`).join('')
+    +`<button type="button" class="emo-off" data-emooff>${emoOff?'이모티콘 보기 켜기':'다른 사람 이모티콘 끄기'}</button>`;
+}
+function openEmoPad(){
+  renderEmoPad();const pad=$('#emoPad'),st=$('#stage').getBoundingClientRect(),pr=$('#me').getBoundingClientRect();
+  pad.hidden=false;pad.style.left=Math.max(8,pr.left-st.left)+'px';pad.style.top=Math.max(8,pr.top-st.top-pad.offsetHeight-8)+'px';
+  $('#btnEmo').setAttribute('aria-expanded','true');
+}
+function closeEmoPad(){$('#emoPad').hidden=true;$('#btnEmo').setAttribute('aria-expanded','false')}
+$('#btnEmo').addEventListener('click',e=>{e.stopPropagation();$('#emoPad').hidden?openEmoPad():closeEmoPad()});
+$('#emoPad').addEventListener('click',e=>{
+  e.stopPropagation();
+  if(e.target.closest('[data-emooff]')){emoOff=!emoOff;store('gura-emo-off',emoOff?'1':'0');if(emoOff)$('#bubbles').querySelectorAll('.bubble.soft,.bubble.q').forEach(b=>b.remove());renderEmoPad();return}
+  const b=e.target.closest('[data-emo]');if(b)sendEmote(b.dataset.emo);
+});
+document.addEventListener('click',e=>{if(!$('#emoPad').hidden&&!e.target.closest('#emoPad')&&!e.target.closest('#btnEmo'))closeEmoPad()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#emoPad').hidden)closeEmoPad()});
+/* 이름표를 누르면 그 사람 이모티콘 음소거 */
+$('#labels').addEventListener('click',e=>{
+  const s=e.target.closest('.seat');if(!s||!V||!V.ps)return;const p=V.ps[+s.dataset.i];if(!p)return;
+  emoMuted.has(p.n)?emoMuted.delete(p.n):emoMuted.add(p.n);s.classList.toggle('muted',emoMuted.has(p.n));sfx('tick');
+});
 function showTaken(ids){newCards=new Set(ids);markNewCards();sfx('sweep')}
 function seeNewCard(el){if(!el||!el.classList.contains('newcard'))return;newCards.delete(+el.dataset.id);el.classList.remove('newcard')}
 function markNewCards(){document.querySelectorAll('#hand .card').forEach(c=>c.classList.toggle('newcard',newCards.has(+c.dataset.id)))}
@@ -1173,6 +1261,8 @@ const SFX={
   pick(){tone(880,.05,{type:'triangle',vol:.09});tone(1320,.04,{type:'triangle',vol:.05,at:.03})},
   play(n=1){for(let k=0;k<Math.min(n,4);k++){hiss(.08,{freq:2200,q:.9,vol:.3,at:k*.055});tone(140,.07,{type:'triangle',vol:.18,at:k*.055})}},
   pass(){tone(330,.09,{vol:.13});tone(247,.13,{vol:.11,at:.08})},
+  emo(){tone(740,.07,{type:'triangle',vol:.08});tone(988,.09,{type:'triangle',vol:.06,at:.05})},
+  emoq(){tone(300,.22,{type:'triangle',vol:.12,slide:620})},
   turn(){tone(660,.12,{type:'triangle',vol:.17});tone(990,.22,{type:'triangle',vol:.17,at:.1})},
   gura(){tone(240,.38,{type:'sawtooth',vol:.15,slide:150});tone(360,.38,{type:'square',vol:.06,slide:225});hiss(.18,{freq:900,vol:.18})},
   lie(){tone(392,.16,{type:'square',vol:.09});tone(330,.16,{type:'square',vol:.09,at:.17});tone(262,.45,{type:'square',vol:.09,at:.34,slide:190})},
@@ -1199,13 +1289,25 @@ function cues(v,pv){
     else if(txt.includes('패스'))sfx('pass');
   }
   if(typeof v.fc==='number'&&typeof pv.fc==='number'&&v.fc>pv.fc&&v.la){sfx('play',v.fc-pv.fc);playFx(v)}
-  if(v.st==='reveal'&&v.rv&&pv.st!=='reveal'){setTimeout(()=>sfx(v.rv.lie?'lie':'truth'),550);$('#fx').innerHTML='';showBubble(v.rv.s,'<span class="bt">구라!</span>');clearTimeout(pileHoldTimer);$('#pileNum').classList.remove('held')}
+  if(v.st==='reveal'&&v.rv&&pv.st!=='reveal'){setTimeout(()=>sfx(v.rv.lie?'lie':'truth'),550);$('#fx').innerHTML='';showBubble(v.rv.s,'<span class="bt">구라!</span>',2200,'real');clearTimeout(pileHoldTimer);$('#pileNum').classList.remove('held')}
   const me=myIdx();
   if(v.st==='play'&&me>=0&&v.t===me&&!(pv.st==='play'&&pv.t===me))setTimeout(()=>sfx('turn'),v.gr>0?Math.min(v.gr,1500):0);
 }
 let pileHoldTimer=null;
 /* 말풍선: 외친 사람(내 자리면 내 정보 칸) 옆, 테이블 가운데 쪽에 뾰족한 풍선. 꼬리가 그 사람을 가리킴. html에 이모티콘을 넣어도 됨 */
 const BUB={w:220,h:180,cx:110,cy:90,rx:62,ry:40,tail:70};
+function softPath(ang,tail){
+  // 둥근 말풍선 + 이름표 쪽으로 짧은 꼬리
+  const {cx,cy}=BUB,rx=52,ry=36,N=44,pts=[];
+  let best=0,bd=9;
+  for(let k=0;k<N;k++){const a=k/N*Math.PI*2,pa=Math.atan2(Math.sin(a)*ry,Math.cos(a)*rx);let dd=Math.abs(((pa-ang)%(2*Math.PI)+3*Math.PI)%(2*Math.PI)-Math.PI);if(dd<bd){bd=dd;best=k}}
+  for(let k=0;k<N;k++){
+    const a=k/N*Math.PI*2;let x=cx+Math.cos(a)*rx,y=cy+Math.sin(a)*ry;
+    if(k===best){x=cx+Math.cos(ang)*tail;y=cy+Math.sin(ang)*tail}
+    pts.push(x.toFixed(1)+','+y.toFixed(1));
+  }
+  return 'M'+pts.join('L')+'Z';
+}
 function burstPath(ang){
   const {cx,cy,rx,ry}=BUB,N=20,pts=[];
   // 꼬리 방향과 가장 가까운 바깥 꼭지를 길게 뺌
@@ -1219,7 +1321,8 @@ function burstPath(ang){
   }
   return 'M'+pts.join('L')+'Z';
 }
-function showBubble(i,html,life){
+function showBubble(i,html,life,kind){
+  kind=kind||'real';
   const st=$('#stage'),sr=st.getBoundingClientRect(),W=sr.width,Hh=sr.height;
   const el=i===myIdx()?$('#me'):document.querySelector(`#labels .seat[data-i="${i}"]`);
   if(!el)return;
@@ -1230,14 +1333,18 @@ function showBubble(i,html,life){
   if(i===myIdx()){dx=.55;dy=-.83}   // 내 정보 칸은 왼쪽 아래 → 오른쪽 위로
   const ext=Math.abs(dx)*r.width/2+Math.abs(dy)*r.height/2;
   const k=Math.max(1,Math.min(2.2,W/900,Hh/620));   // 큰 화면(QHD 전체화면 등)에서는 비율대로 크게
-  const dist=BUB.tail*k+ext+2;
+  const TL=kind==='soft'?60:BUB.tail;
+  const dist=TL*k+ext+2;
   let bx=lx+dx*dist,by=ly+dy*dist;
   bx=Math.max(BUB.rx*k+6,Math.min(W-BUB.rx*k-6,bx));by=Math.max(BUB.ry*k+6,Math.min(Hh-BUB.ry*k-6,by));
   const ang=Math.atan2(ly-by,lx-bx);
-  const box=$('#bubbles');box.querySelectorAll(`[data-i="${i}"]`).forEach(b=>b.remove());
-  const b=document.createElement('div');b.className='bubble';b.dataset.i=i;
+  const box=$('#bubbles');
+  // 진짜 구라! 풍선이 떠 있는 동안에는 그 사람 이모티콘이 덮지 않음
+  if(kind!=='real'&&box.querySelector(`.bubble.real[data-i="${i}"]`))return;
+  box.querySelectorAll(`[data-i="${i}"]`).forEach(b=>b.remove());
+  const b=document.createElement('div');b.className='bubble '+kind;b.dataset.i=i;
   b.style.left=bx+'px';b.style.top=by+'px';b.style.setProperty('--life',(life||2200)+'ms');b.style.setProperty('--bk',k);
-  b.innerHTML=`<svg viewBox="0 0 ${BUB.w} ${BUB.h}" aria-hidden="true"><path d="${burstPath(ang)}"/></svg>${html}`;
+  b.innerHTML=`<svg viewBox="0 0 ${BUB.w} ${BUB.h}" aria-hidden="true"><path d="${kind==='soft'?softPath(ang,TL):burstPath(ang)}"/></svg>${html}`;
   b.addEventListener('animationend',e=>{if(e.animationName==='bubout')b.remove()});
   setTimeout(()=>b.remove(),(life||2200)+500);   // 윈도우 '애니메이션 효과 끄기' 등으로 애니메이션이 안 돌 때 대비
   box.appendChild(b);
@@ -1429,7 +1536,7 @@ function renderLabels(){
   box.innerHTML=V.ps.map((p,i)=>{
     if(i===me)return '';
     const on=V.st==='play'&&V.t===i&&activeV(i);
-    return `<div class="seat${on?' on':''}${p.f?' out':''}" data-i="${i}"><div class="nm">${esc(p.n)}<span class="ct">${p.f?(p.sr?'항복':'탈출'):(+p.c+'장')}</span>${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="nt">${esc(p.aw&&!p.f?'연결 끊김':(p.no||''))}</div><svg class="ring" data-ring="${i}" viewBox="0 0 36 36" aria-hidden="true"><circle class="rb" cx="18" cy="18" r="15"/><circle class="rf" cx="18" cy="18" r="15"/></svg></div>`;
+    return `<div class="seat${on?' on':''}${p.f?' out':''}${emoMuted.has(p.n)?' muted':''}" data-i="${i}" title="눌러서 이 사람 이모티콘 끄기/켜기"><div class="nm">${esc(p.n)}<span class="ct">${p.f?(p.sr?'항복':'탈출'):(+p.c+'장')}</span>${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="nt">${esc(p.aw&&!p.f?'연결 끊김':(p.no||''))}</div><svg class="ring" data-ring="${i}" viewBox="0 0 36 36" aria-hidden="true"><circle class="rb" cx="18" cy="18" r="15"/><circle class="rf" cx="18" cy="18" r="15"/></svg></div>`;
   }).join('');
   placeLabels();
 }
@@ -1608,6 +1715,7 @@ function renderPanel(){
   if(V.st==='over'){
     const list=V.ps.map((p,i)=>({...p,i})).sort((a,b)=>a.f-b.f);
     showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="방 나가기" title="방 나가기">←</button><h2>게임 끝</h2></div><ol class="ranks">${list.map(p=>`<li class="${p.i===me?'me':''}"><span class="r">${+p.f}위</span><span>${esc(p.n)}</span>${p.sr?'<span class="left">항복</span>':''}${V.cfg&&V.cfg.fast&&p.c>0?`<span class="left">남은 카드 ${+p.c}장</span>`:''}</li>`).join('')}</ol>
+      ${me>=0?'<div class="row"><button class="btn btn-sub" type="button" data-act="emo:gg">GG 보내기</button></div>':''}
       ${isHost?`<div class="row"><button class="btn btn-sub" type="button" data-act="again">대기실</button><button class="btn btn-red" type="button" data-act="restart" data-auto>바로 시작</button></div>`:'<p>방장이 다음 판을 시작하거나 대기실을 열 때까지 기다립니다.</p>'}`,'over');
     return;
   }
@@ -1621,6 +1729,7 @@ $('#panel').addEventListener('click',e=>{
     // 방장이 나가면 방이 없어지므로, 다른 사람이 있으면 한 번 확인
     if(b.classList.contains('back')&&mode==='host'&&H&&H.online&&H.members.some(m=>!m.host&&!m.bot)&&!confirm('방장이 나가면 방이 닫힙니다. 나가시겠습니까?'))return;
     leaveRoom();return}
+  if(a.startsWith('emo:')){sendEmote(a.slice(4));return}
   if(a==='setopen'){roomSetOpen=true;renderPanel();return}
   if(a==='setclose'){roomSetOpen=false;renderPanel();return}
   if(/^(inc|dec):/.test(a)){if(e.detail!==0)return;const [op,k]=a.split(':');const d=ROOM_SET.find(x=>x.k===k);if(d&&H)setRoomCfg(k,(+H.cfg[k])+(op==='inc'?d.step:-d.step));return}
@@ -1722,6 +1831,7 @@ $('#btnPass').addEventListener('click',()=>{if(myReady()&&V.rn!=null)sendAct({t:
 $('#btnGura').addEventListener('click',()=>{if(canShoutV())sendAct({t:'gura'})});
 /* 키 설정 — 물리 키(e.code)로 저장해서 한/영 입력 상태와 상관없이 동작 */
 const DEFAULT_KEYS={play:'Space',pass:'KeyQ',gura:'KeyF',pick:'KeyE',right:'KeyD',left:'KeyA',numUp:'KeyW',numDown:'KeyS'};
+EMOTES.forEach((em,i)=>{DEFAULT_KEYS['emo_'+em.k]=EMO_KEYS[i]});
 const KEY_ACTIONS=[
   {a:'play',n:'카드 내기',d:'고른 카드를 냅니다'},
   {a:'pass',n:'패스',d:'이번 차례를 넘깁니다'},
@@ -1730,7 +1840,8 @@ const KEY_ACTIONS=[
   {a:'right',n:'오른쪽 카드',d:'커서를 오른쪽으로 옮깁니다'},
   {a:'left',n:'왼쪽 카드',d:'커서를 왼쪽으로 옮깁니다'},
   {a:'numUp',n:'선언 자음 이전',d:'라운드를 시작할 때 선언할 자음을 이전 자음(위)으로 바꿉니다'},
-  {a:'numDown',n:'선언 자음 다음',d:'라운드를 시작할 때 선언할 자음을 다음 자음(아래)으로 바꿉니다'}];
+  {a:'numDown',n:'선언 자음 다음',d:'라운드를 시작할 때 선언할 자음을 다음 자음(아래)으로 바꿉니다'},
+  ...EMOTES.map(em=>({a:'emo_'+em.k,n:`이모티콘 ${em.e||em.t}`,d:`${em.n} 이모티콘을 보냅니다`}))];
 const RESERVED=new Set(['Escape','Tab','MetaLeft','MetaRight']);
 let KEYS={...DEFAULT_KEYS},listening=null;
 try{const s=JSON.parse(store('gura-keys2')||'null');if(s&&typeof s==='object')for(const k of Object.keys(DEFAULT_KEYS))if(typeof s[k]==='string'&&s[k])KEYS[k]=s[k]}catch(e){}
@@ -1769,9 +1880,11 @@ document.addEventListener('keydown',e=>{
   }
   if(!$('#keysOv').hidden){if(e.code==='Escape')closeKeys();return}
   if(e.target.matches('input')||!$('#lobby').hidden||e.ctrlKey||e.metaKey||e.altKey)return;
-  if(!V||!(V.st==='play'||V.st==='reveal'))return;  // 대기실·결과 화면에서는 Tab/Enter/Space로 버튼 조작
+  if(!V||!(V.st==='play'||V.st==='reveal'||V.st==='over'))return;  // 대기실에서는 Tab/Enter/Space로 버튼 조작
   const act=Object.keys(KEYS).find(a=>KEYS[a]===e.code);
   if(!act)return;
+  if(act.startsWith('emo_')){e.preventDefault();if(!e.repeat)sendEmote(act.slice(4));return}
+  if(V.st==='over')return;
   e.preventDefault();
   if(act==='left'||act==='right'){moveCursor(act==='right'?1:-1);return}
   if(act==='numUp'||act==='numDown'){stepNum(act==='numUp'?1:-1,true);return}
