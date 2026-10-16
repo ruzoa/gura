@@ -1292,7 +1292,7 @@ function renderHUD(){
   if(V.st==='reveal'&&V.rv){
     const R=V.rv;vd.hidden=false;
     vd.innerHTML=`<div class="vw"><b>${esc(V.ps[R.s].n)}</b> → <b>${esc(V.ps[R.p].n)}</b></div>
-      <div class="vt ${R.lie?'lie':'truth'}">${R.lie?'구라!':'진짜였다!'}</div>`;
+      <div class="vt ${R.lie?'lie':'truth'}">${R.lie?'구라!':'진짜였다?'}</div>`;
   }else vd.hidden=true;
 }
 function renderLabels(){
