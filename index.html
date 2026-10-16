@@ -222,6 +222,10 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .orline{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin:6px 0 2px}
 .orline::before,.orline::after{content:"";flex:1;height:1px;background:var(--line-strong)}
 .btn.wide{width:100%}
+.codewrap{display:flex;align-items:center;gap:6px}
+.eyebtn{width:38px;height:38px;flex:none;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:var(--panel);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 2px 0 var(--line)}
+.eyebtn svg{width:20px;height:20px}
+.eyebtn[aria-pressed="true"]{background:var(--well);color:var(--muted)}
 .coderow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .pubsw{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted);padding-bottom:6px}
 .pubsw span.on{color:var(--ink)}
@@ -481,6 +485,7 @@ body.kb .fan .card.cur{z-index:70!important}
       <div class="field"><span class="fl">공개 설정</span><small>공개 방은 누구나 '랜덤 방 참여'로 들어올 수 있어요</small><div class="seg pubseg" id="segPub"></div></div>
       <div class="field"><span class="fl">최대 인원</span><div class="seg" id="segMax"></div></div>
       <div class="field"><span class="fl">별카드</span><div class="seg" id="segJokers"></div></div>
+      <div class="field"><label for="inMaxN">최대 숫자</label><small>1부터 이 숫자까지 숫자마다 카드 4장씩 들어가요 (4~15, 기본 13 = K)</small><div class="numin"><input class="txt" type="number" id="inMaxN" min="4" max="15" step="1" inputmode="numeric"><span>까지</span></div></div>
       <div class="field"><label for="inGrace">구라 대기 시간</label><small>카드가 나온 뒤 다음 사람이 행동하지 못하는 시간 (0~30초)</small><div class="numin"><input class="txt" type="number" id="inGrace" min="0" max="30" step="1" inputmode="numeric"><span>초</span></div></div>
       <div class="field"><label for="inTurn">제한 시간</label><small>지나면 자동 패스, 첫 플레이어는 카드 1장을 자동으로 냅니다 (5~120초)</small><div class="numin"><input class="txt" type="number" id="inTurn" min="5" max="120" step="1" inputmode="numeric"><span>초</span></div></div>
       <div class="row">
@@ -544,14 +549,17 @@ const pick=a=>a[Math.random()*a.length|0];
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
 
-/* 카드 id: 0~51은 숫자 카드((숫자-1)*4+0~3), 52·53은 별카드. 같은 숫자는 같은 색 */
-const isJ=id=>id>=52;
+/* 카드 id: 0~(최대숫자*4-1)은 숫자 카드((숫자-1)*4+0~3), 100·101은 별카드. 같은 숫자는 같은 색 */
+const JOKER_BASE=100;
+const isJ=id=>id>=JOKER_BASE;
+let MAXN=13;   // 이번 방의 최대 숫자 (방 설정에서 4~15)
 const numOf=id=>isJ(id)?0:(id>>2)+1;
 const labelOf=id=>isJ(id)?'★':rankLabel(numOf(id));
 /* 숫자마다 고유 색 (같은 숫자 4장은 같은 색). 11·12·13은 J·Q·K로 표시 */
-const RANK_COLORS=['#c53026','#157568','#b42da2','#5c7010','#6258d5','#aa4c0e','#107093','#c52660','#1f7a2e','#9041c8','#886107','#2b65ca','#905e41'];
-const rankLabel=n=>n===11?'J':n===12?'Q':n===13?'K':String(n);
-const numName=n=>n>=1&&n<=13?rankLabel(n):String(n);
+const RANK_COLORS=['#c53026','#157568','#b42da2','#5c7010','#6258d5','#aa4c0e','#107093','#c52660','#1f7a2e','#9041c8','#886107','#2b65ca','#905e41','#0b8a8a','#d9530b'];
+// 최대 숫자가 13 이하면 11·12·13을 J·Q·K로, 14·15까지 쓰는 방은 전부 숫자로
+const rankLabel=n=>MAXN<=13&&n===11?'J':MAXN<=13&&n===12?'Q':MAXN<=13&&n===13?'K':String(n);
+const numName=n=>n>=1&&n<=15?rankLabel(n):String(n);
 const fits=(id,num)=>isJ(id)||numOf(id)===num;
 const JOKER_C='#efbc4e';
 const BOT_NAMES=['여우','까치','너구리','고양이','두더지','수달'];
@@ -559,7 +567,7 @@ const OPTS={fast:[0,1],max:[2,3,4,5,6],jokers:[0,1,2],pub:[0,1]};
 const OPT_LABEL={fast:['클래식','빠른 모드'],pub:['비공개','공개']};
 const MODE_DESC=['꼴찌가 나올 때까지','1등이 나오면 끝'];
 const OPT_HTML={fast:v=>`<b>${OPT_LABEL.fast[v]}</b><small>${MODE_DESC[v]}</small>`};
-const cfg={fast:0,max:4,jokers:2,grace:3,turn:30,pub:0};
+const cfg={fast:0,max:4,jokers:2,grace:3,turn:30,pub:0,maxn:13};
 const PEER_PREFIX='gura-cardgame-room-';
 const ALPH='abcdefghjkmnpqrstuvwxyz23456789';
 const genCode=()=>Array.from({length:4},()=>ALPH[Math.random()*ALPH.length|0]).join('');
@@ -583,7 +591,7 @@ function nextActive(i){const n=H.players.length;for(let k=1;k<=n;k++){const j=(i
 function addLog(txt,cls=''){H.logSeq=(H.logSeq||0)+1;H.log.unshift([txt,cls,H.logSeq]);if(H.log.length>10)H.log.length=10}
 
 function hostNew(online,code,title){
-  H={online,code,title,cfg:{...cfg,grace:Math.max(0,Math.min(30,Math.round(cfg.grace)||0)),turn:Math.max(5,Math.min(120,Math.round(cfg.turn)||30))},phase:'wait',members:[{name:myNick(),bot:false,conn:null,host:true}],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
+  H={online,code,title,cfg:{...cfg,grace:Math.max(0,Math.min(30,Math.round(cfg.grace)||0)),turn:Math.max(5,Math.min(120,Math.round(cfg.turn)||30)),maxn:Math.max(4,Math.min(15,Math.round(cfg.maxn)||13))},phase:'wait',members:[{name:myNick(),bot:false,conn:null,host:true}],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
 }
 function hostAddBot(force){
   if(!force&&(H.phase!=='wait'||H.members.length>=H.cfg.max))return;
@@ -601,7 +609,8 @@ function hostStart(){
   while(H.members.length<2)hostAddBot(true);
   const n=H.members.length;
   H.players=H.members.map(m=>({name:m.name,bot:m.bot,conn:m.conn,cid:m.cid||'',host:m.host,hand:[],finished:false,rank:null}));
-  const deck=shuffle([...Array(52+H.cfg.jokers).keys()]),per=Math.floor(deck.length/n);
+  const N=H.cfg.maxn||13;
+  const deck=shuffle([...Array(N*4).keys(),...Array(H.cfg.jokers).fill(0).map((_,k)=>JOKER_BASE+k)]),per=Math.floor(deck.length/n);
   H.players.forEach(p=>p.hand=deck.splice(0,per));
   const order=shuffle([...Array(n).keys()]);let k=0;while(deck.length)H.players[order[k++]].hand.push(deck.pop());
   H.players.forEach(p=>p.hand.sort((a,b)=>a-b));
@@ -703,7 +712,7 @@ function checkEnd(){
 function timeout(){
   const i=H.turn,p=H.players[i];
   if(H.roundNum==null){
-    const id=p.hand[0];const num=isJ(id)?1+(Math.random()*13|0):numOf(id);
+    const id=p.hand[0];const num=isJ(id)?1+(Math.random()*(H.cfg.maxn||13)|0):numOf(id);
     addLog(`${p.name} 시간 초과. 가장 작은 카드 1장 자동 제출.`,'sys');doPlay(i,[id],num);
   }else doPass(i,true);
 }
@@ -728,7 +737,7 @@ function planBotShouts(i,t){
 function botTurn(i){
   const h=H.players[i].hand,jk=h.filter(isJ),plain=h.filter(id=>!isJ(id));
   if(H.roundNum==null){
-    if(!plain.length){doPlay(i,jk.slice(),1+(Math.random()*13|0));return}
+    if(!plain.length){doPlay(i,jk.slice(),1+(Math.random()*(H.cfg.maxn||13)|0));return}
     const g=new Map();plain.forEach(id=>{const n=numOf(id);if(!g.has(n))g.set(n,[]);g.get(n).push(id)});
     let best=null;for(const [n,cs] of g)if(!best||cs.length>best[1].length||(cs.length===best[1].length&&Math.random()<.5))best=[n,cs];
     const ids=best[1].slice(),rest=plain.filter(id=>numOf(id)!==best[0]);
@@ -757,7 +766,7 @@ function hostAct(seat,a){
     const ids=[...new Set(a.ids)].filter(id=>Number.isInteger(id)&&hand.has(id));
     if(!ids.length||ids.length!==a.ids.length)return;
     let num=H.roundNum;
-    if(num==null){num=a.num;if(!Number.isInteger(num)||num<1||num>13)return}
+    if(num==null){num=a.num;if(!Number.isInteger(num)||num<1||num>(H.cfg.maxn||13))return}
     doPlay(seat,ids,num);
   }
 }
@@ -809,6 +818,9 @@ function saveHost(){
   if(!H||!H.online||mode!=='host')return;
   try{localStorage.setItem('gura-host',JSON.stringify({at:Date.now(),ck:clock(),H},(k,v)=>k==='conn'?undefined:v))}catch(e){}
 }
+let hideCode=store('gura-hidecode')==='1';
+const EYE_ON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',EYE_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+const shownCode=c=>hideCode?'••••':String(c||'').toUpperCase();
 const PUB_PREFIX='gura-cardgame-pub-',PUB_SLOTS=16;
 function pubInfo(){return {t:'room',code:H.code,title:H.title,n:H.members.filter(m=>!m.away).length,max:H.cfg.max,ph:H.phase,fast:H.cfg.fast?1:0}}
 function pubSync(){
@@ -1079,6 +1091,7 @@ function roomLink(code){return location.origin+location.pathname+'?room='+code.t
 function applyView(s){
   PV=V;const t=clock();
   V={...s,graceAt:t+(+s.gr||0),deadAt:t+(+s.dl||0)};
+  {const mn=Math.max(4,Math.min(15,+(s.cfg&&s.cfg.maxn)||13));if(mn!==MAXN){MAXN=mn;const w=$('#numpick');if(w)w.innerHTML=''}}
   const mine=myHand();const hs=new Set(mine);for(const id of [...sel])if(!hs.has(id))sel.delete(id);
   if(V.st!=='play'||V.rn!=null)pickNum=null;
   render();sync3D(V,PV);cues(V,PV);
@@ -1201,7 +1214,7 @@ function showBubble(i,html,life){
   box.appendChild(b);
 }
 function playFx(v){
-  const L=v.la,n=+v.rn;if(!L||!(n>=1&&n<=13))return;
+  const L=v.la,n=+v.rn;if(!L||!(n>=1&&n<=15))return;
   const a=(T&&T.anchor)||{x:$('#stage').clientWidth/2,y:$('#stage').clientHeight/2};
   const d=document.createElement('div');d.className='playfx';d.style.setProperty('--rc',RANK_COLORS[n-1]);
   d.style.left=a.x+'px';d.style.top=Math.max(46,a.y-100)+'px';
@@ -1351,8 +1364,8 @@ function render(){renderHUD();renderLabels();renderMe();renderLog();renderPanel(
 function roomInfoHTML(){
   if(!V||mode==='lobby')return '';
   const c=V.cfg||cfg;
-  return (V.code?`<span class="chip code">방 코드 <b>${esc(String(V.code).toUpperCase())}</b></span>`:'<span class="chip"><b>연습 모드</b></span>')+
-    `<span class="chip"><b>${c.fast?'빠른 모드':'클래식'}</b></span><span class="chip">최대 <b>${+c.max}명</b></span><span class="chip">별카드 <b>${+c.jokers||0}장</b></span>${V.code?`<span class="chip"><b>${c.pub?'공개':'비공개'}</b></span>`:''}<span class="chip">구라 대기 <b>${+c.grace}초</b></span><span class="chip">턴 <b>${+c.turn}초</b></span>`;
+  return (V.code?`<span class="chip code">방 코드 <b>${esc(shownCode(V.code))}</b></span>`:'<span class="chip"><b>연습 모드</b></span>')+
+    `<span class="chip"><b>${c.fast?'빠른 모드':'클래식'}</b></span><span class="chip">최대 <b>${+c.max}명</b></span><span class="chip">숫자 <b>1~${rankLabel(+c.maxn||13)}</b></span><span class="chip">별카드 <b>${+c.jokers||0}장</b></span>${V.code?`<span class="chip"><b>${c.pub?'공개':'비공개'}</b></span>`:''}<span class="chip">구라 대기 <b>${+c.grace}초</b></span><span class="chip">턴 <b>${+c.turn}초</b></span>`;
 }
 let lastPileN=-1;
 function renderPile(){
@@ -1440,14 +1453,14 @@ window.addEventListener('resize',()=>{if(V)layoutFan()});
 /* 선언 숫자 세로 휠 */
 function renderWheel(){
   const np=$('#numpick'),cur=chosenNum()||7,narrow=$('#stage').clientWidth<600,rows=narrow?3:5;
-  const order=[13,12,11,10,9,8,7,6,5,4,3,2,1],idx=order.indexOf(cur);
+  const order=Array.from({length:MAXN},(_,k)=>MAXN-k),idx=Math.max(0,order.indexOf(cur));
   if(!np.querySelector('.wh-list')){
-    np.innerHTML=`<span class="wh-t">선언할 숫자</span><button type="button" class="wh-arrow" data-step="1" aria-label="큰 숫자로">▲<small>${esc(keyLabel(KEYS.numUp))}</small></button><div class="wh-view"><ul class="wh-list">${order.map(k=>`<li><button type="button" class="np" data-n="${k}" style="--rc:${RANK_COLORS[k-1]}" aria-label="${rankLabel(k)}"><span class="wl">${rankLabel(k)}</span>${k>10?`<span class="ws">${k}</span>`:''}</button></li>`).join('')}</ul></div><button type="button" class="wh-arrow" data-step="-1" aria-label="작은 숫자로">▼<small>${esc(keyLabel(KEYS.numDown))}</small></button>`;
+    np.innerHTML=`<span class="wh-t">선언할 숫자</span><button type="button" class="wh-arrow" data-step="1" aria-label="큰 숫자로">▲<small>${esc(keyLabel(KEYS.numUp))}</small></button><div class="wh-view"><ul class="wh-list">${order.map(k=>`<li><button type="button" class="np" data-n="${k}" style="--rc:${RANK_COLORS[k-1]}" aria-label="${rankLabel(k)}"><span class="wl">${rankLabel(k)}</span>${rankLabel(k)!==String(k)?`<span class="ws">${k}</span>`:''}</button></li>`).join('')}</ul></div><button type="button" class="wh-arrow" data-step="-1" aria-label="작은 숫자로">▼<small>${esc(keyLabel(KEYS.numDown))}</small></button>`;
   }
   np.style.setProperty('--rows',rows);
   np.querySelector('.wh-list').style.transform=`translateY(${((rows-1)/2-idx)*40}px)`;
   np.querySelectorAll('.np').forEach(b=>b.classList.toggle('on',+b.dataset.n===cur));
-  np.querySelectorAll('.wh-arrow').forEach(a=>a.disabled=(+a.dataset.step>0?cur>=13:cur<=1));
+  np.querySelectorAll('.wh-arrow').forEach(a=>a.disabled=(+a.dataset.step>0?cur>=MAXN:cur<=1));
 }
 function renderButtons(){
   {const gb=$('#btnGiveUp'),i=myIdx();
@@ -1512,9 +1525,9 @@ function renderPanel(){
     // 방장: 인원 수 다시 정하기 (지금 들어와 있는 사람보다 적게는 못 줄임)
     const maxCtl=isHost?`<div class="maxpick"><span class="label">최대 인원</span><div class="seg" role="radiogroup" aria-label="최대 인원">${OPTS.max.map(v=>`<button type="button" role="radio" aria-pressed="${v===max}" aria-checked="${v===max}" data-act="max${v}"${v<V.ps.length?' disabled':''}>${v}명</button>`).join('')}</div></div>`:'';
     showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="방 나가기" title="방 나가기">←</button><h2>${esc(V.title||'대기실')}</h2></div>
-      <div class="coderow"><div><span class="label">방 코드</span><div class="bigcode">${esc(String(V.code||'').toUpperCase())}</div></div>${V.code?pubCtl:''}</div>
+      <div class="coderow"><div><span class="label">방 코드</span><div class="codewrap"><div class="bigcode">${esc(shownCode(V.code))}</div><button type="button" class="eyebtn" data-act="hidecode" aria-pressed="${hideCode}" aria-label="${hideCode?'방 코드 보이기':'방 코드 가리기'}" title="${hideCode?'방 코드·링크 보이기':'방 코드·링크 가리기'}">${hideCode?EYE_OFF:EYE_ON}</button></div></div>${V.code?pubCtl:''}</div>
       ${maxCtl}
-      ${isHost&&link?`<div class="linkbox"><input class="txt" id="linkTxt" readonly value="${esc(link)}" aria-label="초대 링크"><button class="btn btn-sub" type="button" data-act="copy">링크 복사</button></div><p>이 링크를 보내면 코드가 자동으로 입력돼요.</p>`:''}
+      ${isHost&&link?`<div class="linkbox"><input class="txt" id="linkTxt" ${hideCode?'type="password"':''} readonly value="${esc(link)}" aria-label="초대 링크"><button class="btn btn-sub" type="button" data-act="copy">링크 복사</button></div><p>이 링크를 보내면 코드가 자동으로 입력돼요.</p>`:''}
       <div class="nickrow"><input class="txt" id="waitNick" maxlength="10" value="${esc(me>=0?V.ps[me].n:myNick())}" aria-label="내 닉네임" autocomplete="off"><button class="btn btn-sub" type="button" data-act="nick">이름 바꾸기</button></div><ul class="slots">${li}</ul>${foot}`,'wait');
     return;
   }
@@ -1529,6 +1542,7 @@ function renderPanel(){
 $('#panel').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act;
+  if(a==='hidecode'){hideCode=!hideCode;store('gura-hidecode',hideCode?'1':'0');lastPanelHtml='';renderPanel();const f=$('#panel [data-act="hidecode"]');if(f)f.focus();return}
   if(a==='leave'){
     // 방장이 나가면 방이 없어지므로, 다른 사람이 있으면 한 번 확인
     if(b.classList.contains('back')&&mode==='host'&&H&&H.online&&H.members.some(m=>!m.host&&!m.bot)&&!confirm('방장이 나가면 방이 닫혀요. 나갈까요?'))return;
@@ -1720,9 +1734,9 @@ function pickCursor(){kbOn();
 }
 function stepNum(d,wrap){
   if($('#numpick').hidden)return;
-  const cur=chosenNum()||(d>0?0:14);
-  if(!wrap){const n=Math.max(1,Math.min(13,cur+d));if(n===chosenNum())return;pickNum=n}
-  else pickNum=((cur-1+d)%13+13)%13+1;
+  const cur=chosenNum()||(d>0?0:MAXN+1);
+  if(!wrap){const n=Math.max(1,Math.min(MAXN,cur+d));if(n===chosenNum())return;pickNum=n}
+  else pickNum=((cur-1+d)%MAXN+MAXN)%MAXN+1;
   sfx('tick');renderMe();
 }
 function showCursor(){}
@@ -1815,7 +1829,7 @@ function bindNum(id,key,lo,hi){
   el.addEventListener('change',fix);el.addEventListener('blur',fix);
   el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();fix();el.blur()}});
 }
-bindNum('#inGrace','grace',0,30);bindNum('#inTurn','turn',5,120);
+bindNum('#inMaxN','maxn',4,15);bindNum('#inGrace','grace',0,30);bindNum('#inTurn','turn',5,120);
 $('#inNick').value=store('gura-nick')||'나';
 const invited=(()=>{const q=new URLSearchParams(location.search).get('room');if(q&&/^[a-z0-9]{4}$/i.test(q)){$('#inCode').value=q.toUpperCase();setNote('#netNote','초대받은 방이에요. 참가를 누르세요.');return true}return false})();
 
@@ -1900,10 +1914,11 @@ function drawFace(g,w,h,id){
   g.save();g.translate(w-6*k,h-3*k);g.rotate(Math.PI);g.font=`600 ${13*k}px "IBM Plex Mono", monospace`;g.textAlign='left';g.textBaseline='top';g.fillText(labelOf(id),0,0);g.restore();
 }
 function faceMat(id){
-  if(T.faces.has(id))return T.faces.get(id);
+  const fk=id+(MAXN>13?'n':'');
+  if(T.faces.has(fk))return T.faces.get(fk);
   const tex=canvasTex(256,372,(g,w,h)=>drawFace(g,w,h,id));
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{drawFace(tex.image.getContext('2d'),256,372,id);tex.needsUpdate=true});
-  const m=new THREE.MeshBasicMaterial({map:tex,alphaTest:.4});T.faces.set(id,m);return m;
+  const m=new THREE.MeshBasicMaterial({map:tex,alphaTest:.4});T.faces.set(fk,m);return m;
 }
 /* ===== 툰 셰이딩 그래픽 =====
    3칸 명암 램프 + 푸른 그림자 + 외곽선 + 림 라이트 + 구름 그림자/바람. GFX_ENV: 'meadow'(들판) | 'cafe'(카페) */
