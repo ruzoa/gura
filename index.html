@@ -101,6 +101,12 @@ body.no3d .seat.on .ring{display:block}
 .menu-vol{display:flex;align-items:center;gap:8px;padding:2px 2px}
 .menu-vol svg{width:20px;height:20px;flex:none}
 .menu-vol input{flex:1;accent-color:var(--gura);height:26px}
+.menu-vol .mv-t,.menu-bg .mv-t{font-size:12px;font-weight:600;color:var(--muted);width:52px;flex:none}
+.menu-bg{display:flex;align-items:center;gap:8px;padding:2px 2px}
+.menu-bg svg{width:20px;height:20px;flex:none}
+.menu-bg .seg{flex:1}
+.menu-bg .seg button{padding:5px 0;font-family:var(--f-body);font-size:13px}
+.seg.bgseg button{font-family:var(--f-body)}
 .menu-vol b{font-family:var(--f-num);font-size:12px;font-weight:500;color:var(--muted);width:36px;text-align:right}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .mbtn{min-width:74px;height:66px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:12px;border:1.5px solid var(--line-strong);background:var(--panel);color:var(--ink);box-shadow:0 3px 0 var(--line-strong);font-size:11.5px;font-weight:600;transition:transform .08s,box-shadow .08s}
@@ -391,7 +397,9 @@ body.kb .fan .card.cur{z-index:70!important}
     <button class="fsbtn cfg" id="btnMenu" type="button" aria-label="설정" title="설정" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     <div class="menu" id="menu" hidden role="menu">
       <div class="menu-info" id="menuInfo"></div>
-      <label class="menu-vol"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg><span class="sr">음량</span><input type="range" id="mVol" min="0" max="100" step="5" aria-label="음량"><b id="mVolV"></b></label>
+      <label class="menu-vol" title="효과음"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg><span class="mv-t">효과음</span><input type="range" id="mVol" min="0" max="100" step="5" aria-label="효과음 음량"><b id="mVolV"></b></label>
+      <label class="menu-vol" title="배경음악"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span class="mv-t">배경음악</span><input type="range" id="mBgm" min="0" max="100" step="5" aria-label="배경음악 음량"><b id="mBgmV"></b></label>
+      <div class="menu-bg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.5"/></svg><span class="mv-t">배경</span><div class="seg bgseg" id="mBg"></div></div>
       <div class="menu-row">
         <button type="button" class="mbtn" id="mKeys" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg><span>키 설정</span></button>
         <button type="button" class="mbtn giveup" id="btnGiveUp" role="menuitem" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg><span>항복</span></button>
@@ -479,9 +487,14 @@ body.kb .fan .card.cur{z-index:70!important}
     <div class="view" data-view="settings" hidden>
       <div class="vhead"><button type="button" class="back" data-go="main" aria-label="뒤로">←</button><h2>설정</h2></div>
       <div class="field">
-        <label for="inVol">음량 <span id="volV" class="volv"></span></label>
+        <label for="inVol">효과음 <span id="volV" class="volv"></span></label>
         <input type="range" id="inVol" min="0" max="100" step="5" class="vol">
       </div>
+      <div class="field">
+        <label for="inBgm">배경음악 <span id="bgmV" class="volv"></span></label>
+        <input type="range" id="inBgm" min="0" max="100" step="5" class="vol">
+      </div>
+      <div class="field"><span class="fl">배경</span><div class="seg bgseg" id="segBg"></div></div>
       <div class="field"><span class="fl">조작</span><div class="row"><button class="btn btn-sub" id="btnKeysLobby" type="button">키 설정 열기</button></div></div>
     </div>
   </div>
@@ -1015,12 +1028,15 @@ function seeNewCard(el){if(!el||!el.classList.contains('newcard'))return;newCard
 function markNewCards(){document.querySelectorAll('#hand .card').forEach(c=>c.classList.toggle('newcard',newCards.has(+c.dataset.id)))}
 
 /* ================= 소리 (Web Audio로 직접 합성, 파일 없음) ================= */
-const SND={ctx:null,master:null,noise:null,on:store('gura-sound')!=='off',vol:(()=>{const v=+store('gura-vol');return store('gura-vol')!=null&&v>=0&&v<=100?v:70})()};
+const volOf=(k,d)=>{const v=+store(k);return store(k)!=null&&v>=0&&v<=100?v:d};
+const SND={ctx:null,master:null,fx:null,bgm:null,noise:null,on:store('gura-sound')!=='off',vol:volOf('gura-vol',70),bgmVol:volOf('gura-bgm-vol',50)};
 function audioOn(){
   if(!SND.ctx){
     const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
     try{SND.ctx=new AC()}catch(e){return null}
-    SND.master=SND.ctx.createGain();SND.master.gain.value=.55*SND.vol/100;SND.master.connect(SND.ctx.destination);
+    SND.master=SND.ctx.createGain();SND.master.gain.value=.55;SND.master.connect(SND.ctx.destination);
+    SND.fx=SND.ctx.createGain();SND.fx.gain.value=SND.vol/100;SND.fx.connect(SND.master);
+    SND.bgm=SND.ctx.createGain();SND.bgm.gain.value=SND.bgmVol/100;SND.bgm.connect(SND.master);
     const len=SND.ctx.sampleRate*.6,buf=SND.ctx.createBuffer(1,len,SND.ctx.sampleRate),d=buf.getChannelData(0);
     for(let i=0;i<len;i++)d[i]=Math.random()*2-1;SND.noise=buf;
   }
@@ -1033,7 +1049,7 @@ function tone(f,dur,o={}){
   const t=c.currentTime+(o.at||0),os=c.createOscillator(),g=c.createGain();
   os.type=o.type||'sine';os.frequency.setValueAtTime(f,t);if(o.slide)os.frequency.exponentialRampToValueAtTime(o.slide,t+dur);
   g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(o.vol||.2,t+(o.attack||.006));g.gain.exponentialRampToValueAtTime(.0001,t+dur);
-  os.connect(g);g.connect(SND.master);os.start(t);os.stop(t+dur+.03);
+  os.connect(g);g.connect(o.bus==='bgm'?SND.bgm:SND.fx);os.start(t);os.stop(t+dur+.03);
 }
 function hiss(dur,o={}){
   const c=SND.ctx;if(!c||!SND.on||c.state!=='running'||!SND.noise)return;
@@ -1041,7 +1057,7 @@ function hiss(dur,o={}){
   s.buffer=SND.noise;fl.type=o.ftype||'bandpass';fl.Q.value=o.q||1;fl.frequency.setValueAtTime(o.freq||1800,t);
   if(o.sweep)fl.frequency.exponentialRampToValueAtTime(o.sweep,t+dur);
   g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(o.vol||.25,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
-  s.connect(fl);fl.connect(g);g.connect(SND.master);s.start(t);s.stop(t+dur+.03);
+  s.connect(fl);fl.connect(g);g.connect(o.bus==='bgm'?SND.bgm:SND.fx);s.start(t);s.stop(t+dur+.03);
 }
 const SFX={
   tick(){tone(1250,.03,{type:'square',vol:.035})},
@@ -1113,6 +1129,7 @@ function showBubble(i,html,life){
   b.style.left=bx+'px';b.style.top=by+'px';b.style.setProperty('--life',(life||2200)+'ms');
   b.innerHTML=`<svg viewBox="0 0 ${BUB.w} ${BUB.h}" aria-hidden="true"><path d="${burstPath(ang)}"/></svg>${html}`;
   b.addEventListener('animationend',e=>{if(e.animationName==='bubout')b.remove()});
+  setTimeout(()=>b.remove(),(life||2200)+500);   // 윈도우 '애니메이션 효과 끄기' 등으로 애니메이션이 안 돌 때 대비
   box.appendChild(b);
 }
 function playFx(v){
@@ -1168,7 +1185,7 @@ const BGM = {
   playChord(notes, dur, delay = 0, vol = 0.022) {
     notes.forEach((f, idx) => {
       // 손가락으로 살짝 굴려 치는 느낌(아르페지오 스트럼)을 위해 0.012초씩 미세 딜레이
-      tone(f, dur, { type: 'sine', vol, attack: 0.02, at: delay + idx * 0.012 });
+      tone(f, dur, { bus: 'bgm', type: 'sine', vol, attack: 0.02, at: delay + idx * 0.012 });
     });
   },
 
@@ -1182,7 +1199,7 @@ const BGM = {
       const c = SND.ctx;
 
       // 오디오가 켜져 있고, '구라!' 판정(reveal) 연출 중이 아닐 때만 연주
-      if (c && SND.on && c.state === 'running' && !(V && V.st === 'reveal')) {
+      if (c && SND.on && SND.bgmVol > 0 && c.state === 'running' && !(V && V.st === 'reveal')) {
         const idx = this.step % 16;
         const bar = Math.floor(idx / 4); // 현재 마디 (0~3)
         const beat = idx % 4;            // 마디 내 박자 (0, 1, 2, 3)
@@ -1190,16 +1207,16 @@ const BGM = {
         // [1] 워킹 베이스: 매 박자마다 묵직하고 따뜻하게 둥-둥- 연주
         const bf = this.bass[idx];
         if (bf) {
-          tone(bf, 0.36, { type: 'triangle', vol: 0.065, attack: 0.015, slide: bf * 0.99 });
+          tone(bf, 0.36, { bus: 'bgm', type: 'triangle', vol: 0.065, attack: 0.015, slide: bf * 0.99 });
         }
 
         // [2] 재즈 브러시 드럼 (스윙 라이드 심벌 & 하이햇)
         // 정박 브러시 터치
-        hiss(0.05, { freq: 6200, q: 2.2, vol: 0.018 });
+        hiss(0.05, { bus: 'bgm', freq: 6200, q: 2.2, vol: 0.018 });
         // 2박, 4박(beat 1, 3)에 하이햇 액센트 + 스윙 엇박(0.28초 뒤)에 '치-키' 리듬 추가
         if (beat === 1 || beat === 3) {
-          hiss(0.08, { freq: 4800, q: 1.6, vol: 0.032 });
-          hiss(0.04, { freq: 6800, q: 2.8, vol: 0.022, at: 0.28 });
+          hiss(0.08, { bus: 'bgm', freq: 4800, q: 1.6, vol: 0.032 });
+          hiss(0.04, { bus: 'bgm', freq: 6800, q: 2.8, vol: 0.022, at: 0.28 });
         }
 
         // [3] 재즈 피아노 컴핑 (Comping - 리드미컬한 화음 반주)
@@ -1216,7 +1233,7 @@ const BGM = {
         if (Math.random() < 0.42) {
           const note = pick(this.licks);
           const swingDelay = Math.random() < 0.6 ? 0.27 : 0; // 스윙 엇박 반영
-          tone(note, 0.24, { type: 'sine', vol: 0.028, attack: 0.01, at: swingDelay });
+          tone(note, 0.24, { bus: 'bgm', type: 'sine', vol: 0.028, attack: 0.01, at: swingDelay });
         }
 
         this.step++;
@@ -1732,7 +1749,12 @@ $('#btnNickEdit').addEventListener('click',openNickEdit);
 $('#btnNickSave').addEventListener('click',()=>closeNickEdit(true));
 $('#inNick').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();closeNickEdit(true)}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeNickEdit(false)}});
 /* 음량 */
-function applyVol(){if(SND.master)SND.master.gain.value=.55*SND.vol/100;$('#volV').textContent=SND.vol+'%';$('#inVol').value=SND.vol;$('#mVol').value=SND.vol;$('#mVolV').textContent=SND.vol+'%'}
+function applyVol(){
+  if(SND.fx)SND.fx.gain.value=SND.vol/100;if(SND.bgm)SND.bgm.gain.value=SND.bgmVol/100;
+  $('#volV').textContent=SND.vol+'%';$('#inVol').value=SND.vol;$('#mVol').value=SND.vol;$('#mVolV').textContent=SND.vol+'%';
+  $('#bgmV').textContent=SND.bgmVol+'%';$('#inBgm').value=SND.bgmVol;$('#mBgm').value=SND.bgmVol;$('#mBgmV').textContent=SND.bgmVol+'%';
+}
+for(const id of ['#mBgm','#inBgm'])$(id).addEventListener('input',e=>{SND.bgmVol=+e.target.value;store('gura-bgm-vol',String(SND.bgmVol));applyVol();audioOn();if(SND.bgmVol>0&&typeof BGM!=='undefined')BGM.start()});
 $('#mVol').addEventListener('input',e=>{SND.vol=+e.target.value;store('gura-vol',String(SND.vol));applyVol()});
 $('#mVol').addEventListener('change',()=>{audioOn();sfx('pick')});
 $('#inVol').addEventListener('input',e=>{SND.vol=+e.target.value;store('gura-vol',String(SND.vol));applyVol()});
@@ -1804,7 +1826,8 @@ function faceMat(id){
 }
 /* ===== 툰 셰이딩 그래픽 =====
    3칸 명암 램프 + 푸른 그림자 + 외곽선 + 림 라이트 + 구름 그림자/바람. GFX_ENV: 'meadow'(들판) | 'cafe'(카페) */
-const GFX_ENV='meadow';
+let GFX_ENV=store('gura-bg')==='cafe'?'cafe':'meadow';
+const ENV_LABEL={meadow:'들판',cafe:'카페'};
 const GFX_U={time:{value:0}};
 function gfxRng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const GFX_INK=0x4a3020;
@@ -1837,6 +1860,25 @@ function hull(geo,mesh,parent){
   const o=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide}));
   o.position.copy(mesh.position);o.rotation.copy(mesh.rotation);o.scale.copy(mesh.scale);parent.add(o);return o;
 }
+/* 배경 바꾸기: 이전 배경 물체를 지우고 새로 만들고, 하늘·안개·조명 색도 맞춤 */
+function setEnv(name){
+  GFX_ENV=name==='cafe'?'cafe':'meadow';store('gura-bg',GFX_ENV);
+  document.querySelectorAll('.bgseg button').forEach(b=>{const on=b.dataset.v===GFX_ENV;b.setAttribute('aria-pressed',on);b.setAttribute('aria-checked',on)});
+  if(!T.scene)return;
+  const meadow=GFX_ENV==='meadow';
+  if(T.env){T.scene.remove(T.env);T.env.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)[].concat(o.material).forEach(m=>{if(m.map&&m.map!==GFX_CLOUD)m.map.dispose();m.dispose()})})}
+  T.env=new THREE.Group();buildEnv(T.env,meadow);T.scene.add(T.env);
+  const sky=meadow?0xcfe6ee:0xead9bf;
+  T.scene.background.setHex(sky);T.scene.fog.color.setHex(sky);
+  if(T.hemi){T.hemi.color.setHex(meadow?0xd8ecff:0xfff1e0);T.hemi.groundColor.setHex(meadow?0x8d8a5c:0xb48a5c);T.hemi.intensity=meadow?.6:.66}
+  if(T.dl){T.dl.color.setHex(meadow?0xfff1d8:0xffe9c8);T.dl.intensity=meadow?.62:.55}
+}
+function buildBgSeg(box){
+  box.setAttribute('role','radiogroup');box.setAttribute('aria-label','배경');
+  box.innerHTML=Object.keys(ENV_LABEL).map(k=>`<button type="button" role="radio" data-v="${k}" aria-pressed="${k===GFX_ENV}" aria-checked="${k===GFX_ENV}">${ENV_LABEL[k]}</button>`).join('');
+  box.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&b.dataset.v!==GFX_ENV){setEnv(b.dataset.v);sfx('tick')}});
+}
+buildBgSeg($('#segBg'));buildBgSeg($('#mBg'));
 function buildEnv(sc,meadow){
   const GY=-1.55;
   if(meadow){
@@ -1873,21 +1915,39 @@ function buildEnv(sc,meadow){
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(120,120),toon({map:floorTex,rim:0}));floor.rotation.x=-Math.PI/2;floor.position.y=GY;floor.receiveShadow=true;sc.add(floor);
     const rug=new THREE.Mesh(new THREE.CircleGeometry(7.4,72),toon({color:0xb0705a,rim:0}));rug.rotation.x=-Math.PI/2;rug.position.y=GY+.01;rug.receiveShadow=true;sc.add(rug);
     const rug2=new THREE.Mesh(new THREE.RingGeometry(6.7,6.95,72),new THREE.MeshBasicMaterial({color:0xd9a441}));rug2.rotation.x=-Math.PI/2;rug2.position.y=GY+.02;sc.add(rug2);
+    const r=gfxRng(9);
+    // 뒤쪽 벽 + 창문
+    const wall=new THREE.Mesh(new THREE.PlaneGeometry(60,14),toon({color:0xe9d3b0,rim:0}));wall.position.set(0,GY+7,-15);wall.receiveShadow=true;sc.add(wall);
+    const wain=new THREE.Mesh(new THREE.PlaneGeometry(60,2.2),toon({color:0x8a5530,rim:0}));wain.position.set(0,GY+1.1,-14.98);sc.add(wain);
+    const glassM=new THREE.MeshBasicMaterial({color:0xcfe6ee}),frameM=new THREE.MeshBasicMaterial({color:0x6b4126});
+    [-9,-3,3,9].forEach(x=>{
+      const f=new THREE.Mesh(new THREE.PlaneGeometry(4,5),frameM);f.position.set(x,GY+6,-14.96);sc.add(f);
+      const gl=new THREE.Mesh(new THREE.PlaneGeometry(3.5,4.5),glassM);gl.position.set(x,GY+6,-14.94);sc.add(gl);
+      const bar=new THREE.Mesh(new THREE.PlaneGeometry(.18,4.5),frameM);bar.position.set(x,GY+6,-14.92);sc.add(bar);
+      const bar2=new THREE.Mesh(new THREE.PlaneGeometry(3.5,.18),frameM);bar2.position.set(x,GY+6,-14.92);sc.add(bar2);
+    });
+    // 화분
+    const potM=toon({color:0xc06a48,rim:.2}),leafA=toon({color:0x5c9a48,rim:.22}),leafB=toon({color:0x76ad52,rim:.22});
+    [[-8,-6],[8.5,-5],[-9.5,3],[9.5,4],[-4,-11],[5,-11.5]].forEach(([x,z])=>{
+      const g=new THREE.Group();g.position.set(x,GY,z);g.scale.setScalar(.9+r()*.5);
+      const pot=new THREE.Mesh(new THREE.CylinderGeometry(.55,.4,.9,18),potM);pot.position.y=.45;pot.castShadow=true;g.add(pot);hull(new THREE.CylinderGeometry(.6,.45,.95,18),pot,g);
+      [[0,1.5,0,.75],[.45,1.15,.2,.5],[-.4,1.2,-.1,.55]].forEach(([cx,cy,cz,cr],j)=>{const c=new THREE.Mesh(new THREE.SphereGeometry(cr,16,12),j%2?leafB:leafA);c.position.set(cx,cy,cz);c.castShadow=true;g.add(c);hull(new THREE.SphereGeometry(cr*1.06,16,12),c,g)});
+      sc.add(g);
+    });
   }
 }
 function init3D(){
   if(!window.THREE){$('#nogl').hidden=false;document.body.classList.add('no3d');return}
   try{
-    const cv=$('#cv'),meadow=GFX_ENV==='meadow';
+    const cv=$('#cv');
     T.r=new THREE.WebGLRenderer({canvas:cv,antialias:true});
     T.r.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
     T.r.shadowMap.enabled=true;T.r.shadowMap.type=THREE.PCFSoftShadowMap;
     GFX_RAMP=gfxRamp();GFX_CLOUD=gfxCloud();
-    const sky=meadow?0xcfe6ee:0xead9bf;
-    T.scene=new THREE.Scene();T.scene.background=new THREE.Color(sky);T.scene.fog=new THREE.Fog(sky,15,34);
+    T.scene=new THREE.Scene();T.scene.background=new THREE.Color(0xcfe6ee);T.scene.fog=new THREE.Fog(0xcfe6ee,15,34);
     T.cam=new THREE.PerspectiveCamera(42,1,.1,100);
-    T.scene.add(new THREE.HemisphereLight(meadow?0xd8ecff:0xfff1e0,meadow?0x8d8a5c:0xb48a5c,meadow?.6:.66));
-    const dl=new THREE.DirectionalLight(meadow?0xfff1d8:0xffe9c8,meadow?.62:.55);dl.position.set(-5,10,4);
+    T.hemi=new THREE.HemisphereLight(0xd8ecff,0x8d8a5c,.6);T.scene.add(T.hemi);
+    const dl=new THREE.DirectionalLight(0xfff1d8,.62);dl.position.set(-5,10,4);T.dl=dl;
     dl.castShadow=true;dl.shadow.mapSize.set(2048,2048);
     Object.assign(dl.shadow.camera,{left:-9,right:9,top:9,bottom:-9,near:1,far:30});dl.shadow.bias=-.0006;dl.shadow.normalBias=.02;
     T.scene.add(dl);
@@ -1919,7 +1979,7 @@ function init3D(){
     const fs=toon({color:0x2f6b4a});
     const mat=new THREE.Mesh(new THREE.CylinderGeometry(3.15,3.15,.02,72),[fs,toon({map:felt,rim:0}),fs]);mat.position.y=.006;mat.receiveShadow=true;T.scene.add(mat);
     const ink=new THREE.Mesh(new THREE.RingGeometry(3.14,3.19,96),new THREE.MeshBasicMaterial({color:GFX_INK}));ink.rotation.x=-Math.PI/2;ink.position.y=.0175;T.scene.add(ink);
-    buildEnv(T.scene,meadow);
+    setEnv(GFX_ENV);
     T.geo=new THREE.PlaneGeometry(.62,.9);
     T.back=new THREE.MeshBasicMaterial({map:backTex(),alphaTest:.4});
     // 카드 외곽선 판: 카드보다 살짝 크고 뒤로 밀려 그려져서 테두리만 보임
