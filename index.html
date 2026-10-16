@@ -204,6 +204,15 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 
 .info{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
 @media (max-width:720px){.info{grid-template-columns:minmax(0,1fr)}}
+.logpanel{position:absolute;top:58px;right:10px;z-index:30;width:min(320px,calc(100% - 20px));background:var(--panel);border:1.5px solid var(--line-strong);border-radius:var(--r-md);padding:10px 12px 12px;box-shadow:var(--sh-panel)}
+.logpanel h3{font-family:var(--f-display);font-size:18px;font-weight:400;color:var(--wood-dark);margin:0 0 8px}
+.logpanel .log{max-height:min(48vh,340px)}
+.logpanel .log:not(:empty)+.log-empty{display:none}
+.log-empty{margin:0;font-size:13px;color:var(--muted)}
+.fsbtn .dot{position:absolute;top:5px;right:5px;width:10px;height:10px;border-radius:50%;background:var(--gura);border:2px solid var(--paper)}
+.fsbtn[aria-expanded="true"]{background:var(--mustard);border-color:var(--mustard-edge)}
+.rulesbox{max-width:520px}
+.rulesbox .rules{font-size:15px;color:var(--ink);gap:8px;padding-left:22px}
 .box{background:var(--panel);border:1.5px solid var(--line-strong);border-radius:var(--r-md);padding:12px 14px;min-width:0;box-shadow:var(--sh-panel)}
 .box h3{font-family:var(--f-display);font-size:18px;font-weight:400;color:var(--wood-dark);margin:0 0 8px}
 .log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:13px;max-height:220px;overflow-y:auto}
@@ -496,13 +505,18 @@ body.kb .fan .card.cur{z-index:70!important}
       <div class="menu-bg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.5"/></svg><span class="mv-t">배경</span><div class="seg bgseg" id="mBg"></div></div>
       <div class="menu-bg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.3 1.8 3.5 1.8 3.5-1.8 3.5-1.8"/><line x1="9" y1="9.5" x2="9.01" y2="9.5"/><line x1="15" y1="9.5" x2="15.01" y2="9.5"/></svg><span class="mv-t">이모티콘</span><div class="seg emoseg" id="mEmo"></div></div>
       <div class="menu-row">
+        <button type="button" class="mbtn" id="mRules" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg><span>게임 방법</span></button>
+        <button type="button" class="mbtn" id="mFs" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg><span>전체화면</span></button>
+      </div>
+      <div class="menu-row">
         <button type="button" class="mbtn" id="mKeys" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg><span>키 설정</span></button>
         <button type="button" class="mbtn giveup" id="btnGiveUp" role="menuitem" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg><span>항복</span></button>
         <button type="button" class="mbtn" id="mLeave" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/></svg><span>방 나가기</span></button>
       </div>
     </div>
     <button class="fsbtn snd" id="btnSound" type="button" aria-label="소리 끄기" title="소리 끄기"></button>
-    <button class="fsbtn" id="btnFs" type="button" aria-label="전체화면" title="전체화면"></button>
+    <button class="fsbtn" id="btnLog" type="button" aria-label="진행 기록" title="진행 기록" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg><i class="dot" hidden></i></button>
+    <div class="logpanel" id="logPanel" hidden role="dialog" aria-label="진행 기록"><h3>진행 기록</h3><ol class="log" id="log"></ol><p class="log-empty">아직 기록이 없습니다.</p></div>
     <div class="verdict" id="verdict" hidden></div>
     <div class="actions" id="actions" hidden>
       <button class="act act-pass" id="btnPass" type="button" disabled>패스<small>P</small></button>
@@ -520,21 +534,6 @@ body.kb .fan .card.cur{z-index:70!important}
     <div class="panel" id="panel" hidden><div class="card-sheet" id="panelBody"></div></div>
   </section>
 
-
-  <section class="info">
-    <div class="box"><h3>진행 기록</h3><ol class="log" id="log"></ol></div>
-    <div class="box"><h3>플레이 방법</h3>
-      <ol class="rules">
-        <li><b>목표</b> : 손에 든 카드를 먼저 털어낸 사람이 <b>승리</b>합니다</li>
-        <li><b>시작</b> : 첫 번째 플레이어가 자음 하나를 정하고 1장 이상 <b>뒷면으로</b> 냅니다</li>
-        <li><b>진행</b> : 돌아가며 해당 자음 카드를 뒷면으로 내거나 <b>패스</b>합니다
-        <li><b>구라!</b> : 정해진 자음이 아닌 다른 카드를 낸 것 같다면 누구든 <b>구라!</b>를 외칠 수 있습니다</li>
-        <li><b>판정</b> : <b>거짓</b>이면 카드를 낸 사람이, <b>진짜</b>면 구라!를 외친 사람이 쌓인 카드를 전부 가져갑니다</li>
-        <li><b>패스</b> : 만약 모든 플레이어가 패스를 하면 쌓인 카드는 버려집니다.</li>
-        <li><b>별카드</b> : 모든 자음으로 인정됩니다</li>
-      </ol>
-    </div>
-  </section>
 </div>
 
 <div class="ov" id="lobby">
@@ -551,6 +550,7 @@ body.kb .fan .card.cur{z-index:70!important}
         <button type="button" class="mm mm-create" data-go="create"><b>방 만들기</b></button>
         <button type="button" class="mm mm-join" data-go="join"><b>참여하기</b></button>
         <button type="button" class="mm mm-set" data-go="settings"><b>설정</b></button>
+        <button type="button" class="mm mm-rules" id="btnRulesLobby"><b>게임 방법</b></button>
       </nav>
       <p class="note" id="resumeNote"></p>
       <p class="note">키보드: Tab 이동 · ←→ 값 선택 · Enter 실행 · Esc 뒤로</p>
@@ -597,6 +597,22 @@ body.kb .fan .card.cur{z-index:70!important}
       <div class="field"><span class="fl">이모티콘</span><div class="seg emoseg" id="segEmo"></div></div>
       <div class="field"><span class="fl">조작</span><div class="row"><button class="btn btn-sub" id="btnKeysLobby" type="button">키 설정 열기</button></div></div>
     </div>
+  </div>
+</div>
+
+<div class="ov keys-ov" id="rulesOv" hidden>
+  <div class="lobby keys rulesbox" role="dialog" aria-labelledby="rulesTitle">
+    <h1 id="rulesTitle" style="font-size:32px">게임 방법</h1>
+    <ol class="rules">
+          <li><b>목표</b> : 손에 든 카드를 먼저 털어낸 사람이 <b>승리</b>합니다</li>
+          <li><b>시작</b> : 첫 번째 플레이어가 자음 하나를 정하고 1장 이상 <b>뒷면으로</b> 냅니다</li>
+          <li><b>진행</b> : 돌아가며 해당 자음 카드를 뒷면으로 내거나 <b>패스</b>합니다
+          <li><b>구라!</b> : 정해진 자음이 아닌 다른 카드를 낸 것 같다면 누구든 <b>구라!</b>를 외칠 수 있습니다</li>
+          <li><b>판정</b> : <b>거짓</b>이면 카드를 낸 사람이, <b>진짜</b>면 구라!를 외친 사람이 쌓인 카드를 전부 가져갑니다</li>
+          <li><b>패스</b> : 만약 모든 플레이어가 패스를 하면 쌓인 카드는 버려집니다.</li>
+          <li><b>별카드</b> : 모든 자음으로 인정됩니다</li>
+        </ol>
+    <div class="row"><button class="btn btn-play" id="btnRulesClose" type="button">닫기</button></div>
   </div>
 </div>
 
@@ -1964,7 +1980,8 @@ function renderButtons(){
   pass.disabled=!(ready&&V.rn!=null);
   $('#me').classList.toggle('on',!!(V&&V.st==='play'&&V.t===i&&i>=0));
 }
-function renderLog(){$('#log').innerHTML=(V&&Array.isArray(V.lg)?V.lg:[]).map(l=>`<li class="${l[1]?'lg-'+esc(l[1]):''}">${esc(l[0])}</li>`).join('')}
+function renderLog(){syncLogDotSoon();$('#log').innerHTML=(V&&Array.isArray(V.lg)?V.lg:[]).map(l=>`<li class="${l[1]?'lg-'+esc(l[1]):''}">${esc(l[0])}</li>`).join('')}
+const syncLogDotSoon=()=>{if(typeof syncLogDot==='function')try{syncLogDot()}catch(e){}};
 /* 상태가 갱신돼도 같은 내용이면 다시 그리지 않아서 키보드 포커스가 유지돼요.
    패널이 처음 뜰 때는 data-auto 버튼(게임 시작, 다시 하기 등)에 포커스를 줘요. */
 let lastPanelHtml='',lastPanelKind='';
@@ -2290,45 +2307,52 @@ function stepNum(d,wrap){
 }
 function showCursor(){}
 
-/* 전체화면 */
-let fsByApi=false;
-const ICON_MAX='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
-const ICON_MIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
-function setFsLabel(){
-  const on=document.body.classList.contains('fs'),b=$('#btnFs');
-  b.innerHTML=on?ICON_MIN:ICON_MAX;
-  const t=on?'전체화면 끄기':'전체화면';b.setAttribute('aria-label',t);b.title=t;
-}
-/* 홈 화면 앱으로 실행하면 처음부터 테이블이 화면을 채우게 */
-try{if(matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches||navigator.standalone)document.body.classList.add('fs','app')}catch(e){}
+/* 화면 배치: 항상 게임 테이블이 창 전체를 채움. 설정 메뉴의 '전체화면'은 브라우저 주소창까지 숨김 */
+document.body.classList.add('fs');
+let isApp=false;
+try{if(matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches||navigator.standalone){isApp=true;document.body.classList.add('app')}}catch(e){}
 if('serviceWorker' in navigator&&location.protocol==='https:')window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
+const fsReq=document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen;
+function setFsLabel(){const b=$('#mFs');if(!b)return;b.hidden=isApp||!fsReq;b.querySelector('span').textContent=fsEl()?'전체화면 끄기':'전체화면'}
 setFsLabel();
-$('#btnFs').addEventListener('click',()=>{
-  const on=!document.body.classList.contains('fs');
-  const el=document.documentElement;
-  if(on){
-    document.body.classList.add('fs');
-    const req=el.requestFullscreen||el.webkitRequestFullscreen;
-    if(req){try{const r=req.call(el);fsByApi=true;if(r&&r.catch)r.catch(()=>{fsByApi=false})}catch(e){fsByApi=false}}
-  }else{
-    document.body.classList.remove('fs');
-    const fe=document.fullscreenElement||document.webkitFullscreenElement;
-    const ex=document.exitFullscreen||document.webkitExitFullscreen;
-    if(fe&&ex)try{ex.call(document)}catch(e){}
-    fsByApi=false;
-  }
-  setFsLabel();
+$('#mFs').addEventListener('click',()=>{
+  closeMenu();
+  if(fsEl()){const ex=document.exitFullscreen||document.webkitExitFullscreen;if(ex)try{const r=ex.call(document);if(r&&r.catch)r.catch(()=>{})}catch(e){}}
+  else if(fsReq){try{const r=fsReq.call(document.documentElement);if(r&&r.catch)r.catch(()=>{})}catch(e){}}
 });
-['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{
-  if(fsByApi&&!(document.fullscreenElement||document.webkitFullscreenElement)){document.body.classList.remove('fs');fsByApi=false;setFsLabel()}
-}));
-/* 테이블 설정 메뉴 (전체화면 버튼 왼쪽) */
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,setFsLabel));
+/* 진행 기록: 오른쪽 위 버튼으로 열고 닫음. 닫혀 있는 동안 새 기록이 생기면 버튼에 빨간 점 */
+let logSeen=0;
+const logTop=()=>V&&Array.isArray(V.lg)&&V.lg[0]?+V.lg[0][2]||0:0;
+function openLog(){closeMenu();$('#logPanel').hidden=false;$('#btnLog').setAttribute('aria-expanded','true');logSeen=logTop();syncLogDot()}
+function closeLog(){$('#logPanel').hidden=true;$('#btnLog').setAttribute('aria-expanded','false')}
+function syncLogDot(){
+  const open=!$('#logPanel').hidden,top=logTop();
+  if(open||mode==='lobby')logSeen=top;
+  if(top<logSeen)logSeen=top;   // 새 방에 들어가 기록 번호가 처음부터 시작
+  const d=$('#btnLog .dot'),on=top>logSeen;if(d.hidden===on)d.hidden=!on;
+}
+$('#btnLog').addEventListener('click',e=>{e.stopPropagation();$('#logPanel').hidden?openLog():closeLog()});
+document.addEventListener('click',e=>{if(!$('#logPanel').hidden&&!e.target.closest('#logPanel')&&!e.target.closest('#btnLog'))closeLog()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#logPanel').hidden){closeLog();$('#btnLog').focus()}});
+/* 게임 방법 창 (메인 화면, 설정 메뉴) */
+let rulesReturn=null;
+function openRules(){rulesReturn=document.activeElement;closeMenu();$('#rulesOv').hidden=false;$('#btnRulesClose').focus()}
+function closeRules(){$('#rulesOv').hidden=true;if(rulesReturn&&rulesReturn.focus)rulesReturn.focus()}
+$('#btnRulesLobby').addEventListener('click',openRules);
+$('#mRules').addEventListener('click',openRules);
+$('#btnRulesClose').addEventListener('click',closeRules);
+$('#rulesOv').addEventListener('click',e=>{if(e.target===e.currentTarget)closeRules()});
+document.addEventListener('keydown',e=>{if(!$('#rulesOv').hidden){if(e.key==='Escape'){e.preventDefault();closeRules()}e.stopImmediatePropagation()}},true);   // 창이 열려 있는 동안 게임 단축키 막기
+/* 테이블 설정 메뉴 (진행 기록 버튼 왼쪽) */
 let leaveArmed=false,leaveTimer=null;
 function disarmLeave(){leaveArmed=false;clearTimeout(leaveTimer);const b=$('#mLeave');b.classList.remove('arm');b.querySelector('span').textContent='방 나가기'}
 function closeMenu(){$('#menu').hidden=true;$('#btnMenu').setAttribute('aria-expanded','false');disarmLeave()}
 $('#btnMenu').addEventListener('click',e=>{
   e.stopPropagation();const m=$('#menu');
   if(!m.hidden){closeMenu();return}
+  closeLog();setFsLabel();
   $('#menuInfo').innerHTML=roomInfoHTML();$('#mLeave').hidden=mode==='lobby';
   m.hidden=false;$('#btnMenu').setAttribute('aria-expanded','true');$('#mKeys').focus();
 });
@@ -2820,7 +2844,7 @@ function placeLabels(){
 }
 function stageRects(){
   const st=$('#stage').getBoundingClientRect(),out=[];
-  for(const id of ['btnFs','btnSound','btnMenu','actions','numpick','me']){
+  for(const id of ['btnLog','btnSound','btnMenu','actions','numpick','me']){
     const el=document.getElementById(id);if(!el||el.hidden||!el.offsetWidth)continue;
     const r=el.getBoundingClientRect();out.push({l:r.left-st.left-4,r:r.right-st.left+4,t:r.top-st.top-4,b:r.bottom-st.top+4});
   }
