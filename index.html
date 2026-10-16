@@ -1466,7 +1466,7 @@ function softPath(ang,tail){
   }
   return 'M'+pts.join('L')+'Z';
 }
-function burstPath(ang){
+function burstPath(ang,tailLen){
   const {cx,cy,rx,ry}=BUB,N=20,pts=[];
   // 꼬리 방향과 가장 가까운 바깥 꼭지를 길게 뺌
   let best=0,bd=9;
@@ -1474,7 +1474,7 @@ function burstPath(ang){
   for(let k=0;k<N;k++){
     const a=-Math.PI/2+k/N*Math.PI*2,out=k%2===0;
     let x=cx+Math.cos(a)*(out?rx:rx-10),y=cy+Math.sin(a)*(out?ry:ry-9);
-    if(k===best){x=cx+Math.cos(ang)*BUB.tail;y=cy+Math.sin(ang)*BUB.tail}
+    if(k===best){const L=tailLen||BUB.tail;x=cx+Math.cos(ang)*L;y=cy+Math.sin(ang)*L}
     pts.push(x.toFixed(1)+','+y.toFixed(1));
   }
   return 'M'+pts.join('L')+'Z';
@@ -2456,12 +2456,14 @@ function killCard(c){T.scene.remove(c);T.cards.delete(c)}
 function fieldSpot(k){const a=k*2.399,r=.25+Math.min(.85,k*.06);return new THREE.Vector3(Math.cos(a)*r,.02+k*.012,Math.sin(a)*r)}
 function nearMe(){return new THREE.Vector3(0,1.6,6.6)}
 /* ===== 3D 말풍선 (구라! / 구라?) — 테이블 안에 떠 있어서 앞쪽 카드가 자연스럽게 가림 ===== */
-T.bubbles=[];T.bubTex={};
-function bubbleTex(kind){
-  if(T.bubTex[kind])return T.bubTex[kind];
+T.bubbles=[];
+function bubbleTex(kind,ang){
   const W=440,Hc=360,draw=(g)=>{
     g.clearRect(0,0,W,Hc);g.save();g.scale(2,2);
-    const path=new Path2D(burstPath(Math.PI/2));   // 꼬리는 아래(말한 사람 쪽)로
+    // 꼬리는 화면에서 말한 사람 쪽으로, 어느 방향이든 몸통 밖으로 비슷한 길이만큼 나오게
+    const ex=1/Math.sqrt((Math.cos(ang)/BUB.rx)**2+(Math.sin(ang)/BUB.ry)**2);
+    const lim=Math.min(Math.abs(Math.cos(ang))>1e-3?106/Math.abs(Math.cos(ang)):1e9,Math.abs(Math.sin(ang))>1e-3?86/Math.abs(Math.sin(ang)):1e9);
+    const path=new Path2D(burstPath(ang,Math.min(lim,ex+38)));
     g.lineJoin='round';g.lineWidth=4;
     g.fillStyle=kind==='q'?'#f2b632':'#cc3a2e';g.strokeStyle=kind==='q'?'#c08a17':'#922519';
     g.fill(path);g.stroke(path);g.restore();
@@ -2471,7 +2473,7 @@ function bubbleTex(kind){
     else{g.fillStyle='#922519';g.fillText('구라!',0,4);g.fillStyle='#fffaf0';g.fillText('구라!',0,0)}
     g.restore();
   };
-  const tex=canvasTex(W,Hc,draw);T.bubTex[kind]=tex;
+  const tex=canvasTex(W,Hc,draw);
   if(document.fonts&&document.fonts.load)document.fonts.load('64px Jua').then(()=>{draw(tex.image.getContext('2d'));tex.needsUpdate=true}).catch(()=>{});
   return tex;
 }
@@ -2479,20 +2481,23 @@ function show3DBubble(i,kind,life){
   try{
     if(!T.scene)return false;
     T.bubbles.filter(b=>b.i===i).forEach(killBubble);
-    const me=myIdx();
-    const base=seatPos(i,3.3);base.y=1.9;
-    const mat=new THREE.SpriteMaterial({map:bubbleTex(kind),transparent:true,depthTest:false,depthWrite:false,fog:false});
+    // 말풍선은 테이블 위(가운데와 그 사람 자리 사이)에 띄우고, 꼬리로 그 사람 쪽을 가리킴 → 가로·세로 화면 모두 화면 안에 보임
+    const base=seatPos(i,1.75);base.y=1.15;
+    const seat=seatPos(i,3.85);seat.y=.4;
+    const pb=base.clone().project(T.cam),ps=seat.clone().project(T.cam);
+    const cw=T.r.domElement.clientWidth||1,ch=T.r.domElement.clientHeight||1;
+    const ang=Math.atan2(-(ps.y-pb.y)*ch,(ps.x-pb.x)*cw);
+    const mat=new THREE.SpriteMaterial({map:bubbleTex(kind,ang),transparent:true,depthTest:false,depthWrite:false,fog:false});
     const sp=new THREE.Sprite(mat);sp.position.copy(base);sp.renderOrder=50;   // 테이블·카드 더미·배경보다 항상 앞
-    // 멀리 있는 자리도 너무 작아지지 않게 거리만큼 살짝 키움
     const d=T.cam.position.distanceTo(base),k=Math.pow(d/10,.55);
     T.scene.add(sp);
-    T.bubbles.push({i,kind,sp,mat,t0:clock(),life:life||1600,w:1.85*k});
+    T.bubbles.push({i,kind,sp,mat,t0:clock(),life:life||1600,w:1.7*k});
     return true;
   }catch(e){return false}
 }
 const ON_TOP=new Map();
 function onTopMat(m){let t=ON_TOP.get(m);if(!t){t=m.clone();t.transparent=true;ON_TOP.set(m,t)}return t}
-function killBubble(b){if(b.sp.parent)b.sp.parent.remove(b.sp);b.mat.dispose();T.bubbles=T.bubbles.filter(x=>x!==b)}
+function killBubble(b){if(b.sp.parent)b.sp.parent.remove(b.sp);if(b.mat.map)b.mat.map.dispose();b.mat.dispose();T.bubbles=T.bubbles.filter(x=>x!==b)}
 function updBubbles(t){
   for(const b of [...T.bubbles]){
     const a=t-b.t0;if(a>b.life+300){killBubble(b);continue}
@@ -2501,7 +2506,7 @@ function updBubbles(t){
     let op=1;if(a>b.life){const x=(a-b.life)/300;op=1-x;s*=1-.15*x}
     b.mat.opacity=Math.max(0,op);
     b.sp.scale.set(b.w*s,b.w*s*360/440,1);
-    b.mat.rotation=b.kind==='q'?Math.sin(a/160)*.08:Math.sin(a/90)*.02;   // 구라?는 갸웃갸웃
+    b.mat.rotation=b.kind==='q'?Math.sin(a/160)*.05:Math.sin(a/90)*.015;   // 구라?는 갸웃갸웃
     b.sp.position.y+= (Math.sin(a/300)*.0015);
   }
 }
