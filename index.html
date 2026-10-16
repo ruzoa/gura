@@ -173,14 +173,15 @@ body.no3d .seat.on .ring{display:block}
 .card .cn2{position:absolute;right:6px;bottom:3px;transform:rotate(180deg);font-family:"IBM Plex Mono","Jua",monospace;font-weight:600;font-size:13px;line-height:1.1;color:var(--rc)}
 .card.joker .big,.card.joker .cn2{color:var(--joker)}
 .card .cn{font-size:19px}
-.card{border-top:3px solid var(--rc,var(--paper-edge))}.card .cn{color:var(--rc)}
+.card{border-top:3px solid var(--rc,var(--paper-edge))}
+.card.dbl{border-top:7px double var(--rc)}.card .cn{color:var(--rc)}
 .card.joker{background:var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Crect width='8' height='8' fill='%233b2a1f'/%3E%3C/svg%3E") 0 0/100% 100%;border:1px solid var(--joker);color:var(--joker)}
 .card.joker .cn{color:var(--joker)}
 .card:hover{transform:translateY(-4px)}
 .card.sel{transform:translateY(-14px);outline:3px solid var(--mustard);outline-offset:-1px;z-index:1}
 body.kb .card.cur{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--cur),0 4px 8px -2px rgba(59,42,31,.3);z-index:2}
 body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin-left:-6px;border:6px solid transparent;border-top:8px solid var(--cur);border-bottom:0}
-/* 지금 숫자로 낼 수 있는 카드: 살짝 올라오고, 위쪽 가운데에 빨간 점 (키보드 커서 화살표와 겹치면 위로) */
+/* 지금 자음으로 낼 수 있는 카드: 살짝 올라오고, 위쪽 가운데에 빨간 점 (키보드 커서 화살표와 겹치면 위로) */
 .card.match::after{content:"";position:absolute;left:50%;margin-left:-5.5px;top:-14px;width:11px;height:11px;border-radius:50%;background:var(--gura);box-shadow:0 0 0 2px var(--paper),0 1px 3px rgba(28,18,10,.45);pointer-events:none}
 
 .info{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
@@ -228,6 +229,8 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .eyebtn[aria-pressed="true"]{background:var(--well);color:var(--muted)}
 .vhead .setbtn{margin-left:auto;display:flex;align-items:center;gap:6px;padding:7px 12px;font-size:13px}
 .vhead .setbtn svg{width:17px;height:17px}
+.cardinfo{font-size:12.5px;color:var(--muted);margin:4px 0 0;line-height:1.5}
+.cardinfo.warn{color:var(--gura);font-weight:600}
 .cfgsum{font-size:12.5px;color:var(--muted);margin:2px 0 0}
 .cfgsum b{color:var(--ink)}
 .stp{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed var(--line)}
@@ -336,7 +339,7 @@ body.kb .fan .card.cur{z-index:70!important}
 .myplate .me-time:empty{display:none}
 .myplate .bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:transparent}
 
-/* 선언 숫자 고르기: 세로 휠 (W 위 = 큰 수, S 아래 = 작은 수) */
+/* 선언 자음 고르기: 세로 휠 (W 위 = 이전 자음, S 아래 = 다음 자음) */
 .numwheel{position:absolute;left:12px;top:50%;transform:translateY(-58%);display:flex;flex-direction:column;align-items:center;gap:3px;background:rgba(255,250,240,.96);border:1.5px solid var(--mustard-edge);border-radius:var(--r-md);padding:5px 6px;box-shadow:0 3px 0 rgba(110,69,38,.25);z-index:8;user-select:none;touch-action:none}
 .numwheel .wh-t{font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
 .numwheel .wh-arrow{width:100%;border:none;background:var(--well);border-radius:var(--r-xs);padding:2px 0;font-size:12px;line-height:1;color:var(--ink);display:flex;justify-content:center;gap:4px;align-items:center}
@@ -353,7 +356,7 @@ body.kb .fan .card.cur{z-index:70!important}
 .numwheel .np.on .wl{font-size:30px}
 .numwheel .np:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
 
-/* 필드 위 지금 숫자 */
+/* 필드 위 지금 자음 */
 .pilenum{position:absolute;z-index:6;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:56px;height:76px;padding:0 8px;background:rgba(255,252,245,.72);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:.88;border:3px solid var(--rc,var(--ink));border-top-width:7px;border-radius:12px;box-shadow:0 4px 0 var(--rc,var(--ink)),0 12px 22px -10px rgba(59,42,31,.55);pointer-events:none;z-index:4;transition:border-color .2s}
 .pilenum .pn-l{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--muted);line-height:1}
 .pilenum b{font-family:var(--f-display);font-weight:400;font-size:44px;line-height:1;color:var(--rc,var(--ink))}
@@ -462,12 +465,12 @@ body.kb .fan .card.cur{z-index:70!important}
     <div class="box"><h3>플레이 방법</h3>
       <ol class="rules">
         <li><b>목표</b> : 손에 든 카드를 먼저 털어낸 사람이 <b>승리</b>합니다</li>
-        <li><b>시작</b> : 첫 번째 플레이어가 숫자 하나를 정하고 1장 이상 <b>뒷면으로</b> 냅니다</li>
-        <li><b>진행</b> : 돌아가며 해당 숫자 카드를 뒷면으로 내거나 <b>패스</b>합니다
-        <li><b>구라!</b> : 정해진 숫자가 아닌 다른 카드를 낸 것 같다면 누구든 <b>구라!</b>를 외칠 수 있습니다</li>
+        <li><b>시작</b> : 첫 번째 플레이어가 자음 하나를 정하고 1장 이상 <b>뒷면으로</b> 냅니다</li>
+        <li><b>진행</b> : 돌아가며 해당 자음 카드를 뒷면으로 내거나 <b>패스</b>합니다
+        <li><b>구라!</b> : 정해진 자음이 아닌 다른 카드를 낸 것 같다면 누구든 <b>구라!</b>를 외칠 수 있습니다</li>
         <li><b>판정</b> : <b>거짓</b>이면 카드를 낸 사람이, <b>진짜</b>면 구라!를 외친 사람이 쌓인 카드를 전부 가져갑니다</li>
         <li><b>패스</b> : 만약 모든 플레이어가 패스를 하면 쌓인 카드는 버려집니다.</li>
-        <li><b>별카드</b> : 모든 숫자로 인정됩니다</li>
+        <li><b>별카드</b> : 모든 자음으로 인정됩니다</li>
       </ol>
     </div>
   </section>
@@ -498,7 +501,7 @@ body.kb .fan .card.cur{z-index:70!important}
       <div class="field"><span class="fl">게임 모드</span><div class="seg modes" id="segFast"></div></div>
       <div class="field"><label for="inTitle">방 이름</label><input class="txt" id="inTitle" maxlength="20" autocomplete="off"></div>
       <div class="field"><span class="fl">공개 설정</span><small>공개 방은 누구나 '랜덤 방 참여'로 들어올 수 있습니다</small><div class="seg pubseg" id="segPub"></div></div>
-      <p class="note">인원·별카드·숫자·시간은 방을 만든 뒤 대기실의 <b>방 설정</b>에서 바꿀 수 있습니다.</p>
+      <p class="note">인원·별카드·자음 수·시간은 방을 만든 뒤 대기실의 <b>방 설정</b>에서 바꿀 수 있습니다.</p>
       <div class="row">
         <button class="btn btn-red wide" id="btnCreate" type="button">방 만들기</button>
       </div>
@@ -559,31 +562,41 @@ const pick=a=>a[Math.random()*a.length|0];
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
 
-/* 카드 id: 0~(최대숫자*4-1)은 숫자 카드((숫자-1)*4+0~3), 100·101은 별카드. 같은 숫자는 같은 색 */
+/* 카드 id: 0~(자음 수*4-1)은 자음 카드((순번-1)*4+0~3), 100~103은 별카드.
+   순번 1~14 = 기본 자음 ㄱ~ㅎ, 15~19 = 쌍자음 ㄲ ㄸ ㅃ ㅆ ㅉ (자음 수를 15 이상으로 하면 이 순서로 추가). 같은 자음은 같은 색 */
 const JOKER_BASE=100;
 const isJ=id=>id>=JOKER_BASE;
-let MAXN=13;   // 이번 방의 최대 숫자 (방 설정에서 4~15)
+let MAXN=14;   // 이번 방에서 쓰는 자음 수 (방 설정에서 4~19)
 const numOf=id=>isJ(id)?0:(id>>2)+1;
 const labelOf=id=>isJ(id)?'★':rankLabel(numOf(id));
-/* 숫자마다 고유 색 (같은 숫자 4장은 같은 색). 11·12·13은 J·Q·K로 표시 */
-const RANK_COLORS=['#c53026','#157568','#b42da2','#5c7010','#6258d5','#aa4c0e','#107093','#c52660','#1f7a2e','#9041c8','#886107','#2b65ca','#905e41','#0b8a8a','#d9530b'];
-// 11부터는 한글 자음: 11=ㄱ 12=ㄴ 13=ㄷ 14=ㄹ 15=ㅁ
-const JAMO=['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ'];
-const rankLabel=n=>n>=11&&n<=15?JAMO[n-11]:String(n);
-const numName=n=>n>=1&&n<=15?rankLabel(n):String(n);
+const GLYPH=['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ','ㄲ','ㄸ','ㅃ','ㅆ','ㅉ'];
+const DICT=['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];   // 화면에 늘어놓는 순서 (사전 순)
+const DOUBLE_OF={15:1,16:3,17:6,18:7,19:9};   // 쌍자음 → 짝이 되는 기본 자음 순번
+const isDbl=n=>n>=15;
+const dpos=n=>DICT.indexOf(GLYPH[n-1]);
+/* 자음마다 고유 색. 쌍자음은 짝이 되는 기본 자음과 같은 계열의 진한 색 (+ 카드 위 두 줄) */
+const BASE_COLORS=['#c53026','#157568','#b42da2','#5c7010','#6258d5','#aa4c0e','#107093','#c52660','#1f7a2e','#9041c8','#886107','#2b65ca','#905e41','#0b8a8a'];
+const darkHex=(h,k)=>'#'+[1,3,5].map(i=>Math.round(parseInt(h.slice(i,i+2),16)*k).toString(16).padStart(2,'0')).join('');
+const RANK_COLORS=[...BASE_COLORS,...[15,16,17,18,19].map(n=>darkHex(BASE_COLORS[DOUBLE_OF[n]-1],.62))];
+const rankLabel=n=>GLYPH[n-1]||String(n);
+const numName=n=>n>=1&&n<=19?rankLabel(n):String(n);
+// 손패 정렬: 사전 순, 별카드는 맨 뒤
+const cmpCard=(a,b)=>(isJ(a)-isJ(b))||(isJ(a)?a-b:(dpos(numOf(a))-dpos(numOf(b)))||a-b);
+// 선언 휠 순서 (위→아래 = ㄱ→ㅎ)
+const wheelOrder=()=>Array.from({length:MAXN},(_,k)=>k+1).sort((a,b)=>dpos(a)-dpos(b));
 const fits=(id,num)=>isJ(id)||numOf(id)===num;
 const JOKER_C='#efbc4e';
-const BOT_NAMES=['여우','까치','너구리','고양이','두더지','수달'];
-const OPTS={fast:[0,1],max:[2,3,4,5,6],jokers:[0,1,2,3,4],pub:[0,1]};
+const BOT_NAMES=['여우','까치','너구리','고양이','두더지','수달','부엉이','다람쥐'];
+const OPTS={fast:[0,1],max:[2,3,4,5,6,7,8],jokers:[0,1,2,3,4],pub:[0,1]};
 const OPT_LABEL={fast:['클래식','빠른 모드'],pub:['비공개','공개']};
 const MODE_DESC=['꼴찌가 나올 때까지','1등이 나오면 끝'];
 const OPT_HTML={fast:v=>`<b>${OPT_LABEL.fast[v]}</b><small>${MODE_DESC[v]}</small>`};
-const cfg={fast:0,max:4,jokers:2,grace:3,turn:30,pub:0,maxn:13};
+const cfg={fast:0,max:4,jokers:2,grace:3,turn:30,pub:0,maxn:14};
 /* 방 설정 항목: 대기실의 '방 설정'에서 −/+ 버튼으로 조절 */
 const ROOM_SET=[
-  {k:'max',label:'최대 인원',unit:'명',lo:2,hi:6,step:1,desc:'현재 인원보다 적게 줄일 수 없습니다'},
-  {k:'jokers',label:'별카드',unit:'장',lo:0,hi:4,step:1,desc:'모든 숫자로 인정되는 카드'},
-  {k:'maxn',label:'최대 숫자',unit:'까지',lo:4,hi:15,step:1,desc:'숫자마다 4장씩 있습니다'},
+  {k:'max',label:'최대 인원',unit:'명',lo:2,hi:8,step:1,desc:'현재 인원보다 적게 줄일 수 없습니다'},
+  {k:'jokers',label:'별카드',unit:'장',lo:0,hi:4,step:1,desc:'모든 자음으로 인정되는 카드'},
+  {k:'maxn',label:'자음 수',unit:'자',lo:4,hi:19,step:1,desc:'14자 = ㄱ~ㅎ, 15자부터 ㄲ·ㄸ·ㅃ·ㅆ·ㅉ 순으로 추가. 자음마다 4장'},
   {k:'grace',label:'대기 시간',unit:'초',lo:0,hi:30,step:1,desc:'카드를 내고 다음 사람이 기다리는 시간'},
   {k:'turn',label:'제한 시간',unit:'초',lo:5,hi:120,step:5,desc:'제한 시간 지나면 패스 <br> 첫 플레이어의 경우 1장을 자동으로 냅니다'}];
 try{const sv=JSON.parse(store('gura-roomcfg')||'null');if(sv)for(const d of ROOM_SET)if(Number.isFinite(+sv[d.k]))cfg[d.k]=Math.max(d.lo,Math.min(d.hi,Math.round(+sv[d.k])))}catch(e){}
@@ -612,7 +625,7 @@ function nextActive(i){const n=H.players.length;for(let k=1;k<=n;k++){const j=(i
 function addLog(txt,cls=''){H.logSeq=(H.logSeq||0)+1;H.log.unshift([txt,cls,H.logSeq]);if(H.log.length>10)H.log.length=10}
 
 function hostNew(online,code,title){
-  H={online,code,title,cfg:{...cfg,grace:Math.max(0,Math.min(30,Math.round(cfg.grace)||0)),turn:Math.max(5,Math.min(120,Math.round(cfg.turn)||30)),maxn:Math.max(4,Math.min(15,Math.round(cfg.maxn)||13))},phase:'wait',members:[{name:myNick(),bot:false,conn:null,host:true}],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
+  H={online,code,title,cfg:{...cfg,grace:Math.max(0,Math.min(30,Math.round(cfg.grace)||0)),turn:Math.max(5,Math.min(120,Math.round(cfg.turn)||30)),maxn:Math.max(4,Math.min(19,Math.round(cfg.maxn)||14))},phase:'wait',members:[{name:myNick(),bot:false,conn:null,host:true}],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
 }
 function hostAddBot(force){
   if(!force&&(H.phase!=='wait'||H.members.length>=H.cfg.max))return;
@@ -634,7 +647,7 @@ function hostStart(){
   const deck=shuffle([...Array(N*4).keys(),...Array(H.cfg.jokers).fill(0).map((_,k)=>JOKER_BASE+k)]),per=Math.floor(deck.length/n);
   H.players.forEach(p=>p.hand=deck.splice(0,per));
   const order=shuffle([...Array(n).keys()]);let k=0;while(deck.length)H.players[order[k++]].hand.push(deck.pop());
-  H.players.forEach(p=>p.hand.sort((a,b)=>a-b));
+  H.players.forEach(p=>p.hand.sort(cmpCard));
   Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,rankBottom:n});
   const first=Math.random()*n|0;
   addLog(`${n}명 게임 시작${H.cfg.jokers?` (별카드 ${H.cfg.jokers}장)`:''}. ${H.players[first].name}부터 시작합니다.`,'sys');
@@ -693,7 +706,7 @@ function doShout(s){
 }
 function resolveReveal(){
   const R=H.reveal;H.reveal=null;H.phase='play';
-  const t=H.players[R.taker];t.hand.push(...H.field);t.hand.sort((a,b)=>a-b);
+  const t=H.players[R.taker];t.hand.push(...H.field);t.hand.sort(cmpCard);
   addLog(R.lie?`걸렸다! ${t.name} ${R.fc}장 가져감.`:`진짜였다. ${t.name} ${R.fc}장 가져감.`,R.lie?'lie':'truth');
   H.field=[];
   if(H.pending===R.L.p){H.pending=null;if(!R.lie){finish(R.L.p);if(H.phase==='over')return}}
@@ -733,7 +746,7 @@ function checkEnd(){
 function timeout(){
   const i=H.turn,p=H.players[i];
   if(H.roundNum==null){
-    const id=p.hand[0];const num=isJ(id)?1+(Math.random()*(H.cfg.maxn||13)|0):numOf(id);
+    const id=p.hand[0];const num=isJ(id)?1+(Math.random()*(H.cfg.maxn||14)|0):numOf(id);
     addLog(`${p.name} 시간 초과. 가장 작은 카드 1장 자동 제출.`,'sys');doPlay(i,[id],num);
   }else doPass(i,true);
 }
@@ -758,7 +771,7 @@ function planBotShouts(i,t){
 function botTurn(i){
   const h=H.players[i].hand,jk=h.filter(isJ),plain=h.filter(id=>!isJ(id));
   if(H.roundNum==null){
-    if(!plain.length){doPlay(i,jk.slice(),1+(Math.random()*(H.cfg.maxn||13)|0));return}
+    if(!plain.length){doPlay(i,jk.slice(),1+(Math.random()*(H.cfg.maxn||14)|0));return}
     const g=new Map();plain.forEach(id=>{const n=numOf(id);if(!g.has(n))g.set(n,[]);g.get(n).push(id)});
     let best=null;for(const [n,cs] of g)if(!best||cs.length>best[1].length||(cs.length===best[1].length&&Math.random()<.5))best=[n,cs];
     const ids=best[1].slice(),rest=plain.filter(id=>numOf(id)!==best[0]);
@@ -787,7 +800,7 @@ function hostAct(seat,a){
     const ids=[...new Set(a.ids)].filter(id=>Number.isInteger(id)&&hand.has(id));
     if(!ids.length||ids.length!==a.ids.length)return;
     let num=H.roundNum;
-    if(num==null){num=a.num;if(!Number.isInteger(num)||num<1||num>(H.cfg.maxn||13))return}
+    if(num==null){num=a.num;if(!Number.isInteger(num)||num<1||num>(H.cfg.maxn||14))return}
     doPlay(seat,ids,num);
   }
 }
@@ -1107,7 +1120,7 @@ function roomLink(code){return location.origin+location.pathname+'?room='+code.t
 function applyView(s){
   PV=V;const t=clock();
   V={...s,graceAt:t+(+s.gr||0),deadAt:t+(+s.dl||0)};
-  {const mn=Math.max(4,Math.min(15,+(s.cfg&&s.cfg.maxn)||13));if(mn!==MAXN){MAXN=mn;const w=$('#numpick');if(w)w.innerHTML=''}}
+  {const mn=Math.max(4,Math.min(19,+(s.cfg&&s.cfg.maxn)||14));if(mn!==MAXN){MAXN=mn;const w=$('#numpick');if(w)w.innerHTML=''}}
   const mine=myHand();const hs=new Set(mine);for(const id of [...sel])if(!hs.has(id))sel.delete(id);
   if(V.st!=='play'||V.rn!=null)pickNum=null;
   render();sync3D(V,PV);cues(V,PV);
@@ -1230,7 +1243,7 @@ function showBubble(i,html,life){
   box.appendChild(b);
 }
 function playFx(v){
-  const L=v.la,n=+v.rn;if(!L||!(n>=1&&n<=15))return;
+  const L=v.la,n=+v.rn;if(!L||!(n>=1&&n<=19))return;
   const a=(T&&T.anchor)||{x:$('#stage').clientWidth/2,y:$('#stage').clientHeight/2};
   const d=document.createElement('div');d.className='playfx';d.style.setProperty('--rc',RANK_COLORS[n-1]);
   d.style.left=a.x+'px';d.style.top=Math.max(46,a.y-100)+'px';
@@ -1238,7 +1251,7 @@ function playFx(v){
   d.addEventListener('animationend',()=>d.remove());
   const layer=$('#fx');while(layer.children.length>2)layer.firstChild.remove();
   layer.appendChild(d);
-  // 이펙트가 떠 있는 동안 같은 자리의 '지금' 숫자 카드는 숨겼다가, 끝나면 다시 튀어나옴
+  // 이펙트가 떠 있는 동안 같은 자리의 '지금' 자음 카드는 숨겼다가, 끝나면 다시 튀어나옴
   const pn=$('#pileNum');pn.classList.add('held');clearTimeout(pileHoldTimer);
   pileHoldTimer=setTimeout(()=>{pn.classList.remove('held');pn.classList.remove('pop');void pn.offsetWidth;pn.classList.add('pop')},1950);
   if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)setTimeout(()=>d.remove(),1800);
@@ -1374,14 +1387,14 @@ function sendAct(a){
 /* ================= 렌더 ================= */
 function cardHTML(id,extra){
   const j=isJ(id),n=numOf(id);
-  return `<button type="button" class="card ${j?'joker ':''}${extra||''}" data-id="${id}"${j?'':` style="--rc:${RANK_COLORS[n-1]}"`} aria-label="${j?'별카드':rankLabel(n)}"><span class="cn">${labelOf(id)}</span><span class="big">${j?'★':rankLabel(n)}</span><span class="cn2" aria-hidden="true">${labelOf(id)}</span></button>`;
+  return `<button type="button" class="card ${j?'joker ':''}${!j&&isDbl(n)?'dbl ':''}${extra||''}" data-id="${id}"${j?'':` style="--rc:${RANK_COLORS[n-1]}"`} aria-label="${j?'별카드':rankLabel(n)}"><span class="cn">${labelOf(id)}</span><span class="big">${j?'★':rankLabel(n)}</span><span class="cn2" aria-hidden="true">${labelOf(id)}</span></button>`;
 }
 function render(){renderHUD();renderLabels();renderMe();renderLog();renderPanel()}
 function roomInfoHTML(){
   if(!V||mode==='lobby')return '';
   const c=V.cfg||cfg;
   return (V.code?`<span class="chip code">방 코드 <b>${esc(shownCode(V.code))}</b></span>`:'<span class="chip"><b>연습 모드</b></span>')+
-    `<span class="chip"><b>${c.fast?'빠른 모드':'클래식'}</b></span><span class="chip">최대 <b>${+c.max}명</b></span><span class="chip">숫자 <b>1~${rankLabel(+c.maxn||13)}</b></span><span class="chip">별카드 <b>${+c.jokers||0}장</b></span>${V.code?`<span class="chip"><b>${c.pub?'공개':'비공개'}</b></span>`:''}<span class="chip">구라 타임 <b>${+c.grace}초</b></span><span class="chip">턴 <b>${+c.turn}초</b></span>`;
+    `<span class="chip"><b>${c.fast?'빠른 모드':'클래식'}</b></span><span class="chip">최대 <b>${+c.max}명</b></span><span class="chip">자음 <b>${+c.maxn||14}자</b></span><span class="chip">별카드 <b>${+c.jokers||0}장</b></span>${V.code?`<span class="chip"><b>${c.pub?'공개':'비공개'}</b></span>`:''}<span class="chip">구라 타임 <b>${+c.grace}초</b></span><span class="chip">턴 <b>${+c.turn}초</b></span>`;
 }
 let lastPileN=-1;
 function renderPile(){
@@ -1466,17 +1479,17 @@ function layoutFan(){
   if(fh!==lastFanH){lastFanH=fh;T.fanH=fh;if(T.ok)resize3D()}
 }
 window.addEventListener('resize',()=>{if(V)layoutFan()});
-/* 선언 숫자 세로 휠 */
+/* 선언 자음 세로 휠 */
 function renderWheel(){
-  const np=$('#numpick'),cur=chosenNum()||7,narrow=$('#stage').clientWidth<600,rows=narrow?3:5;
-  const order=Array.from({length:MAXN},(_,k)=>MAXN-k),idx=Math.max(0,order.indexOf(cur));
+  const order=wheelOrder(),np=$('#numpick'),cur=chosenNum()||order[order.length>>1],narrow=$('#stage').clientWidth<600,rows=narrow?3:5;
+  const idx=Math.max(0,order.indexOf(cur));
   if(!np.querySelector('.wh-list')){
-    np.innerHTML=`<span class="wh-t">선언할 숫자</span><button type="button" class="wh-arrow" data-step="1" aria-label="큰 숫자로">▲<small>${esc(keyLabel(KEYS.numUp))}</small></button><div class="wh-view"><ul class="wh-list">${order.map(k=>`<li><button type="button" class="np" data-n="${k}" style="--rc:${RANK_COLORS[k-1]}" aria-label="${rankLabel(k)}"><span class="wl">${rankLabel(k)}</span>${rankLabel(k)!==String(k)?`<span class="ws">${k}</span>`:''}</button></li>`).join('')}</ul></div><button type="button" class="wh-arrow" data-step="-1" aria-label="작은 숫자로">▼<small>${esc(keyLabel(KEYS.numDown))}</small></button>`;
+    np.innerHTML=`<span class="wh-t">선언할 자음</span><button type="button" class="wh-arrow" data-step="1" aria-label="이전 자음">▲<small>${esc(keyLabel(KEYS.numUp))}</small></button><div class="wh-view"><ul class="wh-list">${order.map(k=>`<li><button type="button" class="np" data-n="${k}" style="--rc:${RANK_COLORS[k-1]}" aria-label="${rankLabel(k)}"><span class="wl">${rankLabel(k)}</span></button></li>`).join('')}</ul></div><button type="button" class="wh-arrow" data-step="-1" aria-label="다음 자음">▼<small>${esc(keyLabel(KEYS.numDown))}</small></button>`;
   }
   np.style.setProperty('--rows',rows);
   np.querySelector('.wh-list').style.transform=`translateY(${((rows-1)/2-idx)*40}px)`;
   np.querySelectorAll('.np').forEach(b=>b.classList.toggle('on',+b.dataset.n===cur));
-  np.querySelectorAll('.wh-arrow').forEach(a=>a.disabled=(+a.dataset.step>0?cur>=MAXN:cur<=1));
+  np.querySelectorAll('.wh-arrow').forEach(a=>a.disabled=(+a.dataset.step>0?idx<=0:idx>=order.length-1));
 }
 function renderButtons(){
   {const gb=$('#btnGiveUp'),i=myIdx();
@@ -1488,7 +1501,7 @@ function renderButtons(){
   play.disabled=!(ready&&k>0&&num!=null);
   play.classList.toggle('ready',!play.disabled);
   const main=k?`${k}장 내기`:'내기';
-  const sub=k?(num!=null?`${numName(num)}${V&&V.rn==null?' 선언':''}`:'숫자 선택'):keyLabel(KEYS.play);
+  const sub=k?(num!=null?`${numName(num)}${V&&V.rn==null?' 선언':''}`:'자음 선택'):keyLabel(KEYS.play);
   if($('#playMain').textContent!==main)$('#playMain').textContent=main;
   if($('#playSub').textContent!==sub)$('#playSub').textContent=sub;
   pass.disabled=!(ready&&V.rn!=null);
@@ -1573,16 +1586,18 @@ function renderPanel(){
     // 방장: 인원 수 다시 정하기 (지금 들어와 있는 사람보다 적게는 못 줄임)
     if(isHost&&roomSetOpen){
       const c=V.cfg,minMax=Math.max(2,V.ps.length);
+      const total=(+c.maxn||14)*4+(+c.jokers||0),nowN=Math.max(2,V.ps.length),perNow=Math.floor(total/nowN),perFull=Math.floor(total/Math.max(2,+c.max));
+      const cardInfo=`<p class="cardinfo${perFull<5?' warn':''}">카드 ${total}장 · 지금 ${nowN}명이면 1인당 약 ${perNow}장${+c.max>nowN?` · ${+c.max}명이 다 차면 약 ${perFull}장`:''}${perFull<5?'<br>1인당 5장 미만이라 판이 너무 빨리 끝날 수 있습니다. 자음 수나 별카드를 늘리는 것을 추천합니다.':''}${+c.max>=7?'<br>7~8명 방은 제한 시간 20초, 대기 시간 2초 정도로 짧게 하면 덜 지루합니다.':''}</p>`;
       const rows=ROOM_SET.map(d=>{const v=+c[d.k],lo=d.k==='max'?minMax:d.lo;
         return `<div class="stp"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="stp-b" data-act="dec:${d.k}" aria-label="${d.label} 줄이기"${v<=lo?' disabled':''}>−</button><input class="txt stp-v" id="st_${d.k}" type="number" inputmode="numeric" min="${lo}" max="${d.hi}" step="${d.step}" value="${v}" aria-label="${d.label}"><span class="stp-u">${d.unit}</span><button type="button" class="stp-b" data-act="inc:${d.k}" aria-label="${d.label} 늘리기"${v>=d.hi?' disabled':''}>+</button></div></div>`}).join('');
       showPanel(`<div class="vhead"><button type="button" class="back" data-act="setclose" aria-label="대기실로">←</button><h2>방 설정</h2></div>
         <div class="stp"><div class="stp-t"><b>게임 모드</b><small>${MODE_DESC[c.fast?1:0]}</small></div><div class="row modepick" role="radiogroup" aria-label="게임 모드">${[0,1].map(v=>`<button class="btn ${(c.fast?1:0)===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${(c.fast?1:0)===v}" data-act="mode${v}">${OPT_LABEL.fast[v]}</button>`).join('')}</div></div>
-        ${rows}
+        ${rows}${cardInfo}
         <div class="row"><button class="btn btn-red" type="button" data-act="setclose" data-auto>완료</button></div>`,'roomset');
       return;
     }
     const c=V.cfg;
-    const sum=`<p class="cfgsum"><b>${OPT_LABEL.fast[c.fast?1:0]}</b> · 최대 ${+c.max}명 · 별카드 ${+c.jokers||0}장 · 숫자 1~${esc(rankLabel(+c.maxn||13))} · 구라 타임 ${+c.grace}초 · 턴 ${+c.turn}초</p>`;
+    const sum=`<p class="cfgsum"><b>${OPT_LABEL.fast[c.fast?1:0]}</b> · 최대 ${+c.max}명 · 별카드 ${+c.jokers||0}장 · 자음 ${+c.maxn||14}자 · 구라 타임 ${+c.grace}초 · 턴 ${+c.turn}초</p>`;
     showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="방 나가기" title="방 나가기">←</button><h2>${esc(V.title||'대기실')}</h2>${isHost?'<button type="button" class="btn btn-sub setbtn" data-act="setopen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>방 설정</span></button>':''}</div>
       <div class="coderow"><div><span class="label">방 코드</span><div class="codewrap"><div class="bigcode">${esc(shownCode(V.code))}</div><button type="button" class="eyebtn" data-act="hidecode" aria-pressed="${hideCode}" aria-label="${hideCode?'방 코드 보이기':'방 코드 가리기'}" title="${hideCode?'방 코드·링크 보이기':'방 코드·링크 가리기'}">${hideCode?EYE_OFF:EYE_ON}</button></div></div>${V.code?pubCtl:''}</div>
 
@@ -1714,8 +1729,8 @@ const KEY_ACTIONS=[
   {a:'pick',n:'카드 선택 / 취소',d:'커서가 있는 카드를 고르거나 풉니다'},
   {a:'right',n:'오른쪽 카드',d:'커서를 오른쪽으로 옮깁니다'},
   {a:'left',n:'왼쪽 카드',d:'커서를 왼쪽으로 옮깁니다'},
-  {a:'numUp',n:'선언 숫자 올리기',d:'라운드를 시작할 때 선언할 숫자를 1 올립니다'},
-  {a:'numDown',n:'선언 숫자 내리기',d:'라운드를 시작할 때 선언할 숫자를 1 내립니다'}];
+  {a:'numUp',n:'선언 자음 이전',d:'라운드를 시작할 때 선언할 자음을 이전 자음(위)으로 바꿉니다'},
+  {a:'numDown',n:'선언 자음 다음',d:'라운드를 시작할 때 선언할 자음을 다음 자음(아래)으로 바꿉니다'}];
 const RESERVED=new Set(['Escape','Tab','MetaLeft','MetaRight']);
 let KEYS={...DEFAULT_KEYS},listening=null;
 try{const s=JSON.parse(store('gura-keys2')||'null');if(s&&typeof s==='object')for(const k of Object.keys(DEFAULT_KEYS))if(typeof s[k]==='string'&&s[k])KEYS[k]=s[k]}catch(e){}
@@ -1796,9 +1811,13 @@ function pickCursor(){kbOn();
 }
 function stepNum(d,wrap){
   if($('#numpick').hidden)return;
-  const cur=chosenNum()||(d>0?0:MAXN+1);
-  if(!wrap){const n=Math.max(1,Math.min(MAXN,cur+d));if(n===chosenNum())return;pickNum=n}
-  else pickNum=((cur-1+d)%MAXN+MAXN)%MAXN+1;
+  // d=+1 → 위(이전 자음), d=-1 → 아래(다음 자음)
+  const order=wheelOrder(),L=order.length,c=chosenNum();
+  let pos=c!=null?order.indexOf(c):(d>0?L:-1);
+  pos-=d;
+  if(!wrap){pos=Math.max(0,Math.min(L-1,pos));if(order[pos]===c)return}
+  else pos=((pos%L)+L)%L;
+  pickNum=order[pos];
   sfx('tick');renderMe();
 }
 function showCursor(){}
@@ -1958,7 +1977,7 @@ function drawFace(g,w,h,id){
   g.clearRect(0,0,w,h);
   g.save();rr(g,0,0,w,h,8*k);g.clip();
   g.fillStyle=j?'#3b2a1f':'#fffcf5';g.fillRect(0,0,w,h);
-  if(!j){g.fillStyle=RC;g.fillRect(0,0,w,3*k)}
+  if(!j){g.fillStyle=RC;if(isDbl(n)){g.fillRect(0,0,w,2.4*k);g.fillRect(0,4.4*k,w,2.4*k)}else g.fillRect(0,0,w,3*k)}
   g.restore();
   g.strokeStyle=j?RC:'#e3d4bb';g.lineWidth=j?2*k:1*k;rr(g,g.lineWidth/2,g.lineWidth/2,w-g.lineWidth,h-g.lineWidth,8*k);g.stroke();
   g.fillStyle=RC;g.font=`600 ${19*k}px "IBM Plex Mono", "Jua", monospace`;g.textAlign='left';g.textBaseline='top';g.fillText(labelOf(id),6*k,(j?4:6)*k);
