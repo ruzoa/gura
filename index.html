@@ -1480,7 +1480,7 @@ function burstPath(ang){
 }
 function showBubble(i,html,life,kind){
   kind=kind||'real';
-  if((kind==='real'||kind==='q')&&T&&T.ok&&V&&V.st!=='wait'&&show3DBubble(i,kind,life))return;
+  if((kind==='real'||kind==='q')&&T&&T.ok&&V&&V.st!=='wait'&&i!==myIdx()&&show3DBubble(i,kind,life))return;   // 내 말풍선은 내 정보 칸 위(화면 위층)
   const st=$('#stage'),sr=st.getBoundingClientRect(),W=sr.width,Hh=sr.height;
   const inWait=V&&V.st==='wait';
   const el=inWait?document.querySelector(`#panel .slots li[data-i="${i}"]`):i===myIdx()?$('#me'):document.querySelector(`#labels .seat[data-i="${i}"]`);
@@ -2474,9 +2474,9 @@ function show3DBubble(i,kind,life){
     if(!T.scene)return false;
     T.bubbles.filter(b=>b.i===i).forEach(killBubble);
     const me=myIdx();
-    const base=i===me?seatPos(i,2.5):seatPos(i,3.55);base.y=i===me?1.25:1.85;
-    const mat=new THREE.SpriteMaterial({map:bubbleTex(kind),transparent:true,depthTest:true,depthWrite:false,fog:false});
-    const sp=new THREE.Sprite(mat);sp.position.copy(base);sp.renderOrder=5;
+    const base=seatPos(i,3.3);base.y=1.9;
+    const mat=new THREE.SpriteMaterial({map:bubbleTex(kind),transparent:true,depthTest:false,depthWrite:false,fog:false});
+    const sp=new THREE.Sprite(mat);sp.position.copy(base);sp.renderOrder=50;   // 테이블·카드 더미·배경보다 항상 앞
     // 멀리 있는 자리도 너무 작아지지 않게 거리만큼 살짝 키움
     const d=T.cam.position.distanceTo(base),k=Math.pow(d/10,.55);
     T.scene.add(sp);
@@ -2484,6 +2484,8 @@ function show3DBubble(i,kind,life){
     return true;
   }catch(e){return false}
 }
+const ON_TOP=new Map();
+function onTopMat(m){let t=ON_TOP.get(m);if(!t){t=m.clone();t.transparent=true;ON_TOP.set(m,t)}return t}
 function killBubble(b){if(b.sp.parent)b.sp.parent.remove(b.sp);b.mat.dispose();T.bubbles=T.bubbles.filter(x=>x!==b)}
 function updBubbles(t){
   for(const b of [...T.bubbles]){
@@ -2536,6 +2538,7 @@ function sync3D(v,pv){
     ids.forEach((id,j)=>{
       const c=T.field[start+j];if(!c||!Number.isInteger(id))return;
       c.children[0].material=faceMat(id);
+      c.children.forEach(m=>{m.material=onTopMat(m.material);m.renderOrder=60});   // 공개 카드는 3D 말풍선보다 앞
       c.userData.p.set((j-(k-1)/2)*.95,2.3,1.2);c.userData.rx=-.72;c.userData.ry=0;c.userData.s=1.55;
     });
   },REVEAL_PAUSE);
