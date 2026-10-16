@@ -76,7 +76,11 @@ button:disabled{cursor:not-allowed}
 .seat .nm .ct{font-family:var(--f-num);font-weight:500;font-size:11.5px;color:var(--muted);margin-left:5px}
 .seat .nt{font-size:10.5px;color:var(--amber);font-weight:600;line-height:1.2}
 .seat .nt:empty{display:none}
-.seat{overflow:visible;pointer-events:auto;cursor:pointer}
+.seat{overflow:visible}
+/* 이름표 바깥 오른쪽 스피커 (이름표 크기는 그대로) */
+.seat .spk{position:absolute;left:100%;top:50%;margin:-12px 0 0 5px;width:24px;height:24px;border-radius:50%;border:1px solid var(--line-strong);background:rgba(255,250,240,.92);color:var(--ink);padding:0;display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:pointer;box-shadow:0 1px 3px rgba(59,42,31,.3)}
+.seat .spk svg{width:14px;height:14px}
+.seat.muted .spk{color:var(--muted);background:var(--well)}
 .seat .ring{position:absolute;left:-30px;top:50%;width:26px;height:26px;margin-top:-13px;transform:rotate(-90deg);display:none}
 body.no3d .seat.on .ring{display:block}
 .ring circle{fill:none;stroke-width:4}
@@ -113,9 +117,6 @@ body.no3d .seat.on .ring{display:block}
 .mbtn svg{width:24px;height:24px}
 .mbtn:active{transform:translateY(3px);box-shadow:none}
 .mbtn.arm{background:var(--gura)!important;border-color:var(--gura-edge)!important;color:var(--gura-ink)!important;box-shadow:0 3px 0 var(--gura-edge)!important}
-.status{position:absolute;right:154px;top:17px;font-family:var(--f-num);font-size:13px;font-weight:600;color:var(--ink);background:rgba(255,250,240,.94);border:1.5px solid var(--line-strong);padding:3px 10px;border-radius:99px;font-variant-numeric:tabular-nums}
-.status.grace{color:var(--gura);border-color:var(--gura)}
-.status:empty{display:none}
 .actions{position:absolute;right:14px;bottom:var(--actB,14px);display:flex;align-items:center;gap:8px;z-index:7}
 .act{height:56px;min-width:96px;padding:0 14px;border-radius:14px;border:2px solid var(--edge);background:var(--face);color:var(--ink-on);box-shadow:0 4px 0 var(--edge);font-family:var(--f-display);font-size:21px;line-height:1.05;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:transform .08s,box-shadow .08s,opacity .2s}
 .act small{font-family:var(--f-body);font-size:10.5px;font-weight:600;opacity:.75;margin-top:2px}
@@ -365,7 +366,6 @@ body.kb .fan .card.cur{z-index:70!important}
 .emopad button.tx{font-family:var(--f-display);font-size:19px;color:var(--wood-dark)}
 .emopad button small{position:absolute;right:3px;bottom:1px;font-family:var(--f-num);font-size:9px;color:var(--muted)}
 .emopad:disabled,.emopad button:disabled{opacity:.4}
-.seat.muted .nm::after{content:" 🔇";font-size:10px}
 .myplate .me-name{font-family:var(--f-display);font-size:18px;line-height:1.1}
 .myplate .me-sub{font-size:13px;color:var(--muted)}
 .myplate .me-sub b{color:var(--ink);font-family:var(--f-num)}
@@ -437,7 +437,6 @@ body.kb .fan .card.cur{z-index:70!important}
   .numwheel .wh-view{width:96px}
   .numwheel .wh-t{display:none}
   .numwheel .np{width:96px;font-size:14px}
-  .status{top:56px;right:10px;font-size:12px}
   .verdict .vt{font-size:46px}
   .verdict .vw{font-size:12px}
   .seat .nm{font-size:12px}
@@ -470,7 +469,6 @@ body.kb .fan .card.cur{z-index:70!important}
     <div class="pilecount" id="pileCount" hidden aria-live="polite"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="12" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 21h10a2 2 0 0 0 2-2V7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b id="pileN">0</b>장</div>
     <div class="fxlayer" id="fx" aria-hidden="true"></div>
     <div class="bubbles" id="bubbles" aria-hidden="true"></div>
-    <div class="status" id="status"></div>
     <button class="fsbtn cfg" id="btnMenu" type="button" aria-label="설정" title="설정" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     <div class="menu" id="menu" hidden role="menu">
       <div class="menu-info" id="menuInfo"></div>
@@ -1363,10 +1361,16 @@ $('#emoPad').addEventListener('click',e=>{
 });
 document.addEventListener('click',e=>{if(!$('#emoPad').hidden&&!e.target.closest('#emoPad')&&!e.target.closest('#btnEmo')&&!e.target.closest('.emo-open'))closeEmoPad()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#emoPad').hidden)closeEmoPad()});
-/* 이름표를 누르면 그 사람 이모티콘 음소거 */
+/* 이름표 옆 스피커: 그 사람 이모티콘 보기/끄기 */
+const SPK_ON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+const SPK_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"/><line x1="16" y1="9" x2="22" y2="15"/><line x1="22" y1="9" x2="16" y2="15"/></svg>';
 $('#labels').addEventListener('click',e=>{
-  const s=e.target.closest('.seat');if(!s||!V||!V.ps)return;const p=V.ps[+s.dataset.i];if(!p)return;
-  emoMuted.has(p.n)?emoMuted.delete(p.n):emoMuted.add(p.n);s.classList.toggle('muted',emoMuted.has(p.n));sfx('tick');
+  const b=e.target.closest('.spk');if(!b||!V||!V.ps)return;const i=+b.dataset.spk,p=V.ps[i];if(!p)return;
+  const mu=!emoMuted.has(p.n);mu?emoMuted.add(p.n):emoMuted.delete(p.n);
+  const s=b.closest('.seat');s.classList.toggle('muted',mu);b.innerHTML=mu?SPK_OFF:SPK_ON;b.setAttribute('aria-pressed',mu);
+  const t=`이모티콘 ${mu?'켜기':'끄기'}`;b.title=t;b.setAttribute('aria-label',`${p.n} ${t}`);
+  if(mu){$('#bubbles').querySelectorAll(`.bubble.soft[data-i="${i}"],.bubble.q[data-i="${i}"]`).forEach(x=>x.remove());if(T&&T.bubbles)T.bubbles.filter(x=>x.i===i&&x.kind==='q').forEach(killBubble)}
+  sfx('tick');
 });
 function showTaken(ids){newCards=new Set(ids);markNewCards();sfx('sweep')}
 function seeNewCard(el){if(!el||!el.classList.contains('newcard'))return;newCards.delete(+el.dataset.id);el.classList.remove('newcard')}
@@ -1703,7 +1707,8 @@ function renderLabels(){
   box.innerHTML=V.ps.map((p,i)=>{
     if(i===me)return '';
     const on=V.st==='play'&&V.t===i&&activeV(i);
-    return `<div class="seat${on?' on':''}${p.f?' out':''}${emoMuted.has(p.n)?' muted':''}" data-i="${i}" title="눌러서 이 사람 이모티콘 끄기/켜기"><div class="nm">${esc(p.n)}<span class="ct">${p.f?(p.sr?'항복':'탈출'):(+p.c+'장')}</span>${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="nt">${esc(p.aw&&!p.f?'연결 끊김':(p.no||''))}</div><svg class="ring" data-ring="${i}" viewBox="0 0 36 36" aria-hidden="true"><circle class="rb" cx="18" cy="18" r="15"/><circle class="rf" cx="18" cy="18" r="15"/></svg></div>`;
+    const mu=emoMuted.has(p.n),note=p.aw&&!p.f?'연결 끊김':(p.no&&!String(p.no).startsWith('"')?p.no:'');   // 몇 장 냈는지는 표시하지 않음
+    return `<div class="seat${on?' on':''}${p.f?' out':''}${mu?' muted':''}" data-i="${i}"><button type="button" class="spk" data-spk="${i}" aria-pressed="${mu}" aria-label="${esc(p.n)} 이모티콘 ${mu?'켜기':'끄기'}" title="이모티콘 ${mu?'켜기':'끄기'}">${mu?SPK_OFF:SPK_ON}</button><div class="nm">${esc(p.n)}<span class="ct">${p.f?(p.sr?'항복':'탈출'):(+p.c+'장')}</span>${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="nt">${esc(note)}</div><svg class="ring" data-ring="${i}" viewBox="0 0 36 36" aria-hidden="true"><circle class="rb" cx="18" cy="18" r="15"/><circle class="rf" cx="18" cy="18" r="15"/></svg></div>`;
   }).join('');
   placeLabels();
 }
@@ -1919,7 +1924,6 @@ function liveUI(t){
   const dim=$('#dim'),myTurn=!!(V&&V.ps&&V.st==='play'&&myIdx()>=0&&V.t===myIdx());
   if(dim.classList.contains('on')!==myTurn)dim.classList.toggle('on',myTurn);
   if(!V||!V.ps)return;
-  const st=$('#status');
   document.querySelectorAll('[data-bar]').forEach(b=>{b.firstChild.style.width='0';b.classList.remove('grace')});
   const setRing=(i,frac,grace)=>{const r=document.querySelector(`[data-ring="${i}"]`);if(!r)return;r.style.setProperty('--off',(94.25*(1-Math.max(0,Math.min(1,frac)))).toFixed(1));r.classList.toggle('grace',grace)};
   const meBar=$('#meBar');meBar.firstChild.style.width='0';meBar.classList.remove('grace');
@@ -1927,15 +1931,13 @@ function liveUI(t){
   if(V.st==='play'&&V.ps[V.t]){
     const g=V.graceAt-t,me=myIdx();
     const bar=V.t===me?meBar:document.querySelector(`[data-bar="${V.t}"]`);
-    let txt,cls='status';
-    if(g>0){txt=`대기 시간 ${(g/1000).toFixed(1)}초`;cls+=' grace';if(V.t===me){meT=`대기 ${Math.ceil(g/1000)}초`;meG=true}if(bar){bar.classList.add('grace');bar.firstChild.style.width=Math.min(100,g/(V.cfg.grace*1000)*100)+'%'}if(V.t!==me)setRing(V.t,1,true)}
+    if(g>0){if(V.t===me){meT=`대기 ${Math.ceil(g/1000)}초`;meG=true}if(bar){bar.classList.add('grace');bar.firstChild.style.width=Math.min(100,g/(V.cfg.grace*1000)*100)+'%'}if(V.t!==me)setRing(V.t,1,true)}
     else{
-      const left=Math.max(0,(V.deadAt-t)/1000);txt=`${V.ps[V.t].n} 차례 · ${Math.ceil(left)}초`;if(bar)bar.firstChild.style.width=Math.min(100,left/V.cfg.turn*100)+'%';if(V.t!==me)setRing(V.t,left/V.cfg.turn,false);
+      const left=Math.max(0,(V.deadAt-t)/1000);if(bar)bar.firstChild.style.width=Math.min(100,left/V.cfg.turn*100)+'%';if(V.t!==me)setRing(V.t,left/V.cfg.turn,false);
       const sec=Math.ceil(left);if(V.t===me)meT=`${sec}초`;
       if(V.t===me&&sec<=5&&sec>0){if(sec!==lastWarnSec){lastWarnSec=sec;sfx('warn',sec<=2)}}else lastWarnSec=-1;
     }
-    if(st.textContent!==txt)st.textContent=txt;if(st.className!==cls)st.className=cls;
-  }else if(st.textContent)st.textContent='';
+  }
   {const mt=$('#meTime');if(mt.textContent!==meT)mt.textContent=meT;mt.classList.toggle('grace',meG)}
   const can=canShoutV(),gb=$('#btnGura');
   if(gb.disabled===can){gb.disabled=!can;gb.classList.toggle('ready',can)}
@@ -2628,7 +2630,7 @@ function placeLabels(){
 }
 function stageRects(){
   const st=$('#stage').getBoundingClientRect(),out=[];
-  for(const id of ['btnFs','btnSound','btnMenu','status','actions','numpick','me']){
+  for(const id of ['btnFs','btnSound','btnMenu','actions','numpick','me']){
     const el=document.getElementById(id);if(!el||el.hidden||!el.offsetWidth)continue;
     const r=el.getBoundingClientRect();out.push({l:r.left-st.left-4,r:r.right-st.left+4,t:r.top-st.top-4,b:r.bottom-st.top+4});
   }
