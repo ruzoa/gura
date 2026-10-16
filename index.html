@@ -92,7 +92,7 @@ body.no3d .seat.on .ring{display:block}
 .rk{font-family:var(--f-num);font-size:11px;background:var(--mustard);color:var(--ink);border-radius:var(--r-xs);padding:0 5px;margin-left:4px}
 
 .label{font-size:11px;letter-spacing:.1em;color:var(--muted);font-weight:600}
-.fsbtn{position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:rgba(255,250,240,.94);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 3px 0 rgba(110,69,38,.25);transition:border-color .15s,color .15s}
+.fsbtn{position:absolute;top:10px;right:10px;z-index:7;width:40px;height:40px;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:rgba(255,250,240,.94);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 3px 0 rgba(110,69,38,.25);transition:border-color .15s,color .15s}
 .fsbtn:hover{border-color:var(--wood);color:var(--wood-dark)}
 .fsbtn svg{width:20px;height:20px}
 .fsbtn.cfg{right:58px}
@@ -148,6 +148,11 @@ body.no3d .seat.on .ring{display:block}
 .slots .tag{margin-left:auto;font-size:11px;color:var(--muted);font-weight:600}
 .slots .tag.host{color:var(--amber)}
 .slots .slot-emo{width:30px;height:30px;flex:none;margin:-5px -6px -5px 4px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--panel);font-size:16px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 0 var(--line)}
+.slots .botlv{margin-left:auto;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;border:1.5px solid var(--line-strong);background:var(--panel);color:var(--ink);line-height:1.2}
+.slots .botlv+.tag{margin-left:6px}
+.slots .botlv.lv0{color:var(--ok);border-color:#9bc4a8}
+.slots .botlv.lv2{color:var(--gura);border-color:#e3a59d}
+.slots .botlv.ro{cursor:default}
 .slots .kick{width:26px;height:26px;flex:none;margin:-4px -6px -4px 2px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--panel);color:var(--gura);font-size:12px;font-weight:700;line-height:1;padding:0}
 .slots .kick:hover{background:var(--gura);color:var(--gura-ink);border-color:var(--gura-edge)}
 .row{display:flex;gap:8px;flex-wrap:wrap}
@@ -642,7 +647,7 @@ const OPTS={fast:[0,1],max:[2,3,4,5,6,7,8],jokers:[0,1,2,3,4],pub:[0,1]};
 const OPT_LABEL={fast:['클래식','빠른 모드'],pub:['비공개','공개']};
 const MODE_DESC=['꼴찌가 나올 때까지','1등이 나오면 끝'];
 const OPT_HTML={fast:v=>`<b>${OPT_LABEL.fast[v]}</b><small>${MODE_DESC[v]}</small>`};
-const cfg={fast:0,max:4,jokers:2,grace:3,turn:30,pub:0,maxn:14,botlv:1};
+const cfg={fast:0,max:4,jokers:2,grace:3,turn:30,pub:0,maxn:14};
 const BOT_LV=['쉬움','보통','어려움'];
 /* 방 설정 항목: 대기실의 '방 설정'에서 −/+ 버튼으로 조절 */
 const ROOM_SET=[
@@ -651,8 +656,8 @@ const ROOM_SET=[
   {k:'maxn',label:'자음 수',unit:'자',lo:4,hi:19,step:1,desc:'14자 = ㄱ~ㅎ, 15자부터 ㄲ·ㄸ·ㅃ·ㅆ·ㅉ 순으로 추가. 자음마다 4장'},
   {k:'grace',label:'대기 시간',unit:'초',lo:0,hi:30,step:1,desc:'카드를 내고 다음 사람이 기다리는 시간'},
   {k:'turn',label:'제한 시간',unit:'초',lo:5,hi:120,step:5,desc:'제한 시간 지나면 패스 <br> 첫 플레이어는 다음 사람에게 순서가 넘어갑니다'}];
-try{const sv=JSON.parse(store('gura-roomcfg')||'null');if(sv){for(const d of ROOM_SET)if(Number.isFinite(+sv[d.k]))cfg[d.k]=Math.max(d.lo,Math.min(d.hi,Math.round(+sv[d.k])));if([0,1,2].includes(+sv.botlv))cfg.botlv=+sv.botlv}}catch(e){}
-function saveRoomCfg(c){const o={botlv:+c.botlv||0};for(const d of ROOM_SET)o[d.k]=c[d.k];store('gura-roomcfg',JSON.stringify(o))}
+try{const sv=JSON.parse(store('gura-roomcfg')||'null');if(sv){for(const d of ROOM_SET)if(Number.isFinite(+sv[d.k]))cfg[d.k]=Math.max(d.lo,Math.min(d.hi,Math.round(+sv[d.k])));}}catch(e){}
+function saveRoomCfg(c){const o={};for(const d of ROOM_SET)o[d.k]=c[d.k];store('gura-roomcfg',JSON.stringify(o))}
 let roomSetOpen=false;
 const PEER_PREFIX='gura-cardgame-room-';
 const ALPH='abcdefghjkmnpqrstuvwxyz23456789';
@@ -683,7 +688,7 @@ function hostAddBot(force){
   if(!force&&(H.phase!=='wait'||H.members.length>=H.cfg.max))return;
   const used=new Set(H.members.map(m=>m.name));
   const nm=BOT_NAMES.map(n=>n+' 봇').find(n=>!used.has(n))||'봇';
-  H.members.push({name:nm,bot:true,conn:null,host:false});mark();
+  H.members.push({name:nm,bot:true,conn:null,host:false,lv:1});mark();
 }
 function hostRemoveBot(){
   if(H.phase!=='wait')return;
@@ -694,7 +699,7 @@ function hostStart(){
   H.members=H.members.filter(m=>!m.away);   // 대기실에서 끊긴 채인 사람은 빼고 시작
   while(H.members.length<2)hostAddBot(true);
   const n=H.members.length;
-  H.players=H.members.map(m=>({name:m.name,bot:m.bot,conn:m.conn,cid:m.cid||'',host:m.host,hand:[],finished:false,rank:null}));
+  H.players=H.members.map(m=>({name:m.name,bot:m.bot,lv:m.bot?(m.lv??1):null,conn:m.conn,cid:m.cid||'',host:m.host,hand:[],finished:false,rank:null}));
   const N=H.cfg.maxn||13;
   const deck=shuffle([...Array(N*4).keys(),...Array(H.cfg.jokers).fill(0).map((_,k)=>JOKER_BASE+k)]),per=Math.floor(deck.length/n);
   H.players.forEach(p=>p.hand=deck.splice(0,per));
@@ -829,7 +834,7 @@ function botTruthProb(b,j,i){
   let pt=0;for(let x=need;x<=h0;x++){let comb=1;for(let y=0;y<x;y++)comb=comb*(h0-y)/(y+1);pt+=comb*Math.pow(q,x)*Math.pow(1-q,h0-x)}
   return Math.max(0,Math.min(1,pt));
 }
-const botLv=b=>b&&b.lv!=null?b.lv:(+H.cfg.botlv||0);   // 봇마다 따로 정할 수도 있게
+const botLv=b=>b&&b.lv!=null?b.lv:1;   // 봇마다 따로 정한 난이도 (기본 보통)
 function planBotShouts(i,t){
   const num=H.roundNum,claimed=H.last.count,J=H.cfg.jokers;
   H.players.forEach((b,j)=>{
@@ -978,7 +983,7 @@ function snapFor(you){
   const t=clock();
   const s={code:H.code,title:H.title,cfg:H.cfg,st:H.phase,lg:H.log,you};
   if(H.emos&&H.emos.length)s.em=H.emos;
-  if(H.phase==='wait'){s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0}));return s}
+  if(H.phase==='wait'){s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0,lv:m.bot?(m.lv??1):undefined}));return s}
   s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=1;if(p.away)o.aw=1;if(i===you)o.h=p.hand.slice();return o});
   s.t=H.turn;s.rn=H.roundNum;s.fc=H.field.length;
   s.la=H.last?{p:H.last.p,c:H.last.count,o:H.last.open?1:0}:null;
@@ -1318,7 +1323,7 @@ function becomeHost(why){
       const cfg0={...cfg,...(last.cfg||{})};
       H={online:true,code,title:last.title||myName+'의 방',cfg:cfg0,phase:'wait',members:[{name:myName,bot:false,conn:null,cid:CID,host:true}],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
       // 봇은 그대로 남기고, 사람들은 다시 연결되면 자동으로 자리에 들어옴
-      (last.ps||[]).forEach((p,i)=>{if(p.b&&!p.f&&H.members.length<H.cfg.max)H.members.push({name:String(p.n).replace(/ \(봇\)$/,''),bot:true,conn:null,host:false})});
+      (last.ps||[]).forEach((p,i)=>{if(p.b&&!p.f&&H.members.length<H.cfg.max)H.members.push({name:String(p.n).replace(/ \(봇\)$/,''),bot:true,conn:null,host:false,lv:p.lv??1})});
       addLog(why==='left'?`방장이 나가서 ${myName} 님이 새 방장이 되었습니다.`:`방장과 연결이 끊겨 ${myName} 님이 새 방장이 되었습니다.`,'sys');
       if(last.st&&last.st!=='wait')addLog('진행 중이던 게임은 중단되었습니다.','sys');
       roomSetOpen=false;lastPanelHtml='';mark();
@@ -1916,7 +1921,7 @@ function renderPanel(){
   const me=myIdx(),isHost=mode==='host';
   if(V.st==='wait'){
     const max=+V.cfg.max;
-    let li=V.ps.map((p,i)=>`<li data-i="${i}">${esc(p.n)}${i===me?' (나)':''}<span class="tag ${p.hs?'host':''}">${p.hs?'방장':p.b?'봇':p.aw?'연결 끊김':'참가자'}</span>${i===me?'<button type="button" class="slot-emo emo-open" data-act="emopad" aria-label="이모티콘" title="이모티콘">😊</button>':''}${isHost&&!p.hs?`<button type="button" class="kick" data-act="kick:${i}" data-name="${esc(p.n)}" aria-label="${esc(p.n)} 내보내기" title="내보내기">✕</button>`:''}</li>`).join('');
+    let li=V.ps.map((p,i)=>`<li data-i="${i}">${esc(p.n)}${i===me?' (나)':''}${p.b?(isHost?`<button type="button" class="botlv lv${p.lv??1}" data-act="botlv:${i}" data-name="${esc(p.n)}" title="눌러서 난이도 바꾸기">${BOT_LV[p.lv??1]}</button>`:`<span class="botlv lv${p.lv??1} ro">${BOT_LV[p.lv??1]}</span>`):''}<span class="tag ${p.hs?'host':''}">${p.hs?'방장':p.b?'봇':p.aw?'연결 끊김':'참가자'}</span>${i===me?'<button type="button" class="slot-emo emo-open" data-act="emopad" aria-label="이모티콘" title="이모티콘">😊</button>':''}${isHost&&!p.hs?`<button type="button" class="kick" data-act="kick:${i}" data-name="${esc(p.n)}" aria-label="${esc(p.n)} 내보내기" title="내보내기">✕</button>`:''}</li>`).join('');
     for(let k=V.ps.length;k<max;k++)li+='<li class="empty">빈 자리</li>';
     const full=V.ps.length>=max;
     let foot;
@@ -1938,13 +1943,12 @@ function renderPanel(){
         return `<div class="stp"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="stp-b" data-act="dec:${d.k}" aria-label="${d.label} 줄이기"${v<=lo?' disabled':''}>−</button><input class="txt stp-v" id="st_${d.k}" type="number" inputmode="numeric" min="${lo}" max="${d.hi}" step="${d.step}" value="${v}" aria-label="${d.label}"><span class="stp-u">${d.unit}</span><button type="button" class="stp-b" data-act="inc:${d.k}" aria-label="${d.label} 늘리기"${v>=d.hi?' disabled':''}>+</button></div></div>`}).join('');
       showPanel(`<div class="vhead"><button type="button" class="back" data-act="setclose" aria-label="대기실로">←</button><h2>방 설정</h2></div>
         <div class="stp"><div class="stp-t"><b>게임 모드</b><small>${MODE_DESC[c.fast?1:0]}</small></div><div class="row modepick" role="radiogroup" aria-label="게임 모드">${[0,1].map(v=>`<button class="btn ${(c.fast?1:0)===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${(c.fast?1:0)===v}" data-act="mode${v}">${OPT_LABEL.fast[v]}</button>`).join('')}</div></div>
-        <div class="stp"><div class="stp-t"><b>봇 난이도</b><small>${['구라를 잘 안 외치고 거짓말도 서툽니다','적당히 의심하고 가끔 거짓말합니다','남은 카드를 세서 의심하고, 들킬 위험을 따져 거짓말합니다'][+c.botlv||0]}</small></div><div class="row modepick" role="radiogroup" aria-label="봇 난이도">${[0,1,2].map(v=>`<button class="btn ${(+c.botlv||0)===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${(+c.botlv||0)===v}" data-act="botlv${v}">${BOT_LV[v]}</button>`).join('')}</div></div>
         ${rows}${cardInfo}
         <div class="row"><button class="btn btn-red" type="button" data-act="setclose" data-auto>완료</button></div>`,'roomset');
       return;
     }
     const c=V.cfg;
-    const sum=`<p class="cfgsum"><b>${OPT_LABEL.fast[c.fast?1:0]}</b> · 최대 ${+c.max}명 · 별카드 ${+c.jokers||0}장 · 자음 ${+c.maxn||14}자 · 대기 시간 ${+c.grace}초 · 제한 시간 ${+c.turn}초${V.ps.some(p=>p.b)?` · 봇 ${BOT_LV[+c.botlv||0]}`:''}</p>`;
+    const sum=`<p class="cfgsum"><b>${OPT_LABEL.fast[c.fast?1:0]}</b> · 최대 ${+c.max}명 · 별카드 ${+c.jokers||0}장 · 자음 ${+c.maxn||14}자 · 대기 시간 ${+c.grace}초 · 제한 시간 ${+c.turn}초</p>`;
     showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="방 나가기" title="방 나가기">←</button><h2>${esc(V.title||'대기실')}</h2>${isHost?'<button type="button" class="btn btn-sub setbtn" data-act="setopen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>방 설정</span></button>':''}</div>
       <div class="coderow"><div><span class="label">방 코드</span><div class="codewrap"><div class="bigcode">${esc(shownCode(V.code))}</div><button type="button" class="eyebtn" data-act="hidecode" aria-pressed="${hideCode}" aria-label="${hideCode?'방 코드 보이기':'방 코드 가리기'}" title="${hideCode?'방 코드·링크 보이기':'방 코드·링크 가리기'}">${hideCode?EYE_OFF:EYE_ON}</button></div></div>${V.code?pubCtl:''}</div>
 
@@ -1987,7 +1991,7 @@ $('#panel').addEventListener('click',e=>{
     return;
   }
   if(!H)return;
-  if(/^botlv[0-2]$/.test(a)){if(H.phase==='wait'){H.cfg={...H.cfg,botlv:+a.slice(5)};saveRoomCfg(H.cfg);mark()}return}
+  if(a.startsWith('botlv:')){const i=+a.slice(6),m=H&&H.members[i];if(mode==='host'&&H.phase==='wait'&&m&&m.bot&&m.name===b.dataset.name){m.lv=((m.lv??1)+1)%3;sfx('tick');mark()}return}
   if(a==='mode0'||a==='mode1'){if(H.phase==='wait'){H.cfg={...H.cfg,fast:a==='mode1'?1:0};mark()}return}
   if(a==='addbot')hostAddBot();
   else if(a==='rmbot')hostRemoveBot();
