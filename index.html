@@ -357,7 +357,7 @@ body.kb .fan .card.cur{z-index:70!important}
 .emobtn{align-self:center;width:30px;height:30px;flex:none;margin:-2px 2px -2px -6px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--panel);font-size:16px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 0 var(--line)}
 .emobtn[aria-expanded="true"]{background:var(--mustard);border-color:var(--mustard-edge)}
 .emobtn.cool{opacity:.45}
-.emopad{position:absolute;z-index:12;display:grid;grid-template-columns:repeat(4,50px);gap:6px;padding:8px;background:var(--panel);border:1.5px solid var(--line-strong);border-radius:var(--r-md);box-shadow:0 8px 24px -8px rgba(28,18,10,.45)}
+.emopad{position:absolute;z-index:40;display:grid;grid-template-columns:repeat(4,50px);gap:6px;padding:8px;background:var(--panel);border:1.5px solid var(--line-strong);border-radius:var(--r-md);box-shadow:0 8px 24px -8px rgba(28,18,10,.45)}
 .emopad button{position:relative;width:50px;height:50px;border-radius:12px;border:1.5px solid var(--line);background:var(--paper);font-size:26px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center}
 .emopad button:hover{border-color:var(--wood)}
 .emopad button.q{background:var(--mustard);border-color:var(--mustard-edge);font-family:var(--f-display);font-size:16px;color:var(--ink)}
@@ -663,7 +663,7 @@ function unstore(k){try{localStorage.removeItem(k)}catch(e){}}
 const CID=(()=>{let c=store('gura-cid');if(!c||!/^[a-z0-9]{8,32}$/.test(c)){c=Math.random().toString(36).slice(2,10)+Date.now().toString(36);store('gura-cid',c)}return c})();
 const RESUME_MS=10*60*1000;   // 새로고침·앱 전환 뒤 이 시간 안이면 방을 이어서 열기
 
-const net={peer:null,conn:null,conns:new Set(),code:'',retry:null,savedAt:0,pub:null,pubBusy:false,pubRetryAt:0};
+const net={peer:null,conn:null,conns:new Set(),code:'',retry:null,savedAt:0,pub:null,pubBusy:false,pubRetryAt:0,handoff:''};
 let mode='lobby';           // lobby | host | guest | closed
 let V=null, PV=null;        // 지금 화면 상태, 직전 상태
 const sel=new Set(); let pickNum=null;
@@ -848,7 +848,9 @@ function botTurn(i){
 }
 /* 사람(나 또는 참가자)의 행동을 검증해서 처리 */
 function hostEmote(seat,k){
-  if(!H||seat<0||!H.players[seat]||!(H.phase==='play'||H.phase==='reveal'||H.phase==='over'))return;
+  if(!H||seat<0)return;
+  if(H.phase==='wait'){const m=H.members[seat];if(!m||m.bot)return}
+  else if(!H.players[seat]||!(H.phase==='play'||H.phase==='reveal'||H.phase==='over'))return;
   if(!EMOTES.some(em=>em.k===k))return;
   const t=clock();H.emoAt=H.emoAt||{};
   if(t-(H.emoAt[seat]||0)<1500)return;   // 도배 방지 (한 사람당 1.5초)
@@ -900,10 +902,10 @@ setInterval(engineTick,100);
 function snapFor(you){
   const t=clock();
   const s={code:H.code,title:H.title,cfg:H.cfg,st:H.phase,lg:H.log,you};
+  if(H.emos&&H.emos.length)s.em=H.emos;
   if(H.phase==='wait'){s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0}));return s}
   s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=1;if(p.away)o.aw=1;if(i===you)o.h=p.hand.slice();return o});
   s.t=H.turn;s.rn=H.roundNum;s.fc=H.field.length;
-  if(H.emos&&H.emos.length)s.em=H.emos;
   s.la=H.last?{p:H.last.p,c:H.last.count,o:H.last.open?1:0}:null;
   s.gr=Math.max(0,Math.round(H.graceUntil-t));s.dl=Math.max(0,Math.round(H.deadline-t));
   if(H.reveal){const R=H.reveal;s.rv={s:R.s,p:R.L.p,ids:R.L.ids.slice(),lie:R.lie?1:0,tk:R.taker,stt:R.starter,fc:R.fc,num:R.num}}
@@ -946,6 +948,11 @@ function claimSlot(order,k){
     net.pubBusy=false;net.pubRetryAt=clock()+20000;   // 자리가 다 찼거나 연결 문제 → 잠시 뒤 다시
   });
 }
+function successor(){
+  if(!H)return null;
+  const m=H.members.find(x=>!x.host&&!x.bot&&!x.away&&x.conn&&x.conn.open);
+  return m||null;
+}
 function flush(){
   flushQueued=false;if(!H)return;
   pubSync();
@@ -953,13 +960,15 @@ function flush(){
   if(H.online){
     saveHost();
     lastBeat=clock();
-    for(const c of net.conns){if(c.open){try{c.send({t:'state',s:snapFor(seatOfConn(c))})}catch(e){}}}
+    const nx=successor();
+    for(const c of net.conns){if(c.open){try{const sn=snapFor(seatOfConn(c));if(nx){sn.nxn=nx.name;if(nx.conn===c)sn.nx=1}c.send({t:'state',s:sn})}catch(e){}}}
   }
 }
 
 /* ================= 네트워크 (PeerJS) ================= */
 function cleanNick(n){return (typeof n==='string'&&n.trim()?n.trim():'손님').slice(0,10)}
 function hostConn(conn){
+  if(!H||mode!=='host'){conn.on('open',()=>{try{conn.close()}catch(e){}});return}   // 이미 방을 떠난 방장
   conn.on('open',()=>{net.conns.add(conn)});
   conn.on('data',d=>{
     if(!H||!d||typeof d!=='object')return;
@@ -1076,7 +1085,7 @@ function createRoom(){
 function guestHello(conn){try{conn.send({t:'hello',nick:myNick(),cid:CID})}catch(e){}}
 function saveGuest(){if(mode==='guest'&&net.code)store('gura-guest',JSON.stringify({code:net.code,at:Date.now()}))}
 function wireGuestConn(conn){
-  conn.on('data',d=>{if(net.conn!==conn)return;if(d&&d.t==='kicked'){guestKicked();return}if(d&&typeof d==='object'&&d.t==='state'&&d.s&&typeof d.s==='object'){if(Date.now()-(net.savedAt||0)>5000){net.savedAt=Date.now();saveGuest()}applyView(d.s)}});
+  conn.on('data',d=>{if(net.conn!==conn)return;if(d&&d.t==='kicked'){guestKicked();return}if(d&&d.t==='bye'){hostLeft(!!d.nx,cleanNick(d.nxn||''));return}if(d&&typeof d==='object'&&d.t==='state'&&d.s&&typeof d.s==='object'){if(Date.now()-(net.savedAt||0)>5000){net.savedAt=Date.now();saveGuest()}applyView(d.s)}});
   conn.on('close',()=>{if(mode==='guest'&&net.conn===conn)guestReconnect()});
   conn.on('error',()=>{if(mode==='guest'&&net.conn===conn)guestReconnect()});
 }
@@ -1114,12 +1123,17 @@ function guestReconnect(){
   net.retry={until:Date.now()+120000,timer:null};
   try{if(net.conn)net.conn.close()}catch(e){}
   net.conn=null;
-  showPanel('<h2>다시 연결하는 중</h2><p>방장과 연결이 끊겼습니다. 방장이 돌아오면 자동으로 이어서 합니다.</p><div class="row"><button class="btn btn-sub" type="button" data-act="leave">로비로</button></div>','retry');
+  net.retry.start=Date.now();
+  const ho=net.handoff;net.handoff='';
+  showPanel(ho?`<h2>방장이 나갔습니다</h2><p><b>${esc(ho)}</b> 님이 새 방장이 됩니다. 새 방장에게 연결하는 중입니다…</p><div class="row"><button class="btn btn-sub" type="button" data-act="leave">로비로</button></div>`
+    :`<h2>다시 연결하는 중</h2><p>방장과 연결이 끊겼습니다. 방장이 돌아오면 자동으로 이어서 합니다.${V&&V.nxn?`<br>40초 안에 돌아오지 않으면 <b>${esc(V.nxn)}</b> 님이 새 방장이 됩니다.`:''}</p><div class="row"><button class="btn btn-sub" type="button" data-act="leave">로비로</button></div>`,'retry');
+  if(ho){net.retry.timer=setTimeout(retryOnce,1500);return}   // 이전 방장 연결이 완전히 닫힌 뒤 새 방장에게
   retryOnce();
 }
 function retryOnce(){
   const R=net.retry;if(!R||mode!=='guest')return;
   if(Date.now()>R.until){net.retry=null;hostGone();return}
+  if(V&&V.nx&&Date.now()-R.start>40000){becomeHost('lost');return}   // 방장이 안 돌아오면 다음 방장이 이어받음
   const next=()=>{if(net.retry===R){clearTimeout(R.timer);R.timer=setTimeout(retryOnce,2500)}};
   let peer=net.peer;
   if(!peer||peer.destroyed){
@@ -1207,6 +1221,42 @@ function randomJoin(){
     joinRoom(pick.code);
   });
 }
+/* 방장이 나갔을 때: 다음 방장이면 방을 이어서 열고, 아니면 새 방장에게 다시 연결 */
+function hostLeft(amNext,nxName){
+  if(mode!=='guest')return;
+  if(amNext){becomeHost('left');return}
+  net.handoff=nxName||'다른 참가자';
+  guestReconnect();
+}
+function becomeHost(why){
+  if(mode!=='guest'||!V||!net.code)return;
+  const code=net.code,last=V,meI=myIdx(),myName=meI>=0&&last.ps[meI]?last.ps[meI].n:myNick();
+  if(net.retry){clearTimeout(net.retry.timer);net.retry=null}
+  try{if(net.conn)net.conn.close()}catch(e){}net.conn=null;
+  try{if(net.peer)net.peer.destroy()}catch(e){}net.peer=null;
+  mode='promoting';
+  showPanel('<h2>새 방장이 되었습니다</h2><p>방을 이어서 여는 중입니다…</p>','promote');
+  const tryOpen=n=>{
+    const peer=new Peer(PEER_PREFIX+code);let ok=false;
+    peer.on('open',()=>{
+      ok=true;net.peer=peer;mode='host';unstore('gura-guest');
+      const cfg0={...cfg,...(last.cfg||{})};
+      H={online:true,code,title:last.title||myName+'의 방',cfg:cfg0,phase:'wait',members:[{name:myName,bot:false,conn:null,cid:CID,host:true}],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
+      // 봇은 그대로 남기고, 사람들은 다시 연결되면 자동으로 자리에 들어옴
+      (last.ps||[]).forEach((p,i)=>{if(p.b&&!p.f&&H.members.length<H.cfg.max)H.members.push({name:String(p.n).replace(/ \(봇\)$/,''),bot:true,conn:null,host:false})});
+      addLog(why==='left'?`방장이 나가서 ${myName} 님이 새 방장이 되었습니다.`:`방장과 연결이 끊겨 ${myName} 님이 새 방장이 되었습니다.`,'sys');
+      if(last.st&&last.st!=='wait')addLog('진행 중이던 게임은 중단되었습니다.','sys');
+      roomSetOpen=false;lastPanelHtml='';mark();
+    });
+    hostPeerHandlers(peer);
+    peer.on('error',e=>{
+      if(ok)return;try{peer.destroy()}catch(_){}
+      if(n<15){setTimeout(()=>{if(mode==='promoting')tryOpen(n+1)},1500);return}
+      mode='closed';showPanel('<h2>방을 이어서 열지 못했습니다</h2><p>인터넷 연결을 확인해 주십시오.</p><div class="row"><button class="btn btn-play" type="button" data-act="leave" data-auto>로비로</button></div>','gone');
+    });
+  };
+  tryOpen(0);
+}
 function guestKicked(){
   if(mode!=='guest')return;
   mode='closed';unstore('gura-guest');
@@ -1219,9 +1269,18 @@ function hostGone(){
   showPanel('<h2>연결이 끊겼습니다</h2><p>방장이 나갔거나 인터넷 연결이 끊겼습니다.</p><div class="row"><button class="btn btn-play" type="button" data-act="leave" data-auto>로비로</button></div>','gone');
 }
 function leaveRoom(){
-  for(const c of net.conns){try{c.close()}catch(e){}}net.conns.clear();
+  const handing=mode==='host'&&H&&H.online&&successor();
+  if(handing){
+    // 방장이 나감 → 참가자들에게 알리고, 다음 방장이 같은 방 코드로 방을 이어서 엶
+    const nx=handing,conns=[...net.conns],pr=net.peer;
+    for(const c of conns){try{c.send({t:'bye',nxn:nx.name,nx:c===nx.conn?1:0})}catch(e){}}
+    net.conns.clear();net.peer=null;
+    setTimeout(()=>{for(const c of conns){try{c.close()}catch(e){}}try{pr&&pr.destroy()}catch(e){}},400);
+  }else{
+    for(const c of net.conns){try{c.close()}catch(e){}}net.conns.clear();
+    if(net.peer){try{net.peer.destroy()}catch(e){}net.peer=null}
+  }
   if(net.conn){try{net.conn.close()}catch(e){}net.conn=null}
-  if(net.peer){try{net.peer.destroy()}catch(e){}net.peer=null}
   if(net.retry){clearTimeout(net.retry.timer);net.retry=null}
   if(net.pub){try{net.pub.destroy()}catch(e){}net.pub=null}
   if(mode==='host')unstore('gura-host');
@@ -1267,7 +1326,8 @@ function emoteHTML(em){return em.q?'<span class="bt">구라<span class="qm">?</s
 function showNewEmotes(v,pv){
   const list=Array.isArray(v.em)?v.em:[];
   const top=list.length?+list[list.length-1][0]:0;
-  if(emoSeen<0||!pv||!(pv.st==='play'||pv.st==='reveal'||pv.st==='over')){emoSeen=Math.max(emoSeen,top);if(!pv)return}
+  if(top<emoSeen)emoSeen=-1;   // 방장이 바뀌어 번호가 처음부터 다시 시작된 경우
+  if(emoSeen<0||!pv||(pv.st==='wait')!==(v.st==='wait')){emoSeen=Math.max(emoSeen,top);return}
   for(const [sq,p,k] of list){
     if(+sq<=emoSeen)continue;
     const em=EMOTES.find(x=>x.k===k);if(!em||!v.ps||!v.ps[p])continue;
@@ -1279,7 +1339,7 @@ function showNewEmotes(v,pv){
 }
 let emoCoolUntil=0;
 function sendEmote(k){
-  if(!V||myIdx()<0||!(V.st==='play'||V.st==='reveal'||V.st==='over'))return;
+  if(!V||myIdx()<0||!(V.st==='wait'||V.st==='play'||V.st==='reveal'||V.st==='over'))return;
   const now=Date.now();if(now<emoCoolUntil)return;
   emoCoolUntil=now+1600;const b=$('#btnEmo');b.classList.add('cool');setTimeout(()=>b.classList.remove('cool'),1600);
   sendAct({t:'emo',k});closeEmoPad();
@@ -1288,8 +1348,8 @@ function renderEmoPad(){
   $('#emoPad').innerHTML=EMOTES.map(em=>`<button type="button" role="menuitem" data-emo="${em.k}" class="${em.q?'q':em.t?'tx':''}" aria-label="${em.n}" title="${em.n}">${em.q?'구라?':em.e||esc(em.t)}<small>${esc(keyLabel(KEYS['emo_'+em.k]||''))}</small></button>`).join('')
 ;
 }
-function openEmoPad(){
-  renderEmoPad();const pad=$('#emoPad'),st=$('#stage').getBoundingClientRect(),pr=$('#me').getBoundingClientRect();
+function openEmoPad(anchor){
+  renderEmoPad();const pad=$('#emoPad'),st=$('#stage').getBoundingClientRect(),pr=(anchor||$('#me')).getBoundingClientRect();
   pad.hidden=false;pad.style.left=Math.max(8,pr.left-st.left)+'px';pad.style.top=Math.max(8,pr.top-st.top-pad.offsetHeight-8)+'px';
   $('#btnEmo').setAttribute('aria-expanded','true');
 }
@@ -1299,7 +1359,7 @@ $('#emoPad').addEventListener('click',e=>{
   e.stopPropagation();
   const b=e.target.closest('[data-emo]');if(b)sendEmote(b.dataset.emo);
 });
-document.addEventListener('click',e=>{if(!$('#emoPad').hidden&&!e.target.closest('#emoPad')&&!e.target.closest('#btnEmo'))closeEmoPad()});
+document.addEventListener('click',e=>{if(!$('#emoPad').hidden&&!e.target.closest('#emoPad')&&!e.target.closest('#btnEmo')&&!e.target.closest('.emo-open'))closeEmoPad()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#emoPad').hidden)closeEmoPad()});
 /* 이름표를 누르면 그 사람 이모티콘 음소거 */
 $('#labels').addEventListener('click',e=>{
@@ -1420,13 +1480,15 @@ function burstPath(ang){
 function showBubble(i,html,life,kind){
   kind=kind||'real';
   const st=$('#stage'),sr=st.getBoundingClientRect(),W=sr.width,Hh=sr.height;
-  const el=i===myIdx()?$('#me'):document.querySelector(`#labels .seat[data-i="${i}"]`);
+  const inWait=V&&V.st==='wait';
+  const el=inWait?document.querySelector(`#panel .slots li[data-i="${i}"]`):i===myIdx()?$('#me'):document.querySelector(`#labels .seat[data-i="${i}"]`);
   if(!el)return;
-  const r=el.getBoundingClientRect(),lx=r.left-sr.left+r.width/2,ly=r.top-sr.top+r.height/2;
+  const r0=el.getBoundingClientRect(),r=inWait?{left:r0.right-70,top:r0.top,width:60,height:r0.height,right:r0.right,bottom:r0.bottom}:r0,lx=r.left-sr.left+r.width/2,ly=r.top-sr.top+r.height/2;
   // 이름표에서 테이블 가운데 쪽으로 풍선을 띄움
   const A=(typeof T!=='undefined'&&T&&T.anchor)||{x:W/2,y:Hh*.45};
   let dx=A.x-lx,dy=A.y-ly,len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;
-  if(i===myIdx()){dx=.55;dy=-.83}   // 내 정보 칸은 왼쪽 아래 → 오른쪽 위로
+  if(inWait){dx=.7;dy=-.7}           // 대기실: 명단 줄의 오른쪽 위로
+  else if(i===myIdx()){dx=.55;dy=-.83}   // 내 정보 칸은 왼쪽 아래 → 오른쪽 위로
   const ext=Math.abs(dx)*r.width/2+Math.abs(dy)*r.height/2;
   const k=Math.max(1,Math.min(2.2,W/900,Hh/620));   // 큰 화면(QHD 전체화면 등)에서는 비율대로 크게
   const TL=kind==='soft'?60:BUB.tail;
@@ -1760,12 +1822,12 @@ $('#panel').addEventListener('change',e=>{const t=e.target;if(t&&t.id&&t.id.star
 $('#panel').addEventListener('keydown',e=>{const t=e.target;if(e.key==='Enter'&&t&&t.id&&t.id.startsWith('st_')){e.preventDefault();setRoomCfg(t.id.slice(3),t.value);t.blur()}});
 function hidePanel(){$('#panel').hidden=true;lastPanelHtml='';lastPanelKind=''}
 function renderPanel(){
-  if(mode==='closed'||net.retry)return;
+  if(mode==='closed'||mode==='promoting'||net.retry)return;
   if(!V||mode==='lobby'){if(mode==='lobby')hidePanel();return}
   const me=myIdx(),isHost=mode==='host';
   if(V.st==='wait'){
     const max=+V.cfg.max;
-    let li=V.ps.map((p,i)=>`<li>${esc(p.n)}${i===me?' (나)':''}<span class="tag ${p.hs?'host':''}">${p.hs?'방장':p.b?'봇':p.aw?'연결 끊김':'참가자'}</span>${isHost&&!p.hs?`<button type="button" class="kick" data-act="kick:${i}" data-name="${esc(p.n)}" aria-label="${esc(p.n)} 내보내기" title="내보내기">✕</button>`:''}</li>`).join('');
+    let li=V.ps.map((p,i)=>`<li data-i="${i}">${esc(p.n)}${i===me?' (나)':''}<span class="tag ${p.hs?'host':''}">${p.hs?'방장':p.b?'봇':p.aw?'연결 끊김':'참가자'}</span>${isHost&&!p.hs?`<button type="button" class="kick" data-act="kick:${i}" data-name="${esc(p.n)}" aria-label="${esc(p.n)} 내보내기" title="내보내기">✕</button>`:''}</li>`).join('');
     for(let k=V.ps.length;k<max;k++)li+='<li class="empty">빈 자리</li>';
     const full=V.ps.length>=max;
     let foot;
@@ -1797,7 +1859,7 @@ function renderPanel(){
       <div class="coderow"><div><span class="label">방 코드</span><div class="codewrap"><div class="bigcode">${esc(shownCode(V.code))}</div><button type="button" class="eyebtn" data-act="hidecode" aria-pressed="${hideCode}" aria-label="${hideCode?'방 코드 보이기':'방 코드 가리기'}" title="${hideCode?'방 코드·링크 보이기':'방 코드·링크 가리기'}">${hideCode?EYE_OFF:EYE_ON}</button></div></div>${V.code?pubCtl:''}</div>
 
       ${isHost&&link?`<div class="linkbox"><input class="txt" id="linkTxt" ${hideCode?'type="password"':''} readonly value="${esc(link)}" aria-label="초대 링크"><button class="btn btn-sub" type="button" data-act="copy">링크 복사</button></div><p>이 링크를 보내면 코드가 자동으로 입력됩니다.</p>`:''}
-      <ul class="slots">${li}</ul>${sum}${foot}`,'wait');
+      <ul class="slots">${li}</ul>${me>=0?'<div class="row"><button type="button" class="btn btn-sub emo-open" data-act="emopad">😊 이모티콘</button></div>':''}${sum}${foot}`,'wait');
     return;
   }
   if(V.st==='over'){
@@ -1817,6 +1879,7 @@ $('#panel').addEventListener('click',e=>{
     // 방장이 나가면 방이 없어지므로, 다른 사람이 있으면 한 번 확인
     if(b.classList.contains('back')&&mode==='host'&&H&&H.online&&H.members.some(m=>!m.host&&!m.bot)&&!confirm('방장이 나가면 방이 닫힙니다. 나가시겠습니까?'))return;
     leaveRoom();return}
+  if(a==='emopad'){$('#emoPad').hidden?openEmoPad(b):closeEmoPad();return}
   if(a.startsWith('emo:')){sendEmote(a.slice(4));return}
   if(a.startsWith('kick:')){
     const i=+a.slice(5),nm=b.dataset.name||'';
@@ -1971,11 +2034,11 @@ document.addEventListener('keydown',e=>{
   }
   if(!$('#keysOv').hidden){if(e.code==='Escape')closeKeys();return}
   if(e.target.matches('input')||!$('#lobby').hidden||e.ctrlKey||e.metaKey||e.altKey)return;
-  if(!V||!(V.st==='play'||V.st==='reveal'||V.st==='over'))return;  // 대기실에서는 Tab/Enter/Space로 버튼 조작
+  if(!V||!V.st)return;
   const act=Object.keys(KEYS).find(a=>KEYS[a]===e.code);
   if(!act)return;
   if(act.startsWith('emo_')){e.preventDefault();if(!e.repeat)sendEmote(act.slice(4));return}
-  if(V.st==='over')return;
+  if(!(V.st==='play'||V.st==='reveal'))return;  // 대기실·결과 화면에서는 Tab/Enter/Space로 버튼 조작
   e.preventDefault();
   if(act==='left'||act==='right'){moveCursor(act==='right'?1:-1);return}
   if(act==='numUp'||act==='numDown'){stepNum(act==='numUp'?1:-1,true);return}
