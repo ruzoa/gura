@@ -1579,7 +1579,7 @@ const SFX={
     const v={type:'sine',vol:.13,attack:.004,sus:.7},w={type:'triangle',vol:.03,attack:.004,sus:.7};
     const note=(at,d,f,o)=>{tone(f,d,{...v,at,...o});tone(f,d,{...w,at,...o});
       tone(f*4,.05,{type:'sine',vol:.045,at,attack:.002});tone(f*2.76,.09,{type:'sine',vol:.03,at,attack:.002})};
-    const k=1/1.2;   // 빠르기 (1.2배)
+    const k=1/1.44;   // 빠르기 (처음보다 1.44배 = 1.2배 × 1.2배)
     note(0,.3*k,290,{slide:262});
     note(.34*k,.44*k,435,{path:[[.15*k,525],[.44*k,370]]});
     note(.82*k,.3*k,333,{slide:262});
