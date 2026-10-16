@@ -752,7 +752,7 @@ function doShout(s){
   const L=H.last;L.open=false;H.shouts=[];
   const lie=L.ids.some(id=>!fits(id,H.roundNum));
   H.phase='reveal';
-  H.reveal={s,L,lie,taker:lie?L.p:s,starter:lie?s:L.p,num:H.roundNum,fc:H.field.length,until:clock()+3600};
+  H.reveal={s,L,lie,taker:lie?L.p:s,starter:lie?s:L.p,num:H.roundNum,fc:H.field.length,until:clock()+3600+REVEAL_PAUSE};
   addLog(`${H.players[s].name}: "구라!" → ${H.players[L.p].name}`,'gura');
   mark();
 }
@@ -896,6 +896,7 @@ function engineTick(){
   if(H&&H.online&&t-lastBeat>3000)mark();
 }
 const AWAY_WAIT=20000;
+const REVEAL_PAUSE=1000;   // 구라! 외친 뒤 카드를 펼치기 전까지 잠깐 뜸 들이기
 setInterval(engineTick,100);
 
 /* 받는 사람(you)마다 자기 손패만 넣은 상태 */
@@ -1445,11 +1446,11 @@ function cues(v,pv){
     else if(txt.includes('패스'))sfx('pass');
   }
   if(typeof v.fc==='number'&&typeof pv.fc==='number'&&v.fc>pv.fc&&v.la){sfx('play',v.fc-pv.fc);playFx(v)}
-  if(v.st==='reveal'&&v.rv&&pv.st!=='reveal'){setTimeout(()=>sfx(v.rv.lie?'lie':'truth'),550);$('#fx').innerHTML='';showBubble(v.rv.s,'<span class="bt">구라!</span>',2200,'real');clearTimeout(pileHoldTimer);$('#pileNum').classList.remove('held')}
+  if(v.st==='reveal'&&v.rv&&pv.st!=='reveal'){setTimeout(()=>sfx(v.rv.lie?'lie':'truth'),550+REVEAL_PAUSE);revealReadyAt=Date.now()+REVEAL_PAUSE;renderHUD();setTimeout(()=>{if(V&&V.st==='reveal')renderHUD()},REVEAL_PAUSE+20);$('#fx').innerHTML='';showBubble(v.rv.s,'<span class="bt">구라!</span>',REVEAL_PAUSE+150,'real');/* 카드가 펼쳐질 때 말풍선은 사라짐 */clearTimeout(pileHoldTimer);$('#pileNum').classList.remove('held')}
   const me=myIdx();
   if(v.st==='play'&&me>=0&&v.t===me&&!(pv.st==='play'&&pv.t===me))setTimeout(()=>sfx('turn'),v.gr>0?Math.min(v.gr,1500):0);
 }
-let pileHoldTimer=null;
+let pileHoldTimer=null,revealReadyAt=0;
 /* 말풍선: 외친 사람(내 자리면 내 정보 칸) 옆, 테이블 가운데 쪽에 뾰족한 풍선. 꼬리가 그 사람을 가리킴. html에 이모티콘을 넣어도 됨 */
 const BUB={w:220,h:180,cx:110,cy:90,rx:62,ry:40,tail:70};
 function softPath(ang,tail){
@@ -1681,7 +1682,8 @@ function renderHUD(){
   $('#actions').hidden=!inGame;
   if(!inGame){$('#verdict').hidden=true;return}
   const vd=$('#verdict');
-  if(V.st==='reveal'&&V.rv){
+  if(V.st==='reveal'&&V.rv&&Date.now()<revealReadyAt){vd.hidden=true}
+  else if(V.st==='reveal'&&V.rv){
     const R=V.rv;vd.hidden=false;
     vd.innerHTML=`<div class="vw"><b>${esc(V.ps[R.s].n)}</b> → <b>${esc(V.ps[R.p].n)}</b></div>
       <div class="vt ${R.lie?'lie':'truth'}">${R.lie?'걸렸다!':'진짜였다'}</div>`;
@@ -2478,14 +2480,16 @@ function sync3D(v,pv){
       const c=makeCard(from||spot,Math.PI/2,rand(-.6,.6),1);c.userData.p.copy(spot);T.field.push(c);
     }
   }else while(T.field.length>v.fc)killCard(T.field.pop());
-  if(v.st==='reveal'&&v.rv&&Array.isArray(v.rv.ids)&&!(pv&&pv.st==='reveal')){
+  if(v.st==='reveal'&&v.rv&&Array.isArray(v.rv.ids)&&!(pv&&pv.st==='reveal'))setTimeout(()=>{
+    // 뜸 들인 뒤 카드 공개 (그 사이 판정이 끝났으면 건너뜀)
+    if(!T.ok||!V||V.st!=='reveal'||!V.rv||V.rv.s!==v.rv.s||V.rv.fc!==v.rv.fc)return;
     const ids=v.rv.ids,k=ids.length,start=T.field.length-k;
     ids.forEach((id,j)=>{
       const c=T.field[start+j];if(!c||!Number.isInteger(id))return;
       c.children[0].material=faceMat(id);
       c.userData.p.set((j-(k-1)/2)*.95,2.3,1.2);c.userData.rx=-.72;c.userData.ry=0;c.userData.s=1.55;
     });
-  }
+  },REVEAL_PAUSE);
 }
 let lastFrame=clock();
 function frame(){
