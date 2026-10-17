@@ -17,8 +17,8 @@ const CATS=[
   {id:'three',name:'쓰리 카드',rule:'같은 눈 3개 이상이면 눈 전체 합',up:false},
   {id:'four',name:'포 카드',rule:'같은 눈 4개 이상이면 눈 전체 합',up:false},
   {id:'full',name:'풀하우스',rule:'같은 눈 3개 + 2개면 25점',up:false},
-  {id:'small',name:'스몰 스트레이트',rule:'4개 연속이면 30점',up:false},
-  {id:'large',name:'라지 스트레이트',rule:'5개 연속이면 40점',up:false},
+  {id:'small',name:'스몰 스트레이트',short:'S 스트레이트',rule:'4개 연속이면 30점',up:false},
+  {id:'large',name:'라지 스트레이트',short:'L 스트레이트',rule:'5개 연속이면 40점',up:false},
   {id:'yahtzee',name:'야추',rule:'5개 모두 같은 눈이면 50점',up:false},
   {id:'chance',name:'찬스',rule:'조건 없이 눈 전체 합',up:false}
 ];
@@ -447,11 +447,11 @@ function boardHTML(){
     }
     return `<td class="c e${m}"></td>`;
   };
-  const row=c=>`<tr class="${c.up?'up':'lo'}"><th class="lb" scope="row" title="${c.rule}">${c.name}</th>${ids.map(i=>cell(i,c)).join('')}</tr>`;
+  const row=c=>`<tr class="${c.up?'up':'lo'}"><th class="lb" scope="row" title="${c.rule}">${c.short?`<span class="ln">${c.name}</span><span class="sn">${c.short}</span>`:c.name}</th>${ids.map(i=>cell(i,c)).join('')}</tr>`;
   const stat=(cls,label,f)=>`<tr class="${cls}"><th class="lb" scope="row">${label}</th>${ids.map(i=>`<td class="c${i===me?' me':''}">${f(i)}</td>`).join('')}</tr>`;
   const up=CATS.filter(c=>c.up).map(row).join(''),low=CATS.filter(c=>!c.up).map(row).join('');
   return head+'<tbody>'+up
-    +stat('sum','윗칸 소계 <small>(63점이면 +35)</small>',i=>`${T[i].upper}`)
+    +stat('sum','윗칸 소계 <small class="ln">(63점이면 +35)</small>',i=>`${T[i].upper}`)
     +stat('sum','윗칸 보너스',i=>T[i].bonus?`+${T[i].bonus}`:'–')
     +low
     +stat('sum','야추 보너스',i=>T[i].yb?`+${T[i].yb}`:'–')
@@ -568,7 +568,7 @@ G.init=()=>{
 .specbar:not([hidden])~#yz .yz-top{margin-top:30px}
 .stage.yz .actions{left:auto}
 .stage.yz .myplate{max-width:calc(100% - 150px)}
-#yz{position:absolute;inset:0;display:flex;flex-direction:column;gap:6px;padding:8px 10px 82px;pointer-events:none;min-height:0}
+#yz{position:absolute;inset:0;z-index:0;display:flex;flex-direction:column;gap:6px;padding:8px 10px 82px;pointer-events:none;min-height:0}
 #yz[hidden]{display:none}
 #yz .yz-top{min-height:34px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;align-self:flex-start;max-width:calc(100% - 188px)}
 #yz .yz-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:12px;background:rgba(255,250,240,.92);border:1.5px solid var(--line-strong);font-size:13px;line-height:1.15;white-space:nowrap}
@@ -594,7 +594,7 @@ G.init=()=>{
 @keyframes yzTumble{0%{transform:rotate(-200deg) scale(.7) translateY(-10px);opacity:.3}60%{transform:rotate(14deg) scale(1.08)}100%{transform:none;opacity:1}}
 #yz .tag{font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--mustard);height:13px;line-height:13px}
 #yz .tag.off{visibility:hidden}
-#yz .yz-roll{flex:none;width:76px;border:2px solid var(--gura-edge);border-radius:14px;background:var(--gura);color:var(--gura-ink);box-shadow:0 4px 0 var(--gura-edge);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:var(--f-display);font-size:18px;line-height:1.1;padding:4px;pointer-events:auto;cursor:pointer;touch-action:manipulation}
+#yz .yz-roll{flex:none;width:76px;border:2px solid var(--gura-edge);border-radius:14px;background:var(--gura);color:var(--gura-ink);box-shadow:0 4px 0 var(--gura-edge);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:var(--f-display);font-size:18px;line-height:1.1;padding:4px;word-break:keep-all;text-align:center;pointer-events:auto;cursor:pointer;touch-action:manipulation}
 #yz .yz-roll b{font-weight:400}
 #yz .yz-roll small{font-family:var(--f-body);font-size:11px;font-weight:600;opacity:.85;min-height:13px}
 #yz .yz-roll:active:not(:disabled){transform:translateY(4px);box-shadow:none}
@@ -604,6 +604,8 @@ G.init=()=>{
 #yz .yz-tbl{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:12.5px;color:var(--ink)}
 #yz .yz-tbl th.lb{width:104px;text-align:left;font-weight:500;padding:3px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--paper)}
 #yz .yz-tbl th.lb small{font-size:10px;color:var(--muted)}
+#yz .yz-tbl .sn{display:none}
+@media (max-width:819px){#yz .yz-tbl .ln{display:none}#yz .yz-tbl .sn{display:inline}}
 #yz .yz-tbl td.c{text-align:center;font-family:var(--f-num);font-size:13px;padding:3px 2px;height:26px;border-left:1px solid var(--line);border-top:1px solid var(--line)}
 #yz .yz-tbl th.lb{border-top:1px solid var(--line)}
 #yz .yz-tbl thead th{position:sticky;top:0;z-index:2;background:var(--well);border-top:0;border-bottom:1.5px solid var(--line-strong)}
