@@ -169,7 +169,8 @@ function playOutQ(n,over,lvs){
   if(H.phase!=='over'){fail('quoridor stuck n='+n+' cfg='+JSON.stringify(over));return ticks}
   const ranks=H.players.map(p=>p.rank).sort((a,b)=>a-b);
   if(!ranks.includes(1))fail('quoridor no winner');
-  if(!H.cfg.fast){const exp=Array.from({length:n},(_,i)=>i+1);if(JSON.stringify(ranks)!==JSON.stringify(exp))fail('quoridor ranks '+ranks)}
+  if(ranks.filter(r=>r===1).length!==1||ranks.some(r=>!(r>=1&&r<=n)))fail('quoridor ranks '+ranks);   // 한 명이 도착하면 끝, 나머지는 남은 거리 순(공동 순위 가능)
+  if(H.players.filter(p=>p.rank===1).some(p=>!H.q.done[H.players.indexOf(p)]&&H.players.filter(x=>!x.surrendered).length>1))fail('quoridor winner did not arrive');
   const w=H.players.find(p=>p.rank===1),wi=H.players.indexOf(w);
   if(!H.q.done[wi]||!atGoal(H.q.sd[wi],H.q.pos[wi][0],H.q.pos[wi][1]))fail('quoridor winner not at goal');
   return ticks;
