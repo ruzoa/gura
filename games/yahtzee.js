@@ -1,10 +1,11 @@
 /* ===== 야추다이스 게임 모듈 =====
    공통 코드(index.html)가 GAMES.yahtzee의 함수를 불러서 이 게임의 규칙·봇·화면을 그림.
-   주사위 5개, 한 차례에 최대 3번 굴리고, 13칸 점수판에 기록해서 총점으로 순위를 정함 (턴제, 최대 4명).
+   주사위 5개, 한 차례에 최대 3번 굴리고, 13칸 점수판에 기록해서 총점으로 순위를 정함 (턴제, 최대 4명, 빠른 모드 없음).
+   화면: WebGL이 되면 공통 3D 테이블 위에 주사위 트레이와 컵을 올려서 굴리는 모습을 보여 주고(아래 '3D 주사위·컵'), 안 되면 2D 주사위 칸을 씀.
    칸 id: n1~n6(윗칸), three, four, full, small, large, yahtzee, chance(아랫칸). 점수판은 칸 순서(CATS)대로 배열로도 주고받음.
    손패(hand)는 카드가 아니라 '점수판 1장'을 뜻하는 표시: 공통 코드가 hand가 비면 끝난 사람으로 보기 때문에 게임 중에는 [0]으로 둠 */
 (function(){
-const G={id:'yahtzee',name:'야추다이스',short:'야추',lead:'주사위를 굴려 족보를 채우는 게임',brand:'야추',brandPx:62,maxHi:4};
+const G={id:'yahtzee',name:'야추다이스',short:'야추',lead:'주사위를 굴려 족보를 채우는 게임',brand:'야추',brandPx:62,maxHi:4,noFast:true};
 
 /* ---------- 규칙 (방장 엔진과 화면이 같은 함수를 씀) ---------- */
 const CATS=[
@@ -68,7 +69,7 @@ function totals(sc,yb){
   const bonus=upper>=UPPER_BONUS?UPPER_PTS:0;
   return {upper,bonus,lower,yb:yb||0,total:upper+bonus+lower+(yb||0)};
 }
-const roundsOf=fast=>fast?7:13;
+const ROUNDS=13;   // 빠른 모드 없음: 방 설정의 fast 값은 무시
 
 /* ---------- 봇 ---------- */
 /* 주사위 5개의 눈 조합은 252가지. 남길 눈을 정하면 다시 굴렸을 때 어느 조합이 얼마의 확률로 나오는지 미리 셀 수 있음 */
@@ -174,27 +175,162 @@ function plan(sc,dice,left,lv){
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 주사위 5개로 13칸짜리 점수판을 채워서 <b>총점이 가장 높은 사람</b>이 승리합니다</li><li><b>내 차례</b> : 주사위를 최대 3번 굴립니다. 굴린 뒤 남길 주사위를 눌러 <b>고정</b>하면 나머지만 다시 굴립니다</li><li><b>기록</b> : 굴리기를 멈추고 아직 비어 있는 칸 하나에 점수를 기록합니다. 조건이 맞지 않으면 0점으로 기록할 수도 있습니다</li><li><b>윗칸</b> : 고른 눈(1~6)만 더합니다. 윗칸 소계가 63점 이상이면 <b>보너스 35점</b>을 받습니다 (눈마다 3개씩 모으면 63점)</li><li><b>아랫칸</b> : 쓰리 카드(같은 눈 3개 이상, 눈 전체 합) · 포 카드(4개 이상, 눈 전체 합) · 풀하우스(3개 + 2개, 25점) · 스몰 스트레이트(4개 연속, 30점) · 라지 스트레이트(5개 연속, 40점) · 야추(5개 모두 같은 눈, 50점) · 찬스(조건 없음, 눈 전체 합)</li><li><b>야추 보너스</b> : 야추를 50점으로 기록한 뒤 또 야추가 나오면 <b>100점</b>을 더 받습니다. 이때는 같은 눈의 윗칸이 비어 있으면 그 칸에 기록해야 하고, 윗칸이 차 있으면 빈 아랫칸 아무 곳에 기록합니다. 풀하우스와 스트레이트는 정해진 점수를 받습니다</li><li><b>빠른 모드</b> : 13칸 중 원하는 7칸만 채우는 7라운드로 끝냅니다</li><li><b>제한 시간</b> : 내 차례에 제한 시간이 지나면 남은 굴림과 기록을 알아서 처리합니다. 연결이 끊긴 사람은 봇이 대신 합니다</li><li><b>항복</b> : 항복하면 점수와 상관없이 가장 낮은 순위가 됩니다</li></ol>';
-G.modeDesc=['13칸을 모두 채움','13칸 중 7칸만 채움 (7라운드)'];
-G.defaults={max:4,turn:45};
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 주사위 5개로 13칸짜리 점수판을 채워서 <b>총점이 가장 높은 사람</b>이 승리합니다</li><li><b>내 차례</b> : 주사위를 최대 3번 굴립니다. 굴리기 버튼을 <b>꾹 누르면 컵을 흔들고, 손을 떼면 던집니다</b>. 굴린 뒤 남길 주사위를 눌러 <b>고정</b>하면 나머지만 다시 굴립니다</li><li><b>기록</b> : 굴리기를 멈추고 아직 비어 있는 칸 하나에 점수를 기록합니다. 조건이 맞지 않으면 0점으로 기록할 수도 있습니다</li><li><b>윗칸</b> : 고른 눈(1~6)만 더합니다. 윗칸 소계가 63점 이상이면 <b>보너스 35점</b>을 받습니다 (눈마다 3개씩 모으면 63점)</li><li><b>아랫칸</b> : 쓰리 카드(같은 눈 3개 이상, 눈 전체 합) · 포 카드(4개 이상, 눈 전체 합) · 풀하우스(3개 + 2개, 25점) · 스몰 스트레이트(4개 연속, 30점) · 라지 스트레이트(5개 연속, 40점) · 야추(5개 모두 같은 눈, 50점) · 찬스(조건 없음, 눈 전체 합)</li><li><b>야추 보너스</b> : 야추를 50점으로 기록한 뒤 또 야추가 나오면 <b>100점</b>을 더 받습니다. 이때는 같은 눈의 윗칸이 비어 있으면 그 칸에 기록해야 하고, 윗칸이 차 있으면 빈 아랫칸 아무 곳에 기록합니다. 풀하우스와 스트레이트는 정해진 점수를 받습니다</li><li><b>제한 시간</b> : 내 차례에 제한 시간이 지나면 남은 굴림과 기록을 알아서 처리합니다. 연결이 끊긴 사람은 봇이 대신 합니다</li><li><b>항복</b> : 항복하면 점수와 상관없이 가장 낮은 순위가 됩니다</li></ol>';
+G.modeDesc=['13칸을 모두 채움','13칸을 모두 채움'];
+G.defaults={max:4,turn:60};
 G.roomSet=[
   {k:'turn',label:'제한 시간',unit:'초',lo:15,hi:180,step:5,desc:'내 차례에 제한 시간이 지나면 남은 굴림과 기록을 알아서 처리합니다. 연결이 끊긴 사람은 봇이 대신 합니다'}];
 G.ruleSet=[];
-G.cfgChips=c=>`<span class="chip">제한 시간 <b>${+c.turn||45}초</b></span>`;
-G.cfgSum=c=>`제한 시간 ${+c.turn||45}초`;
-G.roomSub=x=>`제한 시간 ${x.tn||45}초`;
-G.pubExtra=c=>({tn:+c.turn||45});
+G.cfgChips=c=>`<span class="chip">제한 시간 <b>${+c.turn||60}초</b></span>`;
+G.cfgSum=c=>`제한 시간 ${+c.turn||60}초`;
+G.roomSub=x=>`제한 시간 ${x.tn||60}초`;
+G.pubExtra=c=>({tn:+c.turn||60});
 G.cardInfo=(c,nowN)=>{
-  const r=roundsOf(c.fast),n=Math.max(2,Math.min(4,nowN));
+  const r=ROUNDS,n=Math.max(2,Math.min(4,nowN));
   return `<p class="cardinfo">지금 ${nowN}명이면 한 사람이 ${r}번씩, 모두 ${n*r}번 차례를 돕니다.${nowN>4?'<br>야추다이스는 최대 4명까지 할 수 있습니다.':''}</p>`;
 };
 G.rankTitle=()=>'';
 G.finLabel=()=>'완료';
 G.noEmotes=['gq'];
 G.keys={yroll:'KeyC'};
-G.keyActions=[{a:'yroll',n:'주사위 굴리기',d:'주사위를 굴립니다. 고정한 주사위는 그대로 둡니다'}];
+G.keyActions=[{a:'yroll',n:'주사위 굴리기',d:'누르고 있으면 컵을 흔들고, 떼면 던집니다. 고정한 주사위는 그대로 둡니다'}];
 /* 이 게임에는 카드가 없음 (공통 코드가 부르는 자리만 채움) */
 G.cardHTML=()=>'';G.drawFace=()=>{};G.cmpCard=()=>0;G.labelOf=()=>'';
+
+/* ---------- 주사위 물리 (화면 연출용, THREE 없이 숫자만 씀: 테스트에서도 돌림) ----------
+   좌표: 테이블 윗면 y=0, 트레이 가운데가 원점, 화면 쪽이 +z. 주사위는 모서리가 둥근 정육면체(모서리 8곳의 작은 공)로,
+   주사위끼리는 공 하나로 단순하게 부딪침. 눈은 방장이 정하고, 물리는 던지는 모습만 만든다 */
+const DS=.72,DH=DS/2,DRAD=.095,DIN=DH-DRAD;            // 한 변, 반, 모서리 둥글기, 모서리 공의 중심
+const TRAY_R=2.6,FLOOR=.024,SLOT_Z=1.35,SLOT_DX=.88;   // 트레이 안쪽 반지름, 펠트 높이, 주사위 칸 줄(z)과 간격
+const GRAV=-34;                                          // 실제보다 느리게 떨어뜨려서 굴러가는 모습이 보이게
+/* 눈 → 주사위 안쪽 좌표에서 그 면의 방향 (마주 보는 면의 합이 7) */
+const FACE_N={1:[0,1,0],6:[0,-1,0],2:[0,0,1],5:[0,0,-1],3:[1,0,0],4:[-1,0,0]};
+const qmul=(a,b)=>[a[0]*b[3]+a[3]*b[0]+a[1]*b[2]-a[2]*b[1],a[1]*b[3]+a[3]*b[1]+a[2]*b[0]-a[0]*b[2],a[2]*b[3]+a[3]*b[2]+a[0]*b[1]-a[1]*b[0],a[3]*b[3]-a[0]*b[0]-a[1]*b[1]-a[2]*b[2]];
+function qrot(q,v){
+  const x=q[0],y=q[1],z=q[2],w=q[3];
+  const ix=w*v[0]+y*v[2]-z*v[1],iy=w*v[1]+z*v[0]-x*v[2],iz=w*v[2]+x*v[1]-y*v[0],iw=-x*v[0]-y*v[1]-z*v[2];
+  return [ix*w+iw*-x+iy*-z-iz*-y,iy*w+iw*-y+iz*-x-ix*-z,iz*w+iw*-z+ix*-y-iy*-x];
+}
+function qnorm(q){const l=Math.hypot(q[0],q[1],q[2],q[3])||1;return [q[0]/l,q[1]/l,q[2]/l,q[3]/l]}
+/* 단위 벡터 a를 b로 돌리는 회전 */
+function qFromUnit(a,b){
+  let r=a[0]*b[0]+a[1]*b[1]+a[2]*b[2]+1,x,y,z;
+  if(r<1e-6){r=0;if(Math.abs(a[0])>Math.abs(a[2])){x=-a[1];y=a[0];z=0}else{x=0;y=-a[2];z=a[1]}}
+  else{x=a[1]*b[2]-a[2]*b[1];y=a[2]*b[0]-a[0]*b[2];z=a[0]*b[1]-a[1]*b[0]}
+  return qnorm([x,y,z,r]);
+}
+const qAxis=(ax,ang)=>{const s=Math.sin(ang/2);return [ax[0]*s,ax[1]*s,ax[2]*s,Math.cos(ang/2)]};
+/* 이 자세에서 위를 보는 눈 */
+function topFace(q){let best=1,by=-9;for(let v=1;v<=6;v++){const y=qrot(q,FACE_N[v])[1];if(y>by){by=y;best=v}}return best}
+/* 물리로 떨어진 자세 q에서 위를 보는 면에 '정해진 눈'이 오도록, 주사위 무늬를 미리 돌려 둘 회전 (보이는 자세 = q × 이 회전) */
+const preRot=(q,want)=>qFromUnit(FACE_N[want],FACE_N[topFace(q)]);
+/* 눈 want가 위로, 정면을 보게 칸에 놓인 자세. near가 있으면 그 자세에서 가장 덜 돌아가는 방향(90도 4가지 중)으로 */
+function restQ(want,near){
+  const base=qFromUnit(FACE_N[want],[0,1,0]);
+  let best=base,bd=-1;
+  for(let k=0;k<4;k++){
+    const q=qmul(qAxis([0,1,0],k*Math.PI/2),base);
+    if(!near)return q;
+    const d=Math.abs(q[0]*near[0]+q[1]*near[1]+q[2]*near[2]+q[3]*near[3]);
+    if(d>bd){bd=d;best=q}
+  }
+  return best;
+}
+const slotPos=i=>[(i-2)*SLOT_DX,FLOOR+DH,SLOT_Z];
+/* 컵에서 쏟아질 때의 처음 상태. mouth: 컵 입구, dir: 쏟는 방향(수평 단위 벡터) */
+function throwStarts(n,mouth,dir,rnd){
+  const side=[-dir[2],0,dir[0]],out=[];
+  for(let k=0;k<n;k++){
+    const a=(k/n)*Math.PI*2+rnd()*.6,r=n>1?.42:0,f=.25+k*.2;   // 처음부터 겹치지 않게 조금씩 떨어뜨려 둠
+    const p=[mouth[0]+dir[0]*f+side[0]*Math.cos(a)*r,mouth[1]+Math.sin(a)*r*.6,mouth[2]+dir[2]*f+side[2]*Math.cos(a)*r];
+    const sp=3.2+rnd()*1.8,lat=(rnd()-.5)*1.6;
+    const v=[dir[0]*sp+side[0]*lat,-.6+rnd()*1.4,dir[2]*sp+side[2]*lat];
+    const wl=12+rnd()*12,wa=[rnd()-.5,rnd()-.5,rnd()-.5],wn=Math.hypot(...wa)||1;
+    out.push({p,v,q:qnorm([rnd()-.5,rnd()-.5,rnd()-.5,rnd()-.5]),w:wa.map(x=>x/wn*wl)});
+  }
+  return out;
+}
+/* 끝까지 미리 계산해서 1/60초마다 자세를 기록. statics: 칸에 고정된 주사위 위치 (움직이지 않는 장애물) */
+function simThrow(starts,statics){
+  const n=starts.length,dt=1/240,INV=6/(DS*DS),MU=.45,RS=DH*1.06;
+  const B=starts.map(s=>({p:s.p.slice(),v:s.v.slice(),q:qnorm(s.q),w:s.w.slice(),fl:false,calm:0,lastHit:-1}));
+  const C=[];for(const a of [-1,1])for(const b of [-1,1])for(const c of [-1,1])C.push([a*DIN,b*DIN,c*DIN]);
+  const frames=[],hits=[];
+  const rec=()=>{const f=new Float32Array(n*7);B.forEach((b,i)=>{f[i*7]=b.p[0];f[i*7+1]=b.p[1];f[i*7+2]=b.p[2];f[i*7+3]=b.q[0];f[i*7+4]=b.q[1];f[i*7+5]=b.q[2];f[i*7+6]=b.q[3]});frames.push(f)};
+  /* 한 점에서의 충돌: 튕김 + 마찰 (주사위 질량 1, 관성 모멘트 DS²/6) */
+  const contact=(b,r,nx,ny,nz,pen,e,step)=>{
+    const vpx=b.v[0]+b.w[1]*r[2]-b.w[2]*r[1],vpy=b.v[1]+b.w[2]*r[0]-b.w[0]*r[2],vpz=b.v[2]+b.w[0]*r[1]-b.w[1]*r[0];
+    const vn=vpx*nx+vpy*ny+vpz*nz;
+    if(vn<0){
+      const rnx=r[1]*nz-r[2]*ny,rny=r[2]*nx-r[0]*nz,rnz=r[0]*ny-r[1]*nx;
+      const k=1+INV*(rnx*rnx+rny*rny+rnz*rnz),j=-(1+(vn<-1.4?e:0))*vn/k;
+      b.v[0]+=nx*j;b.v[1]+=ny*j;b.v[2]+=nz*j;b.w[0]+=INV*j*rnx;b.w[1]+=INV*j*rny;b.w[2]+=INV*j*rnz;
+      // 마찰: 미끄러지는 방향 반대로, 누르는 힘에 비례한 만큼까지
+      const ux=b.v[0]+b.w[1]*r[2]-b.w[2]*r[1],uy=b.v[1]+b.w[2]*r[0]-b.w[0]*r[2],uz=b.v[2]+b.w[0]*r[1]-b.w[1]*r[0];
+      const un=ux*nx+uy*ny+uz*nz,tx=ux-nx*un,ty=uy-ny*un,tz=uz-nz*un,tl=Math.hypot(tx,ty,tz);
+      if(tl>1e-6){
+        const ex=tx/tl,ey=ty/tl,ez=tz/tl,rtx=r[1]*ez-r[2]*ey,rty=r[2]*ex-r[0]*ez,rtz=r[0]*ey-r[1]*ex;
+        const jt=Math.min(tl/(1+INV*(rtx*rtx+rty*rty+rtz*rtz)),MU*j);
+        b.v[0]-=ex*jt;b.v[1]-=ey*jt;b.v[2]-=ez*jt;b.w[0]-=INV*jt*rtx;b.w[1]-=INV*jt*rty;b.w[2]-=INV*jt*rtz;
+      }
+      if(-vn>1.6&&step-b.lastHit>10){b.lastHit=step;hits.push([step*dt,-vn])}
+    }
+    const c=Math.min(pen,.05)*.5;b.p[0]+=nx*c;b.p[1]+=ny*c;b.p[2]+=nz*c;
+  };
+  rec();
+  const MAXS=Math.round(3.2/dt);let quiet=0,step=0;
+  for(;step<MAXS;step++){
+    for(const b of B){
+      b.v[1]+=GRAV*dt;
+      const wd=b.fl?1-3.2*dt:1-.35*dt,vd=b.fl?1-1.1*dt:1-.04*dt;
+      b.w[0]*=wd;b.w[1]*=wd;b.w[2]*=wd;b.v[0]*=vd;b.v[2]*=vd;
+      b.p[0]+=b.v[0]*dt;b.p[1]+=b.v[1]*dt;b.p[2]+=b.v[2]*dt;
+      const dq=qmul([b.w[0],b.w[1],b.w[2],0],b.q);
+      b.q=qnorm([b.q[0]+dq[0]*.5*dt,b.q[1]+dq[1]*.5*dt,b.q[2]+dq[2]*.5*dt,b.q[3]+dq[3]*.5*dt]);
+      b.fl=false;
+    }
+    for(let it=0;it<3;it++){
+      for(const b of B){
+        for(const c of C){
+          const r=qrot(b.q,c),px=b.p[0]+r[0],py=b.p[1]+r[1],pz=b.p[2]+r[2];
+          const pf=FLOOR+DRAD-py;
+          if(pf>0){b.fl=true;contact(b,r,0,1,0,pf,.32,step)}
+          const hd=Math.hypot(px,pz),pw=hd+DRAD-TRAY_R;
+          if(pw>0&&hd>1e-6)contact(b,r,-px/hd,0,-pz/hd,pw,.42,step);
+        }
+      }
+      // 주사위끼리 (공으로 단순화), 칸에 고정된 주사위는 움직이지 않음
+      for(let i=0;i<n;i++){
+        const a=B[i];
+        for(let j=i+1;j<=n-1+statics.length;j++){
+          const o=j<n?B[j]:null,op=o?o.p:statics[j-n];
+          const dx=op[0]-a.p[0],dy=op[1]-a.p[1],dz=op[2]-a.p[2],d=Math.hypot(dx,dy,dz);
+          if(d>=RS*2||d<1e-6)continue;
+          const nx=dx/d,ny=dy/d,nz=dz/d,pen=RS*2-d;
+          const rv=((o?o.v[0]:0)-a.v[0])*nx+((o?o.v[1]:0)-a.v[1])*ny+((o?o.v[2]:0)-a.v[2])*nz;
+          if(rv<0){
+            const jj=-(1.35)*rv/(o?2:1);
+            a.v[0]-=nx*jj;a.v[1]-=ny*jj;a.v[2]-=nz*jj;
+            if(o){o.v[0]+=nx*jj;o.v[1]+=ny*jj;o.v[2]+=nz*jj}
+            if(-rv>1.6&&step-a.lastHit>10){a.lastHit=step;hits.push([step*dt,-rv*.8])}
+          }
+          const m=o?pen/2:pen;a.p[0]-=nx*m;a.p[1]-=ny*m;a.p[2]-=nz*m;
+          if(o){o.p[0]+=nx*m;o.p[1]+=ny*m;o.p[2]+=nz*m}
+        }
+      }
+    }
+    let all=true;
+    for(const b of B){
+      const calm=b.fl&&Math.hypot(...b.v)<.08&&Math.hypot(...b.w)<.7;
+      b.calm=calm?b.calm+1:0;if(b.calm<20)all=false;
+    }
+    quiet=all?quiet+1:0;
+    if(step%4===3)rec();
+    if(quiet>0)break;
+  }
+  rec();
+  return {frames,hits,fin:B.map(b=>b.q.slice()),pos:B.map(b=>b.p.slice()),dur:frames.length/60};
+}
 
 /* ---------- 방장 엔진 (규칙 처리) ---------- */
 function nextP(i){
@@ -208,7 +344,7 @@ function startTurn(i){
   H.turn=i;H.graceUntil=0;
   H.deadline=clock()+H.cfg.turn*1000;
   H.botActAt=H.players[i].bot?clock()+rand(900,1800):0;
-  Y.dice=[0,0,0,0,0];Y.held=[false,false,false,false,false];Y.left=3;Y.rolled=false;Y.tn++;
+  Y.dice=[0,0,0,0,0];Y.held=[false,false,false,false,false];Y.left=3;Y.rolled=false;Y.tn++;Y.sh=0;Y.shk=[false,false,false,false,false];Y.bk=null;
   mark();
 }
 /* keep: 남길 주사위 5칸(true = 남김). 첫 굴림에는 모두 굴림 */
@@ -220,8 +356,17 @@ function doRoll(i,keep){
   if(Y.rolled&&k.every(Boolean))return false;
   Y.held=k;
   for(let j=0;j<5;j++)if(!k[j])Y.dice[j]=1+(Math.random()*6|0);
-  Y.left--;Y.rolled=true;Y.rl++;
+  Y.left--;Y.rolled=true;Y.rl++;Y.sh=0;Y.bk=null;
   mark();return true;
+}
+/* 컵 흔들기 (화면 연출용): 다른 사람 화면에도 컵을 흔드는 모습과 컵에 들어갈 주사위를 보여 줌. 규칙에는 영향 없음 */
+function doShake(i,keep){
+  const Y=H.y;
+  if(Y.left<=0||Y.sh)return false;
+  const k=Y.rolled&&Array.isArray(keep)?keep.slice(0,5).map(Boolean):[false,false,false,false,false];
+  while(k.length<5)k.push(false);
+  if(Y.rolled&&k.every(Boolean))return false;
+  Y.sh=1;Y.shk=k;mark();return true;
 }
 function doScore(i,cat){
   const Y=H.y,p=H.players[i],d=Y.dice;
@@ -258,11 +403,14 @@ function doSurrender(i){
   if(H.turn===i)startTurn(nextP(i));else mark();
 }
 /* 한 번 굴리거나 기록하는 봇의 한 동작 */
+/* 봇: 컵을 잠깐 흔든 뒤 굴리고, 화면에서 주사위가 다 떨어질 때까지 기다렸다가 다음 동작 */
+const ROLL_ANIM=2700;   // 컵을 기울여 던지고 주사위가 칸에 놓일 때까지 걸리는 시간 (화면 연출, 대략)
 function botStep(i){
   const Y=H.y;
-  if(!Y.rolled){doRoll(i,[]);H.botActAt=clock()+rand(900,1600);return}
+  if(Y.sh){doRoll(i,Y.bk||Y.shk);H.botActAt=clock()+ROLL_ANIM+rand(500,1200);return}
+  if(!Y.rolled){if(doShake(i,[]))H.botActAt=clock()+rand(650,1000);else doRoll(i,[]);return}
   const pl=plan(Y.sc[i],Y.dice,Y.left,botLv(H.players[i]));
-  if(pl.keep&&doRoll(i,pl.keep)){H.botActAt=clock()+rand(900,1600);return}
+  if(pl.keep&&doShake(i,pl.keep)){Y.bk=pl.keep.slice();H.botActAt=clock()+rand(650,1000);return}
   const cat=pl.cat||bestFor(Y.sc[i],Y.dice).cat||allowed(Y.sc[i],Y.dice)[0];
   doScore(i,cat);
 }
@@ -271,6 +419,7 @@ function autoFinish(i){
   const Y=H.y;
   for(let g=0;g<6;g++){
     if(!Y.rolled){doRoll(i,[]);continue}
+    if(Y.sh&&Y.left>0&&doRoll(i,Y.shk))continue;   // 흔들던 중이면 그 주사위로 굴림
     const pl=plan(Y.sc[i],Y.dice,Y.left,1);
     if(pl.keep&&doRoll(i,pl.keep))continue;
     const cat=pl.cat||bestFor(Y.sc[i],Y.dice).cat||allowed(Y.sc[i],Y.dice)[0];
@@ -284,14 +433,14 @@ function timeout(){
   autoFinish(i);
 }
 /* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
-G._test={CATS,calc,allowed,totals,jokerOf,plan,bestFor,doRoll,doScore,doSurrender,autoFinish,timeout,botStep,rerollDist,msIdx,MS,roundsOf,hasRun,counts,isY,mkSc,
-  view:{turnHTML,diceHTML,rollHTML,boardHTML,hintText,preView:()=>G.preView(),overExtra:()=>G.overExtra(),setCat:c=>{yCat=c},getCat:()=>yCat,getHold:()=>yHold.slice(),setHold:h=>{yHold=h.slice()}}};
+G._test={phys:{simThrow,throwStarts,topFace,preRot,restQ,qrot,qmul,qAxis,FACE_N,slotPos,TRAY_R,DS,DH,FLOOR,DRAD},CATS,calc,allowed,totals,jokerOf,plan,bestFor,doRoll,doShake,doScore,doSurrender,autoFinish,timeout,botStep,rerollDist,msIdx,MS,ROUNDS,hasRun,counts,isY,mkSc,
+  d3:()=>({A,D3}),view:{turnHTML,diceHTML,rollHTML,boardHTML,hintText,preView:()=>G.preView(),overExtra:()=>G.overExtra(),setCat:c=>{yCat=c},getCat:()=>yCat,getHold:()=>yHold.slice(),setHold:h=>{yHold=h.slice()}}};
 G.engine={
   /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
   start(){
-    const n=H.players.length,cnt=Math.max(2,Math.min(n,4)),rounds=roundsOf(H.cfg.fast);
+    const n=H.players.length,cnt=Math.max(2,Math.min(n,4)),rounds=ROUNDS;
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,rankBottom:cnt,known:{}});
-    const Y={n,cnt,rounds,sc:[],yb:[],done:[],dice:[0,0,0,0,0],held:[false,false,false,false,false],left:3,rolled:false,rl:0,tn:0,lm:null,first:0};
+    const Y={n,cnt,rounds,sc:[],yb:[],done:[],dice:[0,0,0,0,0],held:[false,false,false,false,false],left:3,rolled:false,rl:0,tn:0,lm:null,first:0,sh:0,shk:[false,false,false,false,false],bk:null};
     H.players.forEach((p,i)=>{
       Y.sc.push(mkSc());Y.yb.push(0);
       if(i<cnt){Y.done.push(0);p.hand=[0]}
@@ -305,7 +454,9 @@ G.engine={
   act(seat,a){
     if(a.t==='surrender'){doSurrender(seat);return}
     if(H.phase!=='play'||seat<0||H.turn!==seat)return;
-    if(a.t==='roll'){
+    if(a.t==='shake'){
+      doShake(seat,Array.isArray(a.keep)?a.keep:[]);
+    }else if(a.t==='roll'){
       doRoll(seat,Array.isArray(a.keep)?a.keep:[]);
     }else if(a.t==='score'){
       if(typeof a.cat!=='string')return;
@@ -322,7 +473,7 @@ G.engine={
     const Y=H.y;
     s.y={n:Y.n,cnt:Y.cnt,rd:Y.rounds,d:Y.dice.slice(),hd:Y.held.slice(),l:Y.left,r:Y.rolled?1:0,rl:Y.rl,tn:Y.tn,
       sc:Y.sc.map(o=>CATS.map(c=>o[c.id])),yb:Y.yb.slice(),dn:Y.done.slice(),
-      lm:Y.lm?{p:Y.lm.p,c:Y.lm.c,pt:Y.lm.pt,d:Y.lm.d.slice()}:null,f0:Y.first};
+      lm:Y.lm?{p:Y.lm.p,c:Y.lm.c,pt:Y.lm.pt,d:Y.lm.d.slice()}:null,f0:Y.first,sh:Y.sh?1:0,shk:(Y.shk||[]).slice()};
     s.gr=0;s.dl=Math.max(0,Math.round(H.deadline-t));
   },
   restore(){},
@@ -332,7 +483,7 @@ G.engine={
 /* ---------- 화면 (모든 참가자) ---------- */
 const PIPS={0:[],1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
 let yCat=null,yHold=[false,false,false,false,false],yLock={rl:-1,tn:-1,at:0},yMsg='',yMsgUntil=0,yMsgTimer=null,yTumbleUntil=0;
-let elYz=null,elTurn=null,elDice=null,elRoll=null,elHint=null,elTbl=null,lastTurn='',lastDice='',lastRoll='',lastBoard='',lastHint='';
+let elYz=null,elTurn=null,elDice=null,elRoll=null,elHint=null,elTbl=null,elLeft=null,elHold=null,yInk={k:'',until:0},lastTurn='',lastDice='',lastRoll='',lastBoard='',lastHint='';
 const scoreOf=i=>{const o={};if(V&&V.y&&V.y.sc[i])CATS.forEach((c,k)=>{o[c.id]=V.y.sc[i][k]});return o};
 const myTurnNow=()=>!!(V&&V.y&&V.st==='play'&&myReady());
 function say(txt){
@@ -340,14 +491,17 @@ function say(txt){
   clearTimeout(yMsgTimer);yMsgTimer=setTimeout(drawHint,2500);
 }
 function canRoll(){
-  if(!myTurnNow())return false;
+  if(!myTurnNow()||!d3Ready())return false;
   const Y=V.y;
   if(Y.l<=0)return false;
   if(yLock.rl===Y.rl&&yLock.tn===Y.tn&&Date.now()-yLock.at<1500)return false;
   return !Y.r||yHold.some(h=>!h);
 }
+/* 굴리기 버튼을 누를 수 있는가: 굴릴 수 있거나, 지금 내가 꾹 누르고 흔드는 중 */
+const shakingMine=()=>D3.on&&A.mine&&!A.released&&(A.st==='lift'||A.st==='shake');
+const rollOn=()=>canRoll()||shakingMine();
 function canScore(){
-  if(!myTurnNow()||!V.y.r||!yCat)return false;
+  if(!myTurnNow()||!V.y.r||!yCat||!d3Ready())return false;
   if(yLock.tn===V.y.tn&&yLock.sc&&Date.now()-yLock.at<1500)return false;
   return true;
 }
@@ -370,19 +524,370 @@ function toggleHold(i){
   if(!V||!V.y||V.st!=='play'||myIdx()<0||V.t!==myIdx())return;
   if(!V.y.r){say('먼저 주사위를 굴려야 합니다.');return}
   if(V.y.l<=0){say('굴림을 모두 썼습니다. 기록할 칸을 골라 주세요.');return}
-  if(!myTurnNow())return;
+  if(!myTurnNow()||!d3Ready())return;
   yHold[i]=!yHold[i];
   try{sfx('pick')}catch(e){}
   drawAll();G.buttons();
 }
 function pickCat(id){
-  if(!myTurnNow())return;
+  if(!myTurnNow()||!d3Ready())return;
   if(!V.y.r){say('먼저 주사위를 굴려야 합니다.');return}
   if(allowed(scoreOf(myIdx()),V.y.d).indexOf(id)<0)return;
   if(yCat===id){record();return}
   yCat=id;try{sfx('tick')}catch(e){}
   drawAll();G.buttons();
 }
+/* ---------- 3D 주사위·컵 (화면 연출) ----------
+   공통 3D 테이블(T.scene)에 트레이·컵·주사위를 올리고, 자기 카메라(D3.cam)로 점수 종이에 가리지 않는 자리에 그림.
+   흐름(A.st): idle → lift(컵이 들려 오고 다시 굴릴 주사위가 컵으로) → shake(흔들기) → pour(기울이기)
+              → wait(내가 던졌는데 방장 결과가 아직이면) → fly(미리 계산한 물리를 재생) → rest → slot(칸으로 정렬) → idle
+   내 차례: 굴리기 버튼을 누르는 동안 흔들고, 떼면 방장에게 굴리기를 보내며 컵을 기울임.
+   다른 사람·봇·관전: 방장 상태의 sh(흔드는 중)와 rl(굴림 번호)을 보고 같은 흐름을 재생.
+   주사위가 칸에 놓이기 전(d3Ready가 아닐 때)에는 고정·기록·다시 굴리기를 막고 점수 예상값도 숨김 */
+const D3={on:false,built:false,fail:false,dirty:true,lastR:0,lay:'',layDirty:true,layAt:0,root:null,cam:null,cup:null,band:null,dice:[],held:[],bandCol:-1,d:12};
+const A={st:'idle',tn:-1,rl:-1,t0:0,mine:false,released:false,pend:null,rec:null,thrown:[],keep:[false,false,false,false,false],shakeT0:0,recT0:0,hitK:0,rattleAt:0,waitUntil:0};
+const CUP_REST=[2.5,0,-2.45],CUP_UP=[1.55,1.2,.25],CUP_H=1;   // 컵이 쉬는 자리(트레이 밖 오른쪽 뒤), 흔드는 자리
+const POUR_DIR=(()=>{const x=-.55,z=-.835,l=Math.hypot(x,z);return [x/l,0,z/l]})();
+const Q_ID=[0,0,0,1],Q_POUR=qAxis((()=>{const l=Math.hypot(POUR_DIR[2],POUR_DIR[0]);return [POUR_DIR[2]/l,0,-POUR_DIR[0]/l]})(),1.95);
+const ease=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
+const reduced=()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}};
+function qslerp(a,b,k){
+  let d=a[0]*b[0]+a[1]*b[1]+a[2]*b[2]+a[3]*b[3],s=1;if(d<0){d=-d;s=-1}
+  if(d>.9995)return qnorm(a.map((x,i)=>x+(s*b[i]-x)*k));
+  const th=Math.acos(d),sn=Math.sin(th),wa=Math.sin((1-k)*th)/sn,wb=s*Math.sin(k*th)/sn;
+  return [a[0]*wa+b[0]*wb,a[1]*wa+b[1]*wb,a[2]*wa+b[2]*wb,a[3]*wa+b[3]*wb];
+}
+const mouthOf=(p,q)=>{const m=qrot(q,[0,CUP_H*.92,0]);return [p[0]+m[0],p[1]+m[1],p[2]+m[2]]};
+const mineNow=()=>!!(V&&V.y&&V.st==='play'&&myIdx()>=0&&V.t===myIdx());
+/* 주사위가 칸에 놓여 있어서 고정·기록·굴리기를 해도 되는가 (2D 화면이면 항상) */
+function d3Ready(){
+  if(!D3.on||!V||!V.y||V.st!=='play')return true;
+  return A.st==='idle'&&A.tn===V.y.tn&&A.rl===V.y.rl;
+}
+/* 칸에 남아 있는 주사위(노란 테두리): 내 차례는 내가 고른 고정, 남의 차례는 흔드는 중이면 그 표시, 아니면 지난 굴림에서 남긴 것 */
+function heldShown(i){
+  const Y=V&&V.y;if(!Y||!Y.r||V.st!=='play')return false;
+  if(mineNow())return !!yHold[i];
+  return !!(Y.sh?(Y.shk||[])[i]:Y.hd[i]);
+}
+
+/* --- 물체 만들기 (처음 3D가 필요할 때 한 번) --- */
+function roundBox(s,r,seg){
+  const g=new THREE.BoxGeometry(s,s,s,seg,seg,seg),pa=g.attributes.position,na=g.attributes.normal,h=s/2-r;
+  for(let k=0;k<pa.count;k++){
+    const x=pa.getX(k),y=pa.getY(k),z=pa.getZ(k);
+    const cx=Math.max(-h,Math.min(h,x)),cy=Math.max(-h,Math.min(h,y)),cz=Math.max(-h,Math.min(h,z));
+    let nx=x-cx,ny=y-cy,nz=z-cz;const l=Math.hypot(nx,ny,nz);
+    if(l<1e-9){nx=na.getX(k);ny=na.getY(k);nz=na.getZ(k)}else{nx/=l;ny/=l;nz/=l}
+    pa.setXYZ(k,cx+nx*r,cy+ny*r,cz+nz*r);na.setXYZ(k,nx,ny,nz);
+  }
+  pa.needsUpdate=na.needsUpdate=true;return g;
+}
+function pipTex(v){
+  return canvasTex(128,128,(g,w,h)=>{
+    g.fillStyle='#fbf3e0';g.fillRect(0,0,w,h);
+    const gr=g.createRadialGradient(w/2,h/2,w*.32,w/2,h/2,w*.74);gr.addColorStop(0,'rgba(120,90,50,0)');gr.addColorStop(1,'rgba(120,90,50,.2)');g.fillStyle=gr;g.fillRect(0,0,w,h);
+    const P=[.26,.5,.74],R=v===1?w*.135:w*.088;
+    for(const k of PIPS[v]){
+      const x=P[(k-1)%3]*w,y=P[Math.floor((k-1)/3)]*h;
+      g.fillStyle=v===1?'#cc3a2e':'#2a2118';g.beginPath();g.arc(x,y,R,0,7);g.fill();
+    }
+  });
+}
+function frameTex(color,fill){
+  return canvasTex(128,128,(g,w,h)=>{
+    g.clearRect(0,0,w,h);rr(g,8,8,w-16,h-16,22);
+    if(fill){g.fillStyle=fill;g.fill()}
+    g.lineWidth=7;g.strokeStyle=color;g.stroke();
+  });
+}
+function d3Build(){
+  if(D3.built||D3.fail)return D3.built;
+  try{
+    const root=new THREE.Group();root.visible=false;
+    const ink=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide});
+    // 트레이: 펠트 위에 둥근 나무 테두리
+    const wallH=.42,th=.16,wood=toon({color:0xa0653a,rim:.25}),woodIn=toon({color:0x93593a,rim:0});woodIn.side=THREE.BackSide;
+    const outer=new THREE.Mesh(new THREE.CylinderGeometry(TRAY_R+th,TRAY_R+th+.03,wallH,80,1,true),wood);outer.position.y=wallH/2;
+    const inner=new THREE.Mesh(new THREE.CylinderGeometry(TRAY_R,TRAY_R,wallH,80,1,true),woodIn);inner.position.y=wallH/2;
+    const top=new THREE.Mesh(new THREE.RingGeometry(TRAY_R,TRAY_R+th,80),wood);top.rotation.x=-Math.PI/2;top.position.y=wallH;
+    outer.castShadow=true;outer.receiveShadow=inner.receiveShadow=top.receiveShadow=true;
+    root.add(outer,inner,top);
+    const feltT=canvasTex(512,512,(g,w,h)=>{
+      const gr=g.createRadialGradient(w/2,h/2,40,w/2,h/2,w/2);gr.addColorStop(0,'#3f9a69');gr.addColorStop(1,'#2d7350');g.fillStyle=gr;g.fillRect(0,0,w,h);
+      for(let k=0;k<2600;k++){g.fillStyle=Math.random()<.5?'rgba(255,255,255,.035)':'rgba(0,0,0,.04)';g.fillRect(Math.random()*w,Math.random()*h,2,2)}   // 펠트 결
+    });
+    const felt=new THREE.Mesh(new THREE.CircleGeometry(TRAY_R+.01,80),toon({map:feltT,rim:0}));felt.rotation.x=-Math.PI/2;felt.position.y=FLOOR;felt.receiveShadow=true;root.add(felt);   // 공통 테이블의 펠트(높이 .016)보다 살짝 위: 겹쳐서 깜빡이지 않게
+    const inkM=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.DoubleSide});
+    for(const [r0,r1,y] of [[TRAY_R-.012,TRAY_R+.012,wallH+.002],[TRAY_R+th-.012,TRAY_R+th+.014,wallH+.002]]){const m=new THREE.Mesh(new THREE.RingGeometry(r0,r1,80),inkM);m.rotation.x=-Math.PI/2;m.position.y=y;root.add(m)}
+    {const m=new THREE.Mesh(new THREE.CylinderGeometry(TRAY_R+th+.05,TRAY_R+th+.05,.03,80,1,true),inkM);m.position.y=.015;root.add(m)}
+    // 주사위 칸 5개와 고정 표시
+    const slotM=new THREE.MeshBasicMaterial({map:frameTex('rgba(255,250,240,.6)'),transparent:true,depthWrite:false});
+    const heldM=new THREE.MeshBasicMaterial({map:frameTex('#f2b632','rgba(242,182,50,.28)'),transparent:true,depthWrite:false});
+    const pg=new THREE.PlaneGeometry(DS*1.42,DS*1.42);
+    D3.held=[];
+    for(let i=0;i<5;i++){
+      const sp=slotPos(i);
+      const a=new THREE.Mesh(pg,slotM);a.rotation.x=-Math.PI/2;a.position.set(sp[0],FLOOR+.004,sp[2]);a.renderOrder=1;root.add(a);
+      const b=new THREE.Mesh(pg,heldM);b.rotation.x=-Math.PI/2;b.position.set(sp[0],FLOOR+.007,sp[2]);b.renderOrder=2;b.visible=false;root.add(b);D3.held.push(b);
+    }
+    // 주사위: 모서리가 둥근 정육면체 + 외곽선. 면 순서 +x,-x,+y,-y,+z,-z = 3,4,1,6,2,5 (FACE_N과 같음)
+    const dg=roundBox(DS,DRAD,8),mats=[3,4,1,6,2,5].map(v=>toon({map:pipTex(v),rim:.12}));
+    D3.dice=[];
+    for(let i=0;i<5;i++){
+      const g=new THREE.Group(),m=new THREE.Mesh(dg,mats),o=new THREE.Mesh(dg,ink);
+      o.scale.setScalar(1.075);m.castShadow=true;g.add(m,o);g.visible=false;root.add(g);
+      D3.dice.push({g,val:1,where:'cup',tw:null,pr:Q_ID,k:-1,p:slotPos(i),q:Q_ID});
+    }
+    // 컵: 가죽 컵 (안쪽 벽까지 있는 회전체) + 차례인 사람 색 띠
+    const V2=(x,y)=>new THREE.Vector2(x,y);
+    const prof=[V2(0,0),V2(.47,0),V2(.5,.05),V2(.58,CUP_H-.03),V2(.62,CUP_H),V2(.6,CUP_H+.03),V2(.54,CUP_H+.02),V2(.46,.14),V2(0,.14)];
+    const cup=new THREE.Group(),lm=toon({color:0x6e3b22,rim:.22});lm.side=THREE.DoubleSide;
+    const body=new THREE.Mesh(new THREE.LatheGeometry(prof,48),lm);body.castShadow=true;
+    const hullG=new THREE.LatheGeometry(prof.slice(0,6).map(v=>V2(v.x+.035,v.y-.02)),48);
+    const hl=new THREE.Mesh(hullG,ink);
+    D3.band=toon({color:0xc53026,rim:.2});
+    const b1=new THREE.Mesh(new THREE.TorusGeometry(.57,.045,10,48),D3.band);b1.rotation.x=Math.PI/2;b1.position.y=.84;
+    const b2=new THREE.Mesh(new THREE.TorusGeometry(.5,.035,10,48),toon({color:0xd9a441,rim:.2}));b2.rotation.x=Math.PI/2;b2.position.y=.13;
+    cup.add(body,hl,b1,b2);root.add(cup);
+    D3.cup={g:cup,p:CUP_REST.slice(),q:Q_ID,tw:null};
+    cup.position.set(...CUP_REST);
+    D3.cam=new THREE.PerspectiveCamera(36,1,.1,100);
+    T.scene.add(root);D3.root=root;D3.built=true;
+  }catch(e){D3.fail=true;D3.built=false;try{console.warn('yahtzee 3D off',e)}catch(_){}}
+  return D3.built;
+}
+
+/* --- 움직임 --- */
+function dieTo(i,p1,q1,dur,o){
+  const d=D3.dice[i],now=clock();
+  d.tw={p0:d.p.slice(),p1:p1.slice(),q0:d.q.slice(),q1:q1.slice(),t0:now+((o&&o.delay)||0),dur,arc:(o&&o.arc)||0,end:(o&&o.end)||'slot'};
+  d.where='tw';d.g.visible=true;
+}
+function placeSlot(i){
+  const d=D3.dice[i],near=d.q;d.tw=null;d.where='slot';d.p=slotPos(i);d.q=restQ(d.val,near);d.g.visible=true;
+}
+function cupTo(p1,q1,dur){const c=D3.cup;c.tw={p0:c.p.slice(),p1:p1.slice(),q0:c.q.slice(),q1:q1.slice(),t0:clock(),dur}}
+function d3NewTurn(Y){
+  const joined=A.tn<0;   // 방금 화면을 켰음(관전 시작·재접속): 이미 굴린 주사위는 바로 칸에
+  A.tn=Y.tn;A.rl=Y.rl;A.pend=null;A.st='idle';A.mine=false;A.rec=null;
+  cupTo(CUP_REST,Q_ID,380);
+  const mouth=mouthOf(CUP_REST,Q_ID);
+  if(Y.r&&joined){
+    D3.dice.forEach((d,i)=>{d.val=Y.d[i]||1;if(d.where!=='slot'){d.p=mouth.slice();d.q=restQ(d.val)}dieTo(i,slotPos(i),restQ(d.val,d.q),320,{arc:.4})});
+    return;
+  }
+  // 칸에 있던 주사위는 컵으로 모음. 그사이 새 차례 사람이 벌써 굴렸으면(화면이 잠시 멈췄던 경우) 다음 프레임에 던지는 모습부터 보여 줌
+  if(Y.r)A.rl=-1;
+  D3.dice.forEach((d,i)=>{
+    if(d.g.visible)dieTo(i,mouth,d.q,360,{arc:.6,end:'cup',delay:i*40});
+    else{d.where='cup';d.tw=null}
+  });
+}
+/* 컵을 들어 흔들 준비: keep이 아닌 주사위는 컵으로 */
+function d3Lift(keep,mine){
+  const now=clock();
+  A.st='lift';A.t0=now;A.mine=mine;A.released=false;A.keep=keep.slice();A.rattleAt=0;
+  cupTo(CUP_UP,Q_ID,280);
+  const mouth=mouthOf(CUP_UP,Q_ID);
+  D3.dice.forEach((d,i)=>{if(!keep[i]&&d.where!=='cup')dieTo(i,mouth,d.q,260,{arc:.5,end:'cup',delay:i*25})});
+  D3.dirty=true;
+}
+function d3StartPour(){
+  A.st='pour';A.t0=clock();
+  cupTo(CUP_UP,Q_POUR,240);
+  hiss(.3,{freq:700,sweep:2600,q:.8,vol:.09});
+  d3Sim(A.keep);
+}
+/* 던질 주사위(keep이 아닌 것)의 물리를 미리 끝까지 계산 */
+function d3Sim(keep){
+  const thrown=[],statics=[];
+  for(let i=0;i<5;i++){if(keep[i])statics.push(slotPos(i));else thrown.push(i)}
+  A.thrown=thrown;A.simKeep=keep.slice();
+  A.rec=thrown.length?simThrow(throwStarts(thrown.length,mouthOf(CUP_UP,Q_POUR),POUR_DIR,Math.random),statics):null;
+}
+function d3Launch(){
+  const pd=A.pend;A.pend=null;
+  if(pd.hd.some((h,i)=>!!h!==!!A.simKeep[i]))d3Sim(pd.hd.map(Boolean));   // 흔들 때와 실제로 남긴 주사위가 다르면 다시 계산
+  D3.dice.forEach((d,i)=>{d.val=pd.d[i]||1});
+  pd.hd.forEach((h,i)=>{if(h&&D3.dice[i].where!=='slot')placeSlot(i)});
+  if(!A.rec||reduced()){   // 움직임 줄이기: 컵에서 바로 칸으로
+    A.thrown.forEach((i,k)=>{const d=D3.dice[i];d.p=mouthOf(D3.cup.p,D3.cup.q);dieTo(i,slotPos(i),restQ(d.val),320,{arc:.5,delay:k*50})});
+    A.st='slot';cupTo(CUP_REST,Q_ID,450);return;
+  }
+  const f0=A.rec.frames[0];
+  A.thrown.forEach((i,k)=>{const d=D3.dice[i];d.pr=preRot(A.rec.fin[k],d.val);d.k=k;d.where='fly';d.tw=null;d.g.visible=true;
+    d.p=[f0[k*7],f0[k*7+1],f0[k*7+2]];d.q=qmul([f0[k*7+3],f0[k*7+4],f0[k*7+5],f0[k*7+6]],d.pr)});
+  A.st='fly';A.recT0=clock();A.hitK=0;A.cupBack=false;
+}
+function d3Abort(){
+  A.st='idle';A.pend=null;A.mine=false;
+  cupTo(CUP_REST,Q_ID,400);
+  const Y=V&&V.y;
+  D3.dice.forEach((d,i)=>{if(d.where==='cup'&&Y&&Y.r){d.p=mouthOf(D3.cup.p,D3.cup.q);dieTo(i,slotPos(i),restQ(d.val),320,{arc:.4})}});
+}
+function d3StartSlot(){
+  A.st='slot';
+  A.thrown.forEach((i,k)=>{const d=D3.dice[i];dieTo(i,slotPos(i),restQ(d.val,d.q),430,{arc:.38,delay:k*70})});
+}
+function d3Land(){
+  A.st='idle';A.mine=false;D3.dirty=true;
+  drawAll();G.buttons();
+}
+/* 새 상태와 화면 비교: 매 프레임 부름 */
+function d3Sync(){
+  const Y=V&&V.y;if(!Y||V.st!=='play')return;
+  if(Y.tn!==A.tn){d3NewTurn(Y);return}
+  if(A.st==='idle'){
+    if(Y.rl!==A.rl){
+      A.rl=Y.rl;
+      if(Y.r){A.pend={d:Y.d.slice(),hd:Y.hd.map(Boolean)};d3Lift(A.pend.hd,false)}
+      return;
+    }
+    if(Y.sh&&!mineNow())d3Lift((Y.shk||[]).map(Boolean),false);   // 다른 사람이 컵을 흔드는 중
+    return;
+  }
+  if(Y.rl!==A.rl&&Y.r&&(A.st==='lift'||A.st==='shake'||A.st==='pour'||A.st==='wait')){A.rl=Y.rl;A.pend={d:Y.d.slice(),hd:Y.hd.map(Boolean)}}
+}
+function rattle(amp){
+  const c=900+Math.random()*900;
+  tone(c,.02,{type:'square',vol:.022*amp});hiss(.03,{freq:2600+Math.random()*1500,q:2,vol:.05*amp});
+}
+function d3Step(now){
+  d3Sync();
+  const c=D3.cup;
+  // 컵
+  if(c.tw){const k=ease((now-c.tw.t0)/c.tw.dur);c.p=c.tw.p0.map((x,j)=>x+(c.tw.p1[j]-x)*k);c.q=qslerp(c.tw.q0,c.tw.q1,k);if(k>=1)c.tw=null}
+  let cp=c.p,cq=c.q;
+  if(A.st==='shake'){
+    const amp=Math.max(0,Math.min(1,(now-A.shakeT0)/260)),s=now/1000;
+    cp=[c.p[0]+Math.sin(s*41)*.12*amp,c.p[1]+Math.abs(Math.sin(s*57))*.11*amp,c.p[2]+Math.cos(s*47)*.1*amp];
+    cq=qmul(qAxis([1,0,0],Math.sin(s*50)*.2*amp),qAxis([0,0,1],Math.cos(s*43)*.18*amp));
+    if(now>=A.rattleAt){A.rattleAt=now+50+Math.random()*60;rattle(.4+amp*.6)}
+  }
+  c.g.position.set(cp[0],cp[1],cp[2]);c.g.quaternion.set(cq[0],cq[1],cq[2],cq[3]);
+  {const col=V&&V.ps&&V.st==='play'?V.t%4:-1;if(col!==D3.bandCol){D3.bandCol=col;D3.band.color.set(col>=0?PCOL[col]:'#8a5530')}}
+  // 상태 진행
+  if(A.st==='lift'&&now-A.t0>=280){A.st='shake';A.shakeT0=now}
+  else if(A.st==='shake'){
+    const long=now-A.shakeT0;
+    if(A.mine?(A.released&&long>=340):(A.pend&&long>=300))d3StartPour();
+  }else if(A.st==='pour'&&now-A.t0>=240){
+    if(A.pend)d3Launch();else if(A.mine){A.st='wait';A.waitUntil=now+6000}else d3Abort();
+  }else if(A.st==='wait'){
+    if(A.pend)d3Launch();else if(now>A.waitUntil)d3Abort();
+  }else if(A.st==='fly'){
+    const R=A.rec,el=now-A.recT0,fi=Math.min(R.frames.length-1,Math.floor(el/1000*60)),f=R.frames[fi];
+    A.thrown.forEach(i=>{const d=D3.dice[i],k=d.k;d.p=[f[k*7],f[k*7+1],f[k*7+2]];d.q=qmul([f[k*7+3],f[k*7+4],f[k*7+5],f[k*7+6]],d.pr)});
+    while(A.hitK<R.hits.length&&R.hits[A.hitK][0]*1000<=el){const s=R.hits[A.hitK++][1];tone(420+Math.random()*420,.045,{type:'triangle',vol:Math.min(.16,.03+s*.018)});hiss(.03,{freq:2400,vol:Math.min(.1,s*.014)})}
+    if(!A.cupBack&&el>160){A.cupBack=true;cupTo(CUP_REST,Q_ID,520)}
+    if(fi>=R.frames.length-1){A.st='rest';A.t0=now}
+  }else if(A.st==='rest'&&now-A.t0>=180)d3StartSlot();
+  // 주사위
+  let moving=false;
+  D3.dice.forEach((d,i)=>{
+    if(d.tw){
+      const tw=d.tw,raw=(now-tw.t0)/tw.dur;
+      if(raw>0){
+        const k=ease(raw);
+        d.p=tw.p0.map((x,j)=>x+(tw.p1[j]-x)*k);d.p[1]+=Math.sin(Math.min(1,raw)*Math.PI)*tw.arc;
+        d.q=qslerp(tw.q0,tw.q1,k);
+        if(raw>=1){d.tw=null;d.p=tw.p1.slice();d.q=tw.q1.slice();d.where=tw.end;if(tw.end==='cup')d.g.visible=false;else if(A.st==='slot')tone(1300,.03,{type:'triangle',vol:.035})}
+      }
+      moving=true;
+    }
+    d.g.position.set(d.p[0],d.p[1],d.p[2]);d.g.quaternion.set(d.q[0],d.q[1],d.q[2],d.q[3]);
+    D3.held[i].visible=d.where==='slot'&&heldShown(i);
+  });
+  if(A.st==='slot'&&!moving)d3Land();
+  return moving||A.st!=='idle'||!!c.tw;
+}
+
+/* --- 카메라: 점수 종이·버튼에 가리지 않는 빈 자리(.yz-left)에 트레이와 컵이 꽉 차게 --- */
+function d3Layout(t){
+  if(!D3.layDirty&&t-D3.layAt<700)return false;   // 크기가 바뀌었다는 알림이 없으면 가끔만 확인
+  D3.layDirty=false;D3.layAt=t;
+  const st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight;if(!W||!Hh)return false;
+  const sr=st.getBoundingClientRect(),lr=elLeft.getBoundingClientRect(),rb=elRoll.getBoundingClientRect(),hb=elHint.getBoundingClientRect();
+  const key=[W,Hh,lr.left-sr.left,lr.top-sr.top,lr.width,lr.height,rb.width,rb.height,hb.height].map(Math.round).join(',');
+  if(key===D3.lay)return false;
+  D3.lay=key;D3.dirty=true;
+  const wide=W>=820;
+  let fx=lr.left-sr.left,fy=lr.top-sr.top,fw=lr.width,fh=lr.height;
+  fh-=Math.max(rb.height,hb.height)+8;   // 아래 줄(안내 글 + 굴리기 버튼)은 빼고
+  fw=Math.max(60,fw);fh=Math.max(60,fh);
+  {const cw=Math.min(fw,620),ch=Math.min(fh,540);fx+=(fw-cw)/2;fy+=(fh-ch)/2;fw=cw;fh=ch}   // 큰 화면에서 주사위가 지나치게 커지지 않게
+  const cam=D3.cam,phi=1.08,tgt=new THREE.Vector3(0,0,.15),pts=[],v=new THREE.Vector3();
+  for(let k=0;k<24;k++){const a=k/24*Math.PI*2,r=TRAY_R+.2;pts.push([Math.cos(a)*r,0,Math.sin(a)*r],[Math.cos(a)*r,.45,Math.sin(a)*r])}
+  pts.push([CUP_REST[0],CUP_H*.6,CUP_REST[2]]);   // 쉬고 있는 컵은 가운데만 들어오면 됨 (가장자리가 조금 잘려도 괜찮음)
+  cam.fov=36;cam.aspect=W/Hh;
+  let d=D3.d||14,ox=fx+fw/2-W/2,oy=fy+fh/2-Hh/2;
+  for(let it=0;it<6;it++){
+    cam.position.set(0,tgt.y+d*Math.sin(phi),tgt.z+d*Math.cos(phi));cam.lookAt(tgt);
+    cam.setViewOffset(W,Hh,-ox,-oy,W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
+    let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+    for(const p of pts){v.set(p[0],p[1],p[2]).project(cam);const x=(v.x+1)/2*W,y=(1-v.y)/2*Hh;x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y)}
+    const s=Math.max((x1-x0)/(fw*.97),(y1-y0)/(fh*.95));
+    d*=s;ox+=(fx+fw/2)-(x0+x1)/2;oy+=(fy+fh/2)-(y0+y1)/2;
+  }
+  cam.position.set(0,tgt.y+d*Math.sin(phi),tgt.z+d*Math.cos(phi));cam.lookAt(tgt);
+  cam.setViewOffset(W,Hh,-ox,-oy,W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
+  D3.d=d;
+  placeHoldBtns(W,Hh);
+  return true;
+}
+/* 주사위 칸 위에 투명한 버튼(누르면 고정)을 겹쳐 둠: 키보드·화면 읽기 프로그램도 쓸 수 있게 */
+function placeHoldBtns(W,Hh){
+  if(!elHold)return;
+  const v=new THREE.Vector3(),cam=D3.cam;
+  [...elHold.children].forEach((b,i)=>{
+    const p=slotPos(i);
+    v.set(p[0],p[1],p[2]).project(cam);const x=(v.x+1)/2*W,y=(1-v.y)/2*Hh;
+    v.set(p[0]+DH*1.2,p[1],p[2]).project(cam);const r=Math.max(18,Math.abs((v.x+1)/2*W-x));
+    Object.assign(b.style,{left:(x-r)+'px',top:(y-r)+'px',width:r*2+'px',height:r*2+'px'});
+  });
+}
+function drawHold(){
+  if(!elHold)return;
+  const on=D3.on&&mineNow()&&d3Ready()&&V.y.r&&V.y.l>0;
+  if(elHold.hidden===on)elHold.hidden=!on;
+  if(!on)return;
+  [...elHold.children].forEach((b,i)=>{
+    const h=!!yHold[i],lab=`${V.y.d[i]} 주사위${h?', 고정됨':''}`;
+    if(b.getAttribute('aria-pressed')!==String(h))b.setAttribute('aria-pressed',h);
+    if(b.getAttribute('aria-label')!==lab)b.setAttribute('aria-label',lab);
+  });
+}
+function d3Render(t){
+  if(!D3.on||!T.ok)return;
+  if(d3Layout(t))D3.dirty=true;
+  const anim=d3Step(t);
+  if(!anim&&!D3.dirty&&t-D3.lastR<120)return;   // 움직이는 게 없으면 가끔만 그림 (배터리)
+  D3.dirty=false;D3.lastR=t;
+  const fog=T.scene.fog,fn=fog?fog.near:0,ff=fog?fog.far:0;
+  if(fog){fog.near=D3.d+6;fog.far=D3.d+30}
+  for(const m of [T.timerBg,T.timerArc,T.ring])if(m)m.visible=false;   // 공통 테이블의 자리별 시간 고리는 이 카메라에서 엉뚱한 곳에 보여서 숨김 (시간은 점수 종이 머리줄에 표시)
+  T.r.render(T.scene,D3.cam);
+  if(fog){fog.near=fn;fog.far=ff}
+}
+/* 굴리기 버튼: 누르는 동안 흔들고, 떼면 던짐 */
+function d3Press(){
+  if(!D3.on||!canRoll()||A.st!=='idle')return false;
+  const Y=V.y,keep=Y.r?yHold.slice():[false,false,false,false,false];
+  sendAct({t:'shake',keep});
+  d3Lift(keep,true);
+  yCat=null;elRoll.classList.add('down');drawAll();G.buttons();
+  return true;
+}
+function d3Release(){
+  elRoll&&elRoll.classList.remove('down');
+  if(!A.mine||A.released||(A.st!=='lift'&&A.st!=='shake'))return;
+  A.released=true;
+  const Y=V.y;yLock={rl:Y.rl,tn:Y.tn,at:Date.now()};
+  sendAct({t:'roll',keep:A.keep.slice()});
+  drawAll();G.buttons();
+}
+
 /* 화면에 그리는 글 */
 function lastRec(){
   const L=V.y&&V.y.lm;
@@ -398,12 +903,14 @@ function hintText(me){
   if(p.f)return p.sr?'항복했습니다. 남은 판을 지켜봅니다.':'';
   if(V.t!==me)return tp?`${tp.n} 차례입니다.${lastRec()}`:'';
   if(!myTurnNow())return '내 차례입니다.';
+  if(shakingMine())return '손을 떼면 주사위를 던집니다.';
   {const left=(V.deadAt-clock())/1000;if(left<=10&&left>0)return `${Math.ceil(left)}초 남았습니다. 제한 시간이 지나면 알아서 기록합니다.`}
-  if(!Y.r)return '굴리기를 눌러 주사위를 굴립니다.';
+  if(!d3Ready())return '주사위가 굴러가는 중…';
+  if(!Y.r)return D3.on?'굴리기 버튼을 꾹 누르면 컵을 흔들고, 손을 떼면 던집니다.':'굴리기를 눌러 주사위를 굴립니다.';
   const sc=scoreOf(me);
   if(yCat){const c=byId[yCat];return `${c.name}: ${c.rule} → ${calc(yCat,Y.d,jokerOf(sc,Y.d))}점. 한 번 더 누르거나 [기록하기]를 누르면 기록합니다.`}
   if(jokerOf(sc,Y.d))return '추가 야추입니다. 조커 규칙에 따라 기록할 수 있는 칸이 정해져 있습니다.';
-  return Y.l>0?'남길 주사위를 눌러 고정하고 다시 굴리거나, 점수판에서 칸을 골라 기록하세요.':'굴림을 모두 썼습니다. 기록할 칸을 골라 주세요.';
+  return Y.l>0?'남길 주사위를 눌러 고정하고 다시 굴리거나, 점수 종이에 기록하세요.':'굴림을 모두 썼습니다. 기록할 칸을 골라 주세요.';
 }
 function turnHTML(){
   const Y=V.y;
@@ -424,15 +931,16 @@ function diceHTML(){
 }
 function rollHTML(){
   const Y=V.y,mine=myTurnNow();
-  const main=Y.r?'다시 굴리기':'굴리기';
-  const sub=V.st!=='play'?'':mine?(Y.l>0?`남은 ${Y.l}번`:'굴림 끝'):'상대 차례';
+  const shaking=shakingMine();
+  const main=shaking?'떼면 던지기':Y.r&&mine?'다시 굴리기':'굴리기';
+  const sub=V.st!=='play'?'':shaking?'흔드는 중':mine?(Y.l>0?`남은 ${Y.l}번`:'굴림 끝'):'상대 차례';
   return `<b>${main}</b><small>${sub}</small>`;
 }
 /* 점수판: 칸 × 사람. 내 칸은 지금 기록하면 몇 점인지 보여 주고 눌러서 고름 */
 function boardHTML(){
   const Y=V.y,me=myIdx(),n=Y.cnt,ids=Array.from({length:n},(_,i)=>i);
   const SC=ids.map(scoreOf),T=ids.map(i=>totals(SC[i],Y.yb[i]));
-  const mine=me>=0&&me<n&&myTurnNow()&&Y.r&&!V.ps[me].f;
+  const mine=me>=0&&me<n&&myTurnNow()&&Y.r&&!V.ps[me].f&&d3Ready();
   const ok=mine?allowed(SC[me],Y.d):[],joker=mine&&jokerOf(SC[me],Y.d);
   const head=`<thead><tr><th class="lb" scope="col">점수판</th>${ids.map(i=>{
     const p=V.ps[i],on=V.st==='play'&&V.t===i&&!p.f;
@@ -440,7 +948,7 @@ function boardHTML(){
   }).join('')}</tr></thead>`;
   const cell=(i,c)=>{
     const v=SC[i][c.id],m=i===me?' me':'';
-    if(v!==null)return `<td class="c f${m}">${v}</td>`;
+    if(v!==null)return `<td class="c f${m}${Y.lm&&Y.lm.p===i&&Y.lm.c===c.id&&Date.now()<yInk.until?' ink':''}">${v}</td>`;
     if(i===me&&ok.indexOf(c.id)>=0){
       const pts=calc(c.id,Y.d,joker);
       return `<td class="c o me${pts?'':' z'}${yCat===c.id?' sel':''}" data-c="${c.id}" role="button" tabindex="0" aria-label="${c.name} ${pts}점으로 기록">${pts}</td>`;
@@ -451,10 +959,9 @@ function boardHTML(){
   const stat=(cls,label,f)=>`<tr class="${cls}"><th class="lb" scope="row">${label}</th>${ids.map(i=>`<td class="c${i===me?' me':''}">${f(i)}</td>`).join('')}</tr>`;
   const up=CATS.filter(c=>c.up).map(row).join(''),low=CATS.filter(c=>!c.up).map(row).join('');
   return head+'<tbody>'+up
-    +stat('sum','윗칸 소계 <small class="ln">(63점이면 +35)</small>',i=>`${T[i].upper}`)
-    +stat('sum','윗칸 보너스',i=>T[i].bonus?`+${T[i].bonus}`:'–')
+    +stat('sum','<span title="윗칸 합이 63점 이상이면 +35점">윗칸 보너스</span>',i=>T[i].bonus?`<b>+${T[i].bonus}</b>`:`${T[i].upper}<small>/63</small>`)
     +low
-    +stat('sum','야추 보너스',i=>T[i].yb?`+${T[i].yb}`:'–')
+    +(T.some(x=>x.yb)?stat('sum','야추 보너스',i=>T[i].yb?`+${T[i].yb}`:'–'):'')
     +stat('tot','총점',i=>`${T[i].total}`)
     +'</tbody>';
 }
@@ -466,9 +973,10 @@ function drawHint(){
 function drawAll(){
   if(!elYz||!V||!V.y)return;
   const t=turnHTML();if(t!==lastTurn){elTurn.innerHTML=t;lastTurn=t}
-  const d=diceHTML();if(d!==lastDice){elDice.innerHTML=d;lastDice=d}
+  if(!D3.on){const d=diceHTML();if(d!==lastDice){elDice.innerHTML=d;lastDice=d}}
+  drawHold();
   const r=rollHTML();if(r!==lastRoll){elRoll.innerHTML=r;lastRoll=r}
-  elRoll.disabled=!canRoll();
+  elRoll.disabled=!rollOn();
   const b=boardHTML();if(b!==lastBoard){elTbl.innerHTML=b;lastBoard=b}
   drawHint();
 }
@@ -486,6 +994,9 @@ G.preView=()=>{
     if(V.st==='play')yTumbleUntil=Date.now()+520;
   }
   if(yCat&&me>=0&&allowed(scoreOf(me),Y.d).indexOf(yCat)<0)yCat=null;
+  // 방금 기록한 칸은 잠깐 손글씨로 쓰는 효과
+  const lk=Y.lm?`${Y.tn}:${Y.lm.p}:${Y.lm.c}`:'';
+  if(lk!==yInk.k){yInk={k:lk,until:PV&&PV.y&&lk?Date.now()+1200:0};if(yInk.until)setTimeout(()=>{if(elYz&&!elYz.hidden)drawAll()},1250)}
 };
 G.postView=()=>{};
 G.overExtra=()=>{
@@ -500,13 +1011,20 @@ G.overExtra=()=>{
 G.logCue=()=>false;
 G.cues=(v,pv)=>{
   if(!v.y||!pv.y)return;
-  if(v.y.tn===pv.y.tn&&v.y.rl>pv.y.rl)sfx('pick');
+  if(v.y.tn===pv.y.tn&&v.y.rl>pv.y.rl){if(!D3.on)sfx('pick')}   // 3D는 컵·주사위 소리를 따로 냄
   else if(v.y.lm&&(!pv.y.lm||v.y.lm.p!==pv.y.lm.p||v.y.dn[v.y.lm.p]!==pv.y.dn[v.y.lm.p]))sfx('play',1);
 };
 G.hud=inGame=>{
   if(!elYz)return;
   const on=!!(inGame&&V&&V.y);
   elYz.hidden=!on;
+  const use=!!(on&&window.THREE&&T.ok&&!D3.fail&&(D3.built||d3Build()));
+  if(use!==D3.on){
+    D3.on=use;D3.lay='';D3.layDirty=true;D3.dirty=true;A.tn=-1;
+    elYz.classList.toggle('yz3',use);$('#stage').classList.toggle('yz3d',use);
+    if(D3.root)D3.root.visible=use;
+    lastDice='';lastRoll='';
+  }
   $('#stage').classList.toggle('yz-over',!!(on&&V.st==='over'));   // 결과 창이 길어도 아래 버튼이 내 정보 칸에 가리지 않게
   if(!on){lastTurn='';lastDice='';lastRoll='';lastBoard='';lastHint='';return}
   drawAll();
@@ -520,7 +1038,8 @@ G.me=(i,h)=>{
   $('#meSub').innerHTML=`총점 <b>${T.total}</b>점 · <b>${V.y.dn[i]}</b>/${V.y.rd}칸`;
 };
 G.specNote='관전 중입니다. 모든 주사위와 점수가 보입니다.';
-G.no3D=true;   // 3D 테이블을 쓰지 않음: 공통 코드가 그리기를 쉬어서 휴대폰 배터리를 아낌
+G.no3D=true;   // 공통 테이블 카메라로는 그리지 않음 (2D 화면이면 그리기를 쉬어서 배터리를 아낌)
+G.render3D=(t)=>{d3Render(t)};   // 3D 화면이면 트레이·컵을 자기 카메라로 그림
 G.buttons=()=>{
   const play=$('#btnPlay'),can=canScore();
   $('#btnPass').hidden=true;$('#btnGura').hidden=true;
@@ -529,7 +1048,7 @@ G.buttons=()=>{
   let sub=keyLabel(KEYS.play);
   if(yCat&&V&&V.y&&myIdx()>=0)sub=`${byId[yCat].name} ${calc(yCat,V.y.d,jokerOf(scoreOf(myIdx()),V.y.d))}점`;
   if($('#playSub').textContent!==sub)$('#playSub').textContent=sub;
-  if(elRoll)elRoll.disabled=!canRoll();
+  if(elRoll)elRoll.disabled=!rollOn();
 };
 G.live=()=>{
   if(!elYz||elYz.hidden||!V||!V.y||V.st!=='play')return;
@@ -541,10 +1060,11 @@ G.play=record;
 G.pass=()=>{};
 G.keyPhase=st=>st==='play';
 G.onKey=(act,e)=>{
-  if(act==='yroll'){if(!e.repeat)rollNow();return true}
+  if(act==='yroll'){if(!e.repeat){if(D3.on)d3Press();else rollNow()}return true}
   return false;
 };
-G.field3D=()=>{};
+/* 공통 코드가 다른 사람 자리에 카드 더미를 놓는데(손패 표시 1장), 야추에는 카드가 없으니 숨김 */
+G.field3D=()=>{if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=false})};
 /* 이 게임으로 바뀔 때 / 다른 게임으로 바뀔 때 */
 G.enter=()=>{
   $('#stage').classList.add('yz');
@@ -552,7 +1072,10 @@ G.enter=()=>{
   yCat=null;
 };
 G.leave=()=>{
-  $('#stage').classList.remove('yz','yz-over');
+  $('#stage').classList.remove('yz','yz-over','yz3d');
+  if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
+  if(D3.root)D3.root.visible=false;
+  D3.on=false;A.tn=-1;A.st='idle';if(elYz)elYz.classList.remove('yz3');
   $('#btnPass').hidden=false;
   if(elYz){elYz.hidden=true;lastTurn='';lastDice='';lastRoll='';lastBoard='';lastHint=''}
 };
@@ -561,7 +1084,7 @@ G.init=()=>{
   const css=document.createElement('style');
   css.textContent=`
 .stage.yz{background:radial-gradient(ellipse at 50% 30%,#4c9170 0%,var(--felt) 58%,var(--felt-dark) 100%)}
-.stage.yz #cv,.stage.yz #dim{visibility:hidden}
+.stage.yz:not(.yz3d) #cv,.stage.yz #dim{visibility:hidden}
 .stage.yz .labels{visibility:hidden}
 .stage.yz .nogl{display:none}
 .stage.yz.yz-over .myplate,.stage.yz.yz-over .actions{display:none}
@@ -600,7 +1123,7 @@ G.init=()=>{
 #yz .yz-roll:active:not(:disabled){transform:translateY(4px);box-shadow:none}
 #yz .yz-roll:disabled{opacity:.45;box-shadow:0 2px 0 var(--gura-edge);cursor:not-allowed}
 #yz .yz-hint{font-size:13px;line-height:1.35;color:#fffaf0;text-shadow:0 1px 2px rgba(0,0,0,.5);text-align:center;min-height:35px;padding:0 4px;text-wrap:pretty}
-#yz .yz-card{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;border-radius:var(--r-md);background:var(--paper);border:1.5px solid var(--line-strong);box-shadow:var(--sh-panel);pointer-events:auto}
+#yz .yz-card{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;border-radius:var(--r-md);background:var(--paper);border:1.5px solid var(--line-strong);border-top:7px solid #a0653a;box-shadow:var(--sh-panel);pointer-events:auto}
 #yz .yz-tbl{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:12.5px;color:var(--ink)}
 #yz .yz-tbl th.lb{width:104px;text-align:left;font-weight:500;padding:3px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--paper)}
 #yz .yz-tbl th.lb small{font-size:10px;color:var(--muted)}
@@ -617,7 +1140,9 @@ G.init=()=>{
 #yz .yz-tbl thead th .tb{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(0,0,0,.08)}
 #yz .yz-tbl thead th .tb i{display:block;height:100%;width:100%;background:var(--pc)}
 #yz .yz-tbl td.c.me{background:#fff6de}
-#yz .yz-tbl td.c.f{font-weight:600}
+#yz .yz-tbl td.c.f{font-family:var(--f-display);font-size:15px;font-weight:400;color:#24427e}   /* 펜으로 쓴 점수 */
+#yz .yz-tbl td.c.ink{animation:yzInk .75s ease-out}
+@keyframes yzInk{0%{clip-path:inset(0 100% 0 0);background-color:#fff0bf}55%{clip-path:inset(0 0 0 0)}100%{clip-path:inset(0 0 0 0)}}
 #yz .yz-tbl td.c.o{color:var(--gura);font-weight:700;cursor:pointer;background:#fde9b5;touch-action:manipulation}
 #yz .yz-tbl td.c.o.z{color:var(--muted);font-weight:500}
 #yz .yz-tbl td.c.o.sel{background:var(--mustard);color:var(--ink);outline:2px solid var(--mustard-edge);outline-offset:-2px}
@@ -645,16 +1170,59 @@ G.init=()=>{
 .yz-res li b{font-family:var(--f-num)}
 .yz-res li small{grid-column:1/-1;font-size:12px;color:var(--muted)}
 @media (max-width:520px){#yz .yz-chip{font-size:12px;padding:3px 8px}#yz{padding-bottom:76px}}
-@media (prefers-reduced-motion:reduce){#yz .die.tumble{animation:none}}
+@media (prefers-reduced-motion:reduce){#yz .die.tumble,#yz .yz-tbl td.c.ink{animation:none}}
+/* 3D 화면: 위(가로 화면은 왼쪽)는 비워서 테이블이 보이게, 점수 종이는 아래(오른쪽) */
+#yz.yz3 .yz-main{gap:8px}
+#yz.yz3 .yz-left{flex:1 1 0;min-height:250px;display:grid;grid-template:"t t" 1fr "h r" auto/1fr auto;gap:0 10px;align-items:center}
+#yz.yz3 .yz-dice{display:none}
+#yz.yz3 .yz-row{grid-area:r}
+#yz.yz3 .yz-hint{grid-area:h;height:56px;min-height:0;display:flex;align-items:center;text-align:left;padding:0 2px;overflow:hidden}   /* 줄 수가 바뀌어도 테이블 크기가 흔들리지 않게 */
+#yz.yz3 .yz-roll{width:auto;min-width:112px;height:56px;padding:4px 14px;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#yz.yz3 .yz-roll.down{transform:translateY(4px) scale(.97);box-shadow:0 0 0 3px var(--mustard)}
+#yz.yz3 .yz-card{flex:0 1 auto}
+#yz .yz-hold{position:absolute;inset:0;pointer-events:none}
+#yz .yz-hold button{position:absolute;pointer-events:auto;background:transparent;border:0;border-radius:22%;padding:0;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#yz .yz-hold button:focus-visible{outline:3px solid var(--focus);outline-offset:1px}
+#yz .yz-hold button::after{content:'고정';position:absolute;left:50%;top:100%;transform:translate(-50%,1px);font-size:11px;font-weight:700;letter-spacing:.06em;color:#ffe08a;text-shadow:0 1px 2px rgba(0,0,0,.7);visibility:hidden;white-space:nowrap}
+#yz .yz-hold button[aria-pressed="true"]::after{visibility:visible}
+@media (max-width:819px){
+  #yz.yz3 .yz-tbl td.c{height:21px;padding:1px 2px;font-size:12.5px}
+  #yz.yz3 .yz-tbl td.c.f{font-size:14px}
+  #yz.yz3 .yz-tbl th.lb{padding:1px 8px;font-size:12px}
+  #yz.yz3 .yz-tbl thead th.pc{padding:3px 3px 4px}
+  #yz.yz3 .yz-tbl thead th.pc .tot{margin-top:0;font-size:11px}
+  #yz.yz3 .yz-tbl tr.tot td.c,#yz.yz3 .yz-tbl tr.tot th.lb{height:26px;font-size:15px}
+}
+@media (min-width:820px){
+  #yz.yz3 .yz-left{width:auto;flex:1 1 0}
+  #yz.yz3 .yz-card{flex:0 0 auto;width:min(44%,540px)}
+  #yz.yz3 .yz-roll{min-width:180px;height:60px;flex-direction:row;gap:10px}
+  #yz.yz3 .yz-hint{font-size:14px}
+}
 `;
   document.head.appendChild(css);
   elYz=document.createElement('div');elYz.id='yz';elYz.hidden=true;
-  elYz.innerHTML=`<div class="yz-top"></div><div class="yz-main"><div class="yz-left"><div class="yz-row"><div class="yz-dice" role="group" aria-label="주사위"></div><button type="button" class="yz-roll" disabled></button></div><div class="yz-hint" aria-live="polite"></div></div><div class="yz-card"><table class="yz-tbl" aria-label="점수판"></table></div></div>`;
+  elYz.innerHTML=`<div class="yz-top"></div><div class="yz-main"><div class="yz-left"><div class="yz-row"><div class="yz-dice" role="group" aria-label="주사위"></div><button type="button" class="yz-roll" disabled></button></div><div class="yz-hint" aria-live="polite"></div></div><div class="yz-card"><table class="yz-tbl" aria-label="점수판"></table></div></div><div class="yz-hold" hidden>${[0,1,2,3,4].map(i=>`<button type="button" data-i="${i}" aria-pressed="false"></button>`).join('')}</div>`;
   $('#stage').insertBefore(elYz,$('#fx'));
   elTurn=elYz.querySelector('.yz-top');elDice=elYz.querySelector('.yz-dice');elRoll=elYz.querySelector('.yz-roll');
-  elHint=elYz.querySelector('.yz-hint');elTbl=elYz.querySelector('.yz-tbl');
+  elHint=elYz.querySelector('.yz-hint');elTbl=elYz.querySelector('.yz-tbl');elLeft=elYz.querySelector('.yz-left');elHold=elYz.querySelector('.yz-hold');
   elDice.addEventListener('click',e=>{const b=e.target.closest('.die');if(b)toggleHold(+b.dataset.i)});
-  elRoll.addEventListener('click',rollNow);
+  elHold.addEventListener('click',e=>{const b=e.target.closest('button');if(b)toggleHold(+b.dataset.i)});
+  // 굴리기: 2D는 누르면 바로, 3D는 누르는 동안 흔들고 떼면 던짐 (키보드 Enter·Space는 잠깐 흔든 뒤 던짐)
+  elRoll.addEventListener('click',e=>{
+    if(!D3.on){rollNow();return}
+    if(e.detail===0&&d3Press())setTimeout(d3Release,600);
+  });
+  elRoll.addEventListener('pointerdown',e=>{
+    if(!D3.on||e.button>0)return;
+    e.preventDefault();
+    if(d3Press()){try{elRoll.setPointerCapture(e.pointerId)}catch(_){}}
+  });
+  for(const ev of ['pointerup','pointercancel','lostpointercapture'])elRoll.addEventListener(ev,()=>{if(D3.on)d3Release()});
+  elRoll.addEventListener('contextmenu',e=>{if(D3.on)e.preventDefault()});
+  addEventListener('keyup',e=>{if(D3.on&&typeof KEYS!=='undefined'&&e.code===KEYS.yroll)d3Release()});
+  addEventListener('blur',()=>{if(D3.on)d3Release()});
+  if(window.ResizeObserver){const ro=new ResizeObserver(()=>{D3.layDirty=true});[$('#stage'),elLeft,elRoll,elHint].forEach(x=>ro.observe(x))}
   elTbl.addEventListener('click',e=>{const c=e.target.closest('td[data-c]');if(c)pickCat(c.dataset.c)});
   elTbl.addEventListener('keydown',e=>{
     if(e.key!=='Enter'&&e.key!==' ')return;

@@ -754,7 +754,7 @@ function addLog(txt,cls=''){H.logSeq=(H.logSeq||0)+1;H.log.unshift([txt,cls,H.lo
 
 function hostNew(online,code,title){
   const gid=GAME_IDS[cfg.gi]||'gura';store('gura-game',gid);
-  H={online,code,title,cfg:{...cfgFor(gid),fast:cfg.fast?1:0,pub:cfg.pub?1:0},phase:'wait',members:[{name:myNick(),bot:false,conn:null,host:true}],specs:[],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
+  H={online,code,title,cfg:{...cfgFor(gid),fast:cfg.fast&&!gameOf(gid).noFast?1:0,pub:cfg.pub?1:0},phase:'wait',members:[{name:myNick(),bot:false,conn:null,host:true}],specs:[],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
 }
 function hostAddBot(force){
   if(!force&&(H.phase!=='wait'||H.members.length>=H.cfg.max))return;
@@ -1136,7 +1136,7 @@ function roomCard(x){
   const open=roomOpen(x),watch=roomWatch(x),st=x.ph==='wait'?(open?'대기 중':'가득 참'):x.ph==='over'?'결과 보는 중':'게임 중';
   return `<button type="button" class="room${open?'':' closed'}" data-code="${esc(x.code)}" ${!open&&!watch?'disabled':''}>
     <span class="rm-top"><b class="rm-t">${esc(x.title)}</b><span class="rm-n">${x.n}/${x.max}명</span></span>
-    <span class="rm-sub"><span class="gametag">${esc(gameOf(x.g).short)}</span>${x.host?`방장 ${esc(x.host)} · `:''}${x.fast?'빠른 모드':'클래식'} · ${gameOf(x.g).roomSub(x)}</span>
+    <span class="rm-sub"><span class="gametag">${esc(gameOf(x.g).short)}</span>${x.host?`방장 ${esc(x.host)} · `:''}${gameOf(x.g).noFast?'':(x.fast?'빠른 모드':'클래식')+' · '}${gameOf(x.g).roomSub(x)}</span>
     <span class="rm-st">${st}${watch?`<span class="rm-w">관전 가능 ${x.sp}/${x.spm}</span>`:!open?' · 관전 자리 없음':''}</span></button>`;
 }
 function renderRooms(list,loading){
@@ -1647,7 +1647,7 @@ function roomInfoHTML(){
   if(!V||mode==='lobby')return '';
   const c=V.cfg||cfg;
   return (V.code?`<span class="chip code">방 코드 <b>${esc(shownCode(V.code))}</b></span>`:'<span class="chip"><b>연습 모드</b></span>')+
-    `<span class="chip"><b>${esc(G.name)}</b></span><span class="chip"><b>${c.fast?'빠른 모드':'클래식'}</b></span><span class="chip">최대 <b>${+c.max}명</b></span><span class="chip">관전 <b>${+(c.spec??4)}명</b></span>${V.code?`<span class="chip"><b>${c.pub?'공개':'비공개'}</b></span>`:''}${G.cfgChips(c)}`;
+    `<span class="chip"><b>${esc(G.name)}</b></span>${G.noFast?'':`<span class="chip"><b>${c.fast?'빠른 모드':'클래식'}</b></span>`}<span class="chip">최대 <b>${+c.max}명</b></span><span class="chip">관전 <b>${+(c.spec??4)}명</b></span>${V.code?`<span class="chip"><b>${c.pub?'공개':'비공개'}</b></span>`:''}${G.cfgChips(c)}`;
 }
 function renderHUD(){
   const inGame=!!(V&&V.ps&&(V.st==='play'||V.st==='reveal'||V.st==='over'));
@@ -1805,13 +1805,13 @@ function renderPanel(){
       const rows=roomSetOf(G).map(d=>{const v=+(c[d.k]??cfg[d.k]),lo=d.k==='max'?minMax:d.k==='spec'?(Array.isArray(V.sv)?V.sv.length:0):d.lo;
         return `<div class="stp"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="stp-b" data-act="dec:${d.k}" aria-label="${d.label} 줄이기"${v<=lo?' disabled':''}>−</button><input class="txt stp-v" id="st_${d.k}" type="number" inputmode="numeric" min="${lo}" max="${d.hi}" step="${d.step}" value="${v}" aria-label="${d.label}"><span class="stp-u">${d.unit}</span><button type="button" class="stp-b" data-act="inc:${d.k}" aria-label="${d.label} 늘리기"${v>=d.hi?' disabled':''}>+</button></div></div>`}).join('');
       showPanel(`<div class="vhead"><button type="button" class="back" data-act="setclose" aria-label="대기실로">←</button><h2>방 설정</h2></div>
-        ${gpick}<div class="rs-seg"><div class="rs-h"><b>게임 모드</b><small>${G.modeDesc[c.fast?1:0]}</small></div><div class="segrow" role="radiogroup" aria-label="게임 모드">${[0,1].map(v=>`<button class="btn ${(c.fast?1:0)===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${(c.fast?1:0)===v}" data-act="mode${v}">${OPT_LABEL.fast[v]}</button>`).join('')}</div></div>
+        ${gpick}${G.noFast?'':`<div class="rs-seg"><div class="rs-h"><b>게임 모드</b><small>${G.modeDesc[c.fast?1:0]}</small></div><div class="segrow" role="radiogroup" aria-label="게임 모드">${[0,1].map(v=>`<button class="btn ${(c.fast?1:0)===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${(c.fast?1:0)===v}" data-act="mode${v}">${OPT_LABEL.fast[v]}</button>`).join('')}</div></div>`}
         <div class="rs-grid">${rows}</div>${rules?`<div class="rulehead">게임 규칙</div><div class="rs-grid tgs">${rules}</div>`:''}${cardInfo}
         <div class="row"><button class="btn btn-red" type="button" data-act="setclose" data-auto>완료</button></div>`,'roomset');
       return;
     }
     const c=V.cfg;
-    const sum=`<p class="cfgsum"><span class="gametag">${esc(G.short)}</span><b>${OPT_LABEL.fast[c.fast?1:0]}</b> · 최대 ${+c.max}명 · 관전 ${+(c.spec??4)}명 · ${G.cfgSum(c)}</p>`;
+    const sum=`<p class="cfgsum"><span class="gametag">${esc(G.short)}</span>${G.noFast?'':`<b>${OPT_LABEL.fast[c.fast?1:0]}</b> · `}최대 ${+c.max}명 · 관전 ${+(c.spec??4)}명 · ${G.cfgSum(c)}</p>`;
     showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="방 나가기" title="방 나가기">←</button><h2>${esc(V.title||'대기실')}</h2>${isHost?'<button type="button" class="btn btn-sub setbtn" data-act="setopen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>방 설정</span></button>':''}</div>
       <div class="coderow"><div><span class="label">방 코드</span><div class="codewrap"><div class="bigcode">${esc(shownCode(V.code))}</div><button type="button" class="eyebtn" data-act="hidecode" aria-pressed="${hideCode}" aria-label="${hideCode?'방 코드 보이기':'방 코드 가리기'}" title="${hideCode?'방 코드·링크 보이기':'방 코드·링크 가리기'}">${hideCode?EYE_OFF:EYE_ON}</button></div></div>${V.code?pubCtl:''}</div>
 
@@ -1864,7 +1864,7 @@ $('#panel').addEventListener('click',e=>{
   if(a.startsWith('tog:')){toggleRule(a.slice(4));return}
   if(a.startsWith('game:')){hostSetGame(a.slice(5));return}
   if(a.startsWith('botlv:')){const i=+a.slice(6),m=H&&H.members[i];if(mode==='host'&&H.phase==='wait'&&m&&m.bot&&m.name===b.dataset.name){m.lv=((m.lv??1)+1)%3;sfx('tick');mark()}return}
-  if(a==='mode0'||a==='mode1'){if(H.phase==='wait'){H.cfg={...H.cfg,fast:a==='mode1'?1:0};mark()}return}
+  if(a==='mode0'||a==='mode1'){if(H.phase==='wait'&&!EG().noFast){H.cfg={...H.cfg,fast:a==='mode1'?1:0};mark()}return}
   if(a==='addbot')hostAddBot();
   else if(a==='start')hostStart();
   else if(a==='again'){H.phase='wait';roomSetOpen=false;mark()}
@@ -2124,6 +2124,9 @@ function buildSeg(id,key,unit,label){
 }
 try{if(/SamsungBrowser/i.test(navigator.userAgent)&&matchMedia('(prefers-color-scheme: dark)').matches)$('#sdarkNote').hidden=false}catch(e){}
 buildSeg('#segGame','gi','','게임');buildSeg('#segFast','fast','','게임 모드');
+/* 빠른 모드가 없는 게임(G.noFast, 야추다이스)을 고르면 '게임 모드' 칸을 숨김 */
+function syncFastField(){$('#segFast').closest('.field').hidden=!!gameOf(GAME_IDS[cfg.gi]).noFast}
+syncFastField();['click','keydown'].forEach(ev=>$('#segGame').addEventListener(ev,syncFastField));
 /* 방 만들기의 공개 방 스위치 */
 function setPubSw(v){cfg.pub=v?1:0;const b=$('#swPub');b.classList.toggle('on',!!v);b.setAttribute('aria-checked',!!v)}
 $('#swPub').addEventListener('click',()=>{setPubSw(!cfg.pub);sfx('tick')});/* 대기 시간·제한 시간 등은 대기실 방 설정에서 조절 (범위 밖이면 가까운 값으로) */
@@ -2486,7 +2489,8 @@ function frame(){
       T.timerArc.rotation.z=seatAngle(V.t);
       for(const m of [T.timerBg,T.timerArc]){m.visible=true;m.position.set(sp.x,.035,sp.z)}
     }else{T.ring.visible=false;T.timerBg.visible=false;T.timerArc.visible=false}
-    if(!G.no3D)T.r.render(T.scene,T.cam);   // 3D 테이블을 쓰지 않는 게임(쿼리도)은 그리기를 쉼
+    if(G.render3D)G.render3D(t,dt);   // 자기 카메라로 그리는 게임 (야추다이스의 주사위 트레이)
+    else if(!G.no3D)T.r.render(T.scene,T.cam);   // 3D 테이블을 쓰지 않는 게임(쿼리도)은 그리기를 쉼
   }
   placeLabels();
   liveUI(t);

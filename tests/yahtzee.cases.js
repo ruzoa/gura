@@ -57,7 +57,7 @@ const filled=i=>CATS.filter(c=>H.y.sc[i][c.id]!==null).length;
 
 /* 설정 */
 {const c=cfgFor('yahtzee');
- if(c.turn!==45||c.max!==4)fail('yahtzee cfg defaults '+JSON.stringify(c));
+ if(c.turn!==60||c.max!==4)fail('yahtzee cfg defaults '+JSON.stringify(c));
  if(roomSetOf(Y).find(d=>d.k==='max').hi!==4)fail('yahtzee max players');
  if(Y.cfgSum(c)===''||Y.cfgChips(c)==='')fail('yahtzee cfg text')}
 
@@ -101,12 +101,33 @@ const filled=i=>CATS.filter(c=>H.y.sc[i][c.id]!==null).length;
  // 첫 야추를 야추 칸에 기록해도 보너스는 없음
  mk({},2);const w=H.turn;H.y.rolled=true;H.y.dice=[6,6,6,6,6];Y.engine.act(w,{t:'score',cat:'yahtzee'});eq(H.y.sc[w].yahtzee,50,'yahtzee scored');eq(H.y.yb[w],0,'first yahtzee has no bonus')}
 
-/* 빠른 모드: 7라운드 */
-{mk({fast:1},2);eq(H.y.rounds,7,'fast rounds');
- // 7번씩 기록하면 끝
- let guard=0;while(H.phase==='play'&&guard++<100){const t=H.turn;Y.engine.act(t,{t:'roll'});Y.engine.act(t,{t:'score',cat:allowed(H.y.sc[t],H.y.dice)[0]})}
- eq(H.phase,'over','fast game ends');
- if(filled(0)!==7||filled(1)!==7)fail('yahtzee fast filled '+filled(0)+','+filled(1))}
+/* 빠른 모드 없음: 방 설정에 fast가 있어도 13라운드 */
+{if(!Y.noFast)fail('yahtzee noFast flag');
+ mk({fast:1},2);eq(H.y.rounds,13,'fast ignored');
+ let guard=0;while(H.phase==='play'&&guard++<200){const t=H.turn;Y.engine.act(t,{t:'roll'});Y.engine.act(t,{t:'score',cat:allowed(H.y.sc[t],H.y.dice)[0]})}
+ eq(H.phase,'over','game ends');
+ if(filled(0)!==13||filled(1)!==13)fail('yahtzee filled '+filled(0)+','+filled(1))}
+
+/* 컵 흔들기: 차례인 사람만, 굴리면 풀림, 흔든 주사위 표시가 스냅샷에 실림, 규칙에는 영향 없음 */
+{mk({},2);
+ const t=H.turn,o=1-t;
+ Y.engine.act(o,{t:'shake'});eq(H.y.sh,0,'shake out of turn ignored');
+ Y.engine.act(t,{t:'shake',keep:[true,true,true,true,true]});eq(H.y.sh,1,'first shake');same(H.y.shk,[false,false,false,false,false],'first shake throws all');
+ let s={};Y.engine.snap(s,t,clock());eq(s.y.sh,1,'snap shake');
+ Y.engine.act(t,{t:'roll'});eq(H.y.sh,0,'roll clears shake');eq(H.y.left,2,'roll after shake');
+ Y.engine.act(t,{t:'shake',keep:[true,true,true,true,true]});eq(H.y.sh,0,'keeping all is not a shake');
+ Y.engine.act(t,{t:'shake',keep:[true,false,false,false,false]});eq(H.y.sh,1,'second shake');same(H.y.shk,[true,false,false,false,false],'shake keep');
+ // 흔드는 중에 시간이 지나면 흔든 대로 굴리고 기록
+ const d0=H.y.dice[0];NOW=H.deadline+1;engineTick();
+ if(H.turn===t)fail('yahtzee shake timeout did not pass turn');
+ eq(H.y.sh,0,'new turn shake cleared')}
+
+/* 봇은 흔든 뒤에 굴림 */
+{mk({},2,true);
+ const t=H.turn;H.players[t].bot=true;H.players[t].lv=2;H.botActAt=NOW;
+ engineTick();eq(H.y.sh,1,'bot shakes first');eq(H.y.rolled,false,'bot not rolled yet');
+ NOW=H.botActAt;engineTick();eq(H.y.rolled,true,'bot rolls after shaking');eq(H.y.sh,0,'bot shake cleared');
+ if(H.botActAt-NOW<2700)fail('yahtzee bot waits for the roll animation')}
 
 /* 제한 시간: 남은 굴림과 기록을 알아서 처리하고 차례가 넘어감 */
 {mk({},3);
@@ -122,7 +143,8 @@ const filled=i=>CATS.filter(c=>H.y.sc[i][c.id]!==null).length;
 {mk({},2);
  const t=H.turn,p=H.players[t];p.bot=true;p.away=true;p.awayAt=NOW;H.botActAt=NOW;
  engineTick();eq(H.y.rolled,false,'away player waits before bot acts');
- NOW+=AWAY_WAIT+1;engineTick();eq(H.y.rolled,true,'bot takes over after away wait')}
+ NOW+=AWAY_WAIT+1;engineTick();eq(H.y.sh,1,'bot takes over after away wait (shakes)');
+ NOW=H.botActAt;engineTick();eq(H.y.rolled,true,'bot rolls after away wait')}
 
 /* 항복 */
 {mk({},3);
@@ -157,7 +179,7 @@ const filled=i=>CATS.filter(c=>H.y.sc[i][c.id]!==null).length;
  const s=snapFor(1);
  eq(s.y.sc.length,3,'snap scoreboards');eq(s.y.sc[0].length,13,'snap boxes');eq(s.y.d.length,5,'snap dice');
  eq(s.y.rd,13,'snap rounds');eq(s.gr,0,'snap grace');
- if(typeof s.dl!=='number'||s.dl<=0||s.dl>45000)fail('yahtzee snap deadline '+s.dl);
+ if(typeof s.dl!=='number'||s.dl<=0||s.dl>60000)fail('yahtzee snap deadline '+s.dl);
  if(s.ps.some(p=>p.c!==1))fail('yahtzee snap hand marker');
  eq(typeof JSON.stringify(s),'string','snap serializable');
  // 방장이 새로고침한 뒤에도 같은 상태로 이어짐
@@ -238,6 +260,29 @@ function soloGame(lv){
   globalThis.V=null;globalThis.PV=null;
 }
 
+
+/* 3D 연출용 물리: 트레이 밖으로 나가지 않고, 바닥에 놓이고, 방장이 정한 눈이 위로 오게 돌릴 수 있음 */
+{const P=Y._test.phys;
+ let seed=11;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+ const dir=[-.55,0,-.835],dl=Math.hypot(dir[0],dir[2]);dir[0]/=dl;dir[2]/=dl;
+ let flat=0,tot=0,slow=0;
+ for(let t=0;t<60;t++){
+   const n=1+t%5,statics=[];for(let i=n;i<5;i++)statics.push(P.slotPos(i));
+   const r=P.simThrow(P.throwStarts(n,[1.08,.86,-.46],dir,rnd),statics);
+   if(r.dur>3.4)slow++;
+   if(r.frames.length<2||r.frames[0].length!==n*7)fail('yahtzee sim frames');
+   r.fin.forEach((q,i)=>{
+     tot++;const p=r.pos[i];
+     if(Math.hypot(p[0],p[2])+P.DH-P.TRAY_R>.02)fail('yahtzee die left the tray '+p);
+     if(p[1]<P.FLOOR+P.DH-.05)fail('yahtzee die sank '+p[1]);
+     if(P.qrot(q,P.FACE_N[P.topFace(q)])[1]>.99)flat++;
+     for(let want=1;want<=6;want++)if(P.topFace(P.qmul(q,P.preRot(q,want)))!==want)fail('yahtzee preRot '+want);
+   });
+ }
+ if(flat<tot*.9)fail('yahtzee dice not lying flat '+flat+'/'+tot);
+ if(slow)fail('yahtzee sim too long '+slow);
+ for(let v=1;v<=6;v++){const q=P.restQ(v,[.3,.2,.1,.9]);if(P.topFace(q)!==v)fail('yahtzee restQ '+v)}}
+
 /* 봇끼리 끝까지: 인원·모드·난이도를 바꿔 가며, 점수판·순위가 맞는지 확인 */
 function playOutY(n,over,lvs){
   mk(over,n,true);
@@ -250,7 +295,7 @@ function playOutY(n,over,lvs){
     if(H.y.left<0||H.y.left>3){fail('yahtzee rolls left '+H.y.left);return ticks}
   }
   if(H.phase!=='over'){fail('yahtzee stuck n='+n+' cfg='+JSON.stringify(over));return ticks}
-  const rounds=H.cfg.fast?7:13;
+  const rounds=13;
   for(let i=0;i<n;i++){
     if(filled(i)!==rounds)fail('yahtzee filled '+filled(i)+' != '+rounds);
     if(H.y.done[i]!==rounds)fail('yahtzee turns '+H.y.done[i]+' != '+rounds);
