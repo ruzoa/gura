@@ -339,10 +339,13 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .coderow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .pubsw{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted);padding-bottom:6px}
 .pubsw span.on{color:var(--ink)}
-.sw{position:relative;width:52px;height:28px;flex:none;border-radius:99px;border:1.5px solid var(--mustard-edge);background:var(--mustard);padding:0;transition:background .18s}
-.sw.right{background:var(--well);border-color:var(--line-strong)}
+/* 스위치: 왼쪽 = 끄기(회색), 오른쪽 = 켜기(노랑) */
+.sw{position:relative;width:52px;height:28px;flex:none;border-radius:99px;border:1.5px solid var(--line-strong);background:var(--well);padding:0;transition:background .18s}
+.sw.on{background:var(--mustard);border-color:var(--mustard-edge)}
 .sw i{position:absolute;top:2px;left:2px;width:21px;height:21px;border-radius:50%;background:var(--paper);box-shadow:0 1px 3px rgba(28,18,10,.35);transition:left .18s}
-.sw.right i{left:25px}
+.sw.on i{left:25px}
+.swfield{flex-direction:row;align-items:center;justify-content:space-between;gap:12px}
+.swfield>div{display:flex;flex-direction:column;gap:3px}
 .pubtag{display:inline-block;margin-left:8px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;vertical-align:middle;background:var(--well);color:var(--muted);border:1px solid var(--line-strong)}
 .pubtag.on{background:#fbe7b0;color:var(--amber);border-color:var(--mustard-edge)}
 .note.sdark{color:var(--gura);line-height:1.45;margin-top:6px}
@@ -609,7 +612,7 @@ body.kb .fan .card.cur{z-index:70!important}
       <div class="field"><span class="fl">게임</span><div class="seg modes" id="segGame"></div></div>
       <div class="field"><span class="fl">게임 모드</span><div class="seg modes" id="segFast"></div></div>
       <div class="field"><label for="inTitle">방 이름</label><input class="txt" id="inTitle" maxlength="20" autocomplete="off"></div>
-      <div class="field"><span class="fl">공개 설정</span><small>공개 방은 누구나 '랜덤 방 참여'로 들어올 수 있습니다</small><div class="seg pubseg" id="segPub"></div></div>
+      <div class="field swfield"><div><span class="fl">공개 방</span><small>켜면 누구나 '랜덤 방 참여'와 방 목록으로 들어올 수 있습니다</small></div><button type="button" class="sw" id="swPub" role="switch" aria-checked="false" aria-label="공개 방"><i></i></button></div>
       <p class="note">게임 종류, 인원, 카드, 시간, 규칙은 방을 만든 뒤 대기실의 <b>방 설정</b>에서도 바꿀 수 있습니다.</p>
       <div class="row">
         <button class="btn btn-red wide" id="btnCreate" type="button">방 만들기</button>
@@ -1789,13 +1792,13 @@ function renderPanel(){
     const link=V.code?roomLink(String(V.code)):'';
     const pubOn=!!V.cfg.pub;
     // 방장: 공개(왼쪽)/비공개(오른쪽) 슬라이드 스위치, 참가자: 표시만
-    const pubCtl=isHost?`<div class="pubsw"><span class="${pubOn?'on':''}">공개</span><button type="button" class="sw${pubOn?'':' right'}" role="switch" aria-checked="${!pubOn}" aria-label="비공개 방" data-act="pub"><i></i></button><span class="${pubOn?'':'on'}">비공개</span></div>`
+    const pubCtl=isHost?`<div class="pubsw"><span class="${pubOn?'on':''}">공개 방</span><button type="button" class="sw${pubOn?' on':''}" role="switch" aria-checked="${pubOn}" aria-label="공개 방" data-act="pub"><i></i></button></div>`
       :`<span class="pubtag${pubOn?' on':''}">${pubOn?'공개 방':'비공개 방'}</span>`;
     // 방장: 인원 수 다시 정하기 (지금 들어와 있는 사람보다 적게는 못 줄임)
     if(isHost&&roomSetOpen){
       const c=V.cfg,minMax=Math.max(2,V.ps.length);
       const nowN=Math.max(2,V.ps.length),cardInfo=G.cardInfo(c,nowN);
-      const rules=G.ruleSet.map(d=>{const on=!!(+c[d.k]);return `<div class="stp tg"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="sw${on?'':' right'}" role="switch" aria-checked="${on}" aria-label="${d.label}" data-act="tog:${d.k}"><i></i></button></div></div>`}).join('');
+      const rules=G.ruleSet.map(d=>{const on=!!(+c[d.k]);return `<div class="stp tg"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="sw${on?' on':''}" role="switch" aria-checked="${on}" aria-label="${d.label}" data-act="tog:${d.k}"><i></i></button></div></div>`}).join('');
       const tooMany=GAME_IDS.filter(id=>GAMES[id].maxHi&&V.ps.length>GAMES[id].maxHi);   // 인원 제한이 있는 게임(쿼리도 4명)은 지금 인원이 넘으면 고를 수 없음
       const gpick=`<div class="rs-seg"><div class="rs-h"><b>게임</b><small>${esc(G.lead)}${tooMany.length?`<br>${tooMany.map(id=>`${esc(GAMES[id].name)}은(는) 최대 ${GAMES[id].maxHi}명`).join(', ')}까지 할 수 있습니다.`:''}</small></div><div class="segrow" role="radiogroup" aria-label="게임">${GAME_IDS.map(id=>`<button class="btn ${c.game===id?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${c.game===id}" data-act="game:${id}"${tooMany.includes(id)?' disabled':''}>${esc(GAMES[id].name)}</button>`).join('')}</div></div>`;
       const rows=roomSetOf(G).map(d=>{const v=+(c[d.k]??cfg[d.k]),lo=d.k==='max'?minMax:d.k==='spec'?(Array.isArray(V.sv)?V.sv.length:0):d.lo;
@@ -2119,7 +2122,10 @@ function buildSeg(id,key,unit,label){
   });
 }
 try{if(/SamsungBrowser/i.test(navigator.userAgent)&&matchMedia('(prefers-color-scheme: dark)').matches)$('#sdarkNote').hidden=false}catch(e){}
-buildSeg('#segGame','gi','','게임');buildSeg('#segFast','fast','','게임 모드');buildSeg('#segPub','pub','','공개 설정');/* 대기 시간·제한 시간 등은 대기실 방 설정에서 조절 (범위 밖이면 가까운 값으로) */
+buildSeg('#segGame','gi','','게임');buildSeg('#segFast','fast','','게임 모드');
+/* 방 만들기의 공개 방 스위치 */
+function setPubSw(v){cfg.pub=v?1:0;const b=$('#swPub');b.classList.toggle('on',!!v);b.setAttribute('aria-checked',!!v)}
+$('#swPub').addEventListener('click',()=>{setPubSw(!cfg.pub);sfx('tick')});/* 대기 시간·제한 시간 등은 대기실 방 설정에서 조절 (범위 밖이면 가까운 값으로) */
 $('#inNick').value=store('gura-nick')||'나';
 const invited=(()=>{const q=new URLSearchParams(location.search).get('room');if(q&&/^[a-z0-9]{4}$/i.test(q)){$('#inCode').value=q.toUpperCase();setNote('#netNote','초대받은 방입니다. 참가를 누르면 들어갑니다.');return true}return false})();
 
@@ -2161,7 +2167,7 @@ function showView(v,focus=true){
     if(el){el.focus();if(el.select)el.select()}
   },30);
 }
-$('#lobby').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){if(b.dataset.pub){const pb=$('#segPub [data-v="1"]');if(pb)pb.click()}showView(b.dataset.go)}});
+$('#lobby').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){if(b.dataset.pub)setPubSw(1);showView(b.dataset.go)}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#lobby').hidden&&$('#keysOv').hidden&&lobbyView!=='main'){e.preventDefault();if(lobbyView==='settings')saveNick();showView('main')}});
 function focusLobby(){showView(invited?'join':'main')}
 /* 페이지를 열었을 때 10분 안에 하던 방이 있으면 이어서 */
