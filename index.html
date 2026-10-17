@@ -157,7 +157,7 @@ body.nofs .fsbtn.snd{right:106px}
 @keyframes pop{from{transform:scale(.6) rotate(-6deg);opacity:0}to{transform:none;opacity:1}}
 
 /* 무대 위 패널 (대기실, 결과) */
-.panel{position:absolute;inset:0;display:flex;padding:16px;background:rgba(59,42,31,.32);overflow-y:auto}
+.panel{position:absolute;inset:0;display:flex;padding:60px 16px 16px;background:rgba(59,42,31,.32);overflow-y:auto}
 .card-sheet{background:var(--panel);border:1.5px solid var(--line-strong);border-radius:var(--r-lg);padding:20px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;margin:auto;box-shadow:var(--sh-panel)}
 .card-sheet h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:30px;color:var(--gura)}
 .card-sheet p{margin:0;font-size:13px;color:var(--muted)}
@@ -305,7 +305,7 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .cfgsum b{color:var(--ink)}
 .stp{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line)}
 .stp-t{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1 1 0}
-.stp.tg{min-height:66px}
+.stp.tg{min-height:0}
 .stp-t b{font-size:14px}
 .stp-t small{font-size:11.5px;color:var(--muted);line-height:1.35}
 .stp-c{display:flex;align-items:center;gap:6px;flex:none}
@@ -316,7 +316,26 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .stp-u{font-size:12px;color:var(--muted);min-width:22px}
 .stp .modepick{flex:none;gap:6px}
 .stp .modepick .btn{padding:7px 12px;font-size:13px;white-space:nowrap}
-@media (max-width:480px){.stp:not(.tg){flex-direction:column;align-items:stretch;gap:8px}.stp:not(.tg) .stp-t{flex:none}.stp:not(.tg) .stp-c,.stp:not(.tg) .modepick{justify-content:flex-end;align-self:flex-end}}
+/* 방 설정 창: 게임·모드는 꽉 찬 버튼 줄, 숫자 설정과 규칙은 넓은 화면에서 2칸 */
+.card-sheet.wide{max-width:700px}
+.rs-seg{display:flex;flex-direction:column;gap:7px;padding:8px 0 10px;border-bottom:1px dashed var(--line)}
+.rs-h{display:flex;align-items:baseline;gap:4px 10px;flex-wrap:wrap}
+.rs-h b{font-size:14px}
+.rs-h small{font-size:11.5px;color:var(--muted);line-height:1.35}
+.segrow{display:flex;gap:6px}
+.segrow .btn{flex:1;min-width:0;padding:8px 6px;font-size:14px;white-space:nowrap}
+.rs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));column-gap:22px}
+.rs-grid .stp{padding:8px 0}
+@media (max-width:480px){
+  .stp{gap:8px}
+  .stp-b{width:32px;height:32px;font-size:18px}
+  .stp-v{width:44px;padding:5px 2px}
+  .stp-u{min-width:14px;font-size:11px}
+  .stp-c{gap:4px}
+  .stp-t small,.rs-h small{font-size:11px}
+  .rs-grid.tgs{grid-template-columns:1fr 1fr;column-gap:14px}   /* 켜고 끄는 규칙은 2칸, 설명은 게임 방법에서 */
+  .tgs .stp-t small{display:none}
+}
 .coderow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .pubsw{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted);padding-bottom:6px}
 .pubsw span.on{color:var(--ink)}
@@ -1709,7 +1728,7 @@ function showPanel(html,kind){
   if(html===lastPanelHtml)return;
   const ae=document.activeElement,prevAct=ae&&p.contains(ae)&&ae.dataset?ae.dataset.act:null;
   const typing=ae&&ae.tagName==='INPUT'&&p.contains(ae)?{id:ae.id,v:ae.value,s:ae.selectionStart,e:ae.selectionEnd}:null;
-  $('#panelBody').innerHTML=html;lastPanelHtml=html;
+  $('#panelBody').innerHTML=html;lastPanelHtml=html;$('#panelBody').classList.toggle('wide',kind==='roomset');
   if(typing&&typing.id){const el=document.getElementById(typing.id);if(el){el.value=typing.v;el.focus();try{el.setSelectionRange(typing.s,typing.e)}catch(_){}lastPanelKind=kind||'';return}}
   let target=prevAct?p.querySelector(`[data-act="${prevAct}"]:not([disabled])`):null;
   if(!target&&kind!==lastPanelKind)target=p.querySelector('[data-auto]:not([disabled])');
@@ -1778,12 +1797,12 @@ function renderPanel(){
       const nowN=Math.max(2,V.ps.length),cardInfo=G.cardInfo(c,nowN);
       const rules=G.ruleSet.map(d=>{const on=!!(+c[d.k]);return `<div class="stp tg"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="sw${on?'':' right'}" role="switch" aria-checked="${on}" aria-label="${d.label}" data-act="tog:${d.k}"><i></i></button></div></div>`}).join('');
       const tooMany=GAME_IDS.filter(id=>GAMES[id].maxHi&&V.ps.length>GAMES[id].maxHi);   // 인원 제한이 있는 게임(쿼리도 4명)은 지금 인원이 넘으면 고를 수 없음
-      const gpick=`<div class="stp"><div class="stp-t"><b>게임</b><small>${esc(G.lead)}${tooMany.length?`<br>${tooMany.map(id=>`${esc(GAMES[id].name)}은(는) 최대 ${GAMES[id].maxHi}명`).join(', ')}까지 할 수 있습니다.`:''}</small></div><div class="row modepick" role="radiogroup" aria-label="게임">${GAME_IDS.map(id=>`<button class="btn ${c.game===id?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${c.game===id}" data-act="game:${id}"${tooMany.includes(id)?' disabled':''}>${esc(GAMES[id].name)}</button>`).join('')}</div></div>`;
+      const gpick=`<div class="rs-seg"><div class="rs-h"><b>게임</b><small>${esc(G.lead)}${tooMany.length?`<br>${tooMany.map(id=>`${esc(GAMES[id].name)}은(는) 최대 ${GAMES[id].maxHi}명`).join(', ')}까지 할 수 있습니다.`:''}</small></div><div class="segrow" role="radiogroup" aria-label="게임">${GAME_IDS.map(id=>`<button class="btn ${c.game===id?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${c.game===id}" data-act="game:${id}"${tooMany.includes(id)?' disabled':''}>${esc(GAMES[id].name)}</button>`).join('')}</div></div>`;
       const rows=roomSetOf(G).map(d=>{const v=+(c[d.k]??cfg[d.k]),lo=d.k==='max'?minMax:d.k==='spec'?(Array.isArray(V.sv)?V.sv.length:0):d.lo;
         return `<div class="stp"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="stp-b" data-act="dec:${d.k}" aria-label="${d.label} 줄이기"${v<=lo?' disabled':''}>−</button><input class="txt stp-v" id="st_${d.k}" type="number" inputmode="numeric" min="${lo}" max="${d.hi}" step="${d.step}" value="${v}" aria-label="${d.label}"><span class="stp-u">${d.unit}</span><button type="button" class="stp-b" data-act="inc:${d.k}" aria-label="${d.label} 늘리기"${v>=d.hi?' disabled':''}>+</button></div></div>`}).join('');
       showPanel(`<div class="vhead"><button type="button" class="back" data-act="setclose" aria-label="대기실로">←</button><h2>방 설정</h2></div>
-        ${gpick}<div class="stp"><div class="stp-t"><b>게임 모드</b><small>${G.modeDesc[c.fast?1:0]}</small></div><div class="row modepick" role="radiogroup" aria-label="게임 모드">${[0,1].map(v=>`<button class="btn ${(c.fast?1:0)===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${(c.fast?1:0)===v}" data-act="mode${v}">${OPT_LABEL.fast[v]}</button>`).join('')}</div></div>
-        ${rows}${rules?`<div class="rulehead">게임 규칙</div>${rules}`:''}${cardInfo}
+        ${gpick}<div class="rs-seg"><div class="rs-h"><b>게임 모드</b><small>${G.modeDesc[c.fast?1:0]}</small></div><div class="segrow" role="radiogroup" aria-label="게임 모드">${[0,1].map(v=>`<button class="btn ${(c.fast?1:0)===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${(c.fast?1:0)===v}" data-act="mode${v}">${OPT_LABEL.fast[v]}</button>`).join('')}</div></div>
+        <div class="rs-grid">${rows}</div>${rules?`<div class="rulehead">게임 규칙</div><div class="rs-grid tgs">${rules}</div>`:''}${cardInfo}
         <div class="row"><button class="btn btn-red" type="button" data-act="setclose" data-auto>완료</button></div>`,'roomset');
       return;
     }
