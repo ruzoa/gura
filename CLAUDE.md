@@ -10,7 +10,7 @@
 | `games/gura.js` | 구라! 규칙 엔진, 봇, 카드 모양, 화면 표시 |
 | `games/president.js` | 대부호 규칙 엔진, 봇, 카드 모양, 화면 표시 |
 | `games/quoridor.js` | 쿼리도 규칙 엔진, 봇, 2D 보드 화면 (카드 없음, 최대 4명) |
-| `games/yahtzee.js` | 야추다이스 규칙 엔진, 봇, 3D 컵·주사위(자체 물리, 눈은 방장이 정하고 그 눈으로 떨어지게 연출), 점수 종이 (카드 없음, 최대 4명, 빠른 모드 없음, 굴리기 키 `C`를 누르고 있다 떼기). WebGL이 없으면 2D 주사위 칸 |
+| `games/yahtzee.js` | 야추다이스 규칙 엔진, 봇, 3D 컵·주사위(자체 물리, 눈은 방장이 정하고 그 눈으로 떨어지게 연출, 떨어진 주사위를 누르면 앞쪽 고정 칸으로·다시 누르면 테이블로), 점수 종이 (카드 없음, 최대 4명, 빠른 모드 없음, 굴리기 키 `C`를 누르고 있다 떼기). WebGL이 없으면 2D 주사위 칸 |
 | `tests/engine.test.js` | 엔진 테스트 (`node tests/engine.test.js`). `tests/*.cases.js`(야추다이스는 `tests/yahtzee.cases.js`), `tests/quoridor.fuzz.js`를 불러서 함께 돌림 |
 | `manifest.webmanifest`, `sw.js`, 아이콘 | 홈 화면 앱 |
 

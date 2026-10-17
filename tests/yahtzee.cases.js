@@ -122,6 +122,38 @@ const filled=i=>CATS.filter(c=>H.y.sc[i][c.id]!==null).length;
  if(H.turn===t)fail('yahtzee shake timeout did not pass turn');
  eq(H.y.sh,0,'new turn shake cleared')}
 
+/* 봇: 굴린 뒤 남길 주사위를 먼저 고정 칸으로 옮기고, 같은 주사위로 흔들어 굴림 */
+for(let rep=0;rep<30;rep++){
+  mk({},2,true);
+  const t=H.turn;H.players.forEach(p=>{p.lv=rep%3});
+  const log=[];let guard=0;
+  while(H.turn===t&&H.phase==='play'&&guard++<40){
+    NOW=Math.max(NOW,H.botActAt||NOW);engineTick();
+    if(H.turn!==t)break;
+    log.push([H.y.hk.map(Number).join(''),H.y.sh,H.y.rl,(H.y.shk||[]).map(Number).join('')]);
+  }
+  const changes={};
+  for(let k=1;k<log.length;k++){
+    const [hk0,sh0,rl0]=log[k-1],[hk1,sh1,rl1,shk1]=log[k];
+    if(rl1===rl0&&hk1!==hk0&&(changes[rl1]=(changes[rl1]||0)+1)>1)fail('yahtzee bot changed its hold twice '+JSON.stringify(log));
+    if(sh1&&!sh0&&rl0>0&&shk1!==hk0)fail('yahtzee bot shook other dice than it held '+JSON.stringify(log));
+  }
+  if(guard>=40)fail('yahtzee bot turn stuck '+JSON.stringify(log));
+}
+
+/* 고정 칸 옮기기: 굴린 뒤 차례인 사람만, 굴리면 남긴 주사위가 그대로 고정, 새 차례에 풀림 */
+{mk({},2);
+ const t=H.turn,o=1-t;
+ Y.engine.act(t,{t:'hold',keep:[true,false,false,false,false]});same(H.y.hk,[false,false,false,false,false],'hold before roll ignored');
+ Y.engine.act(t,{t:'roll'});
+ Y.engine.act(o,{t:'hold',keep:[true,true,true,true,true]});same(H.y.hk,[false,false,false,false,false],'hold out of turn ignored');
+ Y.engine.act(t,{t:'hold',keep:[true,false,true]});same(H.y.hk,[true,false,true,false,false],'hold mask');
+ Y.engine.act(t,{t:'hold',keep:'x'});same(H.y.hk,[true,false,true,false,false],'bad hold ignored');
+ let s={};Y.engine.snap(s,t,clock());same(s.y.hk,[true,false,true,false,false],'snap hold');
+ eq(H.y.left,2,'hold is not a roll');
+ Y.engine.act(t,{t:'roll',keep:[false,true,false,false,false]});same(H.y.hk,[false,true,false,false,false],'roll keep stays held');
+ Y.engine.act(t,{t:'score',cat:'chance'});same(H.y.hk,[false,false,false,false,false],'new turn clears hold')}
+
 /* 봇은 흔든 뒤에 굴림 */
 {mk({},2,true);
  const t=H.turn;H.players[t].bot=true;H.players[t].lv=2;H.botActAt=NOW;
@@ -264,16 +296,17 @@ function soloGame(lv){
 /* 3D 연출용 물리: 트레이 밖으로 나가지 않고, 바닥에 놓이고, 방장이 정한 눈이 위로 오게 돌릴 수 있음 */
 {const P=Y._test.phys;
  let seed=11;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
- const dir=[-.55,0,-.835],dl=Math.hypot(dir[0],dir[2]);dir[0]/=dl;dir[2]/=dl;
+ const dir=[-.85,0,-.53],dl=Math.hypot(dir[0],dir[2]);dir[0]/=dl;dir[2]/=dl;
  let flat=0,tot=0,slow=0;
  for(let t=0;t<60;t++){
    const n=1+t%5,statics=[];for(let i=n;i<5;i++)statics.push(P.slotPos(i));
-   const r=P.simThrow(P.throwStarts(n,[1.08,.86,-.46],dir,rnd),statics);
+   const r=P.simThrow(P.throwStarts(n,[1.0,.86,-.2],dir,rnd),statics);
    if(r.dur>3.4)slow++;
    if(r.frames.length<2||r.frames[0].length!==n*7)fail('yahtzee sim frames');
    r.fin.forEach((q,i)=>{
      tot++;const p=r.pos[i];
      if(Math.hypot(p[0],p[2])>P.EDGE_R+.02)fail('yahtzee die left the felt '+p);
+     if(p[2]>P.FIELD_Z+.02)fail('yahtzee die rolled into the hold row '+p);
      if(p[1]<P.FLOOR+P.DH-.05)fail('yahtzee die sank '+p[1]);
      if(P.qrot(q,P.FACE_N[P.topFace(q)])[1]>.99)flat++;
      for(let want=1;want<=6;want++)if(P.topFace(P.qmul(q,P.preRot(q,want)))!==want)fail('yahtzee preRot '+want);

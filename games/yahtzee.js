@@ -201,7 +201,7 @@ G.cardHTML=()=>'';G.drawFace=()=>{};G.cmpCard=()=>0;G.labelOf=()=>'';
    좌표: 테이블 윗면 y=0, 트레이 가운데가 원점, 화면 쪽이 +z. 주사위는 모서리가 둥근 정육면체(모서리 8곳의 작은 공)로,
    주사위끼리는 공 하나로 단순하게 부딪침. 눈은 방장이 정하고, 물리는 던지는 모습만 만든다 */
 const DS=.72,DH=DS/2,DRAD=.095,DIN=DH-DRAD;            // 한 변, 반, 모서리 둥글기, 모서리 공의 중심
-const EDGE_R=3,FELT_R=3.12,FLOOR=.024,SLOT_Z=1.35,SLOT_DX=.88;   // 주사위가 넘지 못하는 펠트 가장자리(보이지 않음, 닿으면 튕기지 않고 멈춤), 펠트 반지름·높이, 주사위 칸 줄(z)과 간격
+const EDGE_R=3,FELT_R=3.12,FLOOR=.024,FIELD_Z=.78,SLOT_Z=1.42,SLOT_DX=.9;   // 주사위가 넘지 못하는 펠트 가장자리(보이지 않음, 닿으면 튕기지 않고 멈춤), 펠트 반지름·높이, 굴린 주사위가 넘지 못하는 앞쪽 경계(z, 그 앞은 고정 칸 자리), 고정 칸 줄(z)과 간격
 const GRAV=-34;                                          // 실제보다 느리게 떨어뜨려서 굴러가는 모습이 보이게
 /* 눈 → 주사위 안쪽 좌표에서 그 면의 방향 (마주 보는 면의 합이 7) */
 const FACE_N={1:[0,1,0],6:[0,-1,0],2:[0,0,1],5:[0,0,-1],3:[1,0,0],4:[-1,0,0]};
@@ -299,6 +299,7 @@ function simThrow(starts,statics){
           if(pf>0){b.fl=true;contact(b,r,0,1,0,pf,.32,step)}
           const hd=Math.hypot(px,pz),pw=hd+DRAD-EDGE_R;
           if(pw>0&&hd>1e-6)contact(b,r,-px/hd,0,-pz/hd,pw,0,step);
+          const pf2=pz+DRAD-FIELD_Z;if(pf2>0)contact(b,r,0,0,-1,pf2,0,step);
         }
       }
       // 주사위끼리 (공으로 단순화), 칸에 고정된 주사위는 움직이지 않음
@@ -346,7 +347,7 @@ function startTurn(i){
   H.turn=i;H.graceUntil=0;
   H.deadline=clock()+H.cfg.turn*1000;
   H.botActAt=H.players[i].bot?clock()+rand(900,1800):0;
-  Y.dice=[0,0,0,0,0];Y.held=[false,false,false,false,false];Y.left=3;Y.rolled=false;Y.tn++;Y.sh=0;Y.shk=[false,false,false,false,false];Y.bk=null;
+  Y.dice=[0,0,0,0,0];Y.held=[false,false,false,false,false];Y.left=3;Y.rolled=false;Y.tn++;Y.sh=0;Y.shk=[false,false,false,false,false];Y.hk=[false,false,false,false,false];Y.bk=null;
   mark();
 }
 /* keep: 남길 주사위 5칸(true = 남김). 첫 굴림에는 모두 굴림 */
@@ -358,7 +359,7 @@ function doRoll(i,keep){
   if(Y.rolled&&k.every(Boolean))return false;
   Y.held=k;
   for(let j=0;j<5;j++)if(!k[j])Y.dice[j]=1+(Math.random()*6|0);
-  Y.left--;Y.rolled=true;Y.rl++;Y.sh=0;Y.bk=null;
+  Y.left--;Y.rolled=true;Y.rl++;Y.sh=0;Y.bk=null;Y.hk=k.slice();   // 남긴 주사위는 계속 고정 칸에
   mark();return true;
 }
 /* 컵 흔들기 (화면 연출용): 다른 사람 화면에도 컵을 흔드는 모습과 컵에 들어갈 주사위를 보여 줌. 규칙에는 영향 없음 */
@@ -369,6 +370,13 @@ function doShake(i,keep){
   while(k.length<5)k.push(false);
   if(Y.rolled&&k.every(Boolean))return false;
   Y.sh=1;Y.shk=k;mark();return true;
+}
+/* 고정 칸으로 옮기기 (화면 표시용): 굴릴 때 실제로 남기는 주사위는 roll의 keep으로 정함 */
+function doHold(i,keep){
+  const Y=H.y;
+  if(!Y.rolled||Y.left<=0||Y.sh||!Array.isArray(keep))return false;
+  const k=keep.slice(0,5).map(Boolean);while(k.length<5)k.push(false);
+  Y.hk=k;mark();return true;
 }
 function doScore(i,cat){
   const Y=H.y,p=H.players[i],d=Y.dice;
@@ -407,12 +415,19 @@ function doSurrender(i){
 /* 한 번 굴리거나 기록하는 봇의 한 동작 */
 /* 봇: 컵을 잠깐 흔든 뒤 굴리고, 화면에서 주사위가 다 떨어질 때까지 기다렸다가 다음 동작 */
 const ROLL_ANIM=2700;   // 컵을 기울여 던지고 주사위가 칸에 놓일 때까지 걸리는 시간 (화면 연출, 대략)
+const sameMask=(a,b)=>[0,1,2,3,4].every(j=>!!(a||[])[j]===!!(b||[])[j]);
 function botStep(i){
   const Y=H.y;
   if(Y.sh){doRoll(i,Y.bk||Y.shk);H.botActAt=clock()+ROLL_ANIM+rand(500,1200);return}
   if(!Y.rolled){if(doShake(i,[]))H.botActAt=clock()+rand(650,1000);else doRoll(i,[]);return}
+  if(Y.bk){if(doShake(i,Y.bk)){H.botActAt=clock()+rand(650,1000);return}Y.bk=null}   // 골라 둔 주사위로 흔들기
   const pl=plan(Y.sc[i],Y.dice,Y.left,botLv(H.players[i]));
-  if(pl.keep&&doShake(i,pl.keep)){Y.bk=pl.keep.slice();H.botActAt=clock()+rand(650,1000);return}
+  if(pl.keep&&pl.keep.some(k=>!k)){
+    Y.bk=pl.keep.map(Boolean);
+    if(!sameMask(Y.hk,Y.bk)){doHold(i,Y.bk);H.botActAt=clock()+rand(600,950);return}   // 먼저 남길 주사위를 고정 칸으로 옮기는 모습
+    if(doShake(i,Y.bk)){H.botActAt=clock()+rand(650,1000);return}
+    Y.bk=null;
+  }
   const cat=pl.cat||bestFor(Y.sc[i],Y.dice).cat||allowed(Y.sc[i],Y.dice)[0];
   doScore(i,cat);
 }
@@ -435,14 +450,14 @@ function timeout(){
   autoFinish(i);
 }
 /* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
-G._test={phys:{simThrow,throwStarts,topFace,preRot,restQ,qrot,qmul,qAxis,FACE_N,slotPos,slotOrder,EDGE_R,DS,DH,FLOOR,DRAD},CATS,calc,allowed,totals,jokerOf,plan,bestFor,doRoll,doShake,doScore,doSurrender,autoFinish,timeout,botStep,rerollDist,msIdx,MS,ROUNDS,hasRun,counts,isY,mkSc,
+G._test={doHold,phys:{simThrow,throwStarts,topFace,preRot,restQ,qrot,qmul,qAxis,FACE_N,slotPos,slotOrder,EDGE_R,FIELD_Z,DS,DH,FLOOR,DRAD},CATS,calc,allowed,totals,jokerOf,plan,bestFor,doRoll,doShake,doScore,doSurrender,autoFinish,timeout,botStep,rerollDist,msIdx,MS,ROUNDS,hasRun,counts,isY,mkSc,
   d3:()=>({A,D3}),view:{turnHTML,diceHTML,rollHTML,boardHTML,hintText,preView:()=>G.preView(),overExtra:()=>G.overExtra(),setCat:c=>{yCat=c},getCat:()=>yCat,getHold:()=>yHold.slice(),setHold:h=>{yHold=h.slice()}}};
 G.engine={
   /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
   start(){
     const n=H.players.length,cnt=Math.max(2,Math.min(n,4)),rounds=ROUNDS;
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,rankBottom:cnt,known:{}});
-    const Y={n,cnt,rounds,sc:[],yb:[],done:[],dice:[0,0,0,0,0],held:[false,false,false,false,false],left:3,rolled:false,rl:0,tn:0,lm:null,first:0,sh:0,shk:[false,false,false,false,false],bk:null};
+    const Y={n,cnt,rounds,sc:[],yb:[],done:[],dice:[0,0,0,0,0],held:[false,false,false,false,false],left:3,rolled:false,rl:0,tn:0,lm:null,first:0,sh:0,shk:[false,false,false,false,false],hk:[false,false,false,false,false],bk:null};
     H.players.forEach((p,i)=>{
       Y.sc.push(mkSc());Y.yb.push(0);
       if(i<cnt){Y.done.push(0);p.hand=[0]}
@@ -456,7 +471,9 @@ G.engine={
   act(seat,a){
     if(a.t==='surrender'){doSurrender(seat);return}
     if(H.phase!=='play'||seat<0||H.turn!==seat)return;
-    if(a.t==='shake'){
+    if(a.t==='hold'){
+      doHold(seat,a.keep);
+    }else if(a.t==='shake'){
       doShake(seat,Array.isArray(a.keep)?a.keep:[]);
     }else if(a.t==='roll'){
       doRoll(seat,Array.isArray(a.keep)?a.keep:[]);
@@ -475,7 +492,7 @@ G.engine={
     const Y=H.y;
     s.y={n:Y.n,cnt:Y.cnt,rd:Y.rounds,d:Y.dice.slice(),hd:Y.held.slice(),l:Y.left,r:Y.rolled?1:0,rl:Y.rl,tn:Y.tn,
       sc:Y.sc.map(o=>CATS.map(c=>o[c.id])),yb:Y.yb.slice(),dn:Y.done.slice(),
-      lm:Y.lm?{p:Y.lm.p,c:Y.lm.c,pt:Y.lm.pt,d:Y.lm.d.slice()}:null,f0:Y.first,sh:Y.sh?1:0,shk:(Y.shk||[]).slice()};
+      lm:Y.lm?{p:Y.lm.p,c:Y.lm.c,pt:Y.lm.pt,d:Y.lm.d.slice()}:null,f0:Y.first,sh:Y.sh?1:0,shk:(Y.shk||[]).slice(),hk:(Y.hk||[]).slice()};
     s.gr=0;s.dl=Math.max(0,Math.round(H.deadline-t));
   },
   restore(){},
@@ -528,7 +545,8 @@ function toggleHold(i){
   if(V.y.l<=0){say('굴림을 모두 썼습니다. 기록할 칸을 골라 주세요.');return}
   if(!myTurnNow()||!d3Ready())return;
   yHold[i]=!yHold[i];
-  try{sfx('pick')}catch(e){}
+  sendAct({t:'hold',keep:yHold.slice()});   // 다른 사람 화면에서도 주사위가 고정 칸으로 옮겨 가게
+  if(!D3.on)try{sfx('pick')}catch(e){}
   drawAll();G.buttons();
 }
 function pickCat(id){
@@ -542,14 +560,14 @@ function pickCat(id){
 /* ---------- 3D 주사위·컵 (화면 연출) ----------
    공통 3D 테이블(T.scene)에 트레이·컵·주사위를 올리고, 자기 카메라(D3.cam)로 점수 종이에 가리지 않는 자리에 그림.
    흐름(A.st): idle → lift(컵이 들려 오고 다시 굴릴 주사위가 컵으로) → shake(흔들기) → pour(기울이기)
-              → wait(내가 던졌는데 방장 결과가 아직이면) → fly(미리 계산한 물리를 재생) → rest → slot(칸으로 정렬) → idle
+              → wait(내가 던졌는데 방장 결과가 아직이면) → fly(미리 계산한 물리를 재생) → rest → settle(떨어진 자리에서 바로 세움) → idle
    내 차례: 굴리기 버튼을 누르는 동안 흔들고, 떼면 방장에게 굴리기를 보내며 컵을 기울임.
    다른 사람·봇·관전: 방장 상태의 sh(흔드는 중)와 rl(굴림 번호)을 보고 같은 흐름을 재생.
    주사위가 칸에 놓이기 전(d3Ready가 아닐 때)에는 고정·기록·다시 굴리기를 막고 점수 예상값도 숨김 */
 const D3={on:false,built:false,fail:false,dirty:true,lastR:0,lay:'',layDirty:true,layAt:0,root:null,cam:null,cup:null,band:null,dice:[],held:[],bandCol:-1,d:12};
 const A={st:'idle',tn:-1,rl:-1,t0:0,mine:false,released:false,pend:null,rec:null,thrown:[],keep:[false,false,false,false,false],shakeT0:0,recT0:0,hitK:0,rattleAt:0,waitUntil:0};
-const CUP_REST=[2.75,0,-2.6],CUP_UP=[1.55,1.2,.25],CUP_H=1;   // 컵이 쉬는 자리(트레이 밖 오른쪽 뒤), 흔드는 자리
-const POUR_DIR=(()=>{const x=-.55,z=-.835,l=Math.hypot(x,z);return [x/l,0,z/l]})();
+const CUP_REST=[2.75,0,-2.6],CUP_UP=[1.7,1.2,.25],CUP_H=1;   // 컵이 쉬는 자리(트레이 밖 오른쪽 뒤), 흔드는 자리
+const POUR_DIR=(()=>{const x=-.85,z=-.53,l=Math.hypot(x,z);return [x/l,0,z/l]})();   // 왼쪽 뒤로 쏟아서 테이블 가운데에 퍼지게
 const Q_ID=[0,0,0,1],Q_POUR=qAxis((()=>{const l=Math.hypot(POUR_DIR[2],POUR_DIR[0]);return [POUR_DIR[2]/l,0,-POUR_DIR[0]/l]})(),1.95);
 const ease=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 const reduced=()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}};
@@ -565,12 +583,6 @@ const mineNow=()=>!!(V&&V.y&&V.st==='play'&&myIdx()>=0&&V.t===myIdx());
 function d3Ready(){
   if(!D3.on||!V||!V.y||V.st!=='play')return true;
   return A.st==='idle'&&A.tn===V.y.tn&&A.rl===V.y.rl;
-}
-/* 칸에 남아 있는 주사위(노란 테두리): 내 차례는 내가 고른 고정, 남의 차례는 흔드는 중이면 그 표시, 아니면 지난 굴림에서 남긴 것 */
-function heldShown(i){
-  const Y=V&&V.y;if(!Y||!Y.r||V.st!=='play')return false;
-  if(mineNow())return !!yHold[i];
-  return !!(Y.sh?(Y.shk||[])[i]:Y.hd[i]);
 }
 
 /* --- 물체 만들기 (처음 3D가 필요할 때 한 번) --- */
@@ -614,11 +626,14 @@ function d3Build(){
       for(let k=0;k<2600;k++){g.fillStyle=Math.random()<.5?'rgba(255,255,255,.035)':'rgba(0,0,0,.04)';g.fillRect(Math.random()*w,Math.random()*h,2,2)}   // 펠트 결
     });
     const felt=new THREE.Mesh(new THREE.CircleGeometry(FELT_R,96),toon({map:feltT,rim:0}));felt.rotation.x=-Math.PI/2;felt.position.y=FLOOR;felt.receiveShadow=true;root.add(felt);   // 공통 테이블의 펠트(높이 .016)보다 살짝 위: 겹쳐서 깜빡이지 않게
-    // 주사위 칸 5개와 고정 표시
+    // 고정 칸 5개 (앞쪽)와 테이블과의 경계선, 고정 표시
     const slotM=new THREE.MeshBasicMaterial({map:frameTex('rgba(255,250,240,.6)'),transparent:true,depthWrite:false});
     const heldM=new THREE.MeshBasicMaterial({map:frameTex('#f2b632','rgba(242,182,50,.28)'),transparent:true,depthWrite:false});
     const pg=new THREE.PlaneGeometry(DS*1.42,DS*1.42);
     D3.held=[];
+    {const lz=(FIELD_Z+SLOT_Z-DS*.71)/2,hw=Math.sqrt(FELT_R*FELT_R-lz*lz)-.15;
+     const ln=new THREE.Mesh(new THREE.PlaneGeometry(hw*2,.035),new THREE.MeshBasicMaterial({color:0xfffaf0,transparent:true,opacity:.4,depthWrite:false}));
+     ln.rotation.x=-Math.PI/2;ln.position.set(0,FLOOR+.004,lz);ln.renderOrder=1;root.add(ln)}
     for(let i=0;i<5;i++){
       const sp=slotPos(i);
       const a=new THREE.Mesh(pg,slotM);a.rotation.x=-Math.PI/2;a.position.set(sp[0],FLOOR+.004,sp[2]);a.renderOrder=1;root.add(a);
@@ -630,7 +645,7 @@ function d3Build(){
     for(let i=0;i<5;i++){
       const g=new THREE.Group(),m=new THREE.Mesh(dg,mats),o=new THREE.Mesh(dg,ink);
       o.scale.setScalar(1.075);m.castShadow=true;g.add(m,o);g.visible=false;root.add(g);
-      D3.dice.push({g,val:1,where:'cup',slot:-1,tw:null,pr:Q_ID,k:-1,p:slotPos(i),q:Q_ID});
+      D3.dice.push({g,val:1,where:'cup',slot:-1,fp:null,tw:null,pr:Q_ID,k:-1,p:slotPos(i),q:Q_ID});
     }
     // 컵: 가죽 컵 (안쪽 벽까지 있는 회전체) + 차례인 사람 색 띠
     const V2=(x,y)=>new THREE.Vector2(x,y);
@@ -651,44 +666,81 @@ function d3Build(){
   return D3.built;
 }
 
-/* --- 움직임 --- */
+/* --- 움직임 ---
+   주사위 자리(where): cup(컵 안, 안 보임) · field(테이블 위, 떨어진 자리 그대로) · hold(앞쪽 고정 칸, 작은 눈부터) · fly(던지는 중) · tw(옮기는 중, tw.end가 갈 곳)
+   테이블 위 주사위를 누르면 고정 칸으로, 고정 칸의 주사위를 누르면 테이블로 돌아감 (d3Arrange가 고정 표시에 맞춰 옮김) */
 function dieTo(i,p1,q1,dur,o){
   const d=D3.dice[i],now=clock();
-  d.tw={p0:d.p.slice(),p1:p1.slice(),q0:d.q.slice(),q1:q1.slice(),t0:now+((o&&o.delay)||0),dur,arc:(o&&o.arc)||0,end:(o&&o.end)||'slot'};
-  d.where='tw';d.g.visible=true;if(d.tw.end==='cup')d.slot=-1;
+  d.tw={p0:d.p.slice(),p1:p1.slice(),q0:d.q.slice(),q1:q1.slice(),t0:now+((o&&o.delay)||0),dur,arc:(o&&o.arc)||0,end:(o&&o.end)||'field'};
+  d.where='tw';d.g.visible=true;
+  if(d.tw.end!=='hold')d.slot=-1;
+  if(d.tw.end==='field')d.fp={p:p1.slice(),q:q1.slice()};   // 테이블 자리 기억 (고정했다 풀면 그 자리로)
 }
-/* 주사위 i를 칸 s로 (s를 안 주면 지금 칸, 없으면 i번 칸) */
-function dieToSlot(i,s,dur,o){const d=D3.dice[i];d.slot=s;dieTo(i,slotPos(s),restQ(d.val,d.q),dur,o)}
-function placeSlot(i,s){
-  const d=D3.dice[i],near=d.q;if(s==null)s=d.slot>=0?d.slot:i;
-  d.tw=null;d.where='slot';d.slot=s;d.p=slotPos(s);d.q=restQ(d.val,near);d.g.visible=true;
-}
-const dieAtSlot=s=>D3.dice.findIndex(d=>d.slot===s&&d.where==='slot');
+const destOf=d=>d.where==='tw'?d.tw.end:d.where;
 function cupTo(p1,q1,dur){const c=D3.cup;c.tw={p0:c.p.slice(),p1:p1.slice(),q0:c.q.slice(),q1:q1.slice(),t0:clock(),dur}}
+/* 고정 칸 순서: 고정한 주사위만, 눈이 작은 것부터 왼쪽 칸에 (같은 눈은 번호 순). 돌려주는 값: 주사위 번호 → 칸 번호 (고정 아니면 -1) */
+function holdSlots(mask,vals){const idx=[0,1,2,3,4].filter(i=>mask[i]).sort((a,b)=>(vals[a]-vals[b])||(a-b)),so=[-1,-1,-1,-1,-1];idx.forEach((i,s)=>{so[i]=s});return so}
+/* 바닥에 평평하게: 지금 위를 보는 면이 정확히 위로 (돌아간 방향은 그대로) */
+function flatQ(q){const n=qrot(q,FACE_N[topFace(q)]);return qnorm(qmul(qFromUnit(n,[0,1,0]),q))}
+/* 테이블 위 빈자리: 예전 자리가 비어 있으면 거기, 아니면 다른 주사위와 겹치지 않는 곳 */
+function fieldSpot(i){
+  const d=D3.dice[i],others=D3.dice.filter((o,j)=>j!==i&&destOf(o)==='field').map(o=>o.where==='tw'?o.tw.p1:o.p);
+  const free=p=>others.every(o=>Math.hypot(o[0]-p[0],o[2]-p[2])>DS*1.4);
+  if(d.fp&&free(d.fp.p))return d.fp;
+  const yaw=qAxis([0,1,0],Math.random()*Math.PI*2);
+  for(let k=0;k<80;k++){
+    const a=Math.random()*Math.PI*2,r=Math.sqrt(Math.random())*2.1,p=[Math.cos(a)*r,FLOOR+DH,Math.min(FIELD_Z-DH-.12,Math.sin(a)*r-.4)];
+    if(free(p))return {p,q:qmul(yaw,restQ(d.val))};
+  }
+  return {p:[(i-2)*.85,FLOOR+DH,-.7],q:restQ(d.val)};
+}
+/* 지금 고정으로 보여 줄 주사위: 내 차례는 내가 고른 것, 남의 차례는 방장 상태 (흔드는 중이면 그때 남긴 것) */
+function holdMaskNow(){
+  const Y=V&&V.y;if(!Y||!Y.r||V.st!=='play')return [false,false,false,false,false];
+  if(mineNow())return yHold.map(Boolean);
+  return [0,1,2,3,4].map(i=>!!(Y.sh?(Y.shk||[])[i]:(Y.hk||Y.hd)[i]));
+}
+/* 굴리지 않을 때: 고정 표시에 맞게 주사위를 고정 칸·테이블로 옮김 */
+function d3Arrange(){
+  const Y=V&&V.y;if(!Y||!Y.r||V.st!=='play'||A.st!=='idle'||A.tn!==Y.tn||A.rl!==Y.rl)return;
+  const mask=holdMaskNow(),so=holdSlots(mask,D3.dice.map(d=>d.val));
+  D3.dice.forEach((d,i)=>{
+    const dest=destOf(d);
+    if(d.where==='cup')d.p=mouthOf(D3.cup.p,D3.cup.q);
+    if(mask[i]){
+      if(dest==='hold'&&d.slot===so[i])return;
+      const into=dest!=='hold';
+      d.slot=so[i];dieTo(i,slotPos(so[i]),restQ(d.val,d.q),into?300:220,{arc:into?.45:.15,end:'hold'});
+      if(into)tone(990,.04,{type:'triangle',vol:.05});
+    }else if(dest!=='field'){
+      const sp=fieldSpot(i);dieTo(i,sp.p,sp.q,320,{arc:.45,end:'field'});
+      if(dest==='hold')tone(660,.04,{type:'triangle',vol:.045});
+    }
+  });
+}
 function d3NewTurn(Y){
-  const joined=A.tn<0;   // 방금 화면을 켰음(관전 시작·재접속): 이미 굴린 주사위는 바로 칸에
+  const joined=A.tn<0;   // 방금 화면을 켰음(관전 시작·재접속): 이미 굴린 주사위는 다음 프레임에 d3Arrange가 바로 놓음
   A.tn=Y.tn;A.rl=Y.rl;A.pend=null;A.st='idle';A.mine=false;A.rec=null;
   cupTo(CUP_REST,Q_ID,380);
   const mouth=mouthOf(CUP_REST,Q_ID);
-  if(Y.r&&joined){
-    const so=slotOrder(Y.d);
-    D3.dice.forEach((d,i)=>{d.val=Y.d[i]||1;if(d.where!=='slot'){d.p=mouth.slice();d.q=restQ(d.val)}dieToSlot(i,so[i],320,{arc:.4})});
-    return;
-  }
-  // 칸에 있던 주사위는 컵으로 모음. 그사이 새 차례 사람이 벌써 굴렸으면(화면이 잠시 멈췄던 경우) 다음 프레임에 던지는 모습부터 보여 줌
+  if(Y.r&&joined){D3.dice.forEach((d,i)=>{d.val=Y.d[i]||1;d.fp=null;d.tw=null;d.where='cup';d.g.visible=false;d.p=mouth.slice();d.q=restQ(d.val)});return}
+  // 테이블·고정 칸의 주사위는 컵으로 모음. 그사이 새 차례 사람이 벌써 굴렸으면(화면이 잠시 멈췄던 경우) 다음 프레임에 던지는 모습부터 보여 줌
   if(Y.r)A.rl=-1;
-  D3.dice.forEach((d,i)=>{
-    if(d.g.visible)dieTo(i,mouth,d.q,360,{arc:.6,end:'cup',delay:i*40});
-    else{d.where='cup';d.tw=null}
-  });
+  D3.dice.forEach((d,i)=>{d.fp=null;if(d.g.visible)dieTo(i,mouth,d.q,360,{arc:.6,end:'cup',delay:i*40});else{d.where='cup';d.tw=null}});
 }
-/* 컵을 들어 흔들 준비: keep이 아닌 주사위는 컵으로 */
+/* 컵을 들어 흔들 준비: keep은 고정 칸에 두고, 나머지는 컵으로 */
 function d3Lift(keep,mine){
   const now=clock();
   A.st='lift';A.t0=now;A.mine=mine;A.released=false;A.keep=keep.slice();A.rattleAt=0;
   cupTo(CUP_UP,Q_ID,280);
-  const mouth=mouthOf(CUP_UP,Q_ID);
-  D3.dice.forEach((d,i)=>{if(!keep[i]&&d.where!=='cup')dieTo(i,mouth,d.q,260,{arc:.5,end:'cup',delay:i*25})});
+  const mouth=mouthOf(CUP_UP,Q_ID),so=holdSlots(keep,D3.dice.map(d=>d.val));
+  D3.dice.forEach((d,i)=>{
+    if(keep[i]){
+      if(destOf(d)==='hold'&&d.slot===so[i])return;
+      if(d.where==='cup')d.p=mouthOf(D3.cup.p,D3.cup.q);
+      d.slot=so[i];dieTo(i,slotPos(so[i]),restQ(d.val,d.q),260,{arc:.35,end:'hold'});
+    }else if(d.where!=='cup')dieTo(i,mouth,d.q,260,{arc:.5,end:'cup',delay:i*25});
+  });
   D3.dirty=true;
 }
 function d3StartPour(){
@@ -697,44 +749,48 @@ function d3StartPour(){
   hiss(.3,{freq:700,sweep:2600,q:.8,vol:.09});
   d3Sim(A.keep);
 }
-/* 던질 주사위(keep이 아닌 것)의 물리를 미리 끝까지 계산 */
+/* 던질 주사위(keep이 아닌 것)의 물리를 미리 끝까지 계산 (고정 칸은 테이블 앞쪽 경계 밖이라 부딪히지 않음) */
 function d3Sim(keep){
-  const thrown=[],statics=[];
-  for(let i=0;i<5;i++){const d=D3.dice[i];if(keep[i])statics.push(slotPos(d.slot>=0?d.slot:i));else thrown.push(i)}
+  const thrown=[];
+  for(let i=0;i<5;i++)if(!keep[i])thrown.push(i);
   A.thrown=thrown;A.simKeep=keep.slice();
-  A.rec=thrown.length?simThrow(throwStarts(thrown.length,mouthOf(CUP_UP,Q_POUR),POUR_DIR,Math.random),statics):null;
+  A.rec=thrown.length?simThrow(throwStarts(thrown.length,mouthOf(CUP_UP,Q_POUR),POUR_DIR,Math.random),[]):null;
 }
 function d3Launch(){
   const pd=A.pend;A.pend=null;
   if(pd.hd.some((h,i)=>!!h!==!!A.simKeep[i]))d3Sim(pd.hd.map(Boolean));   // 흔들 때와 실제로 남긴 주사위가 다르면 다시 계산
   D3.dice.forEach((d,i)=>{d.val=pd.d[i]||1});
-  pd.hd.forEach((h,i)=>{if(h&&D3.dice[i].where!=='slot')placeSlot(i)});
-  if(!A.rec||reduced()){   // 움직임 줄이기: 컵에서 바로 칸으로
-    const so=slotOrder(pd.d);
-    A.thrown.forEach(i=>{const d=D3.dice[i];d.p=mouthOf(D3.cup.p,D3.cup.q);d.q=restQ(d.val)});
-    D3.dice.forEach((d,i)=>{if(A.thrown.includes(i)||d.slot!==so[i])dieToSlot(i,so[i],320,{arc:.5,delay:so[i]*50})});
-    A.st='slot';cupTo(CUP_REST,Q_ID,450);return;
+  const so=holdSlots(pd.hd,pd.d);
+  pd.hd.forEach((h,i)=>{const d=D3.dice[i];if(h&&destOf(d)!=='hold'){d.tw=null;d.where='hold';d.slot=so[i];d.p=slotPos(so[i]);d.q=restQ(d.val,d.q);d.g.visible=true}});
+  if(!A.rec||reduced()){   // 움직임 줄이기: 컵에서 바로 테이블로 (d3Arrange가 놓음)
+    A.thrown.forEach(i=>{const d=D3.dice[i];d.tw=null;d.where='cup';d.fp=null});
+    cupTo(CUP_REST,Q_ID,450);d3Land();return;
   }
   const f0=A.rec.frames[0];
-  A.thrown.forEach((i,k)=>{const d=D3.dice[i];d.pr=preRot(A.rec.fin[k],d.val);d.k=k;d.where='fly';d.tw=null;d.g.visible=true;
+  A.thrown.forEach((i,k)=>{const d=D3.dice[i];d.pr=preRot(A.rec.fin[k],d.val);d.k=k;d.where='fly';d.tw=null;d.fp=null;d.slot=-1;d.g.visible=true;
     d.p=[f0[k*7],f0[k*7+1],f0[k*7+2]];d.q=qmul([f0[k*7+3],f0[k*7+4],f0[k*7+5],f0[k*7+6]],d.pr)});
   A.st='fly';A.recT0=clock();A.hitK=0;A.cupBack=false;
 }
 function d3Abort(){
-  A.st='idle';A.pend=null;A.mine=false;
+  A.st='idle';A.pend=null;A.mine=false;   // 컵에 든 주사위는 d3Arrange가 테이블로 돌려놓음
   cupTo(CUP_REST,Q_ID,400);
-  const Y=V&&V.y;
-  const so=Y&&Y.r?slotOrder(D3.dice.map(d=>d.val)):null;
-  D3.dice.forEach((d,i)=>{if(d.where==='cup'&&so){d.p=mouthOf(D3.cup.p,D3.cup.q);d.q=restQ(d.val);dieToSlot(i,so[i],320,{arc:.4})}});
 }
-/* 떨어진 주사위를 칸으로: 눈이 작은 것부터 왼쪽. 남겨 둔 주사위도 순서에 맞게 자리를 옮김 */
-function d3StartSlot(){
-  A.st='slot';
-  const so=slotOrder(D3.dice.map(d=>d.val));
-  D3.dice.forEach((d,i)=>{
-    const thrown=A.thrown.includes(i);
-    if(thrown||d.slot!==so[i])dieToSlot(i,so[i],thrown?430:380,{arc:thrown?.38:.3,delay:so[i]*65});
-  });
+/* 떨어진 주사위는 거의 그 자리에 둠: 기대어 멈춘 것은 바닥에 평평하게, 서로 붙은 것은 누르기 쉽게 살짝 띄움 */
+function d3Settle(){
+  A.st='settle';
+  const F=D3.dice.map((d,i)=>({i,move:A.thrown.includes(i),p:[d.p[0],d.p[2]]})).filter(o=>o.move||destOf(D3.dice[o.i])==='field');
+  const GAP=DS*1.5,RMAX=EDGE_R-DH-.1,ZMAX=FIELD_Z-DH-.05;
+  for(let it=0;it<12;it++){
+    for(let a=0;a<F.length;a++)for(let b=a+1;b<F.length;b++){
+      const A1=F[a],B1=F[b],dx=B1.p[0]-A1.p[0],dz=B1.p[1]-A1.p[1],dd=Math.hypot(dx,dz)||1e-6;
+      if(dd>=GAP)continue;
+      const push=(GAP-dd)/(A1.move&&B1.move?2:1),nx=dx/dd,nz=dz/dd;
+      if(A1.move){A1.p[0]-=nx*push;A1.p[1]-=nz*push}
+      if(B1.move){B1.p[0]+=nx*push;B1.p[1]+=nz*push}
+    }
+    for(const o of F){if(!o.move)continue;const r=Math.hypot(o.p[0],o.p[1]);if(r>RMAX){o.p[0]*=RMAX/r;o.p[1]*=RMAX/r}if(o.p[1]>ZMAX)o.p[1]=ZMAX}
+  }
+  for(const o of F)if(o.move){const d=D3.dice[o.i];dieTo(o.i,[o.p[0],FLOOR+DH,o.p[1]],flatQ(d.q),180,{end:'field'})}
 }
 function d3Land(){
   A.st='idle';A.mine=false;D3.dirty=true;
@@ -788,26 +844,27 @@ function d3Step(now){
     while(A.hitK<R.hits.length&&R.hits[A.hitK][0]*1000<=el){const s=R.hits[A.hitK++][1];tone(420+Math.random()*420,.045,{type:'triangle',vol:Math.min(.16,.03+s*.018)});hiss(.03,{freq:2400,vol:Math.min(.1,s*.014)})}
     if(!A.cupBack&&el>160){A.cupBack=true;cupTo(CUP_REST,Q_ID,520)}
     if(fi>=R.frames.length-1){A.st='rest';A.t0=now}
-  }else if(A.st==='rest'&&now-A.t0>=180)d3StartSlot();
+  }else if(A.st==='rest'&&now-A.t0>=120)d3Settle();
   // 주사위
   let moving=false;
-  D3.dice.forEach((d,i)=>{
+  D3.dice.forEach(d=>{
     if(d.tw){
       const tw=d.tw,raw=(now-tw.t0)/tw.dur;
       if(raw>0){
         const k=ease(raw);
         d.p=tw.p0.map((x,j)=>x+(tw.p1[j]-x)*k);d.p[1]+=Math.sin(Math.min(1,raw)*Math.PI)*tw.arc;
         d.q=qslerp(tw.q0,tw.q1,k);
-        if(raw>=1){d.tw=null;d.p=tw.p1.slice();d.q=tw.q1.slice();d.where=tw.end;if(tw.end==='cup')d.g.visible=false;else if(A.st==='slot')tone(1300,.03,{type:'triangle',vol:.035})}
+        if(raw>=1){d.tw=null;d.p=tw.p1.slice();d.q=tw.q1.slice();d.where=tw.end;if(tw.end==='cup')d.g.visible=false}
       }
       moving=true;
     }
     d.g.position.set(d.p[0],d.p[1],d.p[2]);d.g.quaternion.set(d.q[0],d.q[1],d.q[2],d.q[3]);
   });
-  // 고정 표시(노란 테두리)는 칸마다: 그 칸에 놓인 주사위가 고정이면
-  for(let s=0;s<5;s++){const i=dieAtSlot(s);D3.held[s].visible=i>=0&&heldShown(i)}
-  if(A.st==='slot'&&!moving)d3Land();
-  return moving||A.st!=='idle'||!!c.tw;
+  // 고정 칸의 노란 테두리: 주사위가 놓인 칸만
+  for(let s=0;s<5;s++)D3.held[s].visible=D3.dice.some(d=>d.where==='hold'&&d.slot===s);
+  if(A.st==='settle'&&!moving)d3Land();
+  d3Arrange();
+  return moving||A.st!=='idle'||!!c.tw||D3.dice.some(d=>d.tw);
 }
 
 /* --- 카메라: 점수 종이·버튼에 가리지 않는 빈 자리(.yz-left)에 펠트와 컵이 꽉 차게 --- */
@@ -840,19 +897,21 @@ function d3Layout(t){
   }
   cam.position.set(0,tgt.y+d*Math.sin(phi),tgt.z+d*Math.cos(phi));cam.lookAt(tgt);
   cam.setViewOffset(W,Hh,-ox,-oy,W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
-  D3.d=d;
-  placeHoldBtns(W,Hh);
+  D3.d=d;D3.W=W;D3.H=Hh;
   return true;
 }
-/* 주사위 칸 위에 투명한 버튼(누르면 고정)을 겹쳐 둠: 키보드·화면 읽기 프로그램도 쓸 수 있게 */
-function placeHoldBtns(W,Hh){
-  if(!elHold)return;
-  const v=new THREE.Vector3(),cam=D3.cam;
+/* 주사위마다 투명한 버튼(누르면 고정 칸으로, 다시 누르면 테이블로)을 겹쳐 둠: 키보드·화면 읽기 프로그램도 쓸 수 있게 */
+function placeHoldBtns(){
+  if(!elHold||elHold.hidden||!D3.W)return;
+  const v=new THREE.Vector3(),cam=D3.cam,W=D3.W,Hh=D3.H;
   [...elHold.children].forEach((b,i)=>{
-    const p=slotPos(i);
+    const d=D3.dice[i],p=d.p;
+    if(!d.g.visible){b.style.visibility='hidden';return}
     v.set(p[0],p[1],p[2]).project(cam);const x=(v.x+1)/2*W,y=(1-v.y)/2*Hh;
-    v.set(p[0]+DH*1.2,p[1],p[2]).project(cam);const r=Math.max(18,Math.abs((v.x+1)/2*W-x));
-    Object.assign(b.style,{left:(x-r)+'px',top:(y-r)+'px',width:r*2+'px',height:r*2+'px'});
+    v.set(p[0]+DH*1.25,p[1],p[2]).project(cam);const r=Math.max(20,Math.abs((v.x+1)/2*W-x));
+    const k=`${Math.round(x-r)},${Math.round(y-r)},${Math.round(r*2)}`;
+    if(b.dataset.k!==k){b.dataset.k=k;Object.assign(b.style,{left:(x-r)+'px',top:(y-r)+'px',width:r*2+'px',height:r*2+'px'})}
+    if(b.style.visibility)b.style.visibility='';
   });
 }
 function drawHold(){
@@ -860,9 +919,8 @@ function drawHold(){
   const on=D3.on&&mineNow()&&d3Ready()&&V.y.r&&V.y.l>0;
   if(elHold.hidden===on)elHold.hidden=!on;
   if(!on)return;
-  [...elHold.children].forEach((b,s)=>{
-    const i=dieAtSlot(s);if(i<0)return;
-    const h=!!yHold[i],lab=`${V.y.d[i]} 주사위${h?', 고정됨':''}`;
+  [...elHold.children].forEach((b,i)=>{
+    const h=!!yHold[i],lab=`${V.y.d[i]} 주사위${h?', 고정됨 (누르면 테이블로)':' (누르면 고정)'}`;
     if(b.getAttribute('aria-pressed')!==String(h))b.setAttribute('aria-pressed',h);
     if(b.getAttribute('aria-label')!==lab)b.setAttribute('aria-label',lab);
   });
@@ -878,6 +936,7 @@ function d3Render(t){
   for(const m of [T.timerBg,T.timerArc,T.ring])if(m)m.visible=false;   // 공통 테이블의 자리별 시간 고리는 이 카메라에서 엉뚱한 곳에 보여서 숨김 (시간은 점수 종이 머리줄에 표시)
   T.r.render(T.scene,D3.cam);
   if(fog){fog.near=fn;fog.far=ff}
+  placeHoldBtns();
 }
 /* 굴리기 버튼: 누르는 동안 흔들고, 떼면 던짐 */
 function d3Press(){
@@ -919,7 +978,7 @@ function hintText(me){
   const sc=scoreOf(me);
   if(yCat){const c=byId[yCat];return `${c.name}: ${c.rule} → ${calc(yCat,Y.d,jokerOf(sc,Y.d))}점. 한 번 더 누르거나 [기록하기]를 누르면 기록합니다.`}
   if(jokerOf(sc,Y.d))return '추가 야추입니다. 조커 규칙에 따라 기록할 수 있는 칸이 정해져 있습니다.';
-  return Y.l>0?'남길 주사위를 눌러 고정하고 다시 굴리거나, 점수 종이에 기록하세요.':'굴림을 모두 썼습니다. 기록할 칸을 골라 주세요.';
+  return Y.l>0?(D3.on?'남길 주사위를 누르면 고정 칸으로 갑니다. 다시 누르면 테이블로 돌아갑니다.':'남길 주사위를 눌러 고정하고 다시 굴리거나, 점수 종이에 기록하세요.'):'굴림을 모두 썼습니다. 기록할 칸을 골라 주세요.';
 }
 function turnHTML(){
   const Y=V.y;
@@ -931,7 +990,7 @@ function turnHTML(){
 }
 function diceHTML(){
   const Y=V.y,me=myIdx(),mineTurn=V.st==='play'&&V.t===me&&me>=0;
-  const hd=mineTurn?yHold:Y.hd,can=myTurnNow()&&Y.r&&Y.l>0,tum=Date.now()<yTumbleUntil;
+  const hd=mineTurn?yHold:(Y.hk||Y.hd),can=myTurnNow()&&Y.r&&Y.l>0,tum=Date.now()<yTumbleUntil;
   const order=Y.r?[0,1,2,3,4].sort((a,b)=>(Y.d[a]-Y.d[b])||(a-b)):[0,1,2,3,4];   // 3D와 같이 눈이 작은 것부터
   return order.map(i=>{
     const v=Y.d[i],held=!!(Y.r&&V.st==='play'&&hd[i]);
@@ -997,7 +1056,7 @@ G.preView=()=>{
   if(!PV||!PV.y||PV.y.tn!==Y.tn||PV.st!==V.st){
     // 차례가 바뀌었거나 새 판이 시작됨: 고른 칸과 고정 표시를 처음으로
     yCat=null;yLock={rl:-1,tn:-1,at:0};
-    yHold=me>=0&&V.t===me&&Y.r?Y.hd.slice():[false,false,false,false,false];
+    yHold=me>=0&&V.t===me&&Y.r?(Y.hk||Y.hd).map(Boolean):[false,false,false,false,false];
   }else if(PV.y.rl!==Y.rl){
     yCat=null;
     if(me>=0&&V.t===me)yHold=Y.hd.slice();
@@ -1217,7 +1276,7 @@ G.init=()=>{
   elTurn=elYz.querySelector('.yz-top');elDice=elYz.querySelector('.yz-dice');elRoll=elYz.querySelector('.yz-roll');
   elHint=elYz.querySelector('.yz-hint');elTbl=elYz.querySelector('.yz-tbl');elLeft=elYz.querySelector('.yz-left');elHold=elYz.querySelector('.yz-hold');
   elDice.addEventListener('click',e=>{const b=e.target.closest('.die');if(b)toggleHold(+b.dataset.i)});
-  elHold.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const i=dieAtSlot(+b.dataset.i);if(i>=0)toggleHold(i)});   // 버튼은 칸마다, 고정은 주사위마다
+  elHold.addEventListener('click',e=>{const b=e.target.closest('button');if(b)toggleHold(+b.dataset.i)});
   // 굴리기: 2D는 누르면 바로, 3D는 누르는 동안 흔들고 떼면 던짐 (키보드 Enter·Space는 잠깐 흔든 뒤 던짐)
   elRoll.addEventListener('click',e=>{
     if(!D3.on){rollNow();return}
