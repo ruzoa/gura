@@ -850,7 +850,7 @@ function d3Step(now){
     if(A.pend)d3Launch();else if(now>A.waitUntil)d3Abort();
   }else if(A.st==='fly'){
     const R=A.rec,el=now-A.recT0,fi=Math.min(R.frames.length-1,Math.floor(el/1000*60)),f=R.frames[fi];
-    const out=Math.min(1,el/110),grow=Math.min(1,el/170);
+    const OUT=110,out=Math.min(1,el/OUT),grow=ease((el-OUT)/500);   // 컵을 빠져나간(0.11초) 뒤 0.5초 동안 원래 크기로
     A.thrown.forEach(i=>{const d=D3.dice[i],k=d.k,sp=[f[k*7],f[k*7+1],f[k*7+2]];
       d.p=out<1&&d.from?d.from.map((x,j)=>x+(sp[j]-x)*out):sp;d.q=qmul([f[k*7+3],f[k*7+4],f[k*7+5],f[k*7+6]],d.pr);
       d.s=(d.s0||IN_S)+(1-(d.s0||IN_S))*grow});
