@@ -273,7 +273,7 @@ function soloGame(lv){
    if(r.frames.length<2||r.frames[0].length!==n*7)fail('yahtzee sim frames');
    r.fin.forEach((q,i)=>{
      tot++;const p=r.pos[i];
-     if(Math.hypot(p[0],p[2])+P.DH-P.TRAY_R>.02)fail('yahtzee die left the tray '+p);
+     if(Math.hypot(p[0],p[2])>P.EDGE_R+.02)fail('yahtzee die left the felt '+p);
      if(p[1]<P.FLOOR+P.DH-.05)fail('yahtzee die sank '+p[1]);
      if(P.qrot(q,P.FACE_N[P.topFace(q)])[1]>.99)flat++;
      for(let want=1;want<=6;want++)if(P.topFace(P.qmul(q,P.preRot(q,want)))!==want)fail('yahtzee preRot '+want);
@@ -281,7 +281,9 @@ function soloGame(lv){
  }
  if(flat<tot*.9)fail('yahtzee dice not lying flat '+flat+'/'+tot);
  if(slow)fail('yahtzee sim too long '+slow);
- for(let v=1;v<=6;v++){const q=P.restQ(v,[.3,.2,.1,.9]);if(P.topFace(q)!==v)fail('yahtzee restQ '+v)}}
+ for(let v=1;v<=6;v++){const q=P.restQ(v,[.3,.2,.1,.9]);if(P.topFace(q)!==v)fail('yahtzee restQ '+v)}
+ // 칸 정렬: 눈이 작은 것부터, 같은 눈은 주사위 번호 순
+ same(P.slotOrder([5,2,6,2,1]),[3,1,4,2,0],'slot order');same(P.slotOrder([3,3,3,3,3]),[0,1,2,3,4],'slot order ties')}
 
 /* 봇끼리 끝까지: 인원·모드·난이도를 바꿔 가며, 점수판·순위가 맞는지 확인 */
 function playOutY(n,over,lvs){
