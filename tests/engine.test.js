@@ -1,6 +1,6 @@
 /* 엔진 테스트: index.html의 방장 엔진(공통) + games/*.js를 node에서 그대로 돌립니다.
    실행: node tests/engine.test.js
-   내용: 대부호·쿼리도 규칙 단위 테스트 + 쿼리도 규칙 무작위 대조 + 모든 게임 봇끼리 여러 설정으로 끝까지 자동 대전(멈춤·카드 수·순위 확인) */
+   내용: 대부호·쿼리도·야추다이스 규칙 단위 테스트 + 쿼리도 규칙 무작위 대조 + 야추다이스 봇 세기 + 모든 게임 봇끼리 여러 설정으로 끝까지 자동 대전(멈춤·카드 수·순위 확인) */
 const fs=require('fs'),path=require('path'),vm=require('vm');
 const root=path.join(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
@@ -24,6 +24,7 @@ globalThis.queueMicrotask=()=>{};
 run(fs.readFileSync(path.join(root,'games/gura.js'),'utf8'),'gura.js');
 run(fs.readFileSync(path.join(root,'games/president.js'),'utf8'),'president.js');
 run(fs.readFileSync(path.join(root,'games/quoridor.js'),'utf8'),'quoridor.js');
+run(fs.readFileSync(path.join(root,'games/yahtzee.js'),'utf8'),'yahtzee.js');
 run(cut('/* 카드 id 규칙은','const PEER_PREFIX='),'core-consts');
 run(cut('let H=null, flushQueued=false, lastBeat=0;','function seatOfConn(conn){').replace('setInterval(engineTick,100);',''),'core-engine');
 run(`
@@ -184,6 +185,19 @@ for(let rep=0;rep<48;rep++){
 }
 console.log('quoridor ticks',qt);
 `,'quoridor.run');
+// 야추다이스: 규칙 단위 테스트 + 봇 세기 + 봇끼리 끝까지 자동 대전
+run(`{
+const Y=GAMES.yahtzee;
+`+fs.readFileSync(path.join(__dirname,'yahtzee.cases.js'),'utf8')+`
+}`,'yahtzee.cases.js');
+run(`
+let yt=0;
+for(let rep=0;rep<36;rep++){
+  const n=2+(rep%3);
+  yt+=playOutY(n,{fast:rep%4===0?1:0,turn:[45,15,90][rep%3],max:4},[0,1,2,1]);
+}
+console.log('yahtzee ticks',yt);
+`,'yahtzee.run');
 run(`
 let ticks=0;
 for(let rep=0;rep<60;rep++){

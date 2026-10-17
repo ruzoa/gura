@@ -590,7 +590,7 @@ body.kb .fan .card.cur{z-index:70!important}
   <div class="lobby">
     <div class="view" data-view="main">
       <h1>구라!</h1>
-      <p class="lead">구라! · 대부호 · 쿼리도 · 친구들과 즐기는 게임</p>
+      <p class="lead">구라! · 대부호 · 쿼리도 · 야추다이스 · 친구들과 즐기는 게임</p>
       <div class="nickline" id="nickLine">닉네임 <b id="nickShow">나</b><button type="button" class="nickbtn" id="btnNickEdit">수정</button></div>
       <div class="nickedit" id="nickEdit" hidden>
         <input class="txt" id="inNick" maxlength="10" autocomplete="off" aria-label="닉네임">
@@ -680,6 +680,7 @@ body.kb .fan .card.cur{z-index:70!important}
 <script src="games/gura.js"></script>
 <script src="games/president.js"></script>
 <script src="games/quoridor.js"></script>
+<script src="games/yahtzee.js"></script>
 <script>
 /* ================= 공통 ================= */
 const $=s=>document.querySelector(s);
@@ -695,7 +696,7 @@ const isJ=id=>id>=JOKER_BASE;
 const JOKER_C='#efbc4e';
 /* ===== 게임 목록 =====
    G = 지금 화면에 보이는 게임, EG() = 방장 엔진이 돌리는 게임 (방장 화면에서는 둘이 같음) */
-const GAME_IDS=['gura','president','quoridor'];
+const GAME_IDS=['gura','president','quoridor','yahtzee'];
 let G=GAMES.gura;
 const EG=()=>(H&&H.cfg&&GAMES[H.cfg.game])||GAMES.gura;
 const gameOf=id=>GAMES[id]||GAMES.gura;
