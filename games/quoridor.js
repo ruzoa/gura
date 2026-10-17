@@ -16,6 +16,12 @@ const PCOL=['#c53026','#2b65ca','#1f7a2e','#c9831a'];
 const PDARK=['#8e1f18','#1c4690','#14551f','#8f5a0e'];
 const atGoal=(s,r,c)=>{const g=(s+2)&3;return g===0?r===8:g===1?c===0:g===2?r===0:c===8};
 const mkB=()=>({hw:Array.from({length:8},()=>Array(8).fill(0)),vw:Array.from({length:8},()=>Array(8).fill(0))});
+/* 좌표 (체스식, 모두에게 같은 절대 좌표): 세로줄 a~i(왼쪽→오른쪽), 가로줄 1~9(아래 출발점 쪽이 1)
+   칸 (r,c) → 'e1'. 벽은 가운데 모서리를 오른쪽 위 꼭짓점으로 갖는 칸 + h(가로)/v(세로): 벽 (r,c,o) → 'e1h' */
+const COLS='abcdefghi';
+const sqName=(r,c)=>COLS[c]+(9-r);
+const wallName=(r,c,o)=>COLS[c]+(8-r)+(o?'v':'h');
+const CNAME=['빨강','파랑','초록','주황'];
 const wallsPer=(w,cnt)=>cnt<=2?w:Math.max(1,Math.floor(w*2/cnt));
 /* (r,c)에서 d방향 옆 칸으로 갈 수 있는가: 가장자리와 벽만 따짐 (말은 따지지 않음) */
 function canStep(B,r,c,d){
@@ -177,12 +183,12 @@ function botChoose(S,i,lv){
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 말을 맞은편 끝줄의 아무 칸에 가장 먼저 도착시키면 <b>승리</b>합니다</li><li><b>내 차례</b> : <b>말 이동</b>과 <b>벽 세우기</b> 중 하나만 합니다</li><li><b>말 이동</b> : 위·아래·왼쪽·오른쪽으로 한 칸. 벽은 넘을 수 없습니다</li><li><b>뛰어넘기</b> : 상대 말이 바로 앞에 있으면 그 말을 뛰어넘습니다. 그 뒤가 벽이나 끝이라서 못 넘으면 대각선 옆 칸으로 비켜 갑니다</li><li><b>벽 세우기</b> : 칸 사이의 틈에 두 칸 길이의 벽을 놓아 길을 막습니다. 벽은 한 번 놓으면 옮길 수 없고, 벽끼리 겹치거나 십자로 놓을 수 없습니다</li><li><b>반칙</b> : 누구든 목표까지 갈 길이 완전히 막히는 자리에는 벽을 놓을 수 없습니다</li><li><b>4명</b> : 네 방향에서 출발해 맞은편 끝줄이 목표입니다. 벽은 인원수대로 나눠 가집니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 말을 맞은편 끝줄의 아무 칸에 가장 먼저 도착시키면 <b>승리</b>합니다</li><li><b>내 차례</b> : <b>말 이동</b>과 <b>벽 세우기</b> 중 하나만 합니다</li><li><b>말 이동</b> : 위·아래·왼쪽·오른쪽으로 한 칸. 벽은 넘을 수 없습니다</li><li><b>뛰어넘기</b> : 상대 말이 바로 앞에 있으면 그 말을 뛰어넘습니다. 그 뒤가 벽이나 끝이라서 못 넘으면 대각선 옆 칸으로 비켜 갑니다</li><li><b>벽 세우기</b> : 칸 사이의 틈에 두 칸 길이의 벽을 놓아 길을 막습니다. 벽은 한 번 놓으면 옮길 수 없고, 벽끼리 겹치거나 십자로 놓을 수 없습니다</li><li><b>반칙</b> : 누구든 목표까지 갈 길이 완전히 막히는 자리에는 벽을 놓을 수 없습니다</li><li><b>4명</b> : 네 방향에서 출발해 맞은편 끝줄이 목표입니다. 벽은 인원수대로 나눠 가집니다</li><li><b>제한 시간</b> : 내 차례에 제한 시간이 지나면 <b>패배</b>합니다. 연결이 끊긴 사람은 봇이 대신 둡니다</li><li><b>기보</b> : 세로줄은 왼쪽부터 a~i, 가로줄은 빨강 출발점 쪽부터 1~9입니다. 말 이동은 도착한 칸(e2), 벽은 벽 가운데가 오른쪽 위 꼭짓점인 칸에 가로 h·세로 v를 붙여 적습니다(e3h)</li></ol>';
 G.modeDesc=['끝까지 순위를 정함','1등이 나오면 끝'];
 G.defaults={max:2,walls:10,turn:30};
 G.roomSet=[
   {k:'walls',label:'벽 개수',unit:'개',lo:4,hi:20,step:1,desc:'2명일 때 1인당 벽 수. 3·4명이면 전체 벽 수를 인원수대로 나눕니다'},
-  {k:'turn',label:'제한 시간',unit:'초',lo:10,hi:180,step:5,desc:'제한 시간이 지나면 가장 가까운 길로 한 칸 자동으로 움직입니다'}];
+  {k:'turn',label:'제한 시간',unit:'초',lo:10,hi:180,step:5,desc:'제한 시간이 지나면 패배합니다. 연결이 끊긴 사람은 봇이 대신 둡니다'}];
 G.ruleSet=[];
 G.cfgChips=c=>`<span class="chip">벽 <b>${+c.walls||10}개</b></span><span class="chip">제한 시간 <b>${+c.turn}초</b></span>`;
 G.cfgSum=c=>`벽 ${+c.walls||10}개 (2명 기준) · 제한 시간 ${+c.turn}초`;
@@ -219,10 +225,18 @@ function startTurn(i,guard){
   mark();
 }
 function endTurn(i){if(H.phase==='play')startTurn(nextP(i))}
+/* 기보에 한 수 적기: 출발 순서가 한 바퀴 돌면 수 번호가 1 늘어남 (차례 밖의 항복은 번호를 바꾸지 않음) */
+function recAdd(i,m,outOfTurn){
+  const Q=H.q,n=Q.n;
+  if(!outOfTurn){const pos=(i-Q.first+n)%n;if(pos<=Q.lastPos)Q.rnd++;Q.lastPos=pos}
+  Q.rec.push([Q.rnd,i,m]);
+  return Q.rnd;
+}
 function doMove(i,r,c){
   const Q=H.q,p=H.players[i];
   Q.pos[i]=[r,c];Q.lm={p:i,k:0,r,c};H.seatNote[i]='이동';
-  addLog(`${p.name} 이동`);
+  const n=recAdd(i,sqName(r,c));
+  addLog(`${n}. ${p.name} ${sqName(r,c)}`);
   if(atGoal(Q.sd[i],r,c)){finish(i);if(H.phase==='over')return}
   endTurn(i);
 }
@@ -230,7 +244,8 @@ function doWall(i,r,c,o){
   const Q=H.q,p=H.players[i];
   (o===0?Q.B.hw:Q.B.vw)[r][c]=1;Q.walls.push([r,c,o,i]);Q.wl[i]--;
   Q.lm={p:i,k:1,r,c,o};H.seatNote[i]='벽';
-  addLog(`${p.name} 벽 세움 (남은 벽 ${Q.wl[i]}개)`);
+  const n=recAdd(i,wallName(r,c,o));
+  addLog(`${n}. ${p.name} ${wallName(r,c,o)} 벽 (남은 벽 ${Q.wl[i]}개)`);
   endTurn(i);
 }
 function doPass(i){endTurn(i)}
@@ -246,11 +261,17 @@ function finish(i){
   }
   checkEnd();
 }
+/* 항복·시간 초과 패배: 보드에서 말을 빼고 남은 사람 중 꼴찌 순위 */
+function knockOut(i,why){
+  const p=H.players[i],Q=H.q;
+  p.hand=[];p.finished=true;p.surrendered=why==='time'?'time':true;p.rank=H.rankBottom--;Q.done[i]=1;Q.pos[i]=null;
+  if(Q.lm&&Q.lm.k===0&&Q.lm.p===i)Q.lm=null;
+  const n=recAdd(i,why==='time'?'시간 초과':'항복',why!=='time');
+  addLog(why==='time'?`${n}. ${p.name} 시간 초과로 패배! ${p.rank}위`:`${p.name} 항복! ${p.rank}위`,'lie');
+}
 function doSurrender(i){
   if(H.phase!=='play'||i<0||H.players[i].finished)return;
-  const p=H.players[i];
-  p.hand=[];p.finished=true;p.surrendered=true;p.rank=H.rankBottom--;H.q.done[i]=1;H.q.pos[i]=null;
-  addLog(`${p.name} 항복! ${p.rank}위`,'lie');
+  knockOut(i,'surrender');
   if(H.players.filter(x=>!x.finished).length<=1){checkEnd();return}
   if(H.turn===i)startTurn(nextP(i));else mark();
 }
@@ -262,7 +283,7 @@ function checkEnd(){
     H.players.forEach((p,i)=>{if(p.bot&&Math.random()<.5)botEmote(i,'gg',800+Math.random()*1600)});
   }
 }
-/* 제한 시간: 가장 가까운 길로 한 칸 */
+/* 봇이 둘 수가 없을 때: 가장 가까운 길로 한 칸 */
 function autoStep(i){
   const S=H.q,moves=legalMoves(S,i);
   if(!moves.length){doPass(i);return}
@@ -270,10 +291,13 @@ function autoStep(i){
   for(const m of moves){const o=S.pos[i];S.pos[i]=[m[0],m[1]];const d=dist(S,i);S.pos[i]=o;const s=(d<0?99:d)+Math.random()*.3;if(s<bd){bd=s;best=m}}
   doMove(i,best[0],best[1]);
 }
+/* 제한 시간이 지나면 패배. 연결이 끊긴 사람(봇이 대신 맡은 자리)과 봇은 지지 않고 봇이 대신 둠 */
 function timeout(){
-  const i=H.turn;
-  addLog(`${H.players[i].name} 시간 초과. 자동으로 움직입니다.`,'sys');
-  autoStep(i);
+  const i=H.turn,p=H.players[i];
+  if(p.bot){botTurn(i);return}
+  knockOut(i,'time');
+  if(H.players.filter(x=>!x.finished).length<=1){checkEnd();return}
+  startTurn(nextP(i));
 }
 function botTurn(i){
   const a=botChoose(H.q,i,botLv(H.players[i]));
@@ -281,21 +305,21 @@ function botTurn(i){
   if(a.k===0)doMove(i,a.r,a.c);else doWall(i,a.r,a.c,a.o);
 }
 /* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
-G._test={mkB,canStep,legalMoves,dist,path,wallOK,wallFits,atGoal,botChoose,doMove,doWall,doSurrender,wallsPer,actions,pawnAt};
+G._test={sqName,wallName,timeout,recordText,mkB,canStep,legalMoves,dist,path,wallOK,wallFits,atGoal,botChoose,doMove,doWall,doSurrender,wallsPer,actions,pawnAt};
 G.engine={
   /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
   start(){
     const n=H.players.length,cnt=Math.max(2,Math.min(n,4)),seats=SEATS[cnt];
     const per=wallsPer(+H.cfg.walls||10,cnt);
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,rankBottom:n,known:{}});
-    const Q={n,cnt,sd:[],pos:[],done:[],wl:[],B:mkB(),walls:[],lm:null};
+    const Q={n,cnt,sd:[],pos:[],done:[],wl:[],B:mkB(),walls:[],lm:null,rec:[],rnd:1,lastPos:-1,first:0};
     H.rankBottom=cnt;   // 항복 순위는 실제로 말을 가진 사람 수 기준
     H.players.forEach((p,i)=>{
       if(i<cnt){Q.sd.push(seats[i]);Q.pos.push(SIDE_START[seats[i]].slice());Q.done.push(0);Q.wl.push(per);p.hand=PAWN()}
       else{Q.sd.push(0);Q.pos.push(null);Q.done.push(1);Q.wl.push(0);p.hand=[];p.finished=true;p.rank=i+1}   // 자리가 모자라면(5명 이상) 구경만 함 (보통은 최대 인원 4명이라 생기지 않음)
     });
     H.q=Q;
-    const first=Math.random()*cnt|0;
+    const first=Math.random()*cnt|0;Q.first=first;
     addLog(`${cnt}명 게임 시작 (벽 ${per}개씩). ${H.players[first].name}부터 시작합니다.`,'sys');
     startTurn(first);
   },
@@ -319,7 +343,7 @@ G.engine={
   },
   snap(s,you,t){
     const Q=H.q;
-    s.q={n:Q.n,cnt:Q.cnt,sd:Q.sd.slice(),pos:Q.pos.map(p=>p&&p.slice()),dn:Q.done.slice(),wl:Q.wl.slice(),w:Q.walls.map(w=>w.slice()),lm:Q.lm?{...Q.lm}:null};
+    s.q={n:Q.n,cnt:Q.cnt,sd:Q.sd.slice(),pos:Q.pos.map(p=>p&&p.slice()),dn:Q.done.slice(),wl:Q.wl.slice(),w:Q.walls.map(w=>w.slice()),lm:Q.lm?{...Q.lm}:null,rec:Q.rec.map(x=>x.slice()),f0:Q.first};
     s.gr=0;s.dl=Math.max(0,Math.round(H.deadline-t));
   },
   restore(){},
@@ -330,6 +354,7 @@ G.engine={
 const rp=(x,y,k)=>{for(let t=0;t<k;t++){const nx=9-y;y=x;x=nx}return [x,y]};   // 점을 시계 방향으로 90°씩 k번 돌림
 const rc=(r,c,k)=>{for(let t=0;t<k;t++){const nr=c,nc=8-r;r=nr;c=nc}return [r,c]};   // 칸을 시계 방향으로 90°씩 k번 돌림
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const VB={x:-.9,y:-.4,w:10.3};   // 보드 그림 범위: 왼쪽·아래에 좌표 글자 자리를 둠
 let QS=null,viewK=0,qMode='move',qOri=0,pend=null,hov=null,lastPT='mouse',qMsg='',qMsgUntil=0,qMsgTimer=null;
 let elQd=null,elSvg=null,elMain=null,elGhost=null,elBar=null,elHint=null,elModes=null,lastBoard='',lastBar='',lastHint='',lastModes='';
 function buildS(q){
@@ -347,7 +372,7 @@ function toAbsWall(X,Y,vo){const [ax,ay]=rp(X,Y,(4-viewK)&3);return {r:ay-1,c:ax
 function toLat(e){
   const r=elSvg.getBoundingClientRect(),s=Math.min(r.width,r.height)||1;
   const ox=(r.width-s)/2,oy=(r.height-s)/2;
-  return [(e.clientX-r.left-ox)/s*9.8-.4,(e.clientY-r.top-oy)/s*9.8-.4];
+  return [(e.clientX-r.left-ox)/s*VB.w+VB.x,(e.clientY-r.top-oy)/s*VB.w+VB.y];
 }
 function wallAt(x,y){
   if(x<-.25||y<-.25||x>9.25||y>9.25)return null;
@@ -384,10 +409,10 @@ const sfxMove=()=>{try{sfx('pick')}catch(e){}};
 function onSvgMove(e){
   if(e.pointerType==='touch'||qMode!=='wall'||!myTurnNow()||!QS)return;
   const [x,y]=toLat(e),w=wallAt(x,y);
-  if(!w){if(hov){hov=null;drawGhost()}return}
+  if(!w){if(hov){hov=null;drawGhost();drawHint()}return}
   const abs=toAbsWall(w.X,w.Y,w.vo);
   if(hov&&hov.r===abs.r&&hov.c===abs.c&&hov.o===abs.o)return;
-  hov={...abs,ok:wallLegal(abs)};drawGhost();
+  hov={...abs,ok:wallLegal(abs)};drawGhost();drawHint();
 }
 /* 벽 한 개를 그리는 선 (실제 좌표의 벽 → 화면 좌표) */
 function wallLine(r,c,o,col,w,op,extra){
@@ -409,6 +434,12 @@ function boardHTML(S,me){
     const gs=((S.sd[i]+2)&3),vs=(gs+k)&3,col=PCOL[i%4];
     out.push(vs===0?`<rect x=".3" y="9.13" width="8.4" height=".16" rx=".08" fill="${col}"/>`:vs===2?`<rect x=".3" y="-.29" width="8.4" height=".16" rx=".08" fill="${col}"/>`:vs===1?`<rect x="-.29" y=".3" width=".16" height="8.4" rx=".08" fill="${col}"/>`:`<rect x="9.13" y=".3" width=".16" height="8.4" rx=".08" fill="${col}"/>`);
   }
+  // 좌표: 화면 아래 줄과 왼쪽 줄에 그 줄의 절대 좌표 (a~i 또는 1~9)
+  {const back=(4-k)&3,lab=(r1,c1,r2,c2)=>{const a=rc(r1,c1,back),b=rc(r2,c2,back);return a[1]===b[1]?COLS[a[1]]:String(9-a[0])};
+   for(let v=0;v<9;v++){
+     out.push(`<text class="qd-co" x="${v+.5}" y="9.66">${lab(0,v,8,v)}</text>`);
+     out.push(`<text class="qd-co" x="-.62" y="${v+.53}">${lab(v,0,v,8)}</text>`);
+   }}
   for(let r=0;r<9;r++)for(let c=0;c<9;c++){const [vr,vc]=rc(r,c,k);out.push(`<rect x="${vc+.06}" y="${vr+.06}" width=".88" height=".88" rx=".1" fill="#f8ecd0"/>`)}
   // 갈 수 있는 칸
   const turnMe=myTurnNow()&&qMode==='move'&&me>=0;
@@ -444,20 +475,41 @@ function barHTML(q,me){
   return V.ps.map((p,i)=>{
     if(i>=q.cnt&&p.f)return '';
     const on=V.st==='play'&&V.t===i&&!p.f;
-    return `<div class="qd-p${on?' on':''}${i===me?' me':''}${p.f?' out':''}" style="--pc:${PCOL[i%4]}"><i class="dot"></i><b>${esc(p.n)}${i===me?' (나)':''}</b>${p.f?`<span class="w">${p.sr?'항복':(+p.f)+'위'}</span>`:`<span class="w">벽 ${+q.wl[i]}</span>`}${on?'<span class="tb"><i></i></span>':''}</div>`;
+    return `<div class="qd-p${on?' on':''}${i===me?' me':''}${p.f?' out':''}" style="--pc:${PCOL[i%4]}"><i class="dot"></i><b>${esc(p.n)}${i===me?' (나)':''}</b>${p.f?`<span class="w">${p.sr===2?'시간 초과':p.sr?'항복':(+p.f)+'위'}</span>`:`<span class="w">벽 ${+q.wl[i]}</span>`}${on?'<span class="tb"><i></i></span>':''}</div>`;
   }).join('');
 }
 function hintText(me){
   if(Date.now()<qMsgUntil&&qMsg)return qMsg;
   if(!V||!V.q)return '';
   if(V.st==='over')return '게임이 끝났습니다.';
-  if(me<0)return V.ps[V.t]?`${V.ps[V.t].n} 차례입니다. 관전 중입니다.`:'';
+  if(me<0)return V.ps[V.t]?`${V.ps[V.t].n} 차례입니다. 관전 중입니다.${lastRec()}`:'';
   const p=V.ps[me];
-  if(p.f)return p.sr?'항복했습니다. 남은 판을 지켜봅니다.':'도착했습니다! 남은 판을 지켜봅니다.';
-  if(V.t!==me)return V.ps[V.t]?`${V.ps[V.t].n} 차례입니다.`:'';
+  if(p.f)return p.sr===2?'제한 시간이 지나 패배했습니다. 남은 판을 지켜봅니다.':p.sr?'항복했습니다. 남은 판을 지켜봅니다.':V.q.dn[me]?'도착했습니다! 남은 판을 지켜봅니다.':'';
+  if(V.t!==me)return V.ps[V.t]?`${V.ps[V.t].n} 차례입니다.${lastRec()}`:'';
   if(!myTurnNow())return '내 차례입니다.';
+  {const left=(V.deadAt-clock())/1000;if(left<=10&&left>0)return `${Math.ceil(left)}초 남았습니다. 제한 시간이 지나면 패배합니다.`}
   if(qMode==='move')return V.q.wl[me]>0?'초록 점이 있는 칸을 눌러 말을 움직입니다. 벽을 세우려면 오른쪽 버튼을 누르세요.':'초록 점이 있는 칸을 눌러 말을 움직입니다. 남은 벽이 없습니다.';
-  return pend?'이 자리가 맞으면 한 번 더 누르거나 [벽 놓기]를 누릅니다.':'칸 사이의 틈을 눌러 벽을 놓을 자리를 고릅니다.';
+  if(pend)return `${wallName(pend.r,pend.c,pend.o)} 벽: 이 자리가 맞으면 한 번 더 누르거나 [벽 놓기]를 누릅니다.`;
+  if(hov)return hov.ok?`${wallName(hov.r,hov.c,hov.o)} 벽: 누르면 놓습니다.`:`${wallName(hov.r,hov.c,hov.o)}에는 벽을 놓을 수 없습니다.`;
+  return '칸 사이의 틈을 눌러 벽을 놓을 자리를 고릅니다.';
+}
+/* 직전 수 한 줄 (예: ' · 직전 3. 나 e4') */
+function lastRec(){
+  const rec=V.q&&V.q.rec,L=rec&&rec[rec.length-1];
+  return L&&V.ps[L[1]]?` · 직전 ${L[0]}. ${V.ps[L[1]].n} ${L[2]}`:'';
+}
+/* 기보 글: 2명이면 체스처럼 '1. e2 e8', 3명 이상이거나 순서가 비면 색 이름을 붙임 */
+function recordText(v){
+  const q=v.q,rec=q.rec||[],cnt=q.cnt,f0=q.f0||0,order=Array.from({length:q.n},(_,k)=>(f0+k)%q.n).filter(i=>i<cnt);
+  const name=i=>v.ps[i]?v.ps[i].n:'?';
+  const lines=['쿼리도 기보',order.map(i=>`${CNAME[i%4]}: ${name(i)}`).join(' · ')];
+  const rounds=new Map();for(const [n,i,m] of rec){if(!rounds.has(n))rounds.set(n,[]);rounds.get(n).push([i,m])}
+  for(const [n,list] of rounds){
+    const plain=cnt===2&&list.every(([i],k)=>i===order[k]);
+    lines.push(`${n}. `+list.map(([i,m])=>plain?m:`${CNAME[i%4]} ${m}`).join(plain?' ':', '));
+  }
+  if(v.st==='over')lines.push('결과: '+v.ps.map((p,i)=>({p,i})).filter(x=>x.i<cnt&&x.p.f).sort((a,b)=>a.p.f-b.p.f).map(x=>`${x.p.f}위 ${x.p.n}${x.p.sr===2?' (시간 초과)':x.p.sr?' (항복)':''}`).join(', '));
+  return lines.join('\n');
 }
 function modesHTML(me){
   const mine=myTurnNow()&&me>=0,wl=me>=0&&V.q?V.q.wl[me]:0;
@@ -502,6 +554,10 @@ G.preView=()=>{
   if(me>=0&&!(QS.wl[me]>0))qMode='move';
 };
 G.postView=()=>{};
+G.overExtra=()=>{
+  if(!V||!V.q||!Array.isArray(V.q.rec)||!V.q.rec.length)return '';
+  return `<div class="qd-rec"><div class="qd-rec-h"><b>기보</b><button type="button" class="btn btn-sub qd-copy">기보 복사</button></div><pre>${esc(recordText(V))}</pre></div>`;
+};
 G.logCue=()=>false;
 G.cues=(v,pv)=>{
   if(!v.q||!pv.q)return;
@@ -512,6 +568,7 @@ G.hud=inGame=>{
   if(!elQd)return;
   const on=!!(inGame&&V&&V.q&&QS);
   elQd.hidden=!on;
+  $('#stage').classList.toggle('qd-over',!!(on&&V.st==='over'));   // 결과 창이 길어도(기보) 아래 버튼이 내 정보 칸에 가리지 않게
   if(!on){lastBoard='';lastBar='';lastHint='';lastModes='';return}
   drawAll();
 };
@@ -519,7 +576,7 @@ G.handMarks=()=>{};
 G.me=(i,h)=>{
   $('#numpick').hidden=true;
   const p=V.ps[i];if(!p||!V.q)return;
-  if(p.f){if(!p.sr)$('#meSub').innerHTML=`<b>${+p.f}위</b>로 도착했습니다.`;return}
+  if(p.f){if(!p.sr)$('#meSub').innerHTML=V.q.dn[i]?`<b>${+p.f}위</b>로 도착했습니다.`:`<b>${+p.f}위</b>입니다.`;return}
   $('#meSub').innerHTML=`남은 벽 <b>${+V.q.wl[i]}</b>개`;
 };
 G.specNote='관전 중입니다. 모든 말과 벽이 보입니다.';
@@ -532,6 +589,7 @@ G.buttons=()=>{
   const sub=keyLabel(KEYS.play);if($('#playSub').textContent!==sub)$('#playSub').textContent=sub;
 };
 G.live=()=>{
+  if(elHint&&V&&V.st==='play'&&V.t===myIdx())drawHint();   // 남은 시간 안내
   const bar=elBar&&elBar.querySelector('.qd-p.on .tb i');
   if(bar&&V&&V.st==='play'){const left=Math.max(0,(V.deadAt-clock())/1000);bar.style.width=Math.min(100,left/(V.cfg.turn||30)*100)+'%'}
 };
@@ -562,7 +620,7 @@ G.enter=()=>{
   if(elQd)fit();
 };
 G.leave=()=>{
-  $('#stage').classList.remove('qd');
+  $('#stage').classList.remove('qd','qd-over');
   $('#btnPass').hidden=false;
   if(elQd){elQd.hidden=true;lastBoard='';lastBar='';lastHint='';lastModes=''}
 };
@@ -574,6 +632,7 @@ G.init=()=>{
 .stage.qd #cv,.stage.qd #dim{visibility:hidden}
 .stage.qd .labels{visibility:hidden}
 .stage.qd .nogl{display:none}
+.stage.qd.qd-over .myplate,.stage.qd.qd-over .actions{display:none}
 .specbar:not([hidden])~#qd .qd-bar{margin-top:30px}
 .stage.qd .actions{left:auto}
 .stage.qd .myplate{max-width:calc(100% - 150px)}
@@ -597,13 +656,18 @@ G.init=()=>{
 #qd .qd-m:disabled{opacity:.45;cursor:default}
 #qd .qd-bd{position:relative;flex:1;min-height:0;width:100%}
 #qd svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none;filter:drop-shadow(0 6px 8px rgba(59,42,31,.35))}
+#qd .qd-co{font-size:.3px;font-weight:700;fill:#7a5a3a;text-anchor:middle;dominant-baseline:central;font-family:var(--f-num,monospace)}
+.qd-rec{margin:4px 0 2px;text-align:left}
+.qd-rec-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.qd-rec-h .btn{min-height:0;height:34px;padding:0 12px;font-size:14px}
+.qd-rec pre{margin:0;max-height:min(30vh,220px);overflow:auto;padding:10px 12px;border-radius:var(--r-sm,10px);background:var(--well,#f3e7d2);font-family:var(--f-num,monospace);font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:keep-all;user-select:text;-webkit-user-select:text}
 #qd .qd-pulse{animation:qdPulse 1.3s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
 @keyframes qdPulse{0%,100%{opacity:.95;transform:scale(1)}50%{opacity:.35;transform:scale(1.18)}}
 @media (max-width:520px){#qd .qd-p{font-size:12px;padding:3px 8px 5px}#qd .qd-m{height:32px;padding:0 10px;font-size:14px}#qd{padding-bottom:76px}}
 `;
   document.head.appendChild(css);
   elQd=document.createElement('div');elQd.id='qd';elQd.hidden=true;
-  elQd.innerHTML='<div class="qd-bar"></div><div class="qd-row"><div class="qd-hint" aria-live="polite"></div><div class="qd-modes" role="group" aria-label="행동 고르기"></div></div><div class="qd-bd"><svg viewBox="-.4 -.4 9.8 9.8" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="쿼리도 보드"><g id="qdMain"></g><g id="qdGhost"></g></svg></div>';
+  elQd.innerHTML=`<div class="qd-bar"></div><div class="qd-row"><div class="qd-hint" aria-live="polite"></div><div class="qd-modes" role="group" aria-label="행동 고르기"></div></div><div class="qd-bd"><svg viewBox="${VB.x} ${VB.y} ${VB.w} ${VB.w}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="쿼리도 보드"><g id="qdMain"></g><g id="qdGhost"></g></svg></div>`;
   $('#stage').insertBefore(elQd,$('#fx'));
   elSvg=elQd.querySelector('svg');elMain=elQd.querySelector('#qdMain');elGhost=elQd.querySelector('#qdGhost');
   elBar=elQd.querySelector('.qd-bar');elHint=elQd.querySelector('.qd-hint');elModes=elQd.querySelector('.qd-modes');
@@ -617,6 +681,11 @@ G.init=()=>{
   });
   document.addEventListener('keydown',e=>{if(e.code==='Escape'&&pend&&elQd&&!elQd.hidden){pend=null;drawAll();G.buttons()}});
   window.addEventListener('resize',fit);
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('.qd-copy');if(!b||!V||!V.q)return;
+    const txt=recordText(V),done=ok=>{b.textContent=ok?'복사했습니다':'복사하지 못했습니다';setTimeout(()=>{b.textContent='기보 복사'},1600)};
+    try{navigator.clipboard.writeText(txt).then(()=>done(true),()=>done(false))}catch(_){done(false)}
+  });
 };
 
 (window.GAMES=window.GAMES||{}).quoridor=G;

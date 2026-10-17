@@ -821,7 +821,7 @@ function engineTick(){
 const AWAY_WAIT=20000;
 setInterval(engineTick,100);
 
-/* 받는 사람(you)마다 자기 손패만 넣은 상태 */
+/* 받는 사람(you)마다 자기 손패만 넣은 상태. sr: 1 항복, 2 제한 시간 초과로 패배(쿼리도) */
 function snapFor(you){
   const t=clock();
   const s={code:H.code,title:H.title,cfg:H.cfg,st:H.phase,lg:H.log,you};
@@ -829,7 +829,7 @@ function snapFor(you){
   if(H.specs&&H.specs.length)s.sv=H.specs.map(x=>x.name);
   s.mc=H.members.length;
   if(H.phase==='wait'){s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0,lv:m.bot?(m.lv??1):undefined}));return s}
-  s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=1;if(p.away)o.aw=1;if(i===you)o.h=p.hand.slice();return o});
+  s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=p.surrendered==='time'?2:1;if(p.away)o.aw=1;if(i===you)o.h=p.hand.slice();return o});
   s.t=H.turn;
   EG().engine.snap(s,you,t);   // 필드·판정 등은 게임마다 다름
   return s;
@@ -1661,7 +1661,7 @@ function renderLabels(){
     if(i===me)return '';
     const on=V.st==='play'&&V.t===i&&activeV(i);
     const mu=emoMuted.has(p.n),note=p.aw&&!p.f?'연결 끊김':(p.no&&!String(p.no).startsWith('"')?p.no:'');   // 몇 장 냈는지는 표시하지 않음
-    return `<div class="seat${on?' on':''}${p.f?' out':''}${mu?' muted':''}" data-i="${i}"><button type="button" class="spk" data-spk="${i}" aria-pressed="${mu}" aria-label="${esc(p.n)} 이모티콘 ${mu?'켜기':'끄기'}" title="이모티콘 ${mu?'켜기':'끄기'}">${mu?SPK_OFF:SPK_ON}</button><div class="nm">${esc(p.n)}<span class="ct">${p.f?(p.sr?'항복':G.finLabel(p.f,V.ps.length)):(+p.c+'장')}</span>${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="nt">${esc(note)}</div><svg class="ring" data-ring="${i}" viewBox="0 0 36 36" aria-hidden="true"><circle class="rb" cx="18" cy="18" r="15"/><circle class="rf" cx="18" cy="18" r="15"/></svg></div>`;
+    return `<div class="seat${on?' on':''}${p.f?' out':''}${mu?' muted':''}" data-i="${i}"><button type="button" class="spk" data-spk="${i}" aria-pressed="${mu}" aria-label="${esc(p.n)} 이모티콘 ${mu?'켜기':'끄기'}" title="이모티콘 ${mu?'켜기':'끄기'}">${mu?SPK_OFF:SPK_ON}</button><div class="nm">${esc(p.n)}<span class="ct">${p.f?(p.sr?(p.sr===2?'시간 초과':'항복'):G.finLabel(p.f,V.ps.length)):(+p.c+'장')}</span>${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="nt">${esc(note)}</div><svg class="ring" data-ring="${i}" viewBox="0 0 36 36" aria-hidden="true"><circle class="rb" cx="18" cy="18" r="15"/><circle class="rf" cx="18" cy="18" r="15"/></svg></div>`;
   }).join('');
   placeLabels();
 }
@@ -1676,7 +1676,7 @@ function renderMe(){
     renderButtons();return;
   }
   const p=V.ps[i],h=myHand();
-  $('#meSub').innerHTML=p.f?(p.sr?`항복해서 <b>${+p.f}위</b>입니다. 남은 판을 지켜봅니다.`:`<b>${+p.f}위${G.rankTitle(p.f,V.ps.length)?' '+G.rankTitle(p.f,V.ps.length):''}</b>로 탈출했습니다.`):`<b>${h.length}</b>장`;
+  $('#meSub').innerHTML=p.f?(p.sr?`${p.sr===2?'시간 초과로':'항복해서'} <b>${+p.f}위</b>입니다. 남은 판을 지켜봅니다.`:`<b>${+p.f}위${G.rankTitle(p.f,V.ps.length)?' '+G.rankTitle(p.f,V.ps.length):''}</b>로 탈출했습니다.`):`<b>${h.length}</b>장`;
   syncCursor();
   // 같은 카드면 다시 그리지 않고 상태만 바꿔서 마우스 올림·애니메이션이 끊기지 않게
   const key=h.join(',');
@@ -1820,7 +1820,7 @@ function renderPanel(){
   }
   if(V.st==='over'){
     const list=V.ps.map((p,i)=>({...p,i})).sort((a,b)=>a.f-b.f);
-    showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="방 나가기" title="방 나가기">←</button><h2>게임 끝</h2></div><ol class="ranks">${list.map(p=>`<li class="${p.i===me?'me':''}"><span class="r">${+p.f}위</span><span>${esc(p.n)}</span>${(()=>{const t=G.rankTitle(p.f,V.ps.length);return p.sr||t?`<span class="left">${p.sr?'항복':''}${p.sr&&t?' · ':''}${t}</span>`:''})()}${V.cfg&&V.cfg.fast&&p.c>0?`<span class="left">남은 카드 ${+p.c}장</span>`:''}</li>`).join('')}</ol>
+    showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="방 나가기" title="방 나가기">←</button><h2>게임 끝</h2></div><ol class="ranks">${list.map(p=>`<li class="${p.i===me?'me':''}"><span class="r">${+p.f}위</span><span>${esc(p.n)}</span>${(()=>{const t=G.rankTitle(p.f,V.ps.length);return p.sr||t?`<span class="left">${p.sr?(p.sr===2?'시간 초과':'항복'):''}${p.sr&&t?' · ':''}${t}</span>`:''})()}${V.cfg&&V.cfg.fast&&p.c>0?`<span class="left">남은 카드 ${+p.c}장</span>`:''}</li>`).join('')}</ol>${G.overExtra?G.overExtra():''}
       ${me>=0?'<div class="row"><button class="btn btn-sub" type="button" data-act="emo:gg">줴줴이야 보내기</button></div>':''}
       ${V.spec?(+V.mc<+V.cfg.max?'<div class="row"><button class="btn btn-red" type="button" data-act="join" data-auto>다음 판 참가하기</button></div>':'<p>빈 자리가 없어 계속 관전합니다.</p>'):V.jn?'<p>다음 판에 참가합니다.</p>':''}
       ${isHost?`<div class="row"><button class="btn btn-sub" type="button" data-act="again">대기실</button><button class="btn btn-red" type="button" data-act="restart" data-auto>바로 시작</button></div>`:'<p>방장이 다음 판을 시작하거나 대기실을 열 때까지 기다립니다.</p>'}`,'over');

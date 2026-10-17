@@ -6,6 +6,8 @@ const root=path.join(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const cut=(a,b)=>{const s=html.indexOf(a),e=html.indexOf(b,s);if(s<0||e<0)throw new Error('marker not found: '+a);return html.slice(s,e)};
 const run=(code,name)=>vm.runInThisContext(code,{filename:name});
+// index.html 안의 스크립트 전체가 문법에 맞는지 먼저 확인 (테스트가 일부만 잘라 쓰기 때문에, 나머지 부분의 실수도 잡기 위함)
+{const re=/<script>([\s\S]*?)<\/script>/g;let m;while((m=re.exec(html)))new vm.Script(m[1],{filename:'index.html inline script'})}
 run(`
 var window=globalThis;
 let NOW=0;const clock=()=>NOW;
@@ -23,7 +25,7 @@ run(fs.readFileSync(path.join(root,'games/gura.js'),'utf8'),'gura.js');
 run(fs.readFileSync(path.join(root,'games/president.js'),'utf8'),'president.js');
 run(fs.readFileSync(path.join(root,'games/quoridor.js'),'utf8'),'quoridor.js');
 run(cut('/* 카드 id 규칙은','const PEER_PREFIX='),'core-consts');
-run(cut('let H=null, flushQueued=false, lastBeat=0;','function snapFor(you){').replace('setInterval(engineTick,100);',''),'core-engine');
+run(cut('let H=null, flushQueued=false, lastBeat=0;','function seatOfConn(conn){').replace('setInterval(engineTick,100);',''),'core-engine');
 run(`
 let fails=0;const fail=m=>{fails++;if(fails<20)console.log('FAIL',m)};
 /* 봇만으로 한 게임: 가짜 시계를 0.25초씩 돌리며 실제와 같이 engineTick으로 진행 */
@@ -111,13 +113,40 @@ if(!atGoal(0,0,5)||atGoal(0,8,5)||!atGoal(1,3,8)||!atGoal(2,8,0)||!atGoal(3,5,0)
  if(H.turn===t)fail('quoridor legal move rejected');
  const t2=H.turn;Q.engine.act(t2,{t:'wall',r:3,c:3,o:0});
  if(Qs.wl[t2]!==4||Qs.walls.length!==1)fail('quoridor wall not placed');
- // 시간이 지나면 자동으로 한 칸
- const t3=H.turn,before=JSON.stringify(Qs.pos[t3]);NOW=H.deadline+1;engineTick();
- if(H.turn===t3||JSON.stringify(Qs.pos[t3])===before)fail('quoridor timeout automove');
+ // 사람이 제한 시간을 넘기면 패배 (4명이면 4위, 게임은 계속)
+ const t3=H.turn;NOW=H.deadline+1;engineTick();
+ if(!H.players[t3].finished||H.players[t3].surrendered!=='time'||H.players[t3].rank!==4||H.q.pos[t3]!==null)fail('quoridor timeout lose');
+ if(H.phase!=='play'||H.turn===t3||H.players[H.turn].finished)fail('quoridor turn after timeout');
+ if(snapFor(t3).ps[t3].sr!==2)fail('quoridor timeout snap sr');
+ // 연결이 끊긴 사람(봇이 대신 맡음)은 시간이 지나도 지지 않고 봇이 둠
+ const ta=H.turn;H.players[ta].bot=true;H.players[ta].away=true;H.players[ta].awayAt=NOW;H.botActAt=0;
+ const nw=Qs.walls.length,np=JSON.stringify(Qs.pos[ta]);NOW=H.deadline+1;engineTick();
+ if(H.players[ta].finished||(Qs.walls.length===nw&&JSON.stringify(Qs.pos[ta])===np)||H.turn===ta)fail('quoridor away player should be played by bot');
  // 항복
  const t4=H.turn;Q.engine.act(t4,{t:'surrender'});
- if(!H.players[t4].finished||H.players[t4].rank!==4||H.q.pos[t4]!==null)fail('quoridor surrender');
+ if(!H.players[t4].finished||H.players[t4].rank!==3||H.q.pos[t4]!==null)fail('quoridor surrender');
  if(H.phase!=='play'||H.players[H.turn].finished)fail('quoridor turn after surrender')}
+// 2명: 제한 시간이 지나면 상대가 1위로 끝
+{hostNew(false,'t','t');H.cfg={...cfgFor('quoridor'),game:'quoridor'};
+ H.members=[0,1].map(i=>({name:'p'+i,bot:false,conn:null,host:i===0}));hostStart();
+ const t=H.turn;NOW=H.deadline+1;engineTick();
+ if(H.phase!=='over'||H.players[t].rank!==2||H.players[1-t].rank!==1)fail('quoridor 2p timeout end')}
+// 좌표·기보
+{const {sqName,wallName,recordText}=Q._test;
+ if(sqName(8,4)!=='e1'||sqName(0,4)!=='e9'||sqName(4,0)!=='a5'||sqName(4,8)!=='i5'||sqName(0,0)!=='a9'||sqName(8,8)!=='i1')fail('quoridor square names');
+ if(wallName(7,4,0)!=='e1h'||wallName(0,0,1)!=='a8v'||wallName(7,7,0)!=='h1h'||wallName(0,7,1)!=='h8v')fail('quoridor wall names');
+ hostNew(false,'t','t');H.cfg={...cfgFor('quoridor'),game:'quoridor'};
+ H.members=[0,1].map(i=>({name:'p'+i,bot:false,conn:null,host:i===0}));hostStart();
+ const a=H.turn,b=1-a,mv=(i)=>{const m=legalMoves(H.q,i).find(x=>x[1]===4&&Math.abs(x[0]-4)<Math.abs(H.q.pos[i][0]-4));Q.engine.act(i,{t:'move',r:m[0],c:m[1]})};   // 가운데 쪽(목표 쪽)으로 한 칸
+ mv(a);Q.engine.act(b,{t:'wall',r:3,c:3,o:0});mv(a);mv(b);
+ const rec=H.q.rec.map(x=>x[0]+':'+x[1]+':'+x[2]).join(' ');
+ const ea=a===0?'e2':'e8',eb=b===0?'e2':'e8',ea2=a===0?'e3':'e7';
+ if(rec!==\`1:\${a}:\${ea} 1:\${b}:d5h 2:\${a}:\${ea2} 2:\${b}:\${eb}\`)fail('quoridor record '+rec);
+ if(H.log[0][0]!==\`2. p\${b} \${eb}\`)fail('quoridor log notation '+H.log[0][0]);
+ const s=snapFor(0);const txt=recordText({q:s.q,ps:s.ps,st:'play'});
+ if(!txt.includes(\`1. \${ea} d5h\`)||!txt.includes(\`2. \${ea2} \${eb}\`))fail('quoridor record text '+txt);
+ Q.engine.act(a,{t:'surrender'});const s2=snapFor(0),t2=recordText({q:s2.q,ps:s2.ps,st:'over'});
+ if(!t2.includes('항복')||!t2.includes('결과: 1위'))fail('quoridor record over '+t2)}
 // 봇끼리 끝까지: 인원·모드·난이도를 바꿔 가며, 매 순간 모든 말에 길이 남아 있는지 확인
 function playOutQ(n,over,lvs){
   hostNew(false,'t','t');
