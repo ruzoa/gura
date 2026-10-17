@@ -97,7 +97,7 @@ function doPlay(i,ids,num){
   if(H.roundNum==null){H.roundNum=num;H.roundStarter=i}
   const p=H.players[i],set=new Set(ids);
   p.hand=p.hand.filter(id=>!set.has(id));
-  H.field.push(...ids);
+  H.field.push(...ids);bmPlay(i,ids,num);
   H.last={p:i,ids,count:ids.length,open:true};H.passes=0;
   H.seatNote={[i]:`"${numName(H.roundNum)}" ${ids.length}장`};
   addLog(`${p.name}: "${numName(H.roundNum)}" ${ids.length}장`);
@@ -130,7 +130,7 @@ function resolveReveal(){
   {const tk=R.taker,other=R.lie?R.s:R.L.p;   // 가져가는 봇은 😭/😵, 이긴 쪽 봇은 가끔 🤣
    if(H.players[tk]&&H.players[tk].bot&&Math.random()<.4)botEmote(tk,R.fc>=8?'dizzy':'cry',500+Math.random()*700);
    if(H.players[other]&&H.players[other].bot&&Math.random()<.25)botEmote(other,'lol',900+Math.random()*900);}
-  const t=H.players[R.taker];t.hand.push(...H.field);t.hand.sort(cmpCard);
+  bmReveal(R);const t=H.players[R.taker];t.hand.push(...H.field);t.hand.sort(cmpCard);
   H.known=H.known||{};const kn=new Set(H.known[R.taker]||[]);R.L.ids.forEach(id=>kn.add(id));H.known[R.taker]=[...kn];   // 모두가 본 카드 (봇이 기억)
   addLog(R.lie?`걸렸다! ${t.name} ${R.fc}장 가져감.`:`진짜였다. ${t.name} ${R.fc}장 가져감.`,R.lie?'lie':'truth');
   H.field=[];
@@ -178,24 +178,57 @@ function timeout(){
     startTurn(nextActive(i));
   }else doPass(i,true);
 }
-function botTruthProb(b,j,i){
-  const num=H.roundNum,c=H.last.count,J=H.cfg.jokers||0,F=4+J;
-  const fit=id=>fits(id,num);
-  const myFit=b.hand.filter(fit).length;
-  const known=H.known||{};
-  let otherFit=0,claimFit=0;
-  for(const [k,ids] of Object.entries(known)){const kk=+k;if(kk===j)continue;const n=ids.filter(fit).length;if(kk===i)claimFit=Math.min(n,H.players[i].hand.length+c);else otherFit+=Math.min(n,H.players[kk].hand.length)}
-  const earlier=H.field.length-c;                    // 이번 라운드에 먼저 나온 장수 (일부는 거짓이었을 수 있음)
-  const maxFit=F-myFit-otherFit;
-  if(c>maxFit)return 0;                              // 남은 카드로는 불가능 → 확실한 거짓
-  const R=Math.max(0,maxFit-earlier*.6-claimFit);
-  let pool=earlier;H.players.forEach((p,k)=>{if(k!==j)pool+=p.hand.length});pool+=c-claimFit;
-  const h0=H.players[i].hand.length+c-claimFit,need=c-claimFit;
-  if(need<=0)return .92;
-  const q=Math.max(0,Math.min(1,R/Math.max(1,pool)));
-  // 이항분포로 '그만큼 진짜를 가지고 있을' 확률
-  let pt=0;for(let x=need;x<=h0;x++){let comb=1;for(let y=0;y<x;y++)comb=comb*(h0-y)/(y+1);pt+=comb*Math.pow(q,x)*Math.pow(1-q,h0-x)}
-  return Math.max(0,Math.min(1,pt));
+/* ===== 어려움 봇의 기억과 판단 (공개 정보만 사용: 내 손패, 손패 장수, 선언, 구라! 때 펼쳐진 카드) =====
+   시뮬레이션 연구 결과를 그대로 옮김: 진짜에 가짜를 섞지 않고, 거짓 확률 × 득실로 구라!를 외치고,
+   판에서 구라!가 얼마나 나오는지 보고 거짓말 정도를 맞춤 */
+const lnF=[0];for(let i=1;i<300;i++)lnF[i]=lnF[i-1]+Math.log(i);
+const nCk=(n,k)=>k<0||k>n||n<0?0:Math.exp(lnF[n]-lnF[k]-lnF[n-k]);
+const hyp=(N,K,n,k)=>{if(N<=0)return k===0?1:0;K=Math.max(0,Math.min(K,N));n=Math.max(0,Math.min(n,N));const d=nCk(N,n);return d?nCk(K,k)*nCk(N-K,n-k)/d:0};
+const HB={w:.75,s:4,endW:3,lastW:8,tau:.5,floor:.02,mu:.1,beta:.5,keepJ:1,jFollow:.3,shedV:5,monoRate:.12};
+const BM=()=>H.bm||(H.bm={loc:{},round:[],stat:{},plays1:0,calls1:0});   // loc: 펼쳐져서 누가 가졌는지 알려진 카드
+function bmPlay(i,ids,num){
+  const M=BM();
+  if(H.field.length===ids.length)M.round=[];   // 새 라운드
+  if(ids.length===1)M.plays1++;
+  // 알려진 카드 중 이번 자음에 맞는 것을 먼저 냈다고 봄 (보이는 건 장수와 선언뿐)
+  let c=ids.length;for(const id of Object.keys(M.loc))if(c>0&&M.loc[id]===i&&fits(+id,num)){delete M.loc[id];c--}
+  const kn=Object.keys(M.loc).filter(id=>M.loc[id]===i);let over=kn.length-H.players[i].hand.length;for(const id of kn){if(over<=0)break;delete M.loc[id];over--}
+  M.round.push({p:i,c:ids.length,st:H.roundStarter===i&&M.round.length===0,ids:ids.slice()});   // ids는 낸 사람 본인만 씀
+}
+function bmReveal(R){
+  const M=BM();R.L.ids.forEach(id=>{M.loc[id]=R.taker});if(R.L.ids.length===1)M.calls1++;
+  const last=M.round[M.round.length-1],s=M.stat[R.L.p]=M.stat[R.L.p]||{sc:0,sl:0,fc:0,fl:0};
+  if(last&&last.st){s.sc++;if(R.lie)s.sl++}else{s.fc++;if(R.lie)s.fl++}
+}
+const knownOf=k=>{const M=BM();let n=0;for(const id in M.loc)if(M.loc[id]===k)n++;return n};
+/* j가 보기에 i가 방금 낸 카드가 거짓일 확률 */
+function hardLieProb(j,i){
+  const M=BM(),me=H.players[j],num=H.roundNum,F=4+(H.cfg.jokers||0),last=M.round[M.round.length-1];
+  if(!last||last.p!==i)return .3;
+  const c=last.c,fit=id=>fits(+id,num);
+  const myFit=me.hand.filter(fit).length;
+  let myPile=0;M.round.forEach(r=>{if(r.p===j)myPile+=r.ids.filter(fit).length});
+  let knownOther=0,knownI=0;for(const id in M.loc){const q=M.loc[id];if(q===j||!fit(id))continue;if(q===i)knownI++;else knownOther++}
+  const otherClaims=M.round.slice(0,-1).filter(r=>r.p!==j).reduce((a,r)=>a+r.c,0);
+  const A=F-myFit-myPile-knownOther-knownI;                  // 어디 있는지 모르는 맞는 카드
+  const K=Math.max(0,A-HB.tau*otherClaims);                  // 앞서 낸 카드 중 절반쯤은 진짜였다고 봄
+  let N=0;H.players.forEach((p,k)=>{if(k!==j)N+=Math.max(0,p.hand.length+(k===i?c:0)-knownOf(k))});
+  const n=Math.max(0,H.players[i].hand.length+c-knownOf(i)),need=c-knownI;
+  if(need>A)return 1;                                        // 남은 카드로는 불가능 → 확실한 거짓
+  if(need<=0)return HB.floor;
+  const s=M.stat[i]||{sc:0,sl:0,fc:0,fl:0};
+  const mu=(HB.mu*6+s.sl+s.fl)/(6+s.sc+s.fc),beta=(HB.beta*6+s.fl)/(6+s.fc);   // 그 사람 습관 (본 만큼 배움)
+  let T1=0;for(let k=need;k<=n;k++)T1+=hyp(N,K,n,k);T1*=1-mu;    // 진짜: 그만큼 가지고 있었음
+  let L1=hyp(N,K,n,need-1)*mu;                                  // 하나 모자라서 섞음
+  if(!last.st&&need<=2)L1+=hyp(N,K,n,0)*beta*(need===1?.8:.2); // 하나도 없어서 거짓
+  if(last.st&&need===1)L1*=.1;                                   // 시작하며 낸 1장은 거의 진짜 (자기가 고른 자음)
+  return Math.max(HB.floor,Math.min(1,L1/(L1+T1+1e-12)));
+}
+/* 외칠까: 거짓이면 상대가 판을 다 가져가고 내가 시작, 진짜면 내가 가져감. 끝나기 직전인 상대는 더 적극적으로 */
+function hardShout(j,i){
+  const p=hardLieProb(j,i),pile=H.field.length,op=H.players[i];
+  let w=HB.w*(1+HB.endW/(1+op.hand.length));if(!op.hand.length)w+=HB.lastW;
+  return p*(w*pile+HB.s)>(1-p)*(pile+HB.s);
 }
 function planBotShouts(i,t){
   const num=H.roundNum,claimed=H.last.count,J=H.cfg.jokers;
@@ -205,15 +238,8 @@ function planBotShouts(i,t){
     const own=b.hand.filter(id=>numOf(id)===num).length;
     const ownJ=b.hand.filter(isJ).length;
     let pr;
-    if(lv===2){
-      // 어려움: 남은 카드를 세서 거짓일 확률을 계산하고, 판돈(쌓인 카드)·상대가 끝나기 직전인지 따져 외침
-      const pLie=1-botTruthProb(b,j,i);
-      let thr=.5+Math.min(.15,H.field.length*.012);
-      if(!H.players[i].hand.length)thr=.28;          // 마지막 카드는 웬만하면 확인
-      else if(H.players[i].hand.length<=2)thr-=.1;
-      if(b.hand.length<=3)thr+=.08;                   // 내가 끝나기 직전이면 조심
-      pr=pLie>=thr?Math.min(.97,.55+(pLie-thr)*1.6):pLie*.08;
-    }else if(own+claimed>4+J-ownJ)pr=lv===0?.6:.95;
+    if(lv===2)pr=hardShout(j,i)?1:0;   // 어려움: 거짓 확률 × 득실 (막지르지 않음)
+    else if(own+claimed>4+J-ownJ)pr=lv===0?.6:.95;
     else{
       pr=.05+.12*(claimed-1)+.13*own;
       if(own+claimed>4)pr+=.25;
@@ -251,39 +277,39 @@ function botTurn(i){
     }
   }
 }
+/* 어려움 봇: 진짜에 가짜를 섞지 않음. 맞는 카드가 없으면 판을 보고 거짓말할지 정함 */
 function botTurnHard(i){
-  const P=H.players[i],h=P.hand,jk=h.filter(isJ),plain=h.filter(id=>!isJ(id)),J=H.cfg.jokers||0,F=4+J;
-  const others=H.players.filter((p,k)=>k!==i&&isActive(k)).length;
-  const byNum=new Map();plain.forEach(id=>{const n=numOf(id);if(!byNum.has(n))byNum.set(n,[]);byNum.get(n).push(id)});
+  const M=BM(),P=H.players[i],h=P.hand,jk=h.filter(isJ),plain=h.filter(id=>!isJ(id)),J=H.cfg.jokers||0,F=4+J;
+  const by=new Map();plain.forEach(id=>{const n=numOf(id);if(!by.has(n))by.set(n,[]);by.get(n).push(id)});
+  const callRate=(M.calls1+.3*10)/(M.plays1+10);   // 1장 냈을 때 구라! 당하는 비율 (판에서 본 만큼)
+  const junkFirst=a=>a.slice().sort((x,y)=>by.get(numOf(x)).length-by.get(numOf(y)).length);   // 적게 가진 자음부터 버림
   if(H.roundNum==null){
     if(!plain.length){doPlay(i,jk.slice(),1+(Math.random()*(H.cfg.maxn||14)|0));return}
-    // 가장 많이 가진 자음으로 시작, 손패가 많으면 다른 카드 1장을 슬쩍 섞음 (처음 내는 장수는 의심을 덜 받음)
-    let best=null;for(const [n,cs] of byNum)if(!best||cs.length>best[1].length||(cs.length===best[1].length&&Math.random()<.5))best=[n,cs];
-    const ids=best[1].slice(),rest=plain.filter(id=>numOf(id)!==best[0]);
-    if(h.length-ids.length<=jk.length)ids.push(...jk);          // 별카드로 마무리 가능하면 한 번에
-    else if(rest.length&&h.length>5&&ids.length<=2&&Math.random()<.55)ids.push(pick(rest));
+    let best=null;for(const [n,cs] of by)if(!best||cs.length>best[1].length||(cs.length===best[1].length&&Math.random()<.5))best=[n,cs];
+    const rest=plain.filter(id=>numOf(id)!==best[0]);
+    // 심리전: 어떤 자음 4장을 다 가지고 있고 판에서 구라!가 드물면, 그 자음을 선언하고 다른 카드를 냄 (진짜는 다음 차례에)
+    if(best[1].length>=4&&callRate<HB.monoRate&&rest.length&&Math.random()<.5){
+      const m=Math.min(best[1].length,rest.length);if(h.length-m>0){doPlay(i,junkFirst(rest).slice(0,m),best[0]);return}
+    }
+    const ids=best[1].slice();
+    if(h.length-ids.length<=jk.length)ids.push(...jk);      // 별카드로 마무리할 수 있으면 한 번에 털기
     doPlay(i,ids,best[0]);return;
   }
-  const num=H.roundNum,mine=byNum.get(num)||[],rest=plain.filter(id=>numOf(id)!==num);
-  const claimedSoFar=H.field.length;
-  const last=h.length-mine.length<=jk.length;                    // 진짜 + 별카드로 다 털 수 있음
-  if(mine.length||(last&&jk.length)){
+  const num=H.roundNum,mine=by.get(num)||[],rest=plain.filter(id=>numOf(id)!==num);
+  if(mine.length){
     const ids=mine.slice();
-    if(last)ids.push(...jk);
-    else if(rest.length&&h.length>4&&claimedSoFar+ids.length+1<=F-1&&Math.random()<.4)ids.push(pick(rest));   // 진짜에 1장 섞기
+    if(h.length-ids.length<=jk.length)ids.push(...jk);
     doPlay(i,ids,num);return;
   }
-  // 진짜가 없음: 별카드로 버틸지, 거짓말할지, 패스할지
-  const suspicious=claimedSoFar+1>F-1;                           // 이미 너무 많이 나옴 → 거짓말하면 들킬 확률 큼
-  const risk=Math.min(.95,.2+claimedSoFar*.09+(others>=3?.08:0)+(suspicious?.5:0));
-  const stake=H.field.length+1;                                  // 들키면 가져갈 장수
-  if(jk.length&&(h.length<=5||risk>.5)){doPlay(i,[jk[0]],num);return}
-  const wantBluff=rest.length&&(1-risk)*h.length>stake*.35&&!suspicious;
-  if(wantBluff&&Math.random()<.85){
-    // 같은 자음끼리 묶어서 버리면 나중에 정리하기 좋음 → 가장 적게 가진 자음부터 1장
-    const sorted=rest.slice().sort((a,b)=>(byNum.get(numOf(a)).length-byNum.get(numOf(b)).length));
-    doPlay(i,[sorted[0]],num);return;
-  }
+  if(jk.length&&(h.length<=jk.length+HB.keepJ||Math.random()<HB.jFollow)){doPlay(i,[jk[0]],num);return}
+  if(!rest.length){doPass(i);return}
+  // 맞는 카드가 없음: 3명 이상이고 별카드가 있으면 1장 거짓말이 유리 (외치는 쪽도 틀리면 다 가져가므로)
+  const act=H.players.filter((p,k)=>isActive(k)).length,pile=H.field.length;
+  const claimed=M.round.reduce((a,r)=>a+r.c,0);
+  if(act>=3&&J>0){doPlay(i,[junkFirst(rest)[0]],num);return}
+  // 1대1이나 별카드가 없으면 잡히기 쉬우므로 득실을 따짐
+  let pc=callRate;if(claimed+1>F-1)pc=Math.min(.95,pc+.4);if(h.length<=1)pc=Math.min(.95,pc+.15);
+  if((1-pc)*HB.shedV-pc*(pile+1)>0){doPlay(i,[junkFirst(rest)[0]],num);return}
   doPass(i);
 }
 /* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
@@ -297,7 +323,7 @@ G.engine={
     H.players.forEach(p=>p.hand=deck.splice(0,per));
     const order=shuffle([...Array(n).keys()]);let k=0;while(deck.length)H.players[order[k++]].hand.push(deck.pop());
     H.players.forEach(p=>p.hand.sort(cmpCard));
-    Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,rankBottom:n,known:{}});
+    Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,rankBottom:n,known:{},bm:null});
     const first=Math.random()*n|0;
     addLog(`${n}명 게임 시작${H.cfg.jokers?` (별카드 ${H.cfg.jokers}장)`:''}. ${H.players[first].name}부터 시작합니다.`,'sys');
     newRound(first);
