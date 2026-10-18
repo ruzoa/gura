@@ -1567,7 +1567,8 @@ const BGM = {
       const c = SND.ctx;
 
       // 오디오가 켜져 있고, '구라!' 판정(reveal) 연출 중이 아닐 때만 연주
-      if (c && SND.on && SND.bgmVol > 0 && c.state === 'running' && !(V && V.st === 'reveal')) {
+      // 게임이 자기 배경음악을 틀고 있으면(대부호 방) 쉼
+      if (c && SND.on && SND.bgmVol > 0 && c.state === 'running' && !(V && V.st === 'reveal') && !(G.ownBgm && G.ownBgm())) {
         const idx = this.step % 16;
         const bar = Math.floor(idx / 4); // 현재 마디 (0~3)
         const beat = idx % 4;            // 마디 내 박자 (0, 1, 2, 3)
