@@ -521,11 +521,14 @@ G.field3D=(v,pv,me)=>{
     // 뜸 들인 뒤 카드 공개 (그 사이 판정이 끝났으면 건너뜀)
     if(!T.ok||!V||V.st!=='reveal'||!V.rv||V.rv.s!==v.rv.s||V.rv.fc!==v.rv.fc)return;
     const ids=v.rv.ids,k=ids.length,start=T.field.length-k;
+    // 카드 폭에 맞춘 간격으로 나란히 (겹치지 않게). 화면 폭을 넘으면 카드를 조금씩 줄임
+    const cw=.62*(T.cardK||1);let sc=1.55,gap=cw*sc*1.08;
+    for(let it=0;it<8&&k>1;it++){const q=new THREE.Vector3((k-1)/2*gap+cw*sc/2,2.3,1.2).project(T.cam);if(q.x<=.94)break;sc*=.9;gap=cw*sc*1.08}
     ids.forEach((id,j)=>{
       const c=T.field[start+j];if(!c||!Number.isInteger(id))return;
       c.children[0].material=faceMat(id);
       c.children.forEach(m=>{m.material=onTopMat(m.material);m.renderOrder=60});   // 공개 카드는 3D 말풍선보다 앞
-      c.userData.p.set((j-(k-1)/2)*.95,2.3,1.2);c.userData.rx=-.72;c.userData.ry=0;c.userData.s=1.55;
+      c.userData.p.set((j-(k-1)/2)*gap,2.3,1.2);c.userData.rx=-.72;c.userData.ry=0;c.userData.s=sc;
     });
   },REVEAL_PAUSE);
 };
