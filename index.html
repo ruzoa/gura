@@ -97,7 +97,7 @@ body.no3d .seat.on .ring{display:block}
 .rk{font-family:var(--f-num);font-size:11px;background:var(--mustard);color:var(--ink);border-radius:var(--r-xs);padding:0 5px;margin-left:4px}
 
 .label{font-size:11px;letter-spacing:.1em;color:var(--muted);font-weight:600}
-.fsbtn{position:absolute;top:10px;right:10px;z-index:7;width:40px;height:40px;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:rgba(255,250,240,.94);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 3px 0 rgba(110,69,38,.25);transition:border-color .15s,color .15s}
+.fsbtn{position:absolute;top:10px;right:10px;z-index:9;width:40px;height:40px;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:rgba(255,250,240,.94);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 3px 0 rgba(110,69,38,.25);transition:border-color .15s,color .15s}
 .fsbtn:hover{border-color:var(--wood);color:var(--wood-dark)}
 .fsbtn svg{width:20px;height:20px}
 .fsbtn.fs{right:58px}
@@ -162,7 +162,7 @@ body.nofs .fsbtn.snd{right:106px}
 @keyframes pop{from{transform:scale(.6) rotate(-6deg);opacity:0}to{transform:none;opacity:1}}
 
 /* 무대 위 패널 (대기실, 결과) */
-.panel{position:absolute;inset:0;display:flex;padding:60px 16px 16px;background:rgba(59,42,31,.32);overflow-y:auto}
+.panel{position:absolute;inset:0;display:flex;padding:60px 16px 16px;background:rgba(59,42,31,.32);overflow-y:auto;z-index:8}   /* 결과 화면이 남은 손패·버튼·내 정보 칸 위에 오게 (오른쪽 위 버튼은 그 위 z 9) */
 .card-sheet{background:var(--panel);border:1.5px solid var(--line-strong);border-radius:var(--r-lg);padding:20px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;margin:auto;box-shadow:var(--sh-panel)}
 .card-sheet h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:30px;color:var(--gura)}
 .card-sheet p{margin:0;font-size:13px;color:var(--muted)}

@@ -348,9 +348,13 @@ function finish(i){
     if(j>=0&&isActive(j)){const q=H.players[j];leaveTrick(j);q.hand=[];q.finished=true;q.fell=true;q.rank=H.rankBottom--;addLog(`도시오치! ${q.name} 님이 대부호 자리를 지키지 못해 ${q.rank}위로 떨어집니다.`,'sp')}
   }
   if(H.cfg.fast&&p.rank===1){
-    // 빠른 모드: 1등이 나오면 끝, 나머지는 남은 카드가 적을수록 높은 순위 (같으면 공동 순위)
-    const rest=H.players.filter(x=>!x.finished);
-    rest.forEach(x=>{x.rank=2+rest.filter(y=>y.hand.length<x.hand.length).length;x.finished=true});
+    // 빠른 모드: 1등이 나오면 끝, 나머지는 남은 카드가 적을수록 높은 순위.
+    // 계급이 다음 판으로 이어지므로 공동 순위 없이: 장수가 같으면 남은 카드가 더 강한 사람, 그것도 같으면 1등 다음 차례에 가까운 사람이 위
+    const eff=effRev(stateH()),n=H.players.length;
+    const pow=x=>x.hand.reduce((a,id)=>a+(isJ(id)?20:skey(rkOf(id),eff)),0);
+    const dist=x=>(H.players.indexOf(x)-i+n)%n;
+    const rest=H.players.filter(x=>!x.finished).sort((a,b)=>a.hand.length-b.hand.length||pow(b)-pow(a)||dist(a)-dist(b));
+    rest.forEach((x,k)=>{x.rank=H.rankNext+k;x.finished=true});
     addLog('빠른 모드: 1등이 나와서 게임이 끝났습니다.','sys');endGame();return;
   }
   checkEnd();
