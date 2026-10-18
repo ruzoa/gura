@@ -1722,7 +1722,8 @@ const FAN={n:0,stepPx:20,half:30};
 let lastFanH=-1;
 function layoutFan(){
   const fan=$('#hand'),st=$('#stage'),cards=[...fan.children],n=cards.length;
-  const W=st.clientWidth,wide=W>=820,k=wide?1.2:1;
+  // 손패 크기: 화면의 짧은 쪽에 비례 (휴대폰 1배 ~ 큰 모니터 1.8배) → 어떤 기기에서도 화면 대비 비슷한 크기
+  const W=st.clientWidth,wide=W>=820,k=Math.max(wide?1.2:1,Math.min(1.8,Math.min(W,st.clientHeight||W)/670));
   const R=wide?720:560,reserve=wide?2*345:20;
   const avail=Math.max(150,(W-reserve)/k);
   let step=n>1?Math.min(40,(avail-60)/(n-1)):0;step=Math.max(step,9);
@@ -2410,6 +2411,8 @@ function resize3D(){
   const st=$('#stage'),w=st.clientWidth,h=st.clientHeight;if(!T.r||!w||!h)return;
   T.r.setSize(w,h,false);T.cam.aspect=w/h;
   if(w/h<1.05)T.cam.position.set(0,13.5,11.5);else T.cam.position.set(0,8.8,9.4);
+  // 테이블 위 카드 크기: 가로 화면은 테이블이 화면 높이에 맞춰 들어가 카드가 상대적으로 작아 보여서 1.2배 (세로 화면과 비슷한 비율)
+  {const ck=w/h<1.05?1:1.2;if(T.geo&&ck!==T.cardK){const f=ck/(T.cardK||1);T.geo.scale(f,f,1);T.olGeo.scale(f,f,1);T.cardK=ck}}
   if(T.scene&&T.scene.fog){const d=T.cam.position.length();T.scene.fog.near=d+5;T.scene.fog.far=d+22}
   T.cam.lookAt(0,0,.5);
   const off=Math.min(h*.4,T.fanH||0);if(off>0)T.cam.setViewOffset(w,h+off,0,off,w,h);else T.cam.clearViewOffset();
@@ -2558,7 +2561,7 @@ function dealLift(d,c,a){
     const ray=ny=>new THREE.Vector3(px,ny,.5).unproject(T.cam).sub(cam).normalize();
     const endAt=f=>{   // 카메라 쪽으로 dist*f 거리, 카드 전체가 화면 아래로 빠지는 높이
       let ny=-1.2,p=null;
-      for(let it=0;it<3;it++){p=cam.clone().addScaledVector(ray(ny),dist*f);const t=p.clone().add(new THREE.Vector3(0,0,-.45*S)).project(T.cam),bt=p.clone().add(new THREE.Vector3(0,0,.45*S)).project(T.cam);ny=-1-Math.abs(t.y-bt.y)/2*1.15}
+      for(let it=0;it<3;it++){p=cam.clone().addScaledVector(ray(ny),dist*f);const t=p.clone().add(new THREE.Vector3(0,0,-.45*S*(T.cardK||1))).project(T.cam),bt=p.clone().add(new THREE.Vector3(0,0,.45*S*(T.cardK||1))).project(T.cam);ny=-1-Math.abs(t.y-bt.y)/2*1.15}
       return p;
     };
     // 도착 지점은 지난번보다 아래(카메라에서 더 먼 곳). 끝 방향으로 기울어도 카메라에서 뒷면이 보이는 곳까지만
@@ -2577,7 +2580,7 @@ function dealLift(d,c,a){
   setPose(g,x,y,z,Math.PI/2-th,c.dry,0,S);
   // 화면 아래로 다 빠져나간 순간 2D 카드가 이어서 올라옴
   if(c.m===0&&!d.exited&&x0>.2){
-    const W=T.r.domElement.clientWidth||1,pts=[[-.31,-.45],[.31,-.45],[-.31,.45],[.31,.45]].map(([px,py])=>g.localToWorld(new THREE.Vector3(px,py,0)).project(T.cam));
+    const W=T.r.domElement.clientWidth||1,ck=T.cardK||1,pts=[[-.31,-.45],[.31,-.45],[-.31,.45],[.31,.45]].map(([px,py])=>g.localToWorld(new THREE.Vector3(px*ck,py*ck,0)).project(T.cam));
     if(Math.max(...pts.map(p=>p.y))<-1||x0>=1){d.exited=true;d.exitW=Math.abs(pts[1].x-pts[0].x)/2*W}
   }
   g.visible=x0<1&&!d.exited;
