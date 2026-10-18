@@ -1109,7 +1109,8 @@ G.hud=inGame=>{
     if(D3.root)D3.root.visible=use;
     lastDice='';lastRoll='';
   }
-  $('#stage').classList.toggle('yz-over',!!(on&&V.st==='over'));   // 결과 창이 길어도 아래 버튼이 내 정보 칸에 가리지 않게
+  $('#stage').classList.toggle('yz-over',!!(on&&V.st==='over'));
+  $('#stage').classList.toggle('yz2d',on&&!use);   // 결과 창이 길어도 아래 버튼이 내 정보 칸에 가리지 않게
   if(!on){lastTurn='';lastDice='';lastRoll='';lastBoard='';lastHint='';return}
   drawAll();
 };
@@ -1123,7 +1124,7 @@ G.me=(i,h)=>{
 };
 G.specNote='관전 중입니다. 모든 주사위와 점수가 보입니다.';
 G.no3D=true;   // 공통 테이블 카메라로는 그리지 않음 (2D 화면이면 그리기를 쉬어서 배터리를 아낌)
-G.render3D=(t)=>{d3Render(t)};   // 3D 화면이면 트레이·컵을 자기 카메라로 그림
+G.render3D=(t)=>{if(D3.on)d3Render(t);else if(T.ok)T.r.render(T.scene,T.cam)};   // 게임 중(3D)은 트레이·컵을 자기 카메라로, 대기실은 다른 게임처럼 공통 테이블
 G.buttons=()=>{
   const play=$('#btnPlay'),can=canScore();
   $('#btnPass').hidden=true;$('#btnGura').hidden=true;
@@ -1156,7 +1157,7 @@ G.enter=()=>{
   yCat=null;
 };
 G.leave=()=>{
-  $('#stage').classList.remove('yz','yz-over','yz3d');
+  $('#stage').classList.remove('yz','yz-over','yz3d','yz2d');
   if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
   if(D3.root)D3.root.visible=false;
   D3.on=false;A.tn=-1;A.st='idle';if(elYz)elYz.classList.remove('yz3');
@@ -1168,7 +1169,7 @@ G.init=()=>{
   const css=document.createElement('style');
   css.textContent=`
 .stage.yz{background:radial-gradient(ellipse at 50% 30%,#4c9170 0%,var(--felt) 58%,var(--felt-dark) 100%)}
-.stage.yz:not(.yz3d) #cv,.stage.yz #dim{visibility:hidden}
+.stage.yz.yz2d #cv,.stage.yz #dim{visibility:hidden}   /* 3D 캔버스는 WebGL 없이 2D로 하는 게임 중에만 숨김 (대기실은 다른 게임처럼 테이블이 보임) */
 .stage.yz .labels{visibility:hidden}
 .stage.yz .nogl{display:none}
 .stage.yz.yz-over .myplate,.stage.yz.yz-over .actions{display:none}
