@@ -3,7 +3,7 @@
    카드 id: 0~51 = 숫자 순번(0~12 = 3,4,…,K,A,2)*4 + 무늬(0~3 = ♦ ♣ ♥ ♠), 100·101 = 조커 (모든 숫자로 쓰는 와일드 카드)
    무늬는 강약과 상관없음. 색은 ♦♥ 빨강 / ♣♠ 남색 */
 (function(){
-const G={id:'president',name:'대부호',short:'대부호',lead:'계급이 오가는 카드게임',brand:'대부호',brandPx:50};
+const G={id:'president',name:'대부호',short:'대부호',lead:'계급이 오가는 카드게임',brand:'대부호',brandPx:50,dealAnim:true};   // dealAnim: 게임 시작 때 카드 섞고 나누는 연출
 
 /* ---------- 카드·규칙 판정 (방장 엔진과 화면이 같은 함수를 씀) ---------- */
 const rkOf=id=>id>>2, suitOf=id=>id&3;
