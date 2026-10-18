@@ -2486,7 +2486,6 @@ function dealStart(v,t0,key){
     for(const arr of T.stacks.values())arr.forEach(killCard);T.stacks.clear();
     for(const c of d.cards){
       c.g=makeCard(new THREE.Vector3(0,-1,0),Math.PI/2,0,.8);c.g.userData.man=true;c.g.visible=false;
-      if(c.seat===me&&c.m===0&&myIds.length)c.id=myIds[myIds.length-1];   // 들어 올릴 때 살짝 보이는 맨 아래 앞면 = 2D 손패 맨 위 카드
       if(c.seat===me)c.g.renderOrder=2;
       // 받는 자리
       if(c.seat===me){const p=seatPos(me,2.75);c.dx=p.x;c.dz=p.z;c.dy=.03+c.m*.006;c.dry=seatAngle(me)}
@@ -2552,32 +2551,34 @@ function dealPose(d,c,a){
 }
 function dealLift(d,c,a){
   // 내 앞에 모인 카드: 뒷면이 위인 채로 한 묶음 그대로, 테이블을 따라 낮게 내 쪽으로 미끄러지다가 들어 올려져
-  // 카메라(내 눈) 가까이까지 휘어 올라오며 크게 보이다가 화면 아래 경계를 넘어 사라짐
+  // 카메라 쪽으로 휘어 오며 커지다가 화면 아래 경계를 넘어 사라짐. 카드 기울기는 언제나 그 지점의 경로 방향과 같음
   const g=c.g,S=.8,x0=clamp01((a-DL.lift)/DL.liftDur),u=Math.pow(x0,1.6);   // 천천히 출발해서 점점 빠르게
   if(!d.out){
-    const cam=T.cam.position.clone(),pile=new THREE.Vector3(c.dx,c.dy,c.dz);
-    const D=cam.distanceTo(pile)*.33;   // 카메라와 카드 더미 사이의 1/3 지점까지 다가옴 → 처음보다 약 3배 크게 보임
-    const at=ndcY=>{const v=new THREE.Vector3(pile.clone().project(T.cam).x,ndcY,.5).unproject(T.cam);return cam.clone().addScaledVector(v.sub(cam).normalize(),D)};
-    // 카드 전체가 화면 아래로 빠지는 높이: 그 거리에서 카드 반 장이 화면에서 차지하는 만큼 더 아래
-    let ny=-1.2;
-    for(let it=0;it<3;it++){const p=at(ny),t=p.clone().add(new THREE.Vector3(0,0,-.45*S)).project(T.cam),bt=p.clone().add(new THREE.Vector3(0,0,.45*S)).project(T.cam);ny=-1-Math.abs(t.y-bt.y)/2*1.15}
-    const P2=at(ny);
-    d.out={x:P2.x,y:P2.y,z:P2.z,p1z:c.dz+(P2.z-c.dz)*.55};
+    const cam=T.cam.position.clone(),pile=new THREE.Vector3(c.dx,c.dy,c.dz),dist=cam.distanceTo(pile),px=pile.clone().project(T.cam).x;
+    const ray=ny=>new THREE.Vector3(px,ny,.5).unproject(T.cam).sub(cam).normalize();
+    const endAt=f=>{   // 카메라 쪽으로 dist*f 거리, 카드 전체가 화면 아래로 빠지는 높이
+      let ny=-1.2,p=null;
+      for(let it=0;it<3;it++){p=cam.clone().addScaledVector(ray(ny),dist*f);const t=p.clone().add(new THREE.Vector3(0,0,-.45*S)).project(T.cam),bt=p.clone().add(new THREE.Vector3(0,0,.45*S)).project(T.cam);ny=-1-Math.abs(t.y-bt.y)/2*1.15}
+      return p;
+    };
+    // 도착 지점은 지난번보다 아래(카메라에서 더 먼 곳). 끝 방향으로 기울어도 카메라에서 뒷면이 보이는 곳까지만
+    let P2=null,p1z=0;
+    for(let f=.5;f<=.9;f+=.03){
+      P2=endAt(f);p1z=c.dz+(P2.z-c.dz)*.55;
+      const th=Math.atan2(P2.y-(c.dy+.04),P2.z-p1z),edge=Math.atan2(cam.z-P2.z,cam.y-P2.y);
+      if(Math.PI/2-th-edge>.25)break;   // 뒷면이 카메라 쪽으로 충분히 보임
+    }
+    d.out={x:P2.x,y:P2.y,z:P2.z,p1z};
   }
   const o=d.out,x=bez(c.dx,c.dx,o.x,u),y=bez(c.dy,c.dy+.04,o.y,u),z=bez(c.dz,o.p1z,o.z,u);
-  // 움직이는 방향을 따라 앞쪽 모서리부터 계속 들림 → 카메라에서 보면 뒷면이 점점 좁아지다가 앞면이 살짝 보이며 나감
+  // 기울기 = 지금 지점의 경로 방향 (미분): 이동하는 만큼 정확히 그만큼 기울어짐
   const ty=2*(1-u)*.04+2*u*(o.y-c.dy-.04),tz=2*(1-u)*(o.p1z-c.dz)+2*u*(o.z-o.p1z);
-  const th=Math.atan2(ty,Math.max(.001,tz));
-  // 들려 오는 동안은 뒷면이 넓게 보이다가, 화면 아래 끝에 다다를수록 고개를 들 듯 옆면을 지나 앞면이 살짝 보이며 나감
-  const cp=T.cam.position,edge=Math.atan2(cp.z-z,cp.y-y);   // 이 각도면 카메라에서 옆면만 보임
-  const ny=new THREE.Vector3(x,y,z).project(T.cam).y,w=smooth((-.45-ny)/.7);   // 화면 높이 기준 (아래로 갈수록 1)
-  const rx=(Math.PI/2-Math.min(.3,th))*(1-w)+(edge-.32)*w;
-  if(c.id!=null&&!c.faced){c.faced=1;g.children[0].material=faceMat(c.id)}
-  setPose(g,x,y,z,rx,c.dry,0,S);
-  // 화면 아래로 다 빠져나간 순간: 그때의 크기·각도로 2D 카드가 이어서 올라옴
+  const th=Math.atan2(ty,Math.max(1e-4,tz));
+  setPose(g,x,y,z,Math.PI/2-th,c.dry,0,S);
+  // 화면 아래로 다 빠져나간 순간 2D 카드가 이어서 올라옴
   if(c.m===0&&!d.exited&&x0>.2){
     const W=T.r.domElement.clientWidth||1,pts=[[-.31,-.45],[.31,-.45],[-.31,.45],[.31,.45]].map(([px,py])=>g.localToWorld(new THREE.Vector3(px,py,0)).project(T.cam));
-    if(Math.max(...pts.map(p=>p.y))<-1){d.exited=true;d.exitW=Math.abs(pts[1].x-pts[0].x)/2*W}
+    if(Math.max(...pts.map(p=>p.y))<-1||x0>=1){d.exited=true;d.exitW=Math.abs(pts[1].x-pts[0].x)/2*W}
   }
   g.visible=x0<1&&!d.exited;
 }
@@ -2621,16 +2622,16 @@ function fanIn(d){
   const cards=[...hand.children];if(!cards.length||!cards[0].animate)return;
   const R=parseFloat(hand.style.getPropertyValue('--R'))||600,k=parseFloat(hand.style.getPropertyValue('--k'))||1,b=parseFloat(hand.style.getPropertyValue('--b'))||10;
   const cw=(cards[0].offsetWidth||60)*k;
-  const r=Math.max(1,Math.min(1.8,d&&d.exitW?d.exitW/cw:1.3));   // 사라질 때의 3D 카드 크기로 시작
+  const r=Math.max(1,Math.min(1.4,d&&d.exitW?d.exitW/cw:1.2));   // 사라질 때의 3D 카드 크기로 시작
   const mk=(rot,dy,rx,sc)=>`rotate(${rot}) translateY(${dy}px) translateY(${-R}px) perspective(700px) rotateX(${rx}deg) scale(${sc}) translateY(${R}px)`;
   const up=Math.round(b+88*r+12);   // 화면 바로 아래 (3D 카드가 나간 자리)
-  // 3D 카드가 나갈 때처럼 위쪽이 멀리 기울어진(앞면이 살짝 보이는) 채로 빠르게 들어와 → 고개를 들며 서서 원래 크기로 → 부채꼴로 펼침
+  // 3D 카드가 빠져나간 속도로 이어서 똑바로 선 채 올라오다가, 고개를 살짝 숙였다 들고(위쪽이 나를 향했다가 섬) → 부채꼴로 펼침
   cards.forEach(c=>{
     const a=c.style.getPropertyValue('--a')||'0rad';
     try{c.animate([
-      {transform:mk('0rad',up,68,r),easing:'cubic-bezier(.2,.65,.35,1)'},
-      {transform:mk('0rad',-6,-5,1),offset:.42,easing:'ease-in-out'},
-      {transform:mk('0rad',0,0,1),offset:.52},
+      {transform:mk('0rad',up,0,r),easing:'cubic-bezier(.2,.6,.35,1)'},
+      {transform:mk('0rad',-4,-16,1),offset:.36,easing:'ease-in-out'},
+      {transform:mk('0rad',0,0,1),offset:.5},
       {transform:mk('0rad',0,0,1),offset:.58,easing:'cubic-bezier(.3,.7,.3,1)'},
       {transform:mk(a,0,0,1)}
     ],{duration:DL.fanDur,easing:'linear',fill:'backwards'})}catch(e){}
