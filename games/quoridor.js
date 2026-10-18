@@ -183,7 +183,7 @@ function botChoose(S,i,lv){
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 말을 맞은편 끝줄의 아무 칸에 가장 먼저 도착시키면 <b>승리</b>하고 게임이 끝납니다. 나머지 순위는 목표까지 남은 거리가 짧은 순서입니다</li><li><b>내 차례</b> : <b>말 이동</b>과 <b>벽 세우기</b> 중 하나만 합니다</li><li><b>말 이동</b> : 위·아래·왼쪽·오른쪽으로 한 칸. 벽은 넘을 수 없습니다</li><li><b>뛰어넘기</b> : 상대 말이 바로 앞에 있으면 그 말을 뛰어넘습니다. 그 뒤가 벽이나 끝이라서 못 넘으면 대각선 옆 칸으로 비켜 갑니다</li><li><b>벽 세우기</b> : 칸 사이의 틈에 두 칸 길이의 벽을 놓아 길을 막습니다. 벽은 한 번 놓으면 옮길 수 없고, 벽끼리 겹치거나 십자로 놓을 수 없습니다</li><li><b>반칙</b> : 누구든 목표까지 갈 길이 완전히 막히는 자리에는 벽을 놓을 수 없습니다</li><li><b>4명</b> : 네 방향에서 출발해 맞은편 끝줄이 목표입니다. 벽은 인원수대로 나눠 가집니다</li><li><b>제한 시간</b> : 내 차례에 제한 시간이 지나면 <b>패배</b>합니다. 연결이 끊긴 사람은 봇이 대신 둡니다</li><li><b>기보</b> : 세로줄은 왼쪽부터 a~i, 가로줄은 빨강 출발점 쪽부터 1~9입니다. 말 이동은 도착한 칸(e2), 벽은 벽 가운데가 오른쪽 위 꼭짓점인 칸에 가로 h·세로 v를 붙여 적습니다(e3h)</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 말을 맞은편 끝줄의 아무 칸에 가장 먼저 도착시키면 <b>승리</b>하고 게임이 끝납니다. 나머지 순위는 목표까지 남은 거리가 짧은 순서입니다</li><li><b>내 차례</b> : <b>말 이동</b>과 <b>벽 세우기</b> 중 하나만 합니다</li><li><b>말 이동</b> : 위·아래·왼쪽·오른쪽으로 한 칸. 벽은 넘을 수 없습니다</li><li><b>뛰어넘기</b> : 상대 말이 바로 앞에 있으면 그 말을 뛰어넘습니다. 그 뒤가 벽이나 끝이라서 못 넘으면 대각선 옆 칸으로 비켜 갑니다</li><li><b>벽 세우기</b> : 칸 사이의 틈에 두 칸 길이의 벽을 놓아 길을 막습니다. 벽은 한 번 놓으면 옮길 수 없고, 벽끼리 겹치거나 십자로 놓을 수 없습니다</li><li><b>반칙</b> : 누구든 목표까지 갈 길이 완전히 막히는 자리에는 벽을 놓을 수 없습니다</li><li><b>4명</b> : 네 방향에서 출발해 맞은편 끝줄이 목표입니다. 벽은 인원수대로 나눠 가집니다</li><li><b>조작</b> : 갈 칸이나 벽 자리를 누르면 반투명으로 미리 보이고, <b>[놓기]</b>를 누르면 확정합니다. 벽은 내 앞 보관대(3D 화면이 안 되는 기기는 [벽 세우기])를 눌러 고릅니다</li><li><b>제한 시간</b> : 내 차례에 제한 시간이 지나면 <b>패배</b>합니다. 연결이 끊긴 사람은 봇이 대신 둡니다</li><li><b>기보</b> : 세로줄은 왼쪽부터 a~i, 가로줄은 빨강 출발점 쪽부터 1~9입니다. 말 이동은 도착한 칸(e2), 벽은 벽 가운데가 오른쪽 위 꼭짓점인 칸에 가로 h·세로 v를 붙여 적습니다(e3h)</li></ol>';
 G.modeDesc=['먼저 도착한 사람이 이기면 끝','먼저 도착한 사람이 이기면 끝'];
 G.defaults={max:2,walls:10,turn:30};
 G.roomSet=[
@@ -355,7 +355,7 @@ const rp=(x,y,k)=>{for(let t=0;t<k;t++){const nx=9-y;y=x;x=nx}return [x,y]};   /
 const rc=(r,c,k)=>{for(let t=0;t<k;t++){const nr=c,nc=8-r;r=nr;c=nc}return [r,c]};   // 칸을 시계 방향으로 90°씩 k번 돌림
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const VB={x:-.9,y:-.4,w:10.3};   // 보드 그림 범위: 왼쪽·아래에 좌표 글자 자리를 둠
-let QS=null,viewK=0,qMode='move',qOri=0,pend=null,hov=null,lastPT='mouse',qMsg='',qMsgUntil=0,qMsgTimer=null;
+let QS=null,viewK=0,qMode='move',qOri=0,pend=null,hov=null,qMsg='',qMsgUntil=0,qMsgTimer=null;   // pend: 미리 보기 {k:0 이동|1 벽, r, c, o}
 let elQd=null,elSvg=null,elMain=null,elGhost=null,elBar=null,elHint=null,elModes=null,lastBoard='',lastBar='',lastHint='',lastModes='';
 function buildS(q){
   const B=mkB();for(const w of q.w)(w[2]===0?B.hw:B.vw)[w[0]][w[1]]=1;
@@ -386,34 +386,50 @@ function wallLegal(w){
   if(!QS||myIdx()<0||!(QS.wl[myIdx()]>0))return false;
   return wallOK(QS,w.r,w.c,w.o);
 }
-function sendWall(w){sendAct({t:'wall',r:w.r,c:w.c,o:w.o});pend=null;hov=null;drawGhost();drawHint();G.buttons()}
-function onSvgClick(e){
+/* 보드 위 한 점을 눌렀을 때 (화면 기준 격자 좌표: 칸 하나 = 1, 칸 사이 선 = 정수)
+   말 이동 모드면 갈 칸, 벽 모드면 벽 자리를 '미리 보기'로 고름. 확정은 [놓기] */
+function pickAt(x,y){
   if(!V||!V.q||V.st!=='play'||!QS)return;
   const me=myIdx();if(me<0)return;
   if(!myTurnNow()){say(V.t===me?'잠시만 기다려 주세요.':'아직 내 차례가 아닙니다.');return}
-  const [x,y]=toLat(e);
   if(qMode==='move'){
     if(x<-.3||y<-.3||x>9.3||y>9.3)return;
     const vr=clamp(Math.floor(y),0,8),vc=clamp(Math.floor(x),0,8),[r,c]=toAbsCell(vr,vc);
-    if(legalMoves(QS,me).some(m=>m[0]===r&&m[1]===c)){sfxMove();sendAct({t:'move',r,c})}
-    else say('그 칸으로는 갈 수 없습니다. 초록 점이 있는 칸만 갈 수 있습니다.');
-    return;
+    if(!legalMoves(QS,me).some(m=>m[0]===r&&m[1]===c)){say('그 칸으로는 갈 수 없습니다. 초록 점이 있는 칸만 갈 수 있습니다.');return}
+    pend={k:0,r,c};
+  }else{
+    const w=wallAt(x,y);if(!w)return;
+    const abs=toAbsWall(w.X,w.Y,w.vo);
+    if(!wallLegal(abs)){say(QS.wl[me]>0?'그 자리에는 벽을 놓을 수 없습니다. 벽끼리 겹치거나 길을 완전히 막으면 안 됩니다.':'남은 벽이 없습니다.');return}
+    pend={k:1,...abs};hov=null;
   }
-  const w=wallAt(x,y);if(!w)return;
-  const abs=toAbsWall(w.X,w.Y,w.vo);
-  if(!wallLegal(abs)){say(QS.wl[me]>0?'그 자리에는 벽을 놓을 수 없습니다. 벽끼리 겹치거나 길을 완전히 막으면 안 됩니다.':'남은 벽이 없습니다.');return}
-  if(lastPT==='mouse'||(pend&&pend.r===abs.r&&pend.c===abs.c&&pend.o===abs.o)){sendWall(abs);return}
-  pend=abs;hov=null;drawGhost();drawHint();G.buttons();
+  sfx('pick');redraw();
 }
-const sfxMove=()=>{try{sfx('pick')}catch(e){}};
-function onSvgMove(e){
-  if(e.pointerType==='touch'||qMode!=='wall'||!myTurnNow()||!QS)return;
-  const [x,y]=toLat(e),w=wallAt(x,y);
-  if(!w){if(hov){hov=null;drawGhost();drawHint()}return}
+/* [놓기]: 미리 보기를 확정해서 보냄 */
+function confirmPend(){
+  if(!pend||!myTurnNow())return;
+  const p=pend;pend=null;hov=null;
+  if(p.k===0)sendAct({t:'move',r:p.r,c:p.c});else sendAct({t:'wall',r:p.r,c:p.c,o:p.o});
+  redraw();
+}
+function setMode(m){
+  const me=myIdx();
+  if(m==='wall'&&!(me>=0&&V.q&&V.q.wl[me]>0)){say('남은 벽이 없습니다.');return}
+  if(qMode===m)return;
+  qMode=m;pend=null;hov=null;sfx('tick');redraw();
+}
+function redraw(){drawAll();G.buttons();Q3.dirty=true}
+/* 마우스를 올린 벽 자리 (벽 모드, 아직 고르지 않았을 때) */
+function hoverAt(x,y){
+  if(qMode!=='wall'||!myTurnNow()||!QS){if(hov){hov=null;drawGhost();drawHint();Q3.dirty=true}return}
+  const w=x==null?null:wallAt(x,y);
+  if(!w){if(hov){hov=null;drawGhost();drawHint();Q3.dirty=true}return}
   const abs=toAbsWall(w.X,w.Y,w.vo);
   if(hov&&hov.r===abs.r&&hov.c===abs.c&&hov.o===abs.o)return;
-  hov={...abs,ok:wallLegal(abs)};drawGhost();drawHint();
+  hov={...abs,ok:wallLegal(abs)};drawGhost();drawHint();Q3.dirty=true;
 }
+function onSvgClick(e){const [x,y]=toLat(e);pickAt(x,y)}
+function onSvgMove(e){if(e.pointerType==='touch')return;const [x,y]=toLat(e);hoverAt(x,y)}
 /* 벽 한 개를 그리는 선 (실제 좌표의 벽 → 화면 좌표) */
 function wallLine(r,c,o,col,w,op,extra){
   const [X,Y]=rp(c+1,r+1,viewK),vo=o^(viewK&1);
@@ -422,8 +438,12 @@ function wallLine(r,c,o,col,w,op,extra){
 }
 function drawGhost(){
   if(!elGhost)return;
-  const g=hov||(pend&&qMode==='wall'?{...pend,ok:true}:null);
-  elGhost.innerHTML=g&&qMode==='wall'?wallLine(g.r,g.c,g.o,g.ok?'#2f9e44':'#d6342a',.2,.78):'';
+  const me=myIdx(),out=[];
+  if(pend&&pend.k===0&&me>=0){const [vr,vc]=rc(pend.r,pend.c,viewK);out.push(`<circle cx="${vc+.5}" cy="${vr+.5}" r=".33" fill="${PCOL[me%4]}" opacity=".45" stroke="#fffaf0" stroke-width=".07"/>`)}
+  if(pend&&pend.k===1)out.push(wallLine(pend.r,pend.c,pend.o,'#2f9e44',.22,.85));
+  else if(hov&&qMode==='wall')out.push(wallLine(hov.r,hov.c,hov.o,hov.ok?'#2f9e44':'#d6342a',.2,.55));
+  elGhost.innerHTML=out.join('');
+  q3Marks();
 }
 function boardHTML(S,me){
   const k=viewK,out=[];
@@ -488,10 +508,10 @@ function hintText(me){
   if(V.t!==me)return V.ps[V.t]?`${V.ps[V.t].n} 차례입니다.${lastRec()}`:'';
   if(!myTurnNow())return '내 차례입니다.';
   {const left=(V.deadAt-clock())/1000;if(left<=10&&left>0)return `${Math.ceil(left)}초 남았습니다. 제한 시간이 지나면 패배합니다.`}
-  if(qMode==='move')return V.q.wl[me]>0?'초록 점이 있는 칸을 눌러 말을 움직입니다. 벽을 세우려면 오른쪽 버튼을 누르세요.':'초록 점이 있는 칸을 눌러 말을 움직입니다. 남은 벽이 없습니다.';
-  if(pend)return `${wallName(pend.r,pend.c,pend.o)} 벽: 이 자리가 맞으면 한 번 더 누르거나 [벽 놓기]를 누릅니다.`;
-  if(hov)return hov.ok?`${wallName(hov.r,hov.c,hov.o)} 벽: 누르면 놓습니다.`:`${wallName(hov.r,hov.c,hov.o)}에는 벽을 놓을 수 없습니다.`;
-  return '칸 사이의 틈을 눌러 벽을 놓을 자리를 고릅니다.';
+  if(pend)return pend.k===0?`${sqName(pend.r,pend.c)}(으)로 이동: [놓기]를 누르면 확정합니다.`:`${wallName(pend.r,pend.c,pend.o)} 벽: [놓기]를 누르면 확정합니다.`;
+  if(qMode==='move')return !(V.q.wl[me]>0)?'초록 점이 있는 칸을 눌러 갈 곳을 고릅니다. 남은 벽이 없습니다.':Q3.on?'초록 점이 있는 칸을 누르거나, 내 앞 보관대를 눌러 벽을 고릅니다.':'초록 점이 있는 칸을 누르거나, [벽 세우기]로 벽을 고릅니다.';
+  if(hov)return hov.ok?`${wallName(hov.r,hov.c,hov.o)} 벽: 누르면 미리 봅니다.`:`${wallName(hov.r,hov.c,hov.o)}에는 벽을 놓을 수 없습니다.`;
+  return Q3.on?'칸 사이의 틈을 눌러 벽 자리를 고릅니다. 보관대나 내 말을 누르면 말 이동으로 돌아갑니다.':'칸 사이의 틈을 눌러 벽 자리를 고릅니다.';
 }
 /* 직전 수 한 줄 (예: ' · 직전 3. 나 e4') */
 function lastRec(){
@@ -538,10 +558,274 @@ function fit(){
 function drawAll(){
   if(!QS||!elMain)return;
   const me=myIdx();
-  const bd=boardHTML(QS,me);
-  if(bd!==lastBoard){elMain.innerHTML=bd;lastBoard=bd}
+  if(!Q3.on){const bd=boardHTML(QS,me);if(bd!==lastBoard){elMain.innerHTML=bd;lastBoard=bd}}   // 3D 화면이면 2D 보드는 그리지 않음
   const bar=barHTML(V.q,me);if(bar!==lastBar){elBar.innerHTML=bar;lastBar=bar}
   drawGhost();drawHint();fit();
+}
+/* ---------- 3D 보드: 공통 원목 테이블 위에 놓고, 바로 위(90도)에서 내려다보는 자기 카메라로 그림 ----------
+   단위: '칸 단위'(칸 한 변 = 1, 칸 사이 홈 = .24)로 계산하고 월드에는 U배로 놓음. 화면 기준 x→월드 x, 화면 기준 y(아래)→월드 +z
+   보는 사람에 따라 돌린 좌표(viewK)로 모두 놓기 때문에 내 출발점이 항상 아래에 옴. WebGL이 없으면 2D 그림을 씀 */
+const U=.47,SZ=1,GP=.24,PT=SZ+GP,INN=9*SZ+8*GP,BH=INN/2+.66,TGAP=.22,WLEN=2*SZ+GP,WTH=.2,WHT=.62,TRD=WLEN+.5,PEEK=.55;
+const TOP=.2,CT=TOP+.06;   // 보드 틀 윗면, 칸 윗면 높이 (테이블 윗면 = 0)
+const Q3={on:false,built:false,fail:false,root:null,cam:null,dirty:true,lastR:0,lay:'',layAt:0,d:12,W:0,H:0,K:-1,labKey:'',lab:null,
+  anim:[],pawns:new Map(),walls:new Map(),trays:new Map(),hl:[],ghostP:null,ghostW:null,hovW:null,ring:null,glow:null,trayRect:null,recN:-1,wN:-1};
+const reduced=()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}};
+const ease=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
+const cellXY=(vr,vc)=>[(vc-4)*PT,(vr-4)*PT];
+const latXY=(X,Y)=>[(X-4.5)*PT,(Y-4.5)*PT];
+const SIDE_N=[[0,1],[-1,0],[0,-1],[1,0]];   // 화면 기준 변(0 아래, 1 왼쪽, 2 위, 3 오른쪽)의 바깥 방향
+function woodPaint(g,w,h,base,dark,n,seed){
+  let s=seed||7;const r=()=>{s=(s*16807)%2147483647;return s/2147483647};
+  g.fillStyle=base;g.fillRect(0,0,w,h);
+  for(let i=0;i<n;i++){const y0=r()*h,a=r()*.12+.04;g.strokeStyle=dark;g.globalAlpha=a;g.lineWidth=r()*2.5+.8;g.beginPath();
+    for(let t=0;t<=w;t+=8){const y=y0+Math.sin(t/(30+r()*0)+i)*3+Math.sin(t/11+i*3)*1.2;t?g.lineTo(t,y):g.moveTo(t,y)}g.stroke()}
+  g.globalAlpha=1;
+}
+/* 윤곽선(공통 그림 스타일)을 같은 묶음 안에 붙여서, 물체가 움직여도 따라가게 */
+function withInk(geo,mat,inkGeo,inkMat){
+  const g=new THREE.Group(),m=new THREE.Mesh(geo,mat);m.castShadow=true;m.receiveShadow=true;g.add(m);
+  const o=new THREE.Mesh(inkGeo,inkMat||new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide}));g.add(o);g.userData.ink=o;g.userData.body=m;return g;
+}
+const MAT={};
+function pawnGroup(col,ghost){
+  const g=new THREE.Group(),key=col+(ghost?'g':'');
+  if(!MAT[key])MAT[key]=ghost?new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.45,depthWrite:false}):toon({color:col,rim:.25});
+  const m=MAT[key],ink=ghost?null:new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide});
+  const add=(geo,y,inkGeo)=>{const o=new THREE.Mesh(geo,m);o.position.y=y;o.castShadow=!ghost;g.add(o);if(ink){const h=new THREE.Mesh(inkGeo,ink);h.position.y=y;g.add(h)}};
+  add(new THREE.CylinderGeometry(.33*U,.38*U,.3*U,28),.15*U,new THREE.CylinderGeometry(.36*U,.41*U,.33*U,28));
+  add(new THREE.CylinderGeometry(.15*U,.2*U,.36*U,20),.46*U,new THREE.CylinderGeometry(.18*U,.23*U,.36*U,20));
+  add(new THREE.SphereGeometry(.27*U,24,16),.8*U,new THREE.SphereGeometry(.3*U,24,16));
+  return g;
+}
+function wallMat(i){const k='w'+i;if(!MAT[k])MAT[k]=toon({color:PCOL[i%4],rim:.2});return MAT[k]}
+function wallMesh(i){
+  const geo=new THREE.BoxGeometry(WLEN*U,WHT*U,WTH*U),ink=new THREE.BoxGeometry(WLEN*U+.035,WHT*U+.03,WTH*U+.035);
+  return withInk(geo,wallMat(i),ink);
+}
+function q3Build(){
+  if(Q3.built||Q3.fail)return Q3.built;
+  if(!T.ok||typeof THREE==='undefined'){Q3.fail=true;return false}
+  try{
+    const root=new THREE.Group();root.visible=false;
+    const inkM=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide});
+    // 보드 틀 (진한 원목)
+    const frameT=canvasTex(512,512,(g,w,h)=>woodPaint(g,w,h,'#6f4020','#2a1206',110,3));
+    const fg=new THREE.BoxGeometry(2*BH*U,TOP-.02,2*BH*U);
+    const frame=new THREE.Mesh(fg,toon({map:frameT,rim:.08}));frame.position.y=.02+(TOP-.02)/2;frame.castShadow=frame.receiveShadow=true;root.add(frame);
+    const fo=new THREE.Mesh(new THREE.BoxGeometry(2*BH*U+.05,TOP-.02+.02,2*BH*U+.05),inkM);fo.position.copy(frame.position);root.add(fo);
+    // 좌표·목표 줄을 그리는 판 (틀 위, 홈 바닥 아래)
+    Q3.labTex=canvasTex(1024,1024,()=>{});
+    const lab=new THREE.Mesh(new THREE.PlaneGeometry(2*BH*U,2*BH*U),new THREE.MeshBasicMaterial({map:Q3.labTex,transparent:true,depthWrite:false}));
+    lab.rotation.x=-Math.PI/2;lab.position.y=TOP+.002;lab.renderOrder=1;root.add(lab);Q3.lab=lab;
+    // 홈 바닥 (칸 사이)
+    const groove=new THREE.Mesh(new THREE.BoxGeometry((INN+.2)*U,.01,(INN+.2)*U),toon({color:0x3a200e,rim:0}));groove.position.y=TOP+.005;groove.receiveShadow=true;root.add(groove);
+    // 칸 81개 (밝은 원목)
+    const cellT=canvasTex(256,256,(g,w,h)=>woodPaint(g,w,h,'#ecca93','#8a5520',46,11));
+    const cellM=toon({map:cellT,rim:0}),cellG=new THREE.BoxGeometry(SZ*U,.05,SZ*U);
+    for(let vr=0;vr<9;vr++)for(let vc=0;vc<9;vc++){const [x,y]=cellXY(vr,vc),m=new THREE.Mesh(cellG,cellM);m.position.set(x*U,TOP+.035,y*U);m.receiveShadow=true;root.add(m)}
+    // 갈 수 있는 칸 표시 (초록) — 미리 8개 만들어 두고 켜고 끔
+    const hlM=new THREE.MeshBasicMaterial({color:0x55c271,transparent:true,opacity:.42,depthWrite:false}),dotM=new THREE.MeshBasicMaterial({color:0x1f7a2e,transparent:true,opacity:.8,depthWrite:false});
+    for(let k=0;k<8;k++){const g=new THREE.Group();const a=new THREE.Mesh(new THREE.PlaneGeometry(SZ*U*.98,SZ*U*.98),hlM);a.rotation.x=-Math.PI/2;g.add(a);
+      const d=new THREE.Mesh(new THREE.CircleGeometry(.13*U,20),dotM);d.rotation.x=-Math.PI/2;d.position.y=.002;g.add(d);g.position.y=CT+.003;g.visible=false;g.renderOrder=2;root.add(g);Q3.hl.push(g)}
+    // 차례 고리 (지금 차례인 말 밑)
+    Q3.ring=new THREE.Mesh(new THREE.RingGeometry(.43*U,.52*U,40),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.9,depthWrite:false}));
+    Q3.ring.rotation.x=-Math.PI/2;Q3.ring.position.y=CT+.004;Q3.ring.visible=false;root.add(Q3.ring);
+    // 미리 보기: 반투명 말, 초록 벽(+빛), 마우스를 올린 벽
+    Q3.ghostP=new THREE.Group();Q3.ghostP.visible=false;root.add(Q3.ghostP);
+    const gw=new THREE.Group();
+    gw.add(new THREE.Mesh(new THREE.BoxGeometry(WLEN*U,WHT*U,WTH*U),new THREE.MeshBasicMaterial({color:0x2f9e44,transparent:true,opacity:.6,depthWrite:false})));
+    const glow=new THREE.Mesh(new THREE.PlaneGeometry(WLEN*U+.14,WTH*U+.14),new THREE.MeshBasicMaterial({color:0x7cf09a,transparent:true,opacity:.55,depthWrite:false}));glow.rotation.x=-Math.PI/2;glow.position.y=-WHT*U/2+.012;gw.add(glow);
+    gw.visible=false;root.add(gw);Q3.ghostW=gw;
+    const hw=new THREE.Mesh(new THREE.BoxGeometry(WLEN*U,WHT*U,WTH*U),new THREE.MeshBasicMaterial({color:0x2f9e44,transparent:true,opacity:.35,depthWrite:false}));hw.visible=false;root.add(hw);Q3.hovW=hw;
+    // 내 보관대 빛 (벽 모드)
+    // 테두리 4줄 (보관대 판 위)
+    Q3.glow=new THREE.Group();Q3.glow.visible=false;root.add(Q3.glow);
+    const gm=new THREE.MeshBasicMaterial({color:0xf2b632});for(let k=0;k<4;k++)Q3.glow.add(new THREE.Mesh(new THREE.BoxGeometry(1,.03,1),gm));
+    Q3.cam=new THREE.PerspectiveCamera(44,1,.1,100);Q3.cam.up.set(0,0,-1);
+    T.scene.add(root);Q3.root=root;Q3.built=true;
+  }catch(e){Q3.fail=true;try{console.warn('쿼리도 3D 준비 실패',e)}catch(_){}}
+  return Q3.built;
+}
+/* 좌표 글자와 목표 줄 (보는 방향·남은 사람에 따라 다시 그림) */
+function q3Labels(q,K){
+  const act=q.sd.map((s,i)=>i<q.cnt&&q.pos[i]&&!q.dn[i]?1:0).join('');
+  const key=K+'|'+act;if(key===Q3.labKey)return;Q3.labKey=key;
+  const cv=Q3.labTex.image,g=cv.getContext('2d'),N=cv.width,s=N/(2*BH),X=v=>(v+BH)*s;
+  g.clearRect(0,0,N,N);
+  for(let i=0;i<q.cnt;i++){if(!q.pos[i]||q.dn[i])continue;
+    const vs=(((q.sd[i]+2)&3)+K)&3,o=INN/2+.2,hh=.065,l=INN/2-.1;
+    const R=vs===0?[-l,o-hh,l,o+hh]:vs===2?[-l,-o-hh,l,-o+hh]:vs===1?[-o-hh,-l,-o+hh,l]:[o-hh,-l,o+hh,l];
+    g.fillStyle=PCOL[i%4];rr(g,X(R[0]),X(R[1]),(R[2]-R[0])*s,(R[3]-R[1])*s,hh*s);g.fill()}
+  const back=(4-K)&3,lab=(r1,c1,r2,c2)=>{const a=rc(r1,c1,back),b=rc(r2,c2,back);return a[1]===b[1]?COLS[a[1]]:String(9-a[0])};
+  g.fillStyle='rgba(252,236,206,.92)';g.font=`700 ${Math.round(.3*s)}px "IBM Plex Mono", monospace`;g.textAlign='center';g.textBaseline='middle';
+  for(let v=0;v<9;v++){g.fillText(lab(0,v,8,v),X((v-4)*PT),X(INN/2+.45));g.fillText(lab(v,0,v,8),X(-INN/2-.45),X((v-4)*PT))}
+  Q3.labTex.needsUpdate=true;
+}
+/* 보관대: 판 + 남은 벽을 변과 수직으로 세움 */
+function trayPlace(side,j,cap){
+  const sp=Math.min(.9,(INN-.4)/Math.max(1,cap-1)),[nx,ny]=SIDE_N[side],tx=-ny,ty=nx,t=(j-(cap-1)/2)*sp,dn=BH+TGAP+.25+WLEN/2;
+  return {x:(nx*dn+tx*t)*U,z:(ny*dn+ty*t)*U,y:.1+WHT*U/2,ry:nx?0:Math.PI/2};
+}
+function q3Tray(i,side,n,cap,K){
+  let tr=Q3.trays.get(i);
+  if(tr&&(tr.side!==side||tr.cap!==cap)){Q3.root.remove(tr.g);Q3.trays.delete(i);tr=null}
+  if(!tr){
+    const g=new THREE.Group(),sp=Math.min(.9,(INN-.4)/Math.max(1,cap-1)),Lt=(cap-1)*sp+1.1,[nx,ny]=SIDE_N[side],dn=BH+TGAP+TRD/2;
+    const wx=nx?TRD:Lt,wz=nx?Lt:TRD;
+    if(!MAT.tray)MAT.tray=toon({map:canvasTex(512,256,(c,w,h)=>woodPaint(c,w,h,'#7b4a26','#2a1206',70,5)),rim:.08});
+    const base=new THREE.Mesh(new THREE.BoxGeometry(wx*U,.08,wz*U),MAT.tray);base.position.set(nx*dn*U,.06,ny*dn*U);base.castShadow=base.receiveShadow=true;g.add(base);
+    const ink=new THREE.Mesh(new THREE.BoxGeometry(wx*U+.04,.1,wz*U+.04),new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide}));ink.position.copy(base.position);g.add(ink);
+    tr={g,side,cap,walls:[],rect:[nx*dn-wx/2,ny*dn-wz/2,nx*dn+wx/2,ny*dn+wz/2]};Q3.root.add(g);Q3.trays.set(i,tr);
+  }
+  while(tr.walls.length>n){const w=tr.walls.pop();tr.g.remove(w)}
+  while(tr.walls.length<n){const w=wallMesh(i),p=trayPlace(side,tr.walls.length,cap);w.position.set(p.x,p.y,p.z);w.rotation.y=p.ry;tr.g.add(w);tr.walls.push(w)}
+  return tr;
+}
+function wallPose(w,K){const [X,Y]=rp(w[1]+1,w[0]+1,K),vo=w[2]^(K&1),[x,y]=latXY(X,Y);return {x:x*U,z:y*U,y:TOP+.01+WHT*U/2,ry:vo?Math.PI/2:0}}
+function pawnPose(p,K){const [vr,vc]=rc(p[0],p[1],K),[x,y]=cellXY(vr,vc);return {x:x*U,z:y*U,y:CT}}
+function q3Anim(obj,to,dur,hop,fromRy){
+  if(reduced()){obj.position.set(to.x,to.y,to.z);if(to.ry!=null)obj.rotation.y=to.ry;return}
+  Q3.anim=Q3.anim.filter(a=>a.obj!==obj);
+  Q3.anim.push({obj,t0:clock(),dur,hop,from:obj.position.clone(),to,ry0:fromRy!=null?fromRy:obj.rotation.y});
+}
+/* 게임 상태를 3D 물체에 맞춤 (새 상태가 올 때마다) */
+function q3Sync(){
+  if(!Q3.on||!V||!V.q)return;
+  const q=V.q,me=myIdx(),K=viewK,snap=K!==Q3.K||(q.rec||[]).length<Q3.recN||q.w.length<Q3.wN;   // 보는 방향이 바뀌거나 새 판이면 애니메이션 없이 바로
+  Q3.K=K;Q3.recN=(q.rec||[]).length;Q3.wN=q.w.length;
+  q3Labels(q,K);
+  const cap=wallsPer(+(V.cfg&&V.cfg.walls)||10,q.cnt),from={};
+  // 보관대 (벽을 하나 쓰면 줄어듦 → 줄어든 자리에서 벽이 날아감)
+  for(let i=0;i<q.n;i++){
+    if(i>=q.cnt||!q.pos[i]){const tr=Q3.trays.get(i);if(tr){Q3.root.remove(tr.g);Q3.trays.delete(i)}continue}
+    const side=(q.sd[i]+K)&3,tr0=Q3.trays.get(i),had=tr0&&tr0.side===side?tr0.walls.length:-1;
+    if(had>q.wl[i]){const p=trayPlace(side,q.wl[i],cap);from[i]=p}
+    q3Tray(i,side,q.wl[i],cap,K);
+  }
+  // 놓인 벽
+  const keep=new Set();
+  for(const w of q.w){
+    const key=w[0]+','+w[1]+','+w[2];keep.add(key);
+    let m=Q3.walls.get(key);const pose=wallPose(w,K);
+    if(!m){m=wallMesh(w[3]);Q3.root.add(m);Q3.walls.set(key,m);
+      const f=from[w[3]];
+      if(f&&!snap){m.position.set(f.x,f.y,f.z);m.rotation.y=f.ry;q3Anim(m,pose,520,.9*U*2,f.ry)}
+      else{m.position.set(pose.x,pose.y,pose.z);m.rotation.y=pose.ry}
+    }else if(snap){m.position.set(pose.x,pose.y,pose.z);m.rotation.y=pose.ry}
+    const last=q.lm&&q.lm.k===1&&q.lm.r===w[0]&&q.lm.c===w[1]&&q.lm.o===w[2];
+    m.userData.ink.material.color.setHex(last?0xfff2b8:GFX_INK);
+  }
+  for(const [key,m] of Q3.walls)if(!keep.has(key)){Q3.root.remove(m);Q3.walls.delete(key)}
+  // 말
+  for(let i=0;i<q.n;i++){
+    let pw=Q3.pawns.get(i);const p=q.pos[i];
+    if(!p||i>=q.cnt){if(pw){Q3.root.remove(pw);Q3.pawns.delete(i)}continue}
+    const pose=pawnPose(p,K);
+    if(!pw){pw=pawnGroup(PCOL[i%4]);pw.position.set(pose.x,pose.y,pose.z);Q3.root.add(pw);Q3.pawns.set(i,pw);continue}
+    const moved=Math.abs(pw.userData.tx-pose.x)>1e-6||Math.abs(pw.userData.tz-pose.z)>1e-6;
+    if(moved){if(snap)pw.position.set(pose.x,pose.y,pose.z);else q3Anim(pw,pose,360,.5*U)}
+    pw.userData.tx=pose.x;pw.userData.tz=pose.z;
+  }
+  for(const [i,pw] of Q3.pawns){pw.userData.tx=pw.userData.tx??pw.position.x;pw.userData.tz=pw.userData.tz??pw.position.z}
+  q3Marks();
+  Q3.dirty=true;
+}
+/* 갈 수 있는 칸, 미리 보기, 차례 고리, 내 보관대 빛 (고를 때마다) */
+function q3Marks(){
+  if(!Q3.on||!V||!V.q||!QS)return;
+  const q=V.q,me=myIdx(),K=viewK,mine=myTurnNow()&&me>=0;
+  const moves=mine&&qMode==='move'?legalMoves(QS,me):[];
+  Q3.hl.forEach((h,k)=>{const m=moves[k];h.visible=!!m;if(m){const [vr,vc]=rc(m[0],m[1],K),[x,y]=cellXY(vr,vc);h.position.x=x*U;h.position.z=y*U}});
+  // 반투명 말
+  if(pend&&pend.k===0&&me>=0){
+    if(Q3.ghostP.userData.col!==me){Q3.ghostP.clear();Q3.ghostP.add(pawnGroup(PCOL[me%4],true));Q3.ghostP.userData.col=me}
+    const p=pawnPose([pend.r,pend.c],K);Q3.ghostP.position.set(p.x,p.y,p.z);Q3.ghostP.visible=true;
+  }else Q3.ghostP.visible=false;
+  if(pend&&pend.k===1){const p=wallPose([pend.r,pend.c,pend.o],K);Q3.ghostW.position.set(p.x,p.y,p.z);Q3.ghostW.rotation.y=p.ry;Q3.ghostW.visible=true}else Q3.ghostW.visible=false;
+  if(!pend&&hov&&qMode==='wall'){const p=wallPose([hov.r,hov.c,hov.o],K);Q3.hovW.position.set(p.x,p.y,p.z);Q3.hovW.rotation.y=p.ry;Q3.hovW.material.color.setHex(hov.ok?0x2f9e44:0xd6342a);Q3.hovW.visible=true}else Q3.hovW.visible=false;
+  // 내 보관대
+  const tr=me>=0?Q3.trays.get(me):null;Q3.trayRect=tr?tr.rect:null;
+  if(tr&&mine&&qMode==='wall'){
+    const r=tr.rect,x0=r[0]*U,x1=r[2]*U,z0=r[1]*U,z1=r[3]*U,t=.07,y=.115,b=Q3.glow.children;
+    const set=(m,x,z,w,d)=>{m.position.set(x,y,z);m.scale.set(w,1,d)};
+    set(b[0],(x0+x1)/2,z0,x1-x0+t,t);set(b[1],(x0+x1)/2,z1,x1-x0+t,t);set(b[2],x0,(z0+z1)/2,t,z1-z0+t);set(b[3],x1,(z0+z1)/2,t,z1-z0+t);
+    Q3.glow.visible=true;
+  }else Q3.glow.visible=false;
+  // 차례 고리
+  const ti=V.st==='play'?V.t:-1,pw=Q3.pawns.get(ti);
+  if(pw){Q3.ring.material.color.set(PCOL[ti%4]);Q3.ring.userData.pw=pw;Q3.ring.visible=true}else Q3.ring.visible=false;
+  Q3.dirty=true;
+}
+/* 카메라: 보드(+보관대)가 '보드 자리'(위 HUD 아래, 휴대폰은 내 정보 칸 위)에 꽉 차게. 4명 휴대폰은 양옆 보관대를 조금만 보이게 */
+function q3Layout(t){
+  if(t-Q3.layAt<100&&Q3.lay)return false;   // 보드 자리 크기가 바뀌었는지 자주 확인 (시작 직후 위쪽 목록이 그려지면서 자리가 바뀜)
+  Q3.layAt=t;
+  const st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight;if(!W||!Hh||!V||!V.q)return false;
+  const sr=st.getBoundingClientRect(),bd=elQd.querySelector('.qd-bd').getBoundingClientRect();
+  const q=V.q,sides=new Set();for(let i=0;i<q.cnt;i++)if(q.pos[i])sides.add((q.sd[i]+viewK)&3);
+  const key=[W,Hh,Math.round(bd.top-sr.top),Math.round(bd.height),[...sides].sort().join('')].join(',');
+  if(key===Q3.lay)return false;
+  Q3.lay=key;
+  const narrow=W<700,fy=bd.top-sr.top+2,fh=(narrow?Hh-78:Hh-8)-fy,fw=W-8;
+  const hy=BH+(sides.has(0)||sides.has(2)?TGAP+TRD:0),side=sides.has(1)||sides.has(3);
+  const full=Math.min(fw/(2*(BH+(side?TGAP+TRD:0))),fh/(2*hy)),peek=Math.min(fw/(2*(BH+(side?TGAP+PEEK:0))),fh/(2*hy));
+  const ppu=(side&&full<peek*.93?peek:full)*.97/U;   // 화면 1px에 해당하는 월드 크기의 역수 (보드 높이에서)
+  const cam=Q3.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(ppu*f);
+  cam.aspect=W/Hh;cam.position.set(0,TOP+d,0);cam.lookAt(0,TOP,0);
+  const ox=W/2-W/2,oy=(fy+fh/2)-Hh/2;
+  cam.setViewOffset(W,Hh,-ox,-oy,W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
+  Q3.d=d;Q3.W=W;Q3.H=Hh;Q3.dirty=true;
+  return true;
+}
+function q3Step(now){
+  let busy=false;
+  Q3.anim=Q3.anim.filter(a=>{
+    const k=Math.min(1,(now-a.t0)/a.dur),e=ease(k);busy=true;
+    a.obj.position.set(a.from.x+(a.to.x-a.from.x)*e,a.from.y+(a.to.y-a.from.y)*e+a.hop*Math.sin(Math.PI*k),a.from.z+(a.to.z-a.from.z)*e);
+    if(a.to.ry!=null)a.obj.rotation.y=a.ry0+(a.to.ry-a.ry0)*e;
+    return k<1;
+  });
+  if(Q3.ring.visible){const pw=Q3.ring.userData.pw;if(pw){Q3.ring.position.x=pw.position.x;Q3.ring.position.z=pw.position.z}const s=1+.12*Math.sin(now/220);Q3.ring.scale.set(s,s,1);Q3.ring.material.opacity=.55+.35*Math.sin(now/220)}
+  return busy;
+}
+function q3Render(t){
+  if(!Q3.on||!T.ok)return;
+  if(q3Layout(t))Q3.dirty=true;
+  const busy=q3Step(t);
+  if(!busy&&!Q3.dirty&&t-Q3.lastR<(Q3.ring.visible?60:400))return;   // 움직이는 게 없으면 가끔만 그림 (배터리)
+  Q3.dirty=false;Q3.lastR=t;
+  const fog=T.scene.fog,fn=fog?fog.near:0,ff=fog?fog.far:0;
+  if(fog){fog.near=Q3.d+4;fog.far=Q3.d+26}
+  for(const m of [T.timerBg,T.timerArc,T.ring])if(m)m.visible=false;   // 공통 테이블의 자리별 시간 고리는 숨김 (시간은 위쪽 목록에 표시)
+  T.r.render(T.scene,Q3.cam);
+  if(fog){fog.near=fn;fog.far=ff}
+}
+/* 3D 화면에서 누른 곳 → 보드 위 점 (화면 기준 칸 단위) */
+const q3Ray=()=>Q3.ray||(Q3.ray=new THREE.Raycaster());
+function q3Point(e){
+  const r=T.r.domElement.getBoundingClientRect();if(!r.width)return null;
+  const nx=(e.clientX-r.left)/r.width*2-1,ny=-(e.clientY-r.top)/r.height*2+1;
+  const ray=q3Ray();ray.setFromCamera({x:nx,y:ny},Q3.cam);
+  const o=ray.ray.origin,dv=ray.ray.direction;if(Math.abs(dv.y)<1e-6)return null;
+  const k=(CT-o.y)/dv.y;return [(o.x+dv.x*k)/U,(o.z+dv.z*k)/U];
+}
+function q3Click(e){
+  if(!Q3.on||G!==GAMES.quoridor)return;
+  const p=q3Point(e);if(!p)return;
+  const [x,y]=p,me=myIdx(),R=Q3.trayRect;
+  // 내 보관대를 누르면 벽 모드 ↔ 말 이동
+  if(R&&x>=R[0]-.2&&x<=R[2]+.2&&y>=R[1]-.2&&y<=R[3]+.2){
+    if(!myTurnNow()){say(V&&V.t===me?'잠시만 기다려 주세요.':'아직 내 차례가 아닙니다.');return}
+    setMode(qMode==='wall'?'move':'wall');return;
+  }
+  // 벽 모드에서 내 말을 누르면 말 이동으로
+  if(qMode==='wall'&&me>=0&&V.q.pos[me]){const pw=Q3.pawns.get(me);if(pw&&Math.hypot(x-pw.position.x/U,y-pw.position.z/U)<.42){setMode('move');return}}
+  pickAt(x/PT+4.5,y/PT+4.5);
+}
+function q3Move(e){
+  if(!Q3.on||G!==GAMES.quoridor||e.pointerType==='touch')return;
+  const p=q3Point(e);if(!p){hoverAt(null,null);return}
+  hoverAt(p[0]/PT+4.5,p[1]/PT+4.5);
 }
 /* 새 상태를 받았을 때 (그리기 전 / 그린 뒤) */
 G.preView=()=>{
@@ -550,7 +834,7 @@ G.preView=()=>{
   const me=myIdx();
   viewK=me>=0&&V.q.sd[me]!=null?(4-V.q.sd[me])&3:0;
   // 차례가 바뀌거나 누군가 두면 미리 골라 둔 벽·모드는 처음으로
-  if(!PV||!PV.q||PV.t!==V.t||PV.st!==V.st||PV.q.w.length!==V.q.w.length){qMode='move';pend=null;hov=null}
+  if(!PV||!PV.q||PV.t!==V.t||PV.st!==V.st||PV.q.w.length!==V.q.w.length||(PV.q.rec||[]).length!==(V.q.rec||[]).length){qMode='move';pend=null;hov=null}
   if(me>=0&&!(QS.wl[me]>0))qMode='move';
 };
 G.postView=()=>{};
@@ -569,8 +853,12 @@ G.hud=inGame=>{
   const on=!!(inGame&&V&&V.q&&QS);
   elQd.hidden=!on;
   $('#stage').classList.toggle('qd-over',!!(on&&V.st==='over'));   // 결과 창이 길어도(기보) 아래 버튼이 내 정보 칸에 가리지 않게
+  // 3D: WebGL이 되면 공통 테이블 위에 보드를 놓고, 안 되면 2D 그림
+  const d3=on&&q3Build();
+  if(d3!==Q3.on){Q3.on=d3;Q3.lay='';Q3.K=-1;if(Q3.root)Q3.root.visible=d3;$('#stage').classList.toggle('qd3d',d3);lastBoard='';lastHint=''}
   if(!on){lastBoard='';lastBar='';lastHint='';lastModes='';return}
   drawAll();
+  q3Sync();
 };
 G.handMarks=()=>{};
 G.me=(i,h)=>{
@@ -582,10 +870,10 @@ G.me=(i,h)=>{
 G.specNote='관전 중입니다. 모든 말과 벽이 보입니다.';
 G.no3D=true;   // 3D 테이블을 쓰지 않음: 공통 코드가 그리기를 쉬어서 휴대폰 배터리를 아낌
 G.buttons=()=>{
-  const play=$('#btnPlay'),can=!!(pend&&qMode==='wall'&&myTurnNow());
+  const play=$('#btnPlay'),can=!!(pend&&myTurnNow());
   $('#btnPass').hidden=true;$('#btnGura').hidden=true;
   play.disabled=!can;play.classList.toggle('ready',can);
-  if($('#playMain').textContent!=='벽 놓기')$('#playMain').textContent='벽 놓기';
+  if($('#playMain').textContent!=='놓기')$('#playMain').textContent='놓기';
   const sub=keyLabel(KEYS.play);if($('#playSub').textContent!==sub)$('#playSub').textContent=sub;
 };
 G.live=()=>{
@@ -593,25 +881,20 @@ G.live=()=>{
   const bar=elBar&&elBar.querySelector('.qd-p.on .tb i');
   if(bar&&V&&V.st==='play'){const left=Math.max(0,(V.deadAt-clock())/1000);bar.style.width=Math.min(100,left/(V.cfg.turn||30)*100)+'%'}
 };
-G.play=()=>{
-  if(!pend||qMode!=='wall'||!myTurnNow())return;
-  sendWall({...pend});
-};
+G.play=confirmPend;
 G.pass=()=>{};
 G.keyPhase=st=>st==='play';
 G.onKey=(act,e)=>{
   if(act==='qmode'){
-    if(!e.repeat&&myTurnNow()&&V.q){
-      const me=myIdx();
-      if(qMode==='move'&&me>=0&&V.q.wl[me]>0)qMode='wall';else qMode='move';
-      pend=null;hov=null;drawAll();G.buttons();
-    }
+    if(!e.repeat&&myTurnNow()&&V.q)setMode(qMode==='move'?'wall':'move');
     return true;
   }
-  if(act==='qrot'){if(!e.repeat){qOri^=1;hov=null;drawGhost()}return true}
+  if(act==='qrot'){if(!e.repeat){qOri^=1;hov=null;drawGhost();Q3.dirty=true}return true}
   return false;
 };
-G.field3D=()=>{};
+/* 공통 코드가 다른 사람 자리에 놓는 카드 더미(손패 표시 1장)는 쿼리도에 없으니 숨김 */
+G.field3D=()=>{if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=false})};
+G.render3D=t=>q3Render(t);   // 3D 화면이면 자기 카메라로 그림 (2D면 아무것도 안 그려서 배터리를 아낌)
 /* 이 게임으로 바뀔 때 / 다른 게임으로 바뀔 때 */
 G.enter=()=>{
   $('#stage').classList.add('qd');
@@ -620,7 +903,9 @@ G.enter=()=>{
   if(elQd)fit();
 };
 G.leave=()=>{
-  $('#stage').classList.remove('qd','qd-over');
+  $('#stage').classList.remove('qd','qd-over','qd3d');
+  if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
+  if(Q3.root)Q3.root.visible=false;Q3.on=false;Q3.anim=[];
   $('#btnPass').hidden=false;
   if(elQd){elQd.hidden=true;lastBoard='';lastBar='';lastHint='';lastModes=''}
 };
@@ -629,7 +914,9 @@ G.init=()=>{
   const css=document.createElement('style');
   css.textContent=`
 .stage.qd{background:radial-gradient(ellipse at 50% 38%,#f3e4c2 0%,#e2c89a 70%,#d3b27c 100%)}
-.stage.qd #cv,.stage.qd #dim{visibility:hidden}
+.stage.qd:not(.qd3d) #cv,.stage.qd #dim{visibility:hidden}
+.stage.qd3d #qd svg,.stage.qd3d #qd .qd-modes{display:none}
+.stage.qd3d #qd .qd-hint{flex:0 1 auto;background:rgba(255,250,240,.9);border:1px solid var(--line-strong,#cdb391);border-radius:99px;padding:4px 12px;box-shadow:0 2px 6px -2px rgba(59,42,31,.35)}
 .stage.qd .labels{visibility:hidden}
 .stage.qd .nogl{display:none}
 .stage.qd.qd-over .myplate,.stage.qd.qd-over .actions{display:none}
@@ -648,8 +935,8 @@ G.init=()=>{
 #qd .qd-p.out{opacity:.55}
 #qd .qd-p .tb{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(0,0,0,.08)}
 #qd .qd-p .tb i{display:block;height:100%;width:100%;background:var(--pc)}
-#qd .qd-row{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;width:100%;pointer-events:none}
-#qd .qd-hint{flex:1 1 200px;min-width:0;font-size:13px;line-height:1.3;color:#5b4129;text-align:center;min-height:17px}
+#qd .qd-row{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;width:100%;pointer-events:none;min-height:44px}
+#qd .qd-hint{flex:1 1 200px;min-width:0;font-size:13px;line-height:1.3;color:#5b4129;text-align:center;min-height:17px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}   /* 안내 글이 바뀌어도 보드가 움직이지 않게 줄 높이 고정 (최대 2줄) */
 #qd .qd-modes{display:flex;gap:4px;pointer-events:auto}
 #qd .qd-m{height:34px;padding:0 12px;border-radius:10px;border:2px solid var(--mustard-edge,#c08a17);background:#fffaf0;color:#3b2a1f;font-family:var(--f-display,inherit);font-size:15px;cursor:pointer}
 #qd .qd-m.on{background:var(--mustard,#f2b632)}
@@ -671,16 +958,18 @@ G.init=()=>{
   $('#stage').insertBefore(elQd,$('#fx'));
   elSvg=elQd.querySelector('svg');elMain=elQd.querySelector('#qdMain');elGhost=elQd.querySelector('#qdGhost');
   elBar=elQd.querySelector('.qd-bar');elHint=elQd.querySelector('.qd-hint');elModes=elQd.querySelector('.qd-modes');
-  elSvg.addEventListener('pointerdown',e=>{lastPT=e.pointerType||'mouse'});
   elSvg.addEventListener('click',onSvgClick);
   elSvg.addEventListener('pointermove',onSvgMove);
-  elSvg.addEventListener('pointerleave',()=>{if(hov){hov=null;drawGhost()}});
+  elSvg.addEventListener('pointerleave',()=>hoverAt(null,null));
   elModes.addEventListener('click',e=>{
     const b=e.target.closest('.qd-m');if(!b||b.disabled)return;
-    qMode=b.dataset.m;pend=null;hov=null;sfx('tick');drawAll();G.buttons();
+    setMode(b.dataset.m);
   });
-  document.addEventListener('keydown',e=>{if(e.code==='Escape'&&pend&&elQd&&!elQd.hidden){pend=null;drawAll();G.buttons()}});
-  window.addEventListener('resize',fit);
+  document.addEventListener('keydown',e=>{if(e.code==='Escape'&&pend&&elQd&&!elQd.hidden){pend=null;redraw()}});
+  window.addEventListener('resize',()=>{fit();Q3.lay=''});
+  $('#cv').addEventListener('click',q3Click);
+  $('#cv').addEventListener('pointermove',q3Move);
+  $('#cv').addEventListener('pointerleave',()=>{if(Q3.on)hoverAt(null,null)});
   document.addEventListener('click',e=>{
     const b=e.target.closest('.qd-copy');if(!b||!V||!V.q)return;
     const txt=recordText(V),done=ok=>{b.textContent=ok?'복사했습니다':'복사하지 못했습니다';setTimeout(()=>{b.textContent='기보 복사'},1600)};
@@ -688,5 +977,6 @@ G.init=()=>{
   });
 };
 
+G._q3={Q3,wallPose:(w)=>wallPose(w,viewK),pawnPose:(p)=>pawnPose(p,viewK),trayRect:()=>Q3.trayRect,U};   // 화면 검사용
 (window.GAMES=window.GAMES||{}).quoridor=G;
 })();
