@@ -2612,9 +2612,10 @@ function dealLift(d,c,a){
   const bx=bez(c.dx,c.dx,o.p2.x,u),by=bez(.03,.08,o.p2.y,u),bz=bez(c.dz,o.p1z,o.p2.z,u);
   // 방향: 들어 올리는 만큼 일어섬 (뒤쪽 절반에서 주로 돌아섬)
   const w=smooth((u-.12)/.8);_q.copy(o.qL).slerp(o.qF,w);g.quaternion.copy(_q);
-  // 묶음 두께: 뒷면 쪽으로 쌓임 (맨 아래 카드가 나를 향한 맨 앞)
+  // 묶음 두께: 언제나 뒷면 쪽으로 쌓임 → 맨 아래 카드(앞면이 손패 맨 위 카드)가 처음부터 끝까지 앞면 쪽 맨 끝
+  // (누워 있을 땐 맨 아래, 일어서면 나를 향한 맨 앞. 중간에 순서가 뒤집히지 않음)
   o.back.set(0,0,-1).applyQuaternion(_q);
-  g.position.set(bx,by,bz).addScaledVector(o.back,-c.m*.006*(1-w)+c.m*.0012*w);
+  g.position.set(bx,by,bz).addScaledVector(o.back,c.m*.006);
   g.scale.setScalar(S);
   if(c.m===0&&c.id!=null&&!c.faced){c.faced=1;g.children[0].material=faceMat(c.id)}
   g.visible=!d.handed;
