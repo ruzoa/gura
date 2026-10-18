@@ -574,7 +574,8 @@ function drawAll(){
 const U=.47,SZ=1,GP=.24,PT=SZ+GP,INN=9*SZ+8*GP,BH=INN/2+.66,WLEN=2*SZ+GP,WTH=.2,WHT=.62;
 /* 보관함: 보드와 떨어진 진갈색 함 (참가한 사람 쪽에만). 칸막이 9개 사이·양 끝 홈 10개에 벽을 세워 둠 */
 const TI=BH+.3,TO=TI+WLEN+.36,XE=4*PT+SZ/2+GP,TW=XE+.16,TF=.12,PEEK=.85;   // 보관함 안쪽·바깥쪽 거리, 홈 끝, 보관함 반폭, 바닥 높이, 좁은 화면에서 양옆 보관함이 보이는 깊이
-const TOP=.2,CT=TOP+.06;   // 보드 틀 윗면, 칸 윗면 높이 (테이블 윗면 = 0)
+const TOP=.2,CT=TOP+.06;
+const BS=.78;   // 보드 묶음 전체 배율: 테이블 둘레가 보이게 줄임 (카메라도 같은 비율로 가까워져서 원근감은 그대로)   // 보드 틀 윗면, 칸 윗면 높이 (테이블 윗면 = 0)
 const Q3={on:false,built:false,fail:false,root:null,cam:null,dirty:true,lastR:0,lay:'',layAt:0,d:12,W:0,H:0,K:-1,labKey:'',lab:null,
   anim:[],pawns:new Map(),walls:new Map(),slots:new Map(),sel:null,flyFrom:null,hl:[],ghostP:null,ghostW:null,hovW:null,ring:null,trayRect:null,recN:-1,wN:-1};   // slots: 사람마다 {side, w:[홈 10개의 벽 또는 null]}, sel: 내가 고른 홈
 const reduced=()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}};
@@ -614,7 +615,7 @@ function q3Build(){
   if(Q3.built||Q3.fail)return Q3.built;
   if(!T.ok||typeof THREE==='undefined'){Q3.fail=true;return false}
   try{
-    const root=new THREE.Group();root.visible=false;
+    const root=new THREE.Group();root.visible=false;root.scale.setScalar(BS);
     const inkM=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide});
     // 보드 틀 (진한 원목)
     const frameT=canvasTex(512,512,(g,w,h)=>woodPaint(g,w,h,'#6f4020','#2a1206',110,3));
@@ -788,9 +789,9 @@ function q3Layout(t){
   // 보드와 보관함이 다 들어오게. 좁은 화면(휴대폰 세로)에서는 양옆 보관함을 벽 끝만 보이게 해서 보드를 크게
   const hy=(sides.has(0)||sides.has(2)?TO:BH)+.05,side=sides.has(1)||sides.has(3);
   const full=Math.min(fw/(2*((side?TO:BH)+.05)),fh/(2*hy)),peek=Math.min(fw/(2*(BH+(side?PEEK:0))),fh/(2*hy));
-  const ppu=(side&&full<peek*.93?peek:full)*.97/U;   // 화면 1px에 해당하는 월드 크기의 역수 (보드 높이에서)
+  const ppu=(side&&full<peek*.93?peek:full)*.97/(U*BS);   // 화면 1px에 해당하는 월드 크기의 역수 (보드 높이에서)
   const cam=Q3.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(ppu*f);
-  cam.aspect=W/Hh;cam.position.set(0,TOP+d,0);cam.lookAt(0,TOP,0);
+  cam.aspect=W/Hh;cam.position.set(0,TOP*BS+d,0);cam.lookAt(0,TOP*BS,0);
   const ox=W/2-W/2,oy=(fy+fh/2)-Hh/2;
   cam.setViewOffset(W,Hh,-ox,-oy,W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
   Q3.d=d;Q3.W=W;Q3.H=Hh;Q3.dirty=true;
@@ -826,7 +827,7 @@ function q3Point(e){
   const nx=(e.clientX-r.left)/r.width*2-1,ny=-(e.clientY-r.top)/r.height*2+1;
   const ray=q3Ray();ray.setFromCamera({x:nx,y:ny},Q3.cam);
   const o=ray.ray.origin,dv=ray.ray.direction;if(Math.abs(dv.y)<1e-6)return null;
-  const k=(CT-o.y)/dv.y;return [(o.x+dv.x*k)/U,(o.z+dv.z*k)/U];
+  const k=(CT*BS-o.y)/dv.y;return [(o.x+dv.x*k)/(U*BS),(o.z+dv.z*k)/(U*BS)];   // 보드 묶음 안의 칸 단위
 }
 function q3Click(e){
   if(!Q3.on||G!==GAMES.quoridor)return;
@@ -1002,6 +1003,7 @@ G.init=()=>{
   });
 };
 
-G._q3={Q3,wallPose:(w)=>wallPose(w,viewK),pawnPose:(p)=>pawnPose(p,viewK),trayRect:()=>Q3.trayRect,U};   // 화면 검사용
+const toW=p=>({x:p.x*BS,y:p.y*BS,z:p.z*BS,ry:p.ry});
+G._q3={Q3,wallPose:(w)=>toW(wallPose(w,viewK)),pawnPose:(p)=>toW(pawnPose(p,viewK)),trayRect:()=>Q3.trayRect,U:U*BS};   // 화면 검사용
 (window.GAMES=window.GAMES||{}).quoridor=G;
 })();
