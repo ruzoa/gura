@@ -774,7 +774,7 @@ function hostStart(){
   if(EG().dealAnim)beginDeal();
 }
 /* 카드 섞고 나누는 연출 동안(DEAL_MS)은 제한 시간·봇·행동을 멈춤. 화면 쪽 연출은 dealStart3D */
-const DEAL_MS=3700;
+const DEAL_MS=3950;
 function beginDeal(){
   const t=clock();H.dealUntil=t+DEAL_MS;H.dealId=(H.dealId||0)+1;
   if(typeof H.deadline==='number'&&H.deadline)H.deadline+=DEAL_MS;
@@ -2428,7 +2428,7 @@ function makeCard(pos,rx,ry,s){
 function killCard(c){T.scene.remove(c);T.cards.delete(c)}
 /* ===== 게임 시작 연출: 리플 셔플 → 커트 → 한 장씩 점점 빠르게 곡선을 타고 나누기 → 내 패가 고개를 들듯 일어나 부채꼴로 펼쳐짐
    카드게임만 (G.dealAnim). 방장이 그동안 시간을 멈춤(DEAL_MS). 늦게 들어오거나 다시 연결된 사람은 연출 없이 바로 보임 */
-const DL={split:[250,520],riffle:[520,960],square:[960,1060],cut1:[1080,1300],cut2:[1300,1500],slide:[1500,1600],deal:[1600,2900],lift:2950,fan:3200,fanDur:520};
+const DL={split:[250,520],riffle:[520,960],square:[960,1060],cut1:[1080,1300],cut2:[1300,1500],slide:[1500,1600],deal:[1600,2900],lift:3020,fan:3180,fanDur:760};
 const PILE_DY=.007,clamp01=x=>x<0?0:x>1?1:x,smooth=x=>{x=clamp01(x);return x*x*(3-2*x)},eOut=x=>{x=clamp01(x);return 1-Math.pow(1-x,3)};
 const dealingV=()=>!!(V&&V.dealAt&&clock()<V.dealAt);
 let dealSeen='';
@@ -2550,16 +2550,18 @@ function dealPose(d,c,a){
   let ry=c.dry;{let dd=c.dry;while(dd>Math.PI)dd-=2*Math.PI;while(dd<-Math.PI)dd+=2*Math.PI;ry=(dd-Math.PI*2)*e}   // 한 바퀴 가까이 돌면서 그 자리 방향으로
   setPose(g,x,y,z,Math.PI/2-.35*Math.sin(Math.PI*u),ry,0,S);
 }
-/* 내 앞에 모인 카드: 앞면이 나를 보게 고개를 들 듯 일어나서 손패 쪽(화면 아래)으로 */
 function dealLift(d,c,a){
-  // ① 앞면이 나를 보게 고개를 들 듯 일어서며 부채꼴로 벌어짐 → ② 화면 아래 손패 쪽으로 내려가며 손패와 바뀜
-  const g=c.g,S=.8,m=d.myN>1?c.m/(d.myN-1):.5,W=Math.min(3.4,d.myN*.16);
-  const u1=smooth((a-DL.lift-m*90)/240),u2=smooth((a-DL.fan+40)/200);
-  if(u1>0&&c.id!=null&&!c.faced){c.faced=1;g.children[0].material=faceMat(c.id)}
-  const x=c.dx+(m-.5)*W*u1,y=c.dy+.55*Math.sin(u1*Math.PI/2)+.18*(1-Math.abs(m-.5)*2)*u1-.9*u2,z=c.dz+.25*u1+1.4*u2;
-  setPose(g,x,y,z,Math.PI/2-(Math.PI/2+.32)*u1,c.dry,-(m-.5)*.55*u1,S*(1+.15*u1));
-  g.visible=u2<.95;
-}function dealUpdate(t){
+  // 내 앞에 모인 카드: 뒷면이 위인 채로 한 묶음 그대로(펼치지 않고) 살짝 들려서 화면 아래 밖으로 가져감
+  const g=c.g,S=.8,u=smooth((a-DL.lift)/260);
+  if(d.outZ==null){   // 화면 아래 밖까지 가는 거리 (세로 화면은 카메라가 높아서 더 멀리)
+    d.outZ=3.4;const v=new THREE.Vector3();
+    for(let k=0;k<40;k++){v.set(c.dx,c.dy+.15,c.dz+d.outZ).project(T.cam);if(v.y<-1.25||v.z>1)break;d.outZ+=.35}
+  }
+  const x=c.dx,y=c.dy+.35*Math.sin(u*Math.PI)*.8+.15*u,z=c.dz+d.outZ*u;
+  setPose(g,x,y,z,Math.PI/2-.12*Math.sin(u*Math.PI),c.dry,0,S*(1+.1*u));
+  g.visible=u<.98;
+}
+function dealUpdate(t){
   const d=T.deal;if(!d)return;
   const a=t-d.t0;
   if(a>=DL.riffle[0]+60)dealFire(d,'riffle',()=>sfx('riffle'));
@@ -2593,19 +2595,23 @@ function dealEnd(d){
     if(V)sync3D(V,null);
   }
 }
-/* 손패: 다 나눈 뒤 아래로 눕혀 있던 카드들이 한 묶음으로 일어선 다음 부채꼴로 펼쳐짐 */
+/* 손패: 화면 아래 밖에서 한 장처럼 고개를 숙인 채 올라와 고개를 들고, 다 올라오면 부채꼴로 펼쳐짐 */
 function fanIn(){
   const hand=$('#hand');hand.classList.remove('dealing');
   const cards=[...hand.children];if(!cards.length||!cards[0].animate)return;
   const R=parseFloat(hand.style.getPropertyValue('--R'))||600;
-  const mk=(rot,dy,rx,sc)=>`rotate(${rot}) translateY(${dy}px) translateY(${-R}px) perspective(650px) rotateX(${rx}deg) translateY(${R}px) scale(${sc})`;
-  cards.forEach((c,i)=>{
+  const mk=(rot,dy,rx)=>`rotate(${rot}) translateY(${dy}px) translateY(${-R}px) perspective(650px) rotateX(${rx}deg) translateY(${R}px)`;
+  const up=Math.round((parseFloat(getComputedStyle($('#stage')).getPropertyValue('--plateB'))||14)+260);   // 화면 아래 밖에서 시작
+  // 한 묶음(한 장처럼)으로 고개를 숙인 채 올라와서 → 고개를 들고 → 다 올라오면 부채꼴로 펼쳐짐
+  cards.forEach(c=>{
     const a=c.style.getPropertyValue('--a')||'0rad';
     try{c.animate([
-      {transform:mk("0rad",46,38,.95),opacity:0},
-      {transform:mk("0rad",-4,0,1),opacity:1,offset:.4},
-      {transform:mk(a,0,0,1),opacity:1}
-    ],{duration:DL.fanDur,easing:'cubic-bezier(.25,.8,.3,1)',fill:'backwards'})}catch(e){}
+      {transform:mk('0rad',up,-58)},
+      {transform:mk('0rad',-10,-14),offset:.38},
+      {transform:mk('0rad',0,4),offset:.5},
+      {transform:mk('0rad',0,0),offset:.58},
+      {transform:mk(a,0,0)}
+    ],{duration:DL.fanDur,easing:'cubic-bezier(.3,.6,.35,1)',fill:'backwards'})}catch(e){}
   });
 }
 function fieldSpot(k){const a=k*2.399,r=.25+Math.min(.85,k*.06);return new THREE.Vector3(Math.cos(a)*r,.02+k*.012,Math.sin(a)*r)}
