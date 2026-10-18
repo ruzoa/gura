@@ -2356,8 +2356,6 @@ function init3D(){
     const side=toon({color:0x8a5530}),top=toon({map:woodTex,rim:0});
     const table=new THREE.Mesh(new THREE.CylinderGeometry(4.9,4.9,.3,72),[side,top,side]);table.position.y=-.15;table.receiveShadow=table.castShadow=true;T.scene.add(table);
     hull(new THREE.CylinderGeometry(4.94,4.94,.36,72),table,T.scene);
-    const rim=new THREE.Mesh(new THREE.TorusGeometry(4.95,.2,16,96),toon({color:0xa0653a,rim:.3}));rim.rotation.x=Math.PI/2;rim.castShadow=rim.receiveShadow=true;T.scene.add(rim);
-    hull(new THREE.TorusGeometry(4.95,.235,16,96),rim,T.scene);
     const base=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.7,1.25,40),toon({color:0x7a4a28}));base.position.y=-.92;base.castShadow=true;T.scene.add(base);
     hull(new THREE.CylinderGeometry(1.14,1.75,1.25,40),base,T.scene);
     // 가운데 초록 펠트 매트 (필드)
