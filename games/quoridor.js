@@ -22,7 +22,7 @@ const COLS='abcdefghi';
 const sqName=(r,c)=>COLS[c]+(9-r);
 const wallName=(r,c,o)=>COLS[c]+(8-r)+(o?'v':'h');
 const CNAME=['빨강','파랑','초록','주황'];
-const wallsPer=cnt=>cnt<=2?10:Math.floor(20/cnt);   // 공식 규칙: 벽 20개를 나눔 (2명 10개, 3명 6개, 4명 5개). 보드 보관 칸의 홈이 10개
+const wallsPer=cnt=>cnt<=2?10:Math.floor(20/cnt);   // 공식 규칙: 벽 20개를 나눔 (2명 10개, 3명 6개, 4명 5개). 보관함의 홈이 10개
 /* (r,c)에서 d방향 옆 칸으로 갈 수 있는가: 가장자리와 벽만 따짐 (말은 따지지 않음) */
 function canStep(B,r,c,d){
   const dr=DIRS[d][0],dc=DIRS[d][1],nr=r+dr,nc=c+dc;
@@ -183,7 +183,7 @@ function botChoose(S,i,lv){
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 말을 맞은편 끝줄의 아무 칸에 가장 먼저 도착시키면 <b>승리</b>하고 게임이 끝납니다. 나머지 순위는 목표까지 남은 거리가 짧은 순서입니다</li><li><b>내 차례</b> : <b>말 이동</b>과 <b>벽 세우기</b> 중 하나만 합니다</li><li><b>말 이동</b> : 위·아래·왼쪽·오른쪽으로 한 칸. 벽은 넘을 수 없습니다</li><li><b>뛰어넘기</b> : 상대 말이 바로 앞에 있으면 그 말을 뛰어넘습니다. 그 뒤가 벽이나 끝이라서 못 넘으면 대각선 옆 칸으로 비켜 갑니다</li><li><b>벽 세우기</b> : 칸 사이의 틈에 두 칸 길이의 벽을 놓아 길을 막습니다. 벽은 한 번 놓으면 옮길 수 없고, 벽끼리 겹치거나 십자로 놓을 수 없습니다</li><li><b>반칙</b> : 누구든 목표까지 갈 길이 완전히 막히는 자리에는 벽을 놓을 수 없습니다</li><li><b>4명</b> : 네 방향에서 출발해 맞은편 끝줄이 목표입니다. 벽은 인원수대로 나눠 가집니다</li><li><b>조작</b> : 갈 칸이나 벽 자리를 누르면 반투명으로 미리 보이고, <b>[놓기]</b>를 누르면 확정합니다. 벽은 내 앞 보관 칸에서 놓을 벽을 눌러 고릅니다(3D 화면이 안 되는 기기는 [벽 세우기]). 설정의 <b>두 번 눌러 놓기</b>를 켜면 같은 자리를 한 번 더 눌러 바로 둡니다</li><li><b>제한 시간</b> : 내 차례에 제한 시간이 지나면 <b>패배</b>합니다. 연결이 끊긴 사람은 봇이 대신 둡니다</li><li><b>기보</b> : 세로줄은 왼쪽부터 a~i, 가로줄은 빨강 출발점 쪽부터 1~9입니다. 말 이동은 도착한 칸(e2), 벽은 벽 가운데가 오른쪽 위 꼭짓점인 칸에 가로 h·세로 v를 붙여 적습니다(e3h)</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 말을 맞은편 끝줄의 아무 칸에 가장 먼저 도착시키면 <b>승리</b>하고 게임이 끝납니다. 나머지 순위는 목표까지 남은 거리가 짧은 순서입니다</li><li><b>내 차례</b> : <b>말 이동</b>과 <b>벽 세우기</b> 중 하나만 합니다</li><li><b>말 이동</b> : 위·아래·왼쪽·오른쪽으로 한 칸. 벽은 넘을 수 없습니다</li><li><b>뛰어넘기</b> : 상대 말이 바로 앞에 있으면 그 말을 뛰어넘습니다. 그 뒤가 벽이나 끝이라서 못 넘으면 대각선 옆 칸으로 비켜 갑니다</li><li><b>벽 세우기</b> : 칸 사이의 틈에 두 칸 길이의 벽을 놓아 길을 막습니다. 벽은 한 번 놓으면 옮길 수 없고, 벽끼리 겹치거나 십자로 놓을 수 없습니다</li><li><b>반칙</b> : 누구든 목표까지 갈 길이 완전히 막히는 자리에는 벽을 놓을 수 없습니다</li><li><b>4명</b> : 네 방향에서 출발해 맞은편 끝줄이 목표입니다. 벽은 인원수대로 나눠 가집니다</li><li><b>조작</b> : 갈 칸이나 벽 자리를 누르면 반투명으로 미리 보이고, <b>[놓기]</b>를 누르면 확정합니다. 벽은 내 앞 보관함에서 놓을 벽을 눌러 고릅니다(3D 화면이 안 되는 기기는 [벽 세우기]). 설정의 <b>두 번 눌러 놓기</b>를 켜면 같은 자리를 한 번 더 눌러 바로 둡니다</li><li><b>제한 시간</b> : 내 차례에 제한 시간이 지나면 <b>패배</b>합니다. 연결이 끊긴 사람은 봇이 대신 둡니다</li><li><b>기보</b> : 세로줄은 왼쪽부터 a~i, 가로줄은 빨강 출발점 쪽부터 1~9입니다. 말 이동은 도착한 칸(e2), 벽은 벽 가운데가 오른쪽 위 꼭짓점인 칸에 가로 h·세로 v를 붙여 적습니다(e3h)</li></ol>';
 G.modeDesc=['먼저 도착한 사람이 이기면 끝','먼저 도착한 사람이 이기면 끝'];
 G.defaults={max:2,turn:30};
 G.roomSet=[
@@ -515,7 +515,7 @@ function hintText(me){
   if(!myTurnNow())return '내 차례입니다.';
   {const left=(V.deadAt-clock())/1000;if(left<=10&&left>0)return `${Math.ceil(left)}초 남았습니다. 제한 시간이 지나면 패배합니다.`}
   if(pend)return pend.k===0?`${sqName(pend.r,pend.c)}(으)로 이동: ${dblOn()?'한 번 더 누르거나 ':''}[놓기]를 누르면 확정합니다.`:`${wallName(pend.r,pend.c,pend.o)} 벽: ${dblOn()?'한 번 더 누르거나 ':''}[놓기]를 누르면 확정합니다.`;
-  if(qMode==='move')return !(V.q.wl[me]>0)?'초록 점이 있는 칸을 눌러 갈 곳을 고릅니다. 남은 벽이 없습니다.':Q3.on?'초록 점이 있는 칸을 누르거나, 내 앞 보관 칸의 벽을 눌러 고릅니다.':'초록 점이 있는 칸을 누르거나, [벽 세우기]로 벽을 고릅니다.';
+  if(qMode==='move')return !(V.q.wl[me]>0)?'초록 점이 있는 칸을 눌러 갈 곳을 고릅니다. 남은 벽이 없습니다.':Q3.on?'초록 점이 있는 칸을 누르거나, 내 앞 보관함의 벽을 눌러 고릅니다.':'초록 점이 있는 칸을 누르거나, [벽 세우기]로 벽을 고릅니다.';
   if(hov)return hov.ok?`${wallName(hov.r,hov.c,hov.o)} 벽: 누르면 미리 봅니다.`:`${wallName(hov.r,hov.c,hov.o)}에는 벽을 놓을 수 없습니다.`;
   return Q3.on?'칸 사이의 틈을 눌러 벽 자리를 고릅니다. 고른 벽을 다시 누르면 말 이동으로 돌아갑니다.':'칸 사이의 틈을 눌러 벽 자리를 고릅니다.';
 }
@@ -572,8 +572,8 @@ function drawAll(){
    단위: '칸 단위'(칸 한 변 = 1, 칸 사이 홈 = .24)로 계산하고 월드에는 U배로 놓음. 화면 기준 x→월드 x, 화면 기준 y(아래)→월드 +z
    보는 사람에 따라 돌린 좌표(viewK)로 모두 놓기 때문에 내 출발점이 항상 아래에 옴. WebGL이 없으면 2D 그림을 씀 */
 const U=.47,SZ=1,GP=.24,PT=SZ+GP,INN=9*SZ+8*GP,BH=INN/2+.66,WLEN=2*SZ+GP,WTH=.2,WHT=.62;
-/* 보관 칸: 보드 네 변 바깥에 벽 길이만큼 긴 칸 9개 한 줄 (칸 사이·양 끝 홈 10개에 벽을 세워 둠), 모서리는 대각선으로 나눔 */
-const S0=BH+.12,S1=S0+WLEN,OB=S1+.24,XE=4*PT+SZ/2+GP,PEEK=.6;
+/* 보관함: 보드와 떨어진 진갈색 함 (참가한 사람 쪽에만). 칸막이 9개 사이·양 끝 홈 10개에 벽을 세워 둠 */
+const TI=BH+.3,TO=TI+WLEN+.36,XE=4*PT+SZ/2+GP,TW=XE+.16,TF=.12,PEEK=.85;   // 보관함 안쪽·바깥쪽 거리, 홈 끝, 보관함 반폭, 바닥 높이, 좁은 화면에서 양옆 보관함이 보이는 깊이
 const TOP=.2,CT=TOP+.06;   // 보드 틀 윗면, 칸 윗면 높이 (테이블 윗면 = 0)
 const Q3={on:false,built:false,fail:false,root:null,cam:null,dirty:true,lastR:0,lay:'',layAt:0,d:12,W:0,H:0,K:-1,labKey:'',lab:null,
   anim:[],pawns:new Map(),walls:new Map(),slots:new Map(),sel:null,flyFrom:null,hl:[],ghostP:null,ghostW:null,hovW:null,ring:null,trayRect:null,recN:-1,wN:-1};   // slots: 사람마다 {side, w:[홈 10개의 벽 또는 null]}, sel: 내가 고른 홈
@@ -618,9 +618,9 @@ function q3Build(){
     const inkM=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide});
     // 보드 틀 (진한 원목)
     const frameT=canvasTex(512,512,(g,w,h)=>woodPaint(g,w,h,'#6f4020','#2a1206',110,3));
-    const fg=new THREE.BoxGeometry(2*OB*U,TOP-.02,2*OB*U);
+    const fg=new THREE.BoxGeometry(2*BH*U,TOP-.02,2*BH*U);
     const frame=new THREE.Mesh(fg,toon({map:frameT,rim:.08}));frame.position.y=.02+(TOP-.02)/2;frame.castShadow=frame.receiveShadow=true;root.add(frame);
-    const fo=new THREE.Mesh(new THREE.BoxGeometry(2*OB*U+.05,TOP-.02+.02,2*OB*U+.05),inkM);fo.position.copy(frame.position);root.add(fo);
+    const fo=new THREE.Mesh(new THREE.BoxGeometry(2*BH*U+.05,TOP-.02+.02,2*BH*U+.05),inkM);fo.position.copy(frame.position);root.add(fo);
     // 좌표·목표 줄을 그리는 판 (틀 위, 홈 바닥 아래)
     Q3.labTex=canvasTex(1024,1024,()=>{});
     const lab=new THREE.Mesh(new THREE.PlaneGeometry(2*BH*U,2*BH*U),new THREE.MeshBasicMaterial({map:Q3.labTex,transparent:true,depthWrite:false}));
@@ -631,7 +631,7 @@ function q3Build(){
     const cellT=canvasTex(256,256,(g,w,h)=>woodPaint(g,w,h,'#ecca93','#8a5520',46,11));
     const cellM=toon({map:cellT,rim:0}),cellG=new THREE.BoxGeometry(SZ*U,.05,SZ*U);
     for(let vr=0;vr<9;vr++)for(let vc=0;vc<9;vc++){const [x,y]=cellXY(vr,vc),m=new THREE.Mesh(cellG,cellM);m.position.set(x*U,TOP+.035,y*U);m.receiveShadow=true;root.add(m)}
-    for(let sd=0;sd<4;sd++)root.add(stripGroup(sd,cellM));
+    Q3.trays=[0,1,2,3].map(sd=>{const g=trayGroup(sd);g.visible=false;root.add(g);return g});
     // 갈 수 있는 칸 표시 (초록) — 미리 8개 만들어 두고 켜고 끔
     const hlM=new THREE.MeshBasicMaterial({color:0x55c271,transparent:true,opacity:.42,depthWrite:false}),dotM=new THREE.MeshBasicMaterial({color:0x1f7a2e,transparent:true,opacity:.8,depthWrite:false});
     for(let k=0;k<8;k++){const g=new THREE.Group();const a=new THREE.Mesh(new THREE.PlaneGeometry(SZ*U*.98,SZ*U*.98),hlM);a.rotation.x=-Math.PI/2;g.add(a);
@@ -666,28 +666,24 @@ function q3Labels(q,K){
   for(let v=0;v<9;v++){g.fillText(lab(0,v,8,v),X((v-4)*PT),X(INN/2+.45));g.fillText(lab(v,0,v,8),X(-INN/2-.45),X((v-4)*PT))}
   Q3.labTex.needsUpdate=true;
 }
-/* 보관 칸 한 줄 (아래 변 기준으로 만들고 변 방향으로 돌림). 화면 기준 y(아래)=월드 +z */
-function flatPiece(pts,h,mat,y){   // pts: 화면 기준 [x,y] (칸 단위) 다각형 → 두께 h인 판
-  const sh=new THREE.Shape(pts.map(([x,yy])=>new THREE.Vector2(x*U,-yy*U)));
-  const g=new THREE.ExtrudeGeometry(sh,{depth:h,bevelEnabled:false});g.rotateX(-Math.PI/2);
-  const m=new THREE.Mesh(g,mat);m.position.y=y;m.receiveShadow=true;return m;
-}
-function stripGroup(sd,cellM){
+/* 보관함 (아래 변 기준으로 만들고 변 방향으로 돌림). 진갈색 함 + 조금 밝은 칸막이 9개, 칸막이 사이·양 끝이 벽 홈 */
+function trayGroup(sd){
   const g=new THREE.Group();g.rotation.y=-sd*Math.PI/2;
-  if(!MAT.groove)MAT.groove=toon({color:0x3a200e,rim:0});
-  const a=S0-.1,b=S1+.1;
-  g.add(flatPiece([[-a,a],[a,a],[b,b],[-b,b]],.012,MAT.groove,TOP));   // 홈 바닥 (사다리꼴)
-  const cg=new THREE.BoxGeometry(SZ*U,.05,WLEN*U);
-  for(let vc=0;vc<9;vc++){const m=new THREE.Mesh(cg,cellM);m.position.set((vc-4)*PT*U,TOP+.035,(S0+S1)/2*U);m.receiveShadow=true;g.add(m)}
-  const d=.17;   // 모서리 대각선 홈의 절반 폭
-  g.add(flatPiece([[XE,S0],[S0-d,S0],[S1-d,S1],[XE,S1]],.05,cellM,TOP+.01));     // 오른쪽 끝 (모서리 삼각형 포함)
-  g.add(flatPiece([[-XE,S1],[-(S1-d),S1],[-(S0-d),S0],[-XE,S0]],.05,cellM,TOP+.01));   // 왼쪽 끝
+  if(!MAT.tray){
+    MAT.tray=toon({map:canvasTex(256,256,(c,w,h)=>woodPaint(c,w,h,'#3d2210','#120600',60,5)),rim:.06});
+    MAT.rib=toon({map:canvasTex(256,256,(c,w,h)=>woodPaint(c,w,h,'#5a3418','#1c0b02',50,9)),rim:.08});
+  }
+  const ink=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide}),zc=(TI+TO)/2*U,dz=(TO-TI)*U;
+  const base=new THREE.Mesh(new THREE.BoxGeometry(2*TW*U,TF-.02,dz),MAT.tray);base.position.set(0,.02+(TF-.02)/2,zc);base.castShadow=base.receiveShadow=true;g.add(base);
+  const o=new THREE.Mesh(new THREE.BoxGeometry(2*TW*U+.04,TF,dz+.04),ink);o.position.copy(base.position);g.add(o);
+  const rg=new THREE.BoxGeometry(SZ*U,.07,WLEN*U);
+  for(let vc=0;vc<9;vc++){const m=new THREE.Mesh(rg,MAT.rib);m.position.set((vc-4)*PT*U,TF+.035,zc);m.castShadow=m.receiveShadow=true;g.add(m)}
   return g;
 }
-/* 보관 칸 홈 g(0~9)에 세운 벽의 자리: 변과 수직 */
+/* 보관함 홈 g(0~9)에 세운 벽의 자리: 변과 수직 */
 function slotPose(side,g){
-  const a=-side*Math.PI/2,lx=(g-4.5)*PT,lz=(S0+S1)/2,c=Math.cos(a),s=Math.sin(a);
-  return {x:(lx*c+lz*s)*U,z:(-lx*s+lz*c)*U,y:TOP+.01+WHT*U/2,ry:Math.PI/2+a};
+  const a=-side*Math.PI/2,lx=(g-4.5)*PT,lz=(TI+TO)/2,c=Math.cos(a),s=Math.sin(a);
+  return {x:(lx*c+lz*s)*U,z:(-lx*s+lz*c)*U,y:TF+WHT*U/2,ry:Math.PI/2+a};
 }
 /* 처음 벽 n개를 홈 10개에 고르게 (10개면 꽉 참, 5개면 한 칸 건너) */
 const slotLayout=n=>n>=10?[0,1,2,3,4,5,6,7,8,9]:Array.from({length:n},(_,j)=>Math.round((j+.5)*10/n-.5));
@@ -720,8 +716,9 @@ function q3Sync(){
   const q=V.q,me=myIdx(),K=viewK,snap=K!==Q3.K||(q.rec||[]).length<Q3.recN||q.w.length<Q3.wN;   // 보는 방향이 바뀌거나 새 판이면 애니메이션 없이 바로
   Q3.K=K;Q3.recN=(q.rec||[]).length;Q3.wN=q.w.length;
   q3Labels(q,K);
-  const from={};
-  // 보관 칸 (벽을 하나 쓰면 그 홈에서 벽이 날아감)
+  const from={},on=new Set();for(let i=0;i<q.cnt;i++)if(q.pos[i])on.add((q.sd[i]+K)&3);
+  Q3.trays.forEach((g,sd)=>{g.visible=on.has(sd)});
+  // 보관함 (벽을 하나 쓰면 그 홈에서 벽이 날아감)
   for(let i=0;i<q.n;i++){
     if(i>=q.cnt||!q.pos[i]){const sl=Q3.slots.get(i);if(sl){sl.w.forEach(m=>m&&Q3.root.remove(m));Q3.slots.delete(i)}continue}
     const f=q3Slots(i,(q.sd[i]+K)&3,q.wl[i],snap);if(f)from[i]=f;
@@ -768,10 +765,10 @@ function q3Marks(){
   }else Q3.ghostP.visible=false;
   if(pend&&pend.k===1){const p=wallPose([pend.r,pend.c,pend.o],K);Q3.ghostW.position.set(p.x,p.y,p.z);Q3.ghostW.rotation.y=p.ry;Q3.ghostW.visible=true}else Q3.ghostW.visible=false;
   if(!pend&&hov&&qMode==='wall'){const p=wallPose([hov.r,hov.c,hov.o],K);Q3.hovW.position.set(p.x,p.y,p.z);Q3.hovW.rotation.y=p.ry;Q3.hovW.material.color.setHex(hov.ok?0x2f9e44:0xd6342a);Q3.hovW.visible=true}else Q3.hovW.visible=false;
-  // 내 보관 칸: 고른 벽은 들어 올리고 노란 윤곽선
-  const sl=me>=0?Q3.slots.get(me):null;Q3.trayRect=sl?[-S1,S0,S1,S1]:null;   // 내 보관 칸은 항상 아래 변
+  // 내 보관함: 고른 벽은 살짝 들어 올림
+  const sl=me>=0?Q3.slots.get(me):null;Q3.trayRect=sl?[-TW,TI,TW,TO]:null;   // 내 보관함은 항상 아래 변
   if(sl){if(!(mine&&qMode==='wall'))Q3.sel=null;
-    sl.w.forEach((m,g)=>{if(!m)return;const on=g===Q3.sel,p=slotPose(sl.side,g);m.position.y=p.y+(on?.12:0);m.userData.ink.material.color.setHex(on?0xf2b632:GFX_INK)})}
+    sl.w.forEach((m,g)=>{if(!m)return;const p=slotPose(sl.side,g);m.position.y=p.y+(g===Q3.sel?.16:0)})}
   // 차례 고리
   const ti=V.st==='play'?V.t:-1,pw=Q3.pawns.get(ti);
   if(pw){Q3.ring.material.color.set(PCOL[ti%4]);Q3.ring.userData.pw=pw;Q3.ring.visible=true}else Q3.ring.visible=false;
@@ -783,13 +780,15 @@ function q3Layout(t){
   Q3.layAt=t;
   const st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight;if(!W||!Hh||!V||!V.q)return false;
   const sr=st.getBoundingClientRect(),bd=elQd.querySelector('.qd-bd').getBoundingClientRect();
-  const key=[W,Hh,Math.round(bd.top-sr.top),Math.round(bd.height)].join(',');
+  const q=V.q,sides=new Set();for(let i=0;i<q.cnt;i++)if(q.pos[i])sides.add((q.sd[i]+viewK)&3);
+  const key=[W,Hh,Math.round(bd.top-sr.top),Math.round(bd.height),[...sides].sort().join('')].join(',');
   if(key===Q3.lay)return false;
   Q3.lay=key;
   const narrow=W<700,fy=bd.top-sr.top+2,fh=(narrow?Hh-78:Hh-8)-fy,fw=W-8;
-  // 보관 칸까지 보드 전체가 들어오게. 좁은 화면(휴대폰 세로)에서는 양옆 보관 칸을 벽 끝만 보이게 해서 보드를 크게
-  const hy=OB+.05,full=Math.min(fw/(2*(OB+.05)),fh/(2*hy)),peek=Math.min(fw/(2*(BH+PEEK)),fh/(2*hy));
-  const ppu=(full<peek*.93?peek:full)*.97/U;   // 화면 1px에 해당하는 월드 크기의 역수 (보드 높이에서)
+  // 보드와 보관함이 다 들어오게. 좁은 화면(휴대폰 세로)에서는 양옆 보관함을 벽 끝만 보이게 해서 보드를 크게
+  const hy=(sides.has(0)||sides.has(2)?TO:BH)+.05,side=sides.has(1)||sides.has(3);
+  const full=Math.min(fw/(2*((side?TO:BH)+.05)),fh/(2*hy)),peek=Math.min(fw/(2*(BH+(side?PEEK:0))),fh/(2*hy));
+  const ppu=(side&&full<peek*.93?peek:full)*.97/U;   // 화면 1px에 해당하는 월드 크기의 역수 (보드 높이에서)
   const cam=Q3.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(ppu*f);
   cam.aspect=W/Hh;cam.position.set(0,TOP+d,0);cam.lookAt(0,TOP,0);
   const ox=W/2-W/2,oy=(fy+fh/2)-Hh/2;
@@ -833,7 +832,7 @@ function q3Click(e){
   if(!Q3.on||G!==GAMES.quoridor)return;
   const p=q3Point(e);if(!p)return;
   const [x,y]=p,me=myIdx(),R=Q3.trayRect;
-  // 내 보관 칸의 벽을 누르면 그 벽을 고름 (벽 모드). 고른 벽을 다시 누르면 취소
+  // 내 보관함의 벽을 누르면 그 벽을 고름 (벽 모드). 고른 벽을 다시 누르면 취소
   if(R&&x>=R[0]-.2&&x<=R[2]+.2&&y>=R[1]-.2&&y<=R[3]+.2){
     if(!myTurnNow()){say(V&&V.t===me?'잠시만 기다려 주세요.':'아직 내 차례가 아닙니다.');return}
     const sl=Q3.slots.get(me);let best=-1,bd=1e9;
