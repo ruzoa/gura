@@ -2428,7 +2428,7 @@ function makeCard(pos,rx,ry,s){
 function killCard(c){T.scene.remove(c);T.cards.delete(c)}
 /* ===== 게임 시작 연출: 리플 셔플 → 커트 → 한 장씩 점점 빠르게 곡선을 타고 나누기 → 내 패가 고개를 들듯 일어나 부채꼴로 펼쳐짐
    카드게임만 (G.dealAnim). 방장이 그동안 시간을 멈춤(DEAL_MS). 늦게 들어오거나 다시 연결된 사람은 연출 없이 바로 보임 */
-const DL={split:[250,520],riffle:[520,960],square:[960,1060],cut1:[1080,1300],cut2:[1300,1500],slide:[1500,1600],deal:[1600,2500],lift:2700,liftDur:760,fan:3360,fanDur:1270};
+const DL={split:[250,520],riffle:[520,960],square:[960,1060],cut1:[1080,1300],cut2:[1300,1500],slide:[1500,1600],deal:[1600,2500],lift:2700,liftDur:760,fan:3360,fanDur:1150};
 const PILE_DY=.007,clamp01=x=>x<0?0:x>1?1:x,smooth=x=>{x=clamp01(x);return x*x*(3-2*x)},eOut=x=>{x=clamp01(x);return 1-Math.pow(1-x,3)};
 const dealingV=()=>!!(V&&V.dealAt&&clock()<V.dealAt);
 let dealSeen='';
@@ -2486,7 +2486,7 @@ function dealStart(v,t0,key){
     for(const arr of T.stacks.values())arr.forEach(killCard);T.stacks.clear();
     for(const c of d.cards){
       c.g=makeCard(new THREE.Vector3(0,-1,0),Math.PI/2,0,.8);c.g.userData.man=true;c.g.visible=false;
-      if(c.seat===me){const id=myIds[c.m];if(id!=null)c.id=id}
+      if(c.seat===me&&c.m===0&&myIds.length)c.id=myIds[myIds.length-1];   // 들어 올릴 때 살짝 보이는 맨 아래 앞면 = 2D 손패 맨 위 카드
       if(c.seat===me)c.g.renderOrder=2;
       // 받는 자리
       if(c.seat===me){const p=seatPos(me,2.75);c.dx=p.x;c.dz=p.z;c.dy=.03+c.m*.006;c.dry=seatAngle(me)}
@@ -2565,14 +2565,21 @@ function dealLift(d,c,a){
     d.out={x:P2.x,y:P2.y,z:P2.z,p1z:c.dz+(P2.z-c.dz)*.55};
   }
   const o=d.out,x=bez(c.dx,c.dx,o.x,u),y=bez(c.dy,c.dy+.04,o.y,u),z=bez(c.dz,o.p1z,o.z,u);
-  // 처음엔 움직이는 방향을 따라 앞쪽 모서리가 살짝 들리고, 들어 올려질수록 뒷면이 나(카메라)를 정면으로 보게 돌아섬
-  // (방향만 따라가면 카메라 가까이에서 옆면만 보여 얇게 보임)
+  // 움직이는 방향을 따라 앞쪽 모서리부터 계속 들림 → 카메라에서 보면 뒷면이 점점 좁아지다가 앞면이 살짝 보이며 나감
   const ty=2*(1-u)*.04+2*u*(o.y-c.dy-.04),tz=2*(1-u)*(o.p1z-c.dz)+2*u*(o.z-o.p1z);
-  const th=Math.min(.3,Math.atan2(ty,Math.max(.001,tz)));
-  const cp=T.cam.position,vy=cp.y-y,vz=cp.z-z,face=Math.atan2(vy,-vz);   // 뒷면이 카메라를 보는 각도
-  const w=smooth((u-.15)/.6);
-  setPose(g,x,y,z,(Math.PI/2-th)*(1-w)+face*w,c.dry,0,S);
-  g.visible=x0<1;
+  const th=Math.atan2(ty,Math.max(.001,tz));
+  // 들려 오는 동안은 뒷면이 넓게 보이다가, 화면 아래 끝에 다다를수록 고개를 들 듯 옆면을 지나 앞면이 살짝 보이며 나감
+  const cp=T.cam.position,edge=Math.atan2(cp.z-z,cp.y-y);   // 이 각도면 카메라에서 옆면만 보임
+  const ny=new THREE.Vector3(x,y,z).project(T.cam).y,w=smooth((-.45-ny)/.7);   // 화면 높이 기준 (아래로 갈수록 1)
+  const rx=(Math.PI/2-Math.min(.3,th))*(1-w)+(edge-.32)*w;
+  if(c.id!=null&&!c.faced){c.faced=1;g.children[0].material=faceMat(c.id)}
+  setPose(g,x,y,z,rx,c.dry,0,S);
+  // 화면 아래로 다 빠져나간 순간: 그때의 크기·각도로 2D 카드가 이어서 올라옴
+  if(c.m===0&&!d.exited&&x0>.2){
+    const W=T.r.domElement.clientWidth||1,pts=[[-.31,-.45],[.31,-.45],[-.31,.45],[.31,.45]].map(([px,py])=>g.localToWorld(new THREE.Vector3(px,py,0)).project(T.cam));
+    if(Math.max(...pts.map(p=>p.y))<-1){d.exited=true;d.exitW=Math.abs(pts[1].x-pts[0].x)/2*W}
+  }
+  g.visible=x0<1&&!d.exited;
 }
 function dealUpdate(t){
   const d=T.deal;if(!d)return;
@@ -2583,7 +2590,7 @@ function dealUpdate(t){
   if(a>=DL.cut2[0])dealFire(d,'c2',()=>sfx('cut'));
   if(a>=DL.slide[1])dealFire(d,'sl',()=>sfx('tick'));
   if(d.me>=0&&a>=DL.lift)dealFire(d,'lift',()=>sfx('lift'));
-  if(d.me>=0&&a>=DL.fan&&!d.fanned){d.fanned=true;fanIn()}
+  if(d.me>=0&&!d.fanned&&(d.exited||a>=DL.fan+250)){d.fanned=true;fanIn(d)}   // 3D 카드가 화면을 벗어나는 순간 이어서
   if(T.ok)for(const c of d.cards){
     if(!c.g)continue;
     if(c.k!=null&&a>=c.dt&&!c.fl){c.fl=1;if(c.k%2===0||c.k<12)sfx('flick')}
@@ -2609,21 +2616,23 @@ function dealEnd(d){
   }
 }
 /* 손패: 화면 아래 밖에서 한 장처럼 고개를 숙인 채 올라와 고개를 들고, 다 올라오면 부채꼴로 펼쳐짐 */
-function fanIn(){
+function fanIn(d){
   const hand=$('#hand');hand.classList.remove('dealing');
   const cards=[...hand.children];if(!cards.length||!cards[0].animate)return;
-  const R=parseFloat(hand.style.getPropertyValue('--R'))||600;
-  const mk=(rot,dy,rx)=>`rotate(${rot}) translateY(${dy}px) translateY(${-R}px) perspective(650px) rotateX(${rx}deg) translateY(${R}px)`;
-  const up=Math.round((parseFloat(getComputedStyle($('#stage')).getPropertyValue('--plateB'))||14)+260);   // 화면 아래 밖에서 시작
-  // 한 묶음(한 장처럼)으로 고개를 숙인 채 올라와서 → 고개를 들고 → 다 올라오면 부채꼴로 펼쳐짐
+  const R=parseFloat(hand.style.getPropertyValue('--R'))||600,k=parseFloat(hand.style.getPropertyValue('--k'))||1,b=parseFloat(hand.style.getPropertyValue('--b'))||10;
+  const cw=(cards[0].offsetWidth||60)*k;
+  const r=Math.max(1,Math.min(1.8,d&&d.exitW?d.exitW/cw:1.3));   // 사라질 때의 3D 카드 크기로 시작
+  const mk=(rot,dy,rx,sc)=>`rotate(${rot}) translateY(${dy}px) translateY(${-R}px) perspective(700px) rotateX(${rx}deg) scale(${sc}) translateY(${R}px)`;
+  const up=Math.round(b+88*r+12);   // 화면 바로 아래 (3D 카드가 나간 자리)
+  // 3D 카드가 나갈 때처럼 위쪽이 멀리 기울어진(앞면이 살짝 보이는) 채로 빠르게 들어와 → 고개를 들며 서서 원래 크기로 → 부채꼴로 펼침
   cards.forEach(c=>{
     const a=c.style.getPropertyValue('--a')||'0rad';
     try{c.animate([
-      {transform:mk('0rad',up,-58),easing:'cubic-bezier(.3,.55,.45,1)'},   // 3D 카드가 빠져나간 속도로 이어서 천천히 올라옴
-      {transform:mk('0rad',-8,-6),offset:.5,easing:'ease-in-out'},
-      {transform:mk('0rad',0,3),offset:.58,easing:'ease-in-out'},
-      {transform:mk('0rad',0,0),offset:.64,easing:'cubic-bezier(.3,.7,.3,1)'},
-      {transform:mk(a,0,0)}
+      {transform:mk('0rad',up,68,r),easing:'cubic-bezier(.2,.65,.35,1)'},
+      {transform:mk('0rad',-6,-5,1),offset:.42,easing:'ease-in-out'},
+      {transform:mk('0rad',0,0,1),offset:.52},
+      {transform:mk('0rad',0,0,1),offset:.58,easing:'cubic-bezier(.3,.7,.3,1)'},
+      {transform:mk(a,0,0,1)}
     ],{duration:DL.fanDur,easing:'linear',fill:'backwards'})}catch(e){}
   });
 }
