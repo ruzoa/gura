@@ -10,7 +10,7 @@
 | `games/gura.js` | 구라! 규칙 엔진, 봇, 카드 모양, 화면 표시 |
 | `games/president.js` | 대부호 규칙 엔진, 봇, 카드 모양, 화면 표시 |
 | `games/quoridor.js` | 쿼리도 규칙 엔진, 봇, 공통 테이블 위 3D 보드(바로 위 90도 자기 카메라, 참가한 사람 앞에 보드와 떨어진 진갈색 보관함(홈 10개)에 벽을 세워 둠, 말 점프·벽 날아가기, 누르면 반투명 미리 보기 → [놓기]로 확정, 내 보관함의 벽을 눌러 고르면 살짝 올라오고 벽 모드, 개인 설정 '두 번 눌러 놓기'(`gura-dbltap`)). 벽 수는 공식 규칙(2명 10개, 4명 5개). WebGL이 없으면 2D 보드(SVG) (카드 없음, 최대 4명, 빠른 모드 없음) |
-| `games/yahtzee.js` | 야추다이스 규칙 엔진, 봇, 3D 컵·주사위(자체 물리, 눈은 방장이 정하고 그 눈으로 떨어지게 연출, 떨어진 주사위를 누르면 앞쪽 고정 칸으로·다시 누르면 테이블로), 점수 종이 (카드 없음, 최대 4명, 빠른 모드 없음, 굴리기 키 `C`를 누르고 있다 떼기). WebGL이 없으면 2D 주사위 칸 |
+| `games/yahtzee.js` | 야추다이스 규칙 엔진, 봇, 3D 컵·주사위(자체 물리, 눈은 방장이 정하고 그 눈으로 떨어지게 연출, 떨어진 주사위를 누르면 앞쪽 고정 칸으로·다시 누르면 테이블로, 시작 연출: 로비 카메라→야추 카메라·펠트와 고정 칸·컵에 주사위 담기·첫 차례 룰렛 3.6초), 점수 종이 (카드 없음, 최대 4명, 빠른 모드 없음, 굴리기 키 `C`를 누르고 있다 떼기). WebGL이 없으면 2D 주사위 칸 |
 | `tests/engine.test.js` | 엔진 테스트 (`node tests/engine.test.js`). `tests/*.cases.js`(야추다이스는 `tests/yahtzee.cases.js`), `tests/quoridor.fuzz.js`를 불러서 함께 돌림 |
 | `manifest.webmanifest`, `sw.js`, 아이콘 | 홈 화면 앱 |
 
@@ -19,7 +19,7 @@
   - 카드: `cardHTML`, `drawFace`
   - 방 설정: `defaults`, `roomSet`, `ruleSet`
   - 엔진과 화면 훅: `engine.start/act/tick/snap`, `hud`, `handMarks`, `buttons` 등
-  - 골라 쓰는 값: `maxHi`(최대 인원, 쿼리도 4), `no3D`(3D 테이블을 그리지 않음), `specNote`(관전 중 안내 문구), `noFast`(빠른 모드 없음: 로비·방 설정·칩에서 게임 모드를 숨김), `render3D(t,dt)`(공통 카메라 대신 자기 카메라로 T.scene을 그림), `usesDbl`(게임 중 메뉴에 '두 번 눌러 놓기' 보임), `settingsHTML(c,{stepRow})`(방 설정의 게임 칸을 직접 그림: 대부호의 룰 레버), `panelAct(a)`(패널 버튼을 게임이 먼저 처리, 처리했으면 true), `nameTag(p,i)`(이름표·대기실 자리 이름 앞 표시), `overRank(p)`(결과 화면 순위 옆 글자), `waitExtra(isHost)`(대기실 요약 아래), `engine.waitSnap(s)`(대기실 상태에 게임별 값 추가)
+  - 골라 쓰는 값: `maxHi`(최대 인원, 쿼리도 4), `no3D`(3D 테이블을 그리지 않음), `specNote`(관전 중 안내 문구), `noFast`(빠른 모드 없음: 로비·방 설정·칩에서 게임 모드를 숨김), `render3D(t,dt)`(공통 카메라 대신 자기 카메라로 T.scene을 그림), `introMs`·`intro(t0)`(카드가 없는 게임의 시작 연출: 방장이 그 시간만큼 제한 시간·봇을 멈추고, 화면은 intro가 그림. 카드 게임은 `dealAnim`), `usesDbl`(게임 중 메뉴에 '두 번 눌러 놓기' 보임), `settingsHTML(c,{stepRow})`(방 설정의 게임 칸을 직접 그림: 대부호의 룰 레버), `panelAct(a)`(패널 버튼을 게임이 먼저 처리, 처리했으면 true), `nameTag(p,i)`(이름표·대기실 자리 이름 앞 표시), `overRank(p)`(결과 화면 순위 옆 글자), `waitExtra(isHost)`(대기실 요약 아래), `engine.waitSnap(s)`(대기실 상태에 게임별 값 추가)
 - 카드가 없는 게임(쿼리도, 야추다이스)도 공통 코드가 `hand`가 빈 사람을 끝난 사람으로 보므로, 게임 중에는 `hand`에 표시용 값 하나를 넣어 둡니다.
 - 방의 게임 종류는 `H.cfg.game`에 들어 있습니다. 방장이 대기실의 방 설정에서 바꿀 수 있습니다.
 - 새 게임을 추가하는 순서:

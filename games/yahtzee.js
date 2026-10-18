@@ -638,18 +638,18 @@ function d3Build(){
       const gr=g.createRadialGradient(w/2,h/2,40,w/2,h/2,w/2);gr.addColorStop(0,'#3f9a69');gr.addColorStop(1,'#2d7350');g.fillStyle=gr;g.fillRect(0,0,w,h);
       for(let k=0;k<2600;k++){g.fillStyle=Math.random()<.5?'rgba(255,255,255,.035)':'rgba(0,0,0,.04)';g.fillRect(Math.random()*w,Math.random()*h,2,2)}   // 펠트 결
     });
-    const felt=new THREE.Mesh(new THREE.CircleGeometry(FELT_R,96),toon({map:feltT,rim:0}));felt.rotation.x=-Math.PI/2;felt.position.y=FLOOR;felt.receiveShadow=true;root.add(felt);   // 공통 테이블의 펠트(높이 .016)보다 살짝 위: 겹쳐서 깜빡이지 않게
+    const felt=new THREE.Mesh(new THREE.CircleGeometry(FELT_R,96),toon({map:feltT,rim:0}));felt.rotation.x=-Math.PI/2;felt.position.y=FLOOR;felt.receiveShadow=true;root.add(felt);D3.felt=felt;   // 공통 테이블의 펠트(높이 .016)보다 살짝 위: 겹쳐서 깜빡이지 않게
     // 고정 칸 5개 (앞쪽)와 테이블과의 경계선, 고정 표시
     const slotM=new THREE.MeshBasicMaterial({map:frameTex('rgba(255,250,240,.6)'),transparent:true,depthWrite:false});
     const heldM=new THREE.MeshBasicMaterial({map:frameTex('#f2b632','rgba(242,182,50,.28)'),transparent:true,depthWrite:false});
     const pg=new THREE.PlaneGeometry(DS*1.42,DS*1.42);
-    D3.held=[];
+    D3.held=[];D3.slots=[];
     {const lz=(FIELD_Z+SLOT_Z-DS*.71)/2,hw=Math.sqrt(FELT_R*FELT_R-lz*lz)-.15;
      const ln=new THREE.Mesh(new THREE.PlaneGeometry(hw*2,.035),new THREE.MeshBasicMaterial({color:0xfffaf0,transparent:true,opacity:.4,depthWrite:false}));
-     ln.rotation.x=-Math.PI/2;ln.position.set(0,FLOOR+.004,lz);ln.renderOrder=1;root.add(ln)}
+     ln.rotation.x=-Math.PI/2;ln.position.set(0,FLOOR+.004,lz);ln.renderOrder=1;root.add(ln);D3.line=ln}
     for(let i=0;i<5;i++){
       const sp=slotPos(i);
-      const a=new THREE.Mesh(pg,slotM);a.rotation.x=-Math.PI/2;a.position.set(sp[0],FLOOR+.004,sp[2]);a.renderOrder=1;root.add(a);
+      const a=new THREE.Mesh(pg,slotM);a.rotation.x=-Math.PI/2;a.position.set(sp[0],FLOOR+.004,sp[2]);a.renderOrder=1;root.add(a);D3.slots.push(a);
       const b=new THREE.Mesh(pg,heldM);b.rotation.x=-Math.PI/2;b.position.set(sp[0],FLOOR+.007,sp[2]);b.renderOrder=2;b.visible=false;root.add(b);D3.held.push(b);
     }
     // 주사위: 모서리가 둥근 정육면체 + 외곽선. 면 순서 +x,-x,+y,-y,+z,-z = 3,4,1,6,2,5 (FACE_N과 같음)
@@ -684,13 +684,13 @@ function d3Build(){
    테이블 위 주사위를 누르면 고정 칸으로, 고정 칸의 주사위를 누르면 테이블로 돌아감 (d3Arrange가 고정 표시에 맞춰 옮김) */
 function dieTo(i,p1,q1,dur,o){
   const d=D3.dice[i],now=clock();
-  d.tw={p0:d.p.slice(),p1:p1.slice(),q0:d.q.slice(),q1:q1.slice(),s0:d.s,s1:(o&&o.end)==='cup'?IN_S:1,t0:now+((o&&o.delay)||0),dur,arc:(o&&o.arc)||0,end:(o&&o.end)||'field'};
-  d.where='tw';d.g.visible=true;
+  d.tw={p0:d.p.slice(),p1:p1.slice(),q0:d.q.slice(),q1:q1.slice(),s0:d.s,s1:(o&&o.end)==='cup'?IN_S:1,t0:now+((o&&o.delay)||0),dur,arc:(o&&o.arc)||0,end:(o&&o.end)||'field',hide:!!(o&&o.hide)};
+  d.where='tw';d.g.visible=!d.tw.hide;
   if(d.tw.end!=='hold')d.slot=-1;
   if(d.tw.end==='field')d.fp={p:p1.slice(),q:q1.slice()};   // 테이블 자리 기억 (고정했다 풀면 그 자리로)
 }
 const destOf=d=>d.where==='tw'?d.tw.end:d.where;
-function cupTo(p1,q1,dur){const c=D3.cup;c.tw={p0:c.p.slice(),p1:p1.slice(),q0:c.q.slice(),q1:q1.slice(),t0:clock(),dur}}
+function cupTo(p1,q1,dur,delay){const c=D3.cup;c.tw={p0:c.p.slice(),p1:p1.slice(),q0:c.q.slice(),q1:q1.slice(),t0:clock()+(delay||0),dur}}
 /* 고정 칸 순서: 고정한 주사위만, 눈이 작은 것부터 왼쪽 칸에 (같은 눈은 번호 순). 돌려주는 값: 주사위 번호 → 칸 번호 (고정 아니면 -1) */
 function holdSlots(mask,vals){const idx=[0,1,2,3,4].filter(i=>mask[i]).sort((a,b)=>(vals[a]-vals[b])||(a-b)),so=[-1,-1,-1,-1,-1];idx.forEach((i,s)=>{so[i]=s});return so}
 /* 바닥에 평평하게: 지금 위를 보는 면이 정확히 위로 (돌아간 방향은 그대로) */
@@ -733,7 +733,7 @@ function d3Arrange(){
 function d3NewTurn(Y){
   const joined=A.tn<0;   // 방금 화면을 켰음(관전 시작·재접속): 이미 굴린 주사위는 다음 프레임에 d3Arrange가 바로 놓음
   A.tn=Y.tn;A.rl=Y.rl;A.pend=null;A.st='idle';A.mine=false;A.rec=null;
-  cupTo(CUP_REST,Q_ID,380);
+  D3.cup.g.visible=true;cupTo(CUP_REST,Q_ID,380);
   if(Y.r&&joined){D3.dice.forEach((d,i)=>{d.val=Y.d[i]||1;d.fp=null;d.tw=null;d.where='cup';d.s=IN_S});return}
   // 테이블·고정 칸의 주사위는 컵으로 모음. 그사이 새 차례 사람이 벌써 굴렸으면(화면이 잠시 멈췄던 경우) 다음 프레임에 던지는 모습부터 보여 줌
   if(Y.r)A.rl=-1;
@@ -826,7 +826,7 @@ function rattle(amp){
   tone(c,.02,{type:'square',vol:.022*amp});hiss(.03,{freq:2600+Math.random()*1500,q:2,vol:.05*amp});
 }
 function d3Step(now){
-  d3Sync();
+  if(A.st==='intro')introStep(now);else d3Sync();
   const c=D3.cup;
   // 컵
   if(c.tw){const k=ease((now-c.tw.t0)/c.tw.dur);c.p=c.tw.p0.map((x,j)=>x+(c.tw.p1[j]-x)*k);c.q=qslerp(c.tw.q0,c.tw.q1,k);if(k>=1)c.tw=null}
@@ -838,7 +838,7 @@ function d3Step(now){
     if(now>=A.rattleAt){A.rattleAt=now+50+Math.random()*60;rattle(.4+amp*.6)}
   }
   c.g.position.set(cp[0],cp[1],cp[2]);c.g.quaternion.set(cq[0],cq[1],cq[2],cq[3]);
-  {const col=V&&V.ps&&V.st==='play'?V.t%4:-1;if(col!==D3.bandCol){D3.bandCol=col;D3.band.color.set(col>=0?PCOL[col]:'#8a5530')}}
+  {const ie=now-IN0.t0,col=A.st==='intro'?(ie<INTRO.roul[0]?-1:introIdx(ie)%4):V&&V.ps&&V.st==='play'?V.t%4:-1;if(col!==D3.bandCol){D3.bandCol=col;D3.band.color.set(col>=0?PCOL[col]:'#8a5530')}}
   // 상태 진행
   if(A.st==='lift'&&now-A.t0>=280){A.st='shake';A.shakeT0=now}
   else if(A.st==='shake'){
@@ -866,10 +866,11 @@ function d3Step(now){
     if(d.tw){
       const tw=d.tw,raw=(now-tw.t0)/tw.dur;
       if(raw>0){
+        if(tw.hide){tw.hide=false;d.g.visible=true}   // 시작 연출: 떨어지기 시작할 때 보임
         const k=ease(raw);
         d.p=tw.p0.map((x,j)=>x+(tw.p1[j]-x)*k);d.p[1]+=Math.sin(Math.min(1,raw)*Math.PI)*tw.arc;
         d.q=qslerp(tw.q0,tw.q1,k);d.s=tw.s0+(tw.s1-tw.s0)*k;
-        if(raw>=1){d.tw=null;d.p=tw.p1.slice();d.q=tw.q1.slice();d.s=tw.s1;d.where=tw.end}
+        if(raw>=1){d.tw=null;d.p=tw.p1.slice();d.q=tw.q1.slice();d.s=tw.s1;d.where=tw.end;if(A.st==='intro')tone(700+i*60,.035,{type:'triangle',vol:.07})}
       }
       moving=true;
     }
@@ -949,7 +950,18 @@ function d3Render(t){
   const fog=T.scene.fog,fn=fog?fog.near:0,ff=fog?fog.far:0;
   if(fog){fog.near=D3.d+6;fog.far=D3.d+30}
   for(const m of [T.timerBg,T.timerArc,T.ring])if(m)m.visible=false;   // 공통 테이블의 자리별 시간 고리는 이 카메라에서 엉뚱한 곳에 보여서 숨김 (시간은 점수 종이 머리줄에 표시)
-  T.r.render(T.scene,D3.cam);
+  let cam=D3.cam;
+  {const k=IN0.on&&IN0.fromLobby?ease((t-IN0.t0)/INTRO.cam):1;
+   if(k<1){   // 시작 연출: 로비 카메라(공통 T.cam)에서 야추 카메라로 위치·방향·화면 범위를 함께 옮김
+     const ic=D3.icam||(D3.icam=new THREE.PerspectiveCamera());
+     ic.position.copy(T.cam.position).lerp(D3.cam.position,k);ic.quaternion.copy(T.cam.quaternion).slerp(D3.cam.quaternion,k);
+     const a=T.cam.projectionMatrix.elements,b=D3.cam.projectionMatrix.elements,m=ic.projectionMatrix.elements;
+     for(let j=0;j<16;j++)m[j]=a[j]+(b[j]-a[j])*k;
+     ic.projectionMatrixInverse.copy(ic.projectionMatrix).invert();ic.updateMatrixWorld();
+     if(fog){fog.near=fn+(fog.near-fn)*k;fog.far=ff+(fog.far-ff)*k}
+     cam=ic;
+   }}
+  T.r.render(T.scene,cam);
   if(fog){fog.near=fn;fog.far=ff}
   placeHoldBtns();
 }
@@ -971,6 +983,78 @@ function d3Release(){
   drawAll();G.buttons();
 }
 
+/* ---------- 시작 연출 (게임이 시작되면 한 번: 방장이 그동안 제한 시간·봇을 멈춤, 길이 G.introMs) ----------
+   0~1.3초  로비 카메라(테이블 앞에 앉은 눈) → 야추 카메라(내려다봄). 0.65초부터 점수 종이·버튼이 들어옴
+   0.3~1.1초 펠트가 펼쳐지고, 0.85~1.4초 고정 칸이 왼쪽부터 하나씩
+   1.3~1.75초 컵이 위에서 내려와 놓이고(그 전엔 숨김), 1.85~2.45초 주사위 5개가 하나씩 컵에 떨어짐
+   2.45~3.35초 컵 띠 색(과 위쪽 차례 표시)이 참가자 색으로 돌다가 점점 느려져 첫 차례 사람에서 멈춤
+   늦게 들어오거나 다시 연결된 사람은 연출 없이 바로 (공통 dealCheck). WebGL이 없으면 위쪽 차례 표시의 룰렛만 */
+const INTRO={cam:1300,ui:650,felt:[300,800],slot:[850,90,220],line:[800,450],cup:[1300,450],drop:[1850,120,330],roul:[2450,3350]};
+G.introMs=3600;
+const IN0={on:false,t0:0,fromLobby:true,said:false,seq:null,tick:0,pop:0};
+const introOn=()=>IN0.on&&clock()<IN0.t0+G.introMs;
+/* 룰렛: 지금 가리키는 자리 (끝나면 첫 차례 사람) */
+function introIdx(e){
+  const q=IN0.seq;if(!q)return V?V.t:0;
+  if(e>=INTRO.roul[1])return q.f;
+  let c=0;while(c<q.times.length&&q.times[c]<=e)c++;
+  return (q.start+c)%q.n;
+}
+G.intro=t0=>{
+  if(!V||!V.y||!V.ps)return;
+  IN0.on=true;IN0.t0=t0;IN0.said=false;IN0.tick=0;IN0.pop=0;IN0.fromLobby=!D3.on;yMsgUntil=0;
+  const n=Math.max(2,Math.min(V.ps.length,4)),f=V.t>=0?V.t:0,times=[];
+  for(let t=INTRO.roul[0],dt=55;t+dt<INTRO.roul[1]-40;dt*=1.17){t+=dt;times.push(t)}   // 처음엔 빠르게, 점점 느리게
+  IN0.seq={times,n,f,start:((f-times.length)%n+n)%n};
+  if(elYz&&IN0.fromLobby)elYz.classList.add('intro');
+  $('#stage').classList.add('yz-intro');
+  lastTurn='';lastBoard='';
+  if(!(window.THREE&&T.ok&&!D3.fail&&(D3.built||d3Build())))return;
+  A.st='intro';A.tn=-1;A.pend=null;A.mine=false;A.rec=null;
+  const c=D3.cup,now=clock();
+  c.p=[CUP_REST[0],CUP_REST[1]+2.6,CUP_REST[2]];c.q=qAxis([1,0,0],.35);c.tw=null;c.g.visible=false;IN0.thud=false;
+  cupTo(CUP_REST,Q_ID,INTRO.cup[1],t0+INTRO.cup[0]-now);
+  const top=[CUP_REST[0],CUP_REST[1]+CUP_H+2.4,CUP_REST[2]];
+  D3.dice.forEach((d,i)=>{
+    d.where='none';d.tw=null;d.fp=null;d.slot=-1;d.s=IN_S;d.g.visible=false;
+    d.p=[top[0]+(i-2)*.12,top[1]+i*.1,top[2]];d.q=qnorm([Math.random()-.5,Math.random()-.5,Math.random()-.5,Math.random()-.5]);
+    const c2=inCup(i,CUP_REST,Q_ID,0,0);
+    dieTo(i,c2.p,c2.q,INTRO.drop[2],{end:'cup',delay:t0+INTRO.drop[0]+i*INTRO.drop[1]-now,hide:true});
+  });
+  D3.dirty=true;
+};
+/* 연출 중 3D: 펠트·고정 칸·경계선 크기, 소리, 끝나면 보통 상태로 */
+function introStep(now){
+  const e=now-IN0.t0,done=e>=G.introMs;
+  const k=done?1:ease((e-INTRO.felt[0])/INTRO.felt[1]),fs=.2+.8*k;
+  D3.felt.scale.set(fs,fs,1);
+  D3.line.scale.set(done?1:ease((e-INTRO.line[0])/INTRO.line[1]),1,1);
+  D3.slots.forEach((m,s)=>{
+    const x=(e-INTRO.slot[0]-s*INTRO.slot[1])/INTRO.slot[2];
+    const b=done||x>=1?1:x<=0?0:1+2.2*Math.pow(x-1,3)+1.2*Math.pow(x-1,2);   // 살짝 넘쳤다가 제자리
+    m.scale.setScalar(Math.max(.001,b));
+    if(x>0&&IN0.pop<=s&&!done){IN0.pop=s+1;tone(1250+s*90,.04,{type:'triangle',vol:.05})}
+  });
+  // 컵: 내려오기 시작할 때 보이고, 닿을 때 툭
+  D3.cup.g.visible=done||e>=INTRO.cup[0];
+  if(!IN0.thud&&e>=INTRO.cup[0]+INTRO.cup[1]){IN0.thud=true;tone(150,.09,{type:'triangle',vol:.16});hiss(.06,{freq:900,vol:.08})}
+  if(done){A.st='idle';A.tn=-1;D3.dirty=true}
+}
+/* 연출 중 화면 글자·버튼: 매 프레임 (G.live) */
+function introTick(){
+  if(!IN0.on)return;
+  const e=clock()-IN0.t0;
+  if(e>=INTRO.ui&&elYz.classList.contains('intro'))elYz.classList.remove('intro');
+  if(e>=INTRO.roul[0]&&e<INTRO.roul[1]){const c=IN0.seq?IN0.seq.times.filter(x=>x<=e).length:0;if(c>IN0.tick){IN0.tick=c;sfx('tick')}}
+  if(e>=INTRO.roul[1]&&!IN0.said){
+    IN0.said=true;$('#stage').classList.remove('yz-intro');
+    const p=V.ps[V.t];if(p)say(V.t===myIdx()?'내가 먼저 시작합니다.':`${p.n}부터 시작합니다.`);
+    sfx('turn');
+  }
+  if(e>=G.introMs){IN0.on=false;lastTurn='';lastBoard='';G.buttons()}
+  drawAll();
+}
+
 /* 화면에 그리는 글 */
 function lastRec(){
   const L=V.y&&V.y.lm;
@@ -979,6 +1063,7 @@ function lastRec(){
 function hintText(me){
   if(Date.now()<yMsgUntil&&yMsg)return yMsg;
   if(!V||!V.y)return '';
+  if(introOn()&&!IN0.said)return '게임을 준비하는 중…';
   const Y=V.y,tp=V.ps[V.t];
   if(V.st==='over')return '게임이 끝났습니다.';
   if(me<0)return tp?`${tp.n} 차례입니다. 관전 중입니다.${lastRec()}`:'';
@@ -998,7 +1083,13 @@ function hintText(me){
 function turnHTML(){
   const Y=V.y;
   if(V.st==='over')return '<span class="yz-chip"><b>게임 끝</b></span>';
-  const t=V.t,p=V.ps[t];if(!p)return '';
+  let t=V.t;
+  if(introOn()&&!IN0.said){   // 시작 연출: 첫 차례를 룰렛으로
+    const e=clock()-IN0.t0;
+    if(e<INTRO.roul[0])return '<span class="yz-chip"><b>게임 준비 중</b></span>';
+    t=introIdx(e);
+  }
+  const p=V.ps[t];if(!p)return '';
   const mine=t===myIdx();
   const pips=Array.from({length:3},(_,k)=>`<i class="pp${k<Y.l?' on':''}"></i>`).join('');
   return `<span class="yz-chip yz-who${mine?' me':''}" style="--pc:${PCOL[t%4]}"><i class="dot"></i><b>${mine?'내 차례':esc(p.n)+' 차례'}</b></span><span class="yz-chip">${Math.min(Y.dn[t]+1,Y.rd)}/${Y.rd}라운드</span><span class="yz-chip" role="img" aria-label="남은 굴림 ${Y.l}번"><span class="yz-pips">${pips}</span></span>`;
@@ -1027,7 +1118,7 @@ function boardHTML(){
   const mine=me>=0&&me<n&&myTurnNow()&&Y.r&&!V.ps[me].f&&d3Ready();
   const ok=mine?allowed(SC[me],Y.d):[],joker=mine&&jokerOf(SC[me],Y.d);
   const head=`<thead><tr><th class="lb" scope="col">점수판</th>${ids.map(i=>{
-    const p=V.ps[i],on=V.st==='play'&&V.t===i&&!p.f;
+    const p=V.ps[i],on=V.st==='play'&&V.t===i&&!p.f&&!(introOn()&&!IN0.said);
     return `<th class="pc${on?' on':''}${i===me?' me':''}${p.f&&p.sr?' out':''}" scope="col" style="--pc:${PCOL[i%4]}"><b>${esc(p.n)}${i===me?' (나)':''}</b><span class="tot">${p.f&&p.sr?'항복':T[i].total}</span>${on?'<span class="tb"><i></i></span>':''}</th>`;
   }).join('')}</tr></thead>`;
   const cell=(i,c)=>{
@@ -1109,8 +1200,8 @@ G.hud=inGame=>{
     if(D3.root)D3.root.visible=use;
     lastDice='';lastRoll='';
   }
-  $('#stage').classList.toggle('yz-over',!!(on&&V.st==='over'));
-  $('#stage').classList.toggle('yz2d',on&&!use);   // 결과 창이 길어도 아래 버튼이 내 정보 칸에 가리지 않게
+  $('#stage').classList.toggle('yz-over',!!(on&&V.st==='over'));   // 결과 창이 길어도 아래 버튼이 내 정보 칸에 가리지 않게
+  $('#stage').classList.toggle('yz2d',on&&!use);
   if(!on){lastTurn='';lastDice='';lastRoll='';lastBoard='';lastHint='';return}
   drawAll();
 };
@@ -1137,6 +1228,7 @@ G.buttons=()=>{
 };
 G.live=()=>{
   if(!elYz||elYz.hidden||!V||!V.y||V.st!=='play')return;
+  introTick();
   const bar=elTbl&&elTbl.querySelector('th.pc.on .tb i');
   if(bar){const left=Math.max(0,(V.deadAt-clock())/1000);bar.style.width=Math.min(100,left/(V.cfg.turn||45)*100)+'%'}
   if(V.t===myIdx())drawHint();   // 남은 시간 안내
@@ -1157,7 +1249,7 @@ G.enter=()=>{
   yCat=null;
 };
 G.leave=()=>{
-  $('#stage').classList.remove('yz','yz-over','yz3d','yz2d');
+  $('#stage').classList.remove('yz','yz-over','yz3d','yz2d','yz-intro');IN0.on=false;if(elYz)elYz.classList.remove('intro');
   if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
   if(D3.root)D3.root.visible=false;
   D3.on=false;A.tn=-1;A.st='idle';if(elYz)elYz.classList.remove('yz3');
@@ -1258,6 +1350,13 @@ G.init=()=>{
 @media (prefers-reduced-motion:reduce){#yz .die.tumble,#yz .yz-tbl td.c.ink{animation:none}}
 /* 3D 화면: 위(가로 화면은 왼쪽)는 비워서 테이블이 보이게, 점수 종이는 아래(오른쪽) */
 #yz.yz3 .yz-main{gap:8px}
+/* 시작 연출: 점수 종이는 아래(가로 화면은 오른쪽)에서 들어오고, 버튼 줄·내 정보는 첫 차례가 정해진 뒤에 보임 */
+#yz .yz-card{transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+#yz.intro .yz-card{transform:translateY(calc(100% + 140px));transition:none}
+#yz .yz-row,#yz .yz-hint{transition:opacity .35s}
+#yz.intro .yz-row,#yz.intro .yz-hint{opacity:0}
+.stage.yz-intro .actions,.stage.yz-intro .myplate,.stage.yz-intro #yz .yz-row{opacity:0;pointer-events:none}
+.stage.yz .actions,.stage.yz .myplate{transition:opacity .35s}
 #yz.yz3 .yz-left{flex:1 1 0;min-height:250px;display:grid;grid-template:"t t" 1fr "h r" auto/1fr auto;gap:0 10px;align-items:center}
 #yz.yz3 .yz-dice{display:none}
 #yz.yz3 .yz-row{grid-area:r}
@@ -1279,6 +1378,7 @@ G.init=()=>{
   #yz.yz3 .yz-tbl tr.tot td.c,#yz.yz3 .yz-tbl tr.tot th.lb{height:26px;font-size:15px}
 }
 @media (min-width:820px){
+  #yz.intro .yz-card{transform:translateX(calc(100% + 40px))}
   #yz.yz3 .yz-left{width:auto;flex:1 1 0}
   #yz.yz3 .yz-card{flex:0 0 auto;width:min(44%,540px)}
   #yz.yz3 .yz-roll{min-width:180px;height:60px;flex-direction:row;gap:10px}

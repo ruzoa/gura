@@ -780,15 +780,18 @@ function hostStart(){
   H.players=H.members.map(m=>({name:m.name,bot:m.bot,lv:m.bot?(m.lv??1):null,conn:m.conn,cid:m.cid||'',host:m.host,hand:[],finished:false,rank:null}));
   EG().engine.start();   // 카드 나누기·첫 차례는 게임마다 다름
   if(EG().dealAnim)beginDeal();
+  else if(EG().introMs)beginDeal(EG().introMs);   // 카드가 없는 게임의 시작 연출 (야추다이스: 카메라 이동·컵 준비·첫 차례 룰렛)
 }
-/* 카드 섞고 나누는 연출 동안(DEAL_MS)은 제한 시간·봇·행동을 멈춤. 화면 쪽 연출은 dealStart3D */
+/* 카드 섞고 나누는 연출 동안(DEAL_MS)은 제한 시간·봇·행동을 멈춤. 화면 쪽 연출은 dealStart3D
+   카드가 없는 게임은 G.introMs만큼 같은 방식으로 멈추고, 화면 쪽은 G.intro(시작 시각)가 그림 */
 const DEAL_MS=4350;
-function beginDeal(){
-  const t=clock();H.dealUntil=t+DEAL_MS;H.dealId=(H.dealId||0)+1;
-  if(typeof H.deadline==='number'&&H.deadline)H.deadline+=DEAL_MS;
-  if(H.botActAt)H.botActAt+=DEAL_MS;
-  H.graceUntil=Math.max(+H.graceUntil||0,t)+DEAL_MS;
-  if(EG().engine.restore)EG().engine.restore(DEAL_MS);
+function beginDeal(ms){
+  ms=ms||DEAL_MS;
+  const t=clock();H.dealUntil=t+ms;H.dealId=(H.dealId||0)+1;
+  if(typeof H.deadline==='number'&&H.deadline)H.deadline+=ms;
+  if(H.botActAt)H.botActAt+=ms;
+  H.graceUntil=Math.max(+H.graceUntil||0,t)+ms;
+  if(EG().engine.restore)EG().engine.restore(ms);
 }
 const dealing=()=>!!(H&&H.dealUntil&&clock()<H.dealUntil);
 /* 대기실에서 방장이 게임 종류 바꾸기: 인원·관전·공개·모드는 그대로, 나머지는 그 게임에 저장해 둔 설정 */
@@ -2472,10 +2475,11 @@ const dealingV=()=>!!(V&&V.dealAt&&clock()<V.dealAt);
 let dealSeen='';
 function dealCheck(v){
   if(T.deal&&(v.st==='wait'||!v.ps||v.code+':'+v.di!==T.deal.key&&v.di))dealAbort();
-  if(!G.dealAnim||!v.ps||!v.dk||!v.di)return;
+  if(!(G.dealAnim||G.intro)||!v.ps||!v.dk||!v.di)return;
   const key=v.code+':'+v.di;if(key===dealSeen)return;dealSeen=key;
-  const done=DEAL_MS-(+v.dk);if(done>900)return;   // 이미 많이 지났으면 연출 없이
-  dealStart(v,clock()-Math.max(0,done),key);
+  const done=(G.dealAnim?DEAL_MS:G.introMs)-(+v.dk);if(done>900)return;   // 이미 많이 지났으면 연출 없이
+  if(G.dealAnim)dealStart(v,clock()-Math.max(0,done),key);
+  else G.intro(clock()-Math.max(0,done));
 }
 function dealAbort(){
   const d=T.deal;if(!d)return;T.deal=null;

@@ -48,11 +48,22 @@ if(isY([0,0,0,0,0]))fail('yahtzee blank dice are not a yahtzee');
  eq(jokerOf(sc2,[2,2,2,2,2]),true,'joker applies even after scratching yahtzee')}
 
 /* 엔진 도우미 */
-const mk=(o,n,bots)=>{
+const mk=(o,n,bots,keepIntro)=>{
   hostNew(false,'t','t');H.cfg={...cfgFor('yahtzee'),...o,game:'yahtzee'};
   H.members=Array.from({length:n||2},(_,i)=>({name:'p'+i,bot:!!bots,conn:null,host:i===0,lv:1}));
   hostStart();
+  if(!keepIntro&&H.dealUntil>NOW)NOW=H.dealUntil;   // 시작 연출(시간이 멈춘 구간)은 건너뜀
 };
+
+/* 시작 연출: 그동안 방장이 시간·봇·행동을 멈추고, 끝나면 그만큼 미룬 제한 시간으로 시작 */
+{mk({},2,false,true);
+ eq(H.dealUntil-NOW,Y.introMs,'intro pause');
+ const t=H.turn,dl=H.deadline;
+ hostAct(t,{t:'roll'});eq(H.y.rolled,false,'no roll during intro');
+ let s=snapFor(0);if(!(s.dk>0)||!s.di)fail('yahtzee intro in snapshot');
+ NOW=H.dealUntil-1;engineTick();eq(H.turn,t,'no turn change during intro');
+ NOW=H.dealUntil;hostAct(t,{t:'roll'});eq(H.y.rolled,true,'roll after intro');
+ if(dl-H.dealUntil!==H.cfg.turn*1000)fail('yahtzee deadline after intro '+(dl-H.dealUntil))}
 const filled=i=>CATS.filter(c=>H.y.sc[i][c.id]!==null).length;
 
 /* 설정 */
