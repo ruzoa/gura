@@ -851,7 +851,7 @@ function snapFor(you){
   if(H.emos&&H.emos.length)s.em=H.emos;
   if(H.specs&&H.specs.length)s.sv=H.specs.map(x=>x.name);
   s.mc=H.members.length;
-  if(H.phase==='wait'){s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0,lv:m.bot?(m.lv??1):undefined}));return s}
+  if(H.phase==='wait'){s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0,lv:m.bot?(m.lv??1):undefined}));if(EG().engine.waitSnap)EG().engine.waitSnap(s);return s}   // waitSnap: 대기실에도 게임별 값 (대부호의 계급)
   s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=p.surrendered==='time'?2:1;if(p.away)o.aw=1;if(i===you)o.h=p.hand.slice();return o});
   s.t=H.turn;
   if(H.dealUntil>t){s.dk=Math.round(H.dealUntil-t);s.di=H.dealId}   // 카드를 나누는 중 (남은 ms)
@@ -1697,7 +1697,7 @@ function renderLabels(){
     if(i===me)return '';
     const on=V.st==='play'&&V.t===i&&activeV(i);
     const mu=emoMuted.has(p.n),note=p.aw&&!p.f?'연결 끊김':(p.no&&!String(p.no).startsWith('"')?p.no:'');   // 몇 장 냈는지는 표시하지 않음
-    return `<div class="seat${on?' on':''}${p.f?' out':''}${mu?' muted':''}" data-i="${i}"><button type="button" class="spk" data-spk="${i}" aria-pressed="${mu}" aria-label="${esc(p.n)} 이모티콘 ${mu?'켜기':'끄기'}" title="이모티콘 ${mu?'켜기':'끄기'}">${mu?SPK_OFF:SPK_ON}</button><div class="nm">${esc(p.n)}<span class="ct">${p.f?(p.sr?(p.sr===2?'시간 초과':'항복'):G.finLabel(p.f,V.ps.length)):(+p.c+'장')}</span>${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="nt">${esc(note)}</div><svg class="ring" data-ring="${i}" viewBox="0 0 36 36" aria-hidden="true"><circle class="rb" cx="18" cy="18" r="15"/><circle class="rf" cx="18" cy="18" r="15"/></svg><svg class="tb" data-tb="${i}" aria-hidden="true"><rect x="1.5" y="1.5" width="10" height="10" rx="11" pathLength="100"/></svg></div>`;
+    return `<div class="seat${on?' on':''}${p.f?' out':''}${mu?' muted':''}" data-i="${i}"><button type="button" class="spk" data-spk="${i}" aria-pressed="${mu}" aria-label="${esc(p.n)} 이모티콘 ${mu?'켜기':'끄기'}" title="이모티콘 ${mu?'켜기':'끄기'}">${mu?SPK_OFF:SPK_ON}</button><div class="nm">${G.nameTag?G.nameTag(p,i):''}${esc(p.n)}<span class="ct">${p.f?(p.sr?(p.sr===2?'시간 초과':'항복'):G.finLabel(p.f,V.ps.length)):(+p.c+'장')}</span>${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="nt">${esc(note)}</div><svg class="ring" data-ring="${i}" viewBox="0 0 36 36" aria-hidden="true"><circle class="rb" cx="18" cy="18" r="15"/><circle class="rf" cx="18" cy="18" r="15"/></svg><svg class="tb" data-tb="${i}" aria-hidden="true"><rect x="1.5" y="1.5" width="10" height="10" rx="11" pathLength="100"/></svg></div>`;
   }).join('');
   placeLabels();
 }
@@ -1820,7 +1820,7 @@ function renderPanel(){
   const me=myIdx(),isHost=mode==='host';
   if(V.st==='wait'){
     const max=+V.cfg.max;
-    let li=V.ps.map((p,i)=>`<li data-i="${i}">${esc(p.n)}${i===me?' (나)':''}${p.b?(isHost?`<button type="button" class="botlv lv${p.lv??1}" data-act="botlv:${i}" data-name="${esc(p.n)}" title="눌러서 난이도 바꾸기">${BOT_LV[p.lv??1]}</button>`:`<span class="botlv lv${p.lv??1} ro">${BOT_LV[p.lv??1]}</span>`):''}<span class="tag ${p.hs?'host':''}">${p.hs?'방장':p.b?'봇':p.aw?'연결 끊김':'참가자'}</span>${i===me?'<button type="button" class="slot-emo emo-open" data-act="emopad" aria-label="이모티콘" title="이모티콘">😊</button>':''}${isHost&&!p.hs?`<button type="button" class="kick" data-act="kick:${i}" data-name="${esc(p.n)}" aria-label="${esc(p.n)} 내보내기" title="내보내기">✕</button>`:''}</li>`).join('');
+    let li=V.ps.map((p,i)=>`<li data-i="${i}">${G.nameTag?G.nameTag(p,i):''}${esc(p.n)}${i===me?' (나)':''}${p.b?(isHost?`<button type="button" class="botlv lv${p.lv??1}" data-act="botlv:${i}" data-name="${esc(p.n)}" title="눌러서 난이도 바꾸기">${BOT_LV[p.lv??1]}</button>`:`<span class="botlv lv${p.lv??1} ro">${BOT_LV[p.lv??1]}</span>`):''}<span class="tag ${p.hs?'host':''}">${p.hs?'방장':p.b?'봇':p.aw?'연결 끊김':'참가자'}</span>${i===me?'<button type="button" class="slot-emo emo-open" data-act="emopad" aria-label="이모티콘" title="이모티콘">😊</button>':''}${isHost&&!p.hs?`<button type="button" class="kick" data-act="kick:${i}" data-name="${esc(p.n)}" aria-label="${esc(p.n)} 내보내기" title="내보내기">✕</button>`:''}</li>`).join('');
     for(let k=V.ps.length;k<max;k++)li+='<li class="empty">빈 자리</li>';
     const full=V.ps.length>=max;
     const sv=Array.isArray(V.sv)?V.sv:[],spm=+(V.cfg.spec??4);
@@ -1861,12 +1861,12 @@ function renderPanel(){
       <div class="coderow"><div><span class="label">방 코드</span><div class="codewrap"><div class="bigcode">${esc(shownCode(V.code))}</div><button type="button" class="eyebtn" data-act="hidecode" aria-pressed="${hideCode}" aria-label="${hideCode?'방 코드 보이기':'방 코드 가리기'}" title="${hideCode?'방 코드·링크 보이기':'방 코드·링크 가리기'}">${hideCode?EYE_OFF:EYE_ON}</button></div></div>${V.code?pubCtl:''}</div>
 
       ${isHost&&link?`<div class="linkbox"><input class="txt" id="linkTxt" ${hideCode?'type="password"':''} readonly value="${esc(link)}" aria-label="초대 링크"><button class="btn btn-sub" type="button" data-act="copy">링크 복사</button></div><p>이 링크를 보내면 코드가 자동으로 입력됩니다.</p>`:''}
-      <ul class="slots">${li}</ul>${specHtml}${sum}${foot}`,'wait');
+      <ul class="slots">${li}</ul>${specHtml}${sum}${G.waitExtra?G.waitExtra(isHost):''}${foot}`,'wait');
     return;
   }
   if(V.st==='over'){
     const list=V.ps.map((p,i)=>({...p,i})).sort((a,b)=>a.f-b.f);
-    showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="방 나가기" title="방 나가기">←</button><h2>게임 끝</h2></div><ol class="ranks">${list.map(p=>`<li class="${p.i===me?'me':''}" data-i="${p.i}"><span class="r">${+p.f}위</span><span>${esc(p.n)}</span>${(()=>{const t=G.rankTitle(p.f,V.ps.length);return p.sr||t?`<span class="left">${p.sr?(p.sr===2?'시간 초과':'항복'):''}${p.sr&&t?' · ':''}${t}</span>`:''})()}${V.cfg&&V.cfg.fast&&p.c>0?`<span class="left">남은 카드 ${+p.c}장</span>`:''}</li>`).join('')}</ol>${G.overExtra?G.overExtra():''}
+    showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="방 나가기" title="방 나가기">←</button><h2>게임 끝</h2></div><ol class="ranks">${list.map(p=>`<li class="${p.i===me?'me':''}" data-i="${p.i}"><span class="r">${+p.f}위</span><span>${esc(p.n)}</span>${G.overRank?G.overRank(p):(()=>{const t=G.rankTitle(p.f,V.ps.length);return p.sr||t?`<span class="left">${p.sr?(p.sr===2?'시간 초과':'항복'):''}${p.sr&&t?' · ':''}${t}</span>`:''})()}${V.cfg&&V.cfg.fast&&p.c>0?`<span class="left">남은 카드 ${+p.c}장</span>`:''}</li>`).join('')}</ol>${G.overExtra?G.overExtra():''}
       ${me>=0?'<div class="row"><button class="btn btn-sub" type="button" data-act="emo:gg">GG 보내기</button></div>':''}
       ${V.spec?(+V.mc<+V.cfg.max?'<div class="row"><button class="btn btn-red" type="button" data-act="join" data-auto>다음 판 참가하기</button></div>':'<p>빈 자리가 없어 계속 관전합니다.</p>'):V.jn?'<p>다음 판에 참가합니다.</p>':''}
       ${isHost?`<div class="row"><button class="btn btn-sub" type="button" data-act="again">대기실</button><button class="btn btn-red" type="button" data-act="restart" data-auto>바로 시작</button></div>`:'<p>방장이 다음 판을 시작하거나 대기실을 열 때까지 기다립니다.</p>'}`,'over');

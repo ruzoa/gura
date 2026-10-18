@@ -206,6 +206,10 @@ G.settingsHTML=(c,{stepRow})=>{
   return `<div class="rs-grid">${rs.filter(d=>d.k!=='jokers').map(stepRow).join('')}</div><div class="rulehead">게임 규칙</div>${lever}<p class="pl-sum">${ruleLine(c)}</p>${more}${det}`;
 };
 G.panelAct=a=>{
+  if(a==='rankreset'){
+    if(mode==='host'&&H&&(H.phase==='wait'||H.phase==='over')&&H.lastRanks&&confirm('계급을 초기화할까요?\n다음 판은 카드 교환 없이 ♦3을 가진 사람부터 시작합니다.')){H.lastRanks=null;addLog('방장이 계급을 초기화했습니다.','sys');sfx('tick');lastPanelHtml='';mark()}
+    return true;
+  }
   if(a==='prmore'){MORE=!isMore();store(MORE_KEY,MORE?'1':'0');lastPanelHtml='';renderPanel();return true}
   if(!a.startsWith('pr:')&&!a.startsWith('pset:'))return false;
   if(!(mode==='host'&&H&&H.phase==='wait'))return true;
@@ -236,14 +240,15 @@ G.keyActions=[];
 
 /* ---------- 방장 엔진 (규칙 처리) ---------- */
 const stateH=()=>({tk:H.tk,rev:H.rev,b11:H.b11,lock:H.lock});
-/* 지난 판 계급 순서 (자리 번호, 1위부터). 지금 앉은 사람 모두에게 계급이 있을 때만 */
-function rankIdx(){
-  const lr=H.lastRanks,n=H.players.length;
-  if(!lr||n<2)return null;
-  const rk=H.players.map(p=>lr[p.name]);
-  if(rk.some(r=>!(r>0)))return null;
-  return H.players.map((_,i)=>i).sort((a,b)=>rk[a]-rk[b]);
+/* 계급 순서 (자리 번호, 1위부터): 지난 판 계급이 있는 사람은 그 순서대로 당겨 앉고(나간 사람 자리는 없어짐),
+   새로 온 사람(봇 포함)은 들어온 순서대로 맨 아래. 지난 판 계급이 하나도 없으면 null */
+function rankOrder(names){
+  const lr=H.lastRanks;if(!lr||names.length<2)return null;
+  const ranked=names.map((n,i)=>i).filter(i=>lr[names[i]]>0).sort((a,b)=>lr[names[a]]-lr[names[b]]||a-b);
+  if(!ranked.length)return null;
+  return [...ranked,...names.map((n,i)=>i).filter(i=>!(lr[names[i]]>0))];
 }
+const rankIdx=()=>rankOrder(H.players.map(p=>p.name));
 function doExchange(idx){
   idx=idx||rankIdx();const n=H.players.length;
   if(!H.cfg.swap||!idx)return null;
@@ -442,7 +447,14 @@ G.engine={
     let first=H.players.findIndex(p=>p.hand.includes(0));
     const idx=rankIdx();
     H.prevTop=idx?H.players[idx[0]].name:'';H.out={};
-    if(idx){doExchange(idx);first=H.cfg.dlead?idx[n-1]:idx[0]}
+    H.players.forEach(p=>{p.pr=0});
+    if(idx){
+      idx.forEach((j,k)=>{H.players[j].pr=k+1});
+      addLog('지난 판 계급을 이어서 합니다.','sys');
+      const nw=H.players.filter(p=>!(H.lastRanks[p.name]>0)).map(p=>p.name);
+      if(nw.length)addLog(`새로 온 ${nw.join(', ')} 님은 맨 아래 계급부터 시작합니다.`,'sys');
+      doExchange(idx);first=H.cfg.dlead?idx[n-1]:idx[0];
+    }
     H.players.forEach(p=>p.hand.sort(cmpCard));
     if(first<0)first=0;
     addLog(`${H.players[first].name}부터 시작합니다.`,'sys');
@@ -473,10 +485,20 @@ G.engine={
     s.lp=H.lp?{p:H.lp.p,ids:H.lp.ids.slice(),sq:H.lp.sq}:null;
     s.rev=H.rev?1:0;s.b11=H.b11?1:0;s.lk=H.lock?H.lock.slice():null;s.rd=H.roundNo||1;
     const me=H.players[you];if(me&&me.got&&s.ps[you])s.ps[you].g=me.got.slice();
+    H.players.forEach((p,i)=>{const o=s.ps[i];if(!o)return;if(p.pr)o.pr=p.pr;if(p.fouled)o.fo=1;else if(p.fell)o.fo=2});
+    s.rk=H.lastRanks?1:0;
   },
   restore(){},
   emoPhase:ph=>ph==='play'||ph==='over',
   /* 다른 게임에서 바뀌어 올 때: 지난 판 계급은 새로 */
+  /* 대기실: 다음 판에 받을 계급 (나간 사람은 빠지고, 새로 온 사람은 맨 아래) */
+  waitSnap(s){
+    // 대기실에서 나간 사람의 계급은 지움 → 같은 이름으로 새로 들어와도(봇 이름 재사용 등) 맨 아래부터
+    if(H.lastRanks){for(const n in H.lastRanks)if(!H.members.some(m=>m.name===n))delete H.lastRanks[n];if(!Object.keys(H.lastRanks).length)H.lastRanks=null}
+    s.rk=H.lastRanks?1:0;
+    const ord=rankOrder(H.members.map(m=>m.name));
+    if(ord)ord.forEach((j,k)=>{if(s.ps[j])s.ps[j].pr=k+1});
+  },
   reset(){H.lastRanks=null;H.roundNo=0}
 };
 
@@ -557,7 +579,21 @@ G.handMarks=(i,h,hand)=>{
   }
   for(const el of hand.children){const id=+el.dataset.id,s=sel.has(id);el.classList.toggle('match',combo?(!s&&combo.has(id)):!!(playable&&playable.has(id)));el.classList.toggle('combo',!!(combo&&!s&&combo.has(id)));el.classList.toggle('faded',!!(combo&&!s&&!combo.has(id)))}
 };
-G.me=()=>{};
+/* 계급 배지 (대부호·부호·평민·빈민·대빈민) */
+const RT_CLS={'대부호':'r1','부호':'r2','평민':'r3','빈민':'r4','대빈민':'r5'};
+function rankTag(r,n){if(!(r>0))return '';const t=rankTitle(r,n);return `<span class="rtag ${RT_CLS[t]||''}">${t}</span>`}
+G.nameTag=p=>p&&p.pr&&!p.f?rankTag(p.pr,V.ps.length):'';
+G.me=i=>{const p=V.ps[i];if(p&&p.pr&&!p.f)$('#meSub').insertAdjacentHTML('afterbegin',rankTag(p.pr,V.ps.length))};
+/* 결과 화면: 지난 판 계급 → 이번 계급 (▲ 올라감, ▼ 내려감) */
+G.overRank=p=>{
+  const n=V.ps.length,t=rankTitle(p.f,n),was=p.pr?rankTitle(p.pr,n):'';
+  const why=p.sr?(p.sr===2?'시간 초과':'항복'):p.fo===1?'반칙 탈출':p.fo===2?'도시오치':'';
+  const mv=p.pr?(p.f<p.pr?' <b class="up">▲</b>':p.f>p.pr?' <b class="dn">▼</b>':''):'';
+  return `<span class="left">${why?why+' · ':''}${was&&was!==t?`<s>${was}</s> → `:''}${t}${mv}</span>`;
+};
+const leadTxt=()=>+V.cfg.dlead?'대빈민':'대부호';
+G.waitExtra=isHost=>V.rk?`<p class="rk-note">지난 판 계급을 이어서 합니다. 교환 뒤 ${leadTxt()}부터 시작하고, 새로 온 사람은 맨 아래 계급입니다.${isHost?' <button type="button" class="linkbtn" data-act="rankreset">계급 초기화</button>':''}</p>`:'';
+G.overExtra=()=>mode!=='host'?'':V.rk?`<p class="rk-note">바로 시작하면 이 계급으로 교환하고 ${leadTxt()}부터 시작합니다. <button type="button" class="linkbtn" data-act="rankreset">계급 초기화</button></p>`:'<p class="rk-note">계급을 초기화했습니다. 다음 판은 ♦3을 가진 사람부터 시작합니다.</p>';
 G.buttons=()=>{
   const play=$('#btnPlay'),pass=$('#btnPass');
   const ready=myReady(),k=sel.size;
@@ -626,6 +662,16 @@ G.init=()=>{
 .rs-grid .stp.pdiff-row{margin:4px 0}
 .pd-note{display:inline-block;margin-left:6px;font-style:normal;font-size:11px;font-weight:600;color:#9a5b00;white-space:nowrap}
 .pl-lead .segrow{flex:none;width:150px}
+.rtag{display:inline-block;font-size:10.5px;font-weight:700;line-height:1;padding:3px 6px 2px;border-radius:99px;margin-right:5px;vertical-align:1px;white-space:nowrap;border:1px solid transparent}
+.rtag.r1{background:#f2b632;color:#4a2f00;border-color:#c08a17}
+.rtag.r2{background:#fbe7b0;color:#7a5200;border-color:#e3c46e}
+.rtag.r3{background:#efe6d6;color:#6b5a48;border-color:#d8c7ab}
+.rtag.r4{background:#dfe4ea;color:#3f4b5a;border-color:#bcc6d2}
+.rtag.r5{background:#4a3a2e;color:#f4ead9;border-color:#2d2219}
+.ranks s{color:var(--muted,#7a6a58);text-decoration-thickness:1.5px}
+.ranks .up{color:#2c7d47}.ranks .dn{color:#cc3a2e}
+.rk-note{font-size:12.5px;color:var(--muted,#7a6a58);line-height:1.55;margin:4px 0}
+.linkbtn{background:none;border:0;padding:0;font:inherit;font-weight:600;color:#cc3a2e;text-decoration:underline;cursor:pointer}
 @media (max-width:480px){.pl-o b{font-size:13px}.pl-lead{flex-wrap:wrap}.pl-lead .segrow{width:100%}}
 `;
   document.head.appendChild(css);

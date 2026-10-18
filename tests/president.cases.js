@@ -120,3 +120,13 @@ H.lastRanks={p0:1,p1:2,p2:3,p3:4};hostStart();
 H.players[0].hand=[id(0,0),id(1,0)];H.players[1].hand=[id(2,1)];H.players[2].hand=[id(5,0),id(6,0)];H.players[3].hand=[id(7,0),id(8,0)];
 newTrick(1);doPlay(1,[id(2,1)]);
 if(H.players[1].rank!==1||H.players[0].rank!==4||!H.players[0].finished)fail('miyako-ochi '+H.players.map(p=>p.rank));
+
+// 계급 이어가기: 나간 사람은 빠지고 남은 사람 순서대로, 새로 온 사람은 맨 아래
+cfgP({fast:0,jokers:0,swap:1,r8:0,rev:0,run:0,lock:0,b11:0,dlead:1});
+H.members=['b','x','d','n1','n2'].map((n,i)=>({name:n,bot:true,conn:null,host:i===0}));
+H.lastRanks={a:1,b:2,c:3,d:4};   // a·c는 나감, x·n1·n2는 새로 옴 (x가 먼저)
+hostStart();
+{const pr=Object.fromEntries(H.players.map(p=>[p.name,p.pr]));
+ if(pr.b!==1||pr.d!==2||pr.x!==3||pr.n1!==4||pr.n2!==5)fail('carry order '+JSON.stringify(pr));
+ if(H.players[H.turn].name!=='n2')fail('daihinmin(newest) leads');
+ if(!H.players.find(p=>p.name==='b').got)fail('exchange with newcomers');}

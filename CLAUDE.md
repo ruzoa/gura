@@ -19,7 +19,7 @@
   - 카드: `cardHTML`, `drawFace`
   - 방 설정: `defaults`, `roomSet`, `ruleSet`
   - 엔진과 화면 훅: `engine.start/act/tick/snap`, `hud`, `handMarks`, `buttons` 등
-  - 골라 쓰는 값: `maxHi`(최대 인원, 쿼리도 4), `no3D`(3D 테이블을 그리지 않음), `specNote`(관전 중 안내 문구), `noFast`(빠른 모드 없음: 로비·방 설정·칩에서 게임 모드를 숨김), `render3D(t,dt)`(공통 카메라 대신 자기 카메라로 T.scene을 그림), `usesDbl`(게임 중 메뉴에 '두 번 눌러 놓기' 보임), `settingsHTML(c,{stepRow})`(방 설정의 게임 칸을 직접 그림: 대부호의 룰 레버), `panelAct(a)`(패널 버튼을 게임이 먼저 처리, 처리했으면 true)
+  - 골라 쓰는 값: `maxHi`(최대 인원, 쿼리도 4), `no3D`(3D 테이블을 그리지 않음), `specNote`(관전 중 안내 문구), `noFast`(빠른 모드 없음: 로비·방 설정·칩에서 게임 모드를 숨김), `render3D(t,dt)`(공통 카메라 대신 자기 카메라로 T.scene을 그림), `usesDbl`(게임 중 메뉴에 '두 번 눌러 놓기' 보임), `settingsHTML(c,{stepRow})`(방 설정의 게임 칸을 직접 그림: 대부호의 룰 레버), `panelAct(a)`(패널 버튼을 게임이 먼저 처리, 처리했으면 true), `nameTag(p,i)`(이름표·대기실 자리 이름 앞 표시), `overRank(p)`(결과 화면 순위 옆 글자), `waitExtra(isHost)`(대기실 요약 아래), `engine.waitSnap(s)`(대기실 상태에 게임별 값 추가)
 - 카드가 없는 게임(쿼리도, 야추다이스)도 공통 코드가 `hand`가 빈 사람을 끝난 사람으로 보므로, 게임 중에는 `hand`에 표시용 값 하나를 넣어 둡니다.
 - 방의 게임 종류는 `H.cfg.game`에 들어 있습니다. 방장이 대기실의 방 설정에서 바꿀 수 있습니다.
 - 새 게임을 추가하는 순서:
