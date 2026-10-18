@@ -1722,14 +1722,17 @@ const FAN={n:0,stepPx:20,half:30};
 let lastFanH=-1;
 function layoutFan(){
   const fan=$('#hand'),st=$('#stage'),cards=[...fan.children],n=cards.length;
-  // 손패 크기: 화면 높이에 비례(세로로 긴 화면은 폭에 비례) → 어떤 기기에서도 화면 대비 같은 크기 (휴대폰 1배 ~ 큰 화면 1.8배)
-  // 옆 배치(내 정보·버튼을 손패 양옆에)는 가로로 충분히 넓은 화면에서만. 아니면 버튼을 손패 위로 올려 손패가 폭 전체를 씀
-  const W=st.clientWidth,Hs=st.clientHeight||W,k=Math.max(Hs<600?.8:1,Math.min(1.8,Math.min(Hs/677,W/460)));   // 높이가 낮은 화면(휴대폰 가로)은 0.8배까지 줄임
+  // 손패 크기: 화면 높이에 비례(세로로 긴 화면은 폭에 비례), 휴대폰 1배 ~ 큰 화면 1.8배. 높이가 낮은 화면(휴대폰 가로)은 0.8배까지
+  const W=st.clientWidth,Hs=st.clientHeight||W,k=Math.max(Hs<600?.8:1,Math.min(1.8,Math.min(Hs/677,W/460)));
+  // 카드 간격: 폭 전체를 쓰되 최대 40 (모서리 글자가 다 보이는 간격). 손패 배치는 버튼 위치와 상관없이 정해짐
   const side=Math.max($('#me').offsetWidth||0,$('#actions').offsetWidth||0)+24;
-  const wide=Hs<560&&W/Hs>=1.6;   // 높이가 낮은 가로 화면(휴대폰 가로)만 옆 배치. 나머지는 모두 같은 배치라 창 크기를 바꿔도 갑자기 바뀌지 않음
-  const R=wide?720:560,reserve=wide?2*side:20;
-  const avail=Math.max(150,(W-reserve)/k);
-  let step=n>1?Math.min(40,(avail-60)/(n-1)):0;step=Math.max(step,9);
+  let step=n>1?Math.min(40,(Math.max(150,(W-24)/k)-60)/(n-1)):0;step=Math.max(step,9);
+  // 손패 양옆에 내 정보·버튼이 들어갈 자리가 있으면 옆(화면 아래 구석)에, 없으면 손패 위에. 바뀌어도 손패·테이블은 그대로
+  // 가로 화면은 손패를 조금 좁혀서라도(모서리 글자가 보이는 간격 20 이상) 옆에 둠 → 버튼이 화면 가운데로 올라오지 않음
+  let wide=W-((n-1)*step+60)*k>=2*side+16;
+  if(!wide&&W>Hs){const s2=(Math.max(150,(W-2*side-16)/k)-60)/(n-1||1);if(s2>=20||(Hs<560&&W/Hs>=1.6)){wide=true;step=Math.max(9,Math.min(40,s2))}}
+  // 휘는 정도: 손패가 넓을수록 큰 원의 일부로 → 가로로 긴 화면에서도 양 끝이 과하게 내려가지 않음 (양 끝 기울기 약 20도)
+  const R=Math.max(560,((n-1)*step+60)*1.45);
   const da=step/(R+44),half=da*(n-1)/2;
   const drop=(R+88)*(1-Math.cos(half));
   cards.forEach((c,i)=>{c.style.setProperty('--a',((i-(n-1)/2)*da).toFixed(4)+'rad');c.style.zIndex=i+1});
@@ -2421,14 +2424,20 @@ function resize3D(){
   T.cam.clearViewOffset();
   const EL=46*Math.PI/180,dir=new THREE.Vector3(0,Math.sin(EL),Math.cos(EL)),tgt=new THREE.Vector3(),q=new THREE.Vector3();
   const far=new THREE.Vector3(0,.3,-4.05),near=new THREE.Vector3(0,0,4.9);
-  const sides=[];for(let i=0;i<=20;i++){const a=(50+i*260/20)*Math.PI/180;sides.push(new THREE.Vector3(Math.sin(a)*4.05,.3,Math.cos(a)*4.05))}
-  const mt=1-2*44/h,mx=1-2*16/w;
+  // 폭 안에 꼭 들어와야 하는 것: 다른 사람 자리의 카드 더미(실제 있는 자리만)와 가운데 펠트. 테이블 나무 가장자리는 잘려도 됨
+  const sides=[new THREE.Vector3(2.15,0,0),new THREE.Vector3(-2.15,0,0)];   // 펠트 가장자리는 잘려도 됨 (가운데 점선 원과 카드 놓는 곳은 보이게)
+  {const N=V&&V.ps?V.ps.length:4,me=myIdx();for(let i=0;i<N;i++)if(i!==me)sides.push(typeof seatPos==='function'&&V&&V.ps?seatPos(i,3.85).setY(.3):new THREE.Vector3(Math.sin(i/N*Math.PI*2)*3.85,.3,Math.cos(i/N*Math.PI*2)*3.85))}
+  T.seatKey=(V&&V.ps?V.ps.length:0)+':'+myIdx();
+  const mt=1-2*44/h,mx=1-2*28/w;
   const place=(D,tz)=>{tgt.set(0,0,tz);T.cam.position.copy(tgt).addScaledVector(dir,D);T.cam.lookAt(tgt);T.cam.updateMatrixWorld();T.cam.updateProjectionMatrix()};
   const py=p=>q.copy(p).project(T.cam).y;
   const anchor=D=>{let lo=-8,hi=8;for(let it=0;it<26;it++){const m=(lo+hi)/2;place(D,m);if(py(far)>mt)hi=m;else lo=m}place(D,lo)};   // 맞은편을 위쪽에 고정
   let lo=3,hi=80;for(let it=0;it<26;it++){const m=(lo+hi)/2;anchor(m);if(py(near)<-1)lo=m;else hi=m}
   let D=hi;anchor(D);
   for(let it=0;it<60&&sides.some(p=>Math.abs(q.copy(p).project(T.cam).x)>mx);it++){D*=1.03;anchor(D)}
+  // 세로로 긴 화면에서 폭에 맞추느라 아래가 비면: 테이블을 위쪽 버튼 ~ 내 정보·버튼 줄 사이 가운데로 내림
+  {const yb=-1+2*Math.min(h*.6,(T.fanH||0)+120)/h,gap=py(near)-yb;
+   if(gap>0){const tgtY=mt-gap/2;let lo2=-8,hi2=8;for(let it=0;it<26;it++){const m=(lo2+hi2)/2;place(D,m);if(py(far)>tgtY)hi2=m;else lo2=m}place(D,lo2)}}
   if(T.scene&&T.scene.fog){const d=T.cam.position.length();T.scene.fog.near=d+5;T.scene.fog.far=d+22}
   placeLabels();
 }
@@ -2718,6 +2727,7 @@ function sync3D(v,pv){
     T.field.forEach(killCard);T.field=[];T.fieldKey='';for(const arr of T.stacks.values())arr.forEach(killCard);T.stacks.clear();T.ring.visible=false;return;
   }
   const me=myIdx();
+  if(T.seatKey!==v.ps.length+':'+me)resize3D();   // 인원·내 자리가 바뀌면 카메라를 다시 맞춤
   if(T.deal){G.field3D(v,pv,me,fk);return}
   for(const [i,arr] of T.stacks)if(i>=v.ps.length||i===me){arr.forEach(killCard);T.stacks.delete(i)}
   v.ps.forEach((p,i)=>{
