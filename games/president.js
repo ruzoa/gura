@@ -476,7 +476,7 @@ G.init=()=>{};
    두 곡은 페이지를 열 때 워커에서 한 번 합성해 16초 루프로 반복합니다.
    혁명 곡은 평시 멜로디를 맨 뒤 음부터 거꾸로 배열하고 단조로 바꾼 곡입니다.
    혁명·반혁명이 나오면 곡이 테이프처럼 느려지다 멈추고, 듣던 소리를 0.75초 거꾸로 감은 뒤
-   새 곡을 거울 위치에서 이어 틉니다. 11 백 중에는 소리만 먹먹하게 거릅니다.
+   새 곡을 거울 위치에서 이어 틉니다. 내 차례에는 곡이 살짝 먹먹해집니다.
    대부호 방을 나가거나 다른 게임으로 바꾸면 멈추고, 공통 카페 재즈가 다시 나옵니다 (G.ownBgm). */
 function bgmSynthLib() {
   'use strict';
@@ -726,7 +726,7 @@ function bgmSynthLib() {
 }
 const SY=bgmSynthLib();
 const BG={
-  on:false,data:{},buf:{},trim:null,lp:null,cur:null,mode:'fwd',b11:false,busyUntil:0,kick:false,lvl:-1,
+  on:false,data:{},buf:{},trim:null,lp:null,cur:null,mode:'fwd',myTurn:false,busyUntil:0,kick:false,lvl:-1,
   TRIM:.32,   // 효과음보다 크지 않도록 맞춘 음량
   render(){
     const got=(m,L,R,sr,length)=>{this.data[m]={L,R,sr,length}};
@@ -748,7 +748,7 @@ const BG={
       this.trim=c.createGain();this.trim.gain.value=0;this.lp.connect(this.trim);this.trim.connect(SND.bgm);
       this.buf.fwd=this.toBuffer(this.data.fwd);this.buf.rev=this.toBuffer(this.data.rev);
     }
-    this.mode=this.target(v);this.setB11(this.wantB11(v),true);this.lvl=-1;
+    this.mode=this.target(v);this.setTurn(this.wantTurn(v),true);this.lvl=-1;
     this.play(this.mode,0,c.currentTime+.05,.6);
   },
   play(m,off,when,fade){
@@ -764,11 +764,13 @@ const BG={
   },
   pos(now){const c=this.cur,L=SY.LOOP;return (((c.off+Math.max(0,now-c.t0))%L)+L)%L},
   target(v){return v&&v.st!=='wait'&&v.rev?'rev':'fwd'},
-  wantB11(v){return !!(v&&v.st==='play'&&v.b11)},
-  setB11(on,now){
-    this.b11=on;if(!this.lp)return;const c=SND.ctx;this.lp.frequency.cancelScheduledValues(c.currentTime);
-    if(now)this.lp.frequency.setValueAtTime(on?650:20000,c.currentTime);
-    else this.lp.frequency.setTargetAtTime(on?650:20000,c.currentTime,on?.06:.12);
+  // 내 차례: 곡을 살짝 먹먹하게 (고음만 조금 깎아 차례인 걸 알 수 있을 정도)
+  TURN_HZ:2400,
+  wantTurn(v){if(!v||v.st!=='play'||!Array.isArray(v.ps))return false;const i=myIdx(),p=v.ps[i];return i>=0&&v.t===i&&!!p&&!p.f&&p.c>0},
+  setTurn(on,now){
+    this.myTurn=on;if(!this.lp)return;const c=SND.ctx,f=on?this.TURN_HZ:20000;this.lp.frequency.cancelScheduledValues(c.currentTime);
+    if(now)this.lp.frequency.setValueAtTime(f,c.currentTime);
+    else this.lp.frequency.setTargetAtTime(f,c.currentTime,on?.12:.18);
   },
   // 혁명·반혁명: 테이프 멈춤 → 듣던 소리를 거꾸로 감기 → 거울 위치에서 새 곡
   flip(to){
@@ -794,7 +796,7 @@ const BG={
       if(this.kick&&SND.ctx.state==='running')this.flip(to);else this.fade(to);
     }
     this.kick=false;
-    const b=this.wantB11(v);if(b!==this.b11)this.setB11(b);
+    const t=this.wantTurn(v);if(t!==this.myTurn)this.setTurn(t);
   },
   // 대부호 방에 있는 동안만 재생 (방을 나가거나 다른 게임이 되면 멈춤). 소리 켜기/끄기도 여기서 따라감
   watch(){
