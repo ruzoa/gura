@@ -41,9 +41,24 @@ function playError(ids,S,rules){
   const c=parseCombo(ids,rules);if(!c)return '조합 불가';
   const tk=S.tk;if(!tk)return '';
   if(c.ty!==tk.ty||c.n!==tk.n)return `${tk.n}장 ${tk.ty==='run'?'계단':'묶음'}`;
+  if(rules.s3&&isS3Counter(ids,tk))return '';
   if(S.lock&&c.ty==='set'&&!subMulti(c.suits,S.lock))return '무늬 묶임';
-  const eff=effRev(S);
-  return cmbKey(c,eff)>cmbKey(tk,eff)?'':'더 강하게';
+  const eff=effRev(S),a=cmbKey(c,eff),b=cmbKey(tk,eff);
+  if(a>b)return '';
+  if(rules.skip&&a===b&&c.ty==='set'&&c.k!==JOKER_KEY)return '';   // 같은 숫자 건너뛰기: 같은 숫자도 낼 수 있고 다음 사람을 건너뜀
+  return '더 강하게';
+}
+/* 스페이드 3 반격: 조커 한 장 위에 ♠3 한 장 */
+const SPADE3=3;
+const isS3Counter=(ids,tk)=>!!tk&&tk.ty==='set'&&tk.n===1&&tk.k===JOKER_KEY&&ids.length===1&&ids[0]===SPADE3;
+/* 반칙 탈출: 마지막 카드에 조커·2(혁명 중엔 3)·8(8 끊기 켬)이 있거나 스페이드 3 반격으로 끝냄 */
+function isFoulFinish(ids,S,rules){
+  const top=effRev(S)?0:12;
+  if(ids.some(isJ))return true;
+  if(ids.some(id=>rkOf(id)===top))return true;
+  if(rules.r8&&ids.some(id=>rkOf(id)===5))return true;
+  if(rules.s3&&isS3Counter(ids,S.tk))return true;
+  return false;
 }
 function subsets(arr,m){
   if(m===0)return [[]];if(arr.length<m)return [];
@@ -114,23 +129,100 @@ G.drawFace=function(g,w,h,id){
 };
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 손에 든 카드를 가장 먼저 털어낸 사람이 <b>대부호</b>, 마지막까지 남은 사람이 <b>대빈민</b>입니다</li><li><b>카드 강약</b> : 3 &lt; 4 &lt; … &lt; K &lt; A &lt; 2 &lt; <b>조커</b> (무늬는 강약과 상관없습니다)</li><li><b>시작</b> : ♦3을 가진 사람이 먼저 냅니다. 한 장도, 같은 숫자 여러 장도 낼 수 있습니다</li><li><b>진행</b> : 앞사람과 <b>같은 장수</b>로 더 강한 카드를 내거나 <b>패스</b>합니다</li><li><b>판 끝</b> : 모두가 연달아 패스하면 판이 끝나고, 마지막에 낸 사람이 새로 시작합니다</li><li><b>특수 규칙</b> : 방 설정에서 켜고 끌 수 있습니다. 8 끊기, 혁명(같은 숫자 4장), 계단(같은 무늬 연속 3장), 묶기, 11 백</li><li><b>다음 판</b> : 대빈민은 가장 강한 카드를 대부호에게 주고 약한 카드를 돌려받습니다 (4명 이상이면 2장, 부호·빈민은 1장). 방 설정에서 끌 수 있습니다</li><li><b>조커</b> : 모든 숫자로 쓸 수 있는 와일드 카드이고, 혼자 내면 가장 강합니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 손에 든 카드를 가장 먼저 털어낸 사람이 <b>대부호</b>, 마지막까지 남은 사람이 <b>대빈민</b>입니다</li><li><b>카드 강약</b> : 3 &lt; 4 &lt; … &lt; K &lt; A &lt; 2 &lt; <b>조커</b> (무늬는 강약과 상관없습니다)</li><li><b>시작</b> : ♦3을 가진 사람이 먼저 냅니다. 한 장도, 같은 숫자 여러 장도 낼 수 있습니다</li><li><b>진행</b> : 앞사람과 <b>같은 장수</b>로 더 강한 카드를 내거나 <b>패스</b>합니다</li><li><b>판 끝</b> : 모두가 연달아 패스하면 판이 끝나고, 마지막에 낸 사람이 새로 시작합니다</li><li><b>다음 판</b> : 대빈민은 가장 강한 카드를 대부호에게 주고 약한 카드를 돌려받습니다 (4명 이상이면 2장, 부호·빈민은 1장). 그다음 대빈민(서양 룰은 대부호)부터 시작합니다</li><li><b>룰 고르기</b> : 방 설정의 레버로 <b>서양 룰</b>(프레지던트: 조커·특수 규칙 없음)과 <b>일본 룰</b>(대부호: 조커 2장, 8 끊기·혁명·계단·묶기·11 백·스페이드 3 반격·반칙 탈출·도시오치)을 고릅니다. 세부 설정을 바꾸면 커스텀이 됩니다</li><li><b>조커</b> : 모든 숫자로 쓸 수 있는 와일드 카드이고, 혼자 내면 가장 강합니다</li></ol>';
 G.modeDesc=['대빈민이 정해질 때까지','1등이 나오면 끝'];
-G.defaults={jokers:2,grace:0,turn:30,r8:1,rev:1,run:1,lock:1,b11:1,swap:1};
+/* 규칙 묶음: 레버로 고르는 서양 룰(프레지던트) / 일본 룰(대부호). 세부 설정을 바꾸면 레버가 가운데(커스텀)로 옴 */
+const PRESETS=[
+  {jokers:0,r8:0,rev:0,run:0,lock:0,b11:0,swap:1,dlead:0,stay:0,skip:0,s3:0,foul:0,miyako:0},
+  {jokers:2,r8:1,rev:1,run:1,lock:1,b11:1,swap:1,dlead:1,stay:0,skip:0,s3:1,foul:1,miyako:1}];
+const PKEYS=Object.keys(PRESETS[0]);
+const PNAME=['서양 룰','일본 룰'];
+const presetOf=c=>PRESETS.findIndex(P=>PKEYS.every(k=>(+c[k]||0)===P[k]));   // 0·1, 둘 다 아니면 -1(커스텀)
+const baseOf=c=>{const p=presetOf(c);return p>=0?p:(+c.pb?1:0)};
+const diffKeys=c=>{const P=PRESETS[baseOf(c)];return PKEYS.filter(k=>(+c[k]||0)!==P[k])};
+G.defaults={grace:0,turn:30,...PRESETS[1],pb:1};
 G.roomSet=[
   {k:'jokers',label:'조커',unit:'장',lo:0,hi:2,step:1,desc:'모든 숫자로 쓸 수 있는 와일드 카드. 혼자 내면 가장 강합니다'},
   {k:'turn',label:'제한 시간',unit:'초',lo:5,hi:120,step:5,desc:'제한 시간이 지나면 패스 <br> 먼저 내는 차례면 가장 약한 카드가 자동으로 나갑니다'}];
-/* 켜고 끄는 규칙 */
+/* 켜고 끄는 규칙 (방 설정의 세부 설정에서 보임. pb는 커스텀이 어느 룰에서 출발했는지만 기억) */
 G.ruleSet=[
-  {k:'r8',label:'8 끊기',desc:'8을 내면 그 판이 바로 끝나고 낸 사람이 다시 시작합니다'},
-  {k:'rev',label:'혁명',desc:'같은 숫자 4장 이상을 내면 카드 강약이 뒤집힙니다 (한 번 더 나오면 원래대로)'},
-  {k:'run',label:'계단',desc:'같은 무늬의 연속된 숫자 3장 이상을 한 번에 냅니다'},
-  {k:'lock',label:'묶기',desc:'같은 무늬 구성이 연달아 나오면 그 판은 그 무늬만 낼 수 있습니다'},
-  {k:'b11',label:'11 백',desc:'J를 내면 그 판이 끝날 때까지 강약이 뒤집힙니다'},
-  {k:'swap',label:'계급 카드 교환',desc:'다음 판 시작 전에 대빈민의 강한 카드와 대부호의 약한 카드를 맞바꿉니다'}];
-const rulesOn=c=>G.ruleSet.filter(d=>+c[d.k]).map(d=>d.label).join(' · ')||'없음';
-G.cfgChips=c=>`<span class="chip">조커 <b>${+c.jokers||0}장</b></span><span class="chip">제한 시간 <b>${+c.turn}초</b></span><span class="chip">규칙 <b>${esc(rulesOn(c))}</b></span>`;
-G.cfgSum=c=>`조커 ${+c.jokers||0}장 · 제한 시간 ${+c.turn}초<br>규칙: <b>${esc(rulesOn(c))}</b>`;
+  {k:'r8',label:'8 끊기',off:'8 끊기 없음',desc:'8을 내면 그 판이 바로 끝나고 낸 사람이 다시 시작합니다'},
+  {k:'rev',label:'혁명',off:'혁명 없음',desc:'같은 숫자 4장 이상을 내면 카드 강약이 뒤집힙니다 (한 번 더 나오면 원래대로)'},
+  {k:'run',label:'계단',off:'계단 없음',desc:'같은 무늬의 연속된 숫자 3장 이상을 한 번에 냅니다'},
+  {k:'lock',label:'묶기',off:'묶기 없음',desc:'같은 무늬 구성이 연달아 나오면 그 판은 그 무늬만 낼 수 있습니다'},
+  {k:'b11',label:'11 백',off:'11 백 없음',desc:'J를 내면 그 판이 끝날 때까지 강약이 뒤집힙니다'},
+  {k:'s3',label:'스페이드 3 반격',off:'스페이드 3 없음',desc:'조커 한 장은 ♠3 한 장으로 이길 수 있고, 그 판은 바로 끝납니다'},
+  {k:'skip',label:'같은 숫자 건너뛰기',off:'건너뛰기 없음',desc:'앞사람과 같은 숫자를 같은 장수로 내면 다음 사람을 건너뜁니다'},
+  {k:'stay',label:'패스하면 쉬기',off:'패스 뒤 다시 냄',desc:'패스한 사람은 그 판이 끝날 때까지 낼 수 없습니다. 끄면 차례가 다시 오면 낼 수 있습니다'},
+  {k:'foul',label:'반칙 탈출',off:'반칙 탈출 없음',desc:'조커·2(혁명 중엔 3)·8로 마지막 카드를 내면 꼴찌가 됩니다'},
+  {k:'swap',label:'계급 카드 교환',off:'교환 없음',desc:'다음 판 시작 전에 대빈민의 강한 카드와 대부호의 약한 카드를 맞바꿉니다'},
+  {k:'miyako',label:'도시오치',off:'도시오치 없음',desc:'지난 판 대부호가 1등을 놓치면 바로 대빈민이 됩니다 (4명 이상)'},
+  {k:'dlead',label:'다음 판 선',desc:'계급이 이어지는 판에서 누가 먼저 시작할지 정합니다'},
+  {k:'pb',label:'',hidden:true,desc:''}];
+const RULE=Object.fromEntries(G.ruleSet.map(d=>[d.k,d]));
+/* 바뀐 항목 이름: '대부호 시작', '8 끊기 없음', '조커 1장', '스페이드 3 반격' */
+function diffLabel(k,c){
+  const v=+c[k]||0;
+  if(k==='jokers')return `조커 ${v}장`;
+  if(k==='dlead')return v?'대빈민 시작':'대부호 시작';
+  return v?RULE[k].label:RULE[k].off;
+}
+/* 대기실 요약: '일본 룰 · 대부호 시작 · 8 끊기 없음' (바뀐 항목은 색으로) */
+function ruleLine(c){
+  const df=diffKeys(c).filter(k=>k!=='jokers');
+  return `<b>${PNAME[baseOf(c)]}</b>${df.map(k=>` · <b class="pdiff">${esc(diffLabel(k,c))}</b>`).join('')}`;
+}
+const jkTxt=c=>{const d=diffKeys(c).includes('jokers');return `${d?'<b class="pdiff">':''}조커 ${+c.jokers||0}장${d?'</b>':''}`};
+G.cfgChips=c=>`<span class="chip">${jkTxt(c)}</span><span class="chip">제한 시간 <b>${+c.turn}초</b></span><span class="chip">규칙 ${ruleLine(c)}</span>`;
+G.cfgSum=c=>`${jkTxt(c)} · 제한 시간 ${+c.turn}초<br>규칙: ${ruleLine(c)}`;
+/* ---------- 방 설정의 룰 레버 (공통 코드가 G.settingsHTML·G.panelAct로 부름) ----------
+   왼쪽 서양 룰 · 가운데 커스텀 · 오른쪽 일본 룰. 세부 설정은 펼쳐서 바꾸고, 출발한 룰과 다른 줄은 머스터드 색 + 원래 값 */
+const CUS_KEY='gura-president-custom',MORE_KEY='gura-president-more';
+let MORE=null,LASTLV=-1;   // MORE: 세부 설정 펼침 (공통 코드가 읽힌 뒤 처음 쓸 때 저장값을 읽음)
+const isMore=()=>MORE==null?(MORE=store(MORE_KEY)==='1'):MORE;
+const pickCfg=c=>{const o={};for(const k of PKEYS)o[k]=+c[k]||0;o.pb=+c.pb?1:0;return o};
+function loadCustom(){
+  try{const sv=JSON.parse(store(CUS_KEY)||'null');if(!sv)return null;const o=pickCfg(sv);o.jokers=Math.max(0,Math.min(2,Math.round(o.jokers)));for(const k of PKEYS)if(k!=='jokers')o[k]=o[k]?1:0;return presetOf(o)<0?o:null}catch(e){return null}
+}
+G.settingsHTML=(c,{stepRow})=>{
+  const rs=roomSetOf(G),pos=presetOf(c),base=baseOf(c),P=PRESETS[base],df=new Set(diffKeys(c));
+  if(pos<0)store(CUS_KEY,JSON.stringify(pickCfg(c)));   // 커스텀은 늘 기억해 둠 (레버를 옮겼다 돌아오면 그대로)
+  const note=k=>df.has(k)?`<em class="pd-note">${PNAME[base]}: ${k==='jokers'?P[k]+'장':k==='dlead'?(P[k]?'대빈민':'대부호'):(P[k]?'켬':'끔')}</em>`:'';
+  const lv=pos===0?0:pos===1?2:1;   // 레버 칸: 0 왼쪽, 1 가운데, 2 오른쪽
+  const from=LASTLV<0?lv:LASTLV;LASTLV=lv;
+  const opts=[[0,'프레지던트','서양 룰'],[2,'커스텀',pos<0?`${PNAME[base]} 기반`:'세부 설정'],[1,'대부호','일본 룰']];
+  const lever=`<div class="plever" role="radiogroup" aria-label="규칙"><i class="pl-knob" style="--p:${lv};--f:${from}"></i>${opts.map(([v,t,sm],k)=>`<button type="button" role="radio" aria-checked="${lv===k}" class="pl-o${lv===k?' on':''}" data-act="pr:${v}"><b>${t}</b><small>${sm}</small></button>`).join('')}</div>`;
+  const open=isMore();
+  const more=`<button type="button" class="pl-more" data-act="prmore" aria-expanded="${open}">세부 설정 ${open?'접기':'펼치기'}<span aria-hidden="true">${open?'▴':'▾'}</span></button>`;
+  let det='';
+  if(open){
+    const jd=rs.find(d=>d.k==='jokers');
+    const jk=stepRow(jd).replace('<div class="stp">',`<div class="stp${df.has('jokers')?' pdiff-row':''}">`).replace(`<b>${jd.label}</b>`,`<b>${jd.label}</b>${note('jokers')}`);
+    const dl=+c.dlead?1:0;
+    const lead=`<div class="stp pl-lead${df.has('dlead')?' pdiff-row':''}"><div class="stp-t"><b>다음 판 선</b>${note('dlead')}<small>${RULE.dlead.desc}</small></div><div class="segrow">${[[0,'대부호'],[1,'대빈민']].map(([v,t])=>`<button class="btn ${dl===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${dl===v}" data-act="pset:dlead:${v}">${t}</button>`).join('')}</div></div>`;
+    const tgs=G.ruleSet.filter(d=>!d.hidden&&d.k!=='dlead').map(d=>{const on=!!(+c[d.k]);return `<div class="stp tg${df.has(d.k)?' pdiff-row':''}"><div class="stp-t"><b>${d.label}</b>${note(d.k)}<small>${d.desc}</small></div><div class="stp-c"><button type="button" class="sw${on?' on':''}" role="switch" aria-checked="${on}" aria-label="${d.label}" data-act="tog:${d.k}"><i></i></button></div></div>`}).join('');
+    det=`<div class="pl-det"><div class="rs-grid">${jk}${lead}</div><div class="rs-grid tgs">${tgs}</div></div>`;
+  }
+  return `<div class="rs-grid">${rs.filter(d=>d.k!=='jokers').map(stepRow).join('')}</div><div class="rulehead">게임 규칙</div>${lever}<p class="pl-sum">${ruleLine(c)}</p>${more}${det}`;
+};
+G.panelAct=a=>{
+  if(a==='prmore'){MORE=!isMore();store(MORE_KEY,MORE?'1':'0');lastPanelHtml='';renderPanel();return true}
+  if(!a.startsWith('pr:')&&!a.startsWith('pset:'))return false;
+  if(!(mode==='host'&&H&&H.phase==='wait'))return true;
+  const cur=presetOf(H.cfg);
+  if(a.startsWith('pr:')){
+    const v=+a.slice(3);
+    if(v===2){   // 커스텀: 기억해 둔 커스텀이 있으면 되살리고, 없으면 세부 설정을 펼쳐 줌
+      MORE=true;store(MORE_KEY,'1');
+      const sv=cur<0?null:loadCustom();if(sv)H.cfg={...H.cfg,...sv};
+    }else{
+      if(cur===v){lastPanelHtml='';renderPanel();return true}
+      if(cur<0)store(CUS_KEY,JSON.stringify(pickCfg(H.cfg)));
+      H.cfg={...H.cfg,...PRESETS[v],pb:v};
+    }
+  }else{const [,k,v]=a.split(':');if(!PKEYS.includes(k))return true;H.cfg={...H.cfg,[k]:+v?1:0}}
+  saveRoomCfg(H.cfg);sfx('tick');lastPanelHtml='';mark();return true;
+};
 G.roomSub=x=>`조커 ${x.jk}장`;
 G.pubExtra=()=>({});
 G.cardInfo=(c,nowN)=>{
@@ -144,12 +236,17 @@ G.keyActions=[];
 
 /* ---------- 방장 엔진 (규칙 처리) ---------- */
 const stateH=()=>({tk:H.tk,rev:H.rev,b11:H.b11,lock:H.lock});
-function doExchange(){
+/* 지난 판 계급 순서 (자리 번호, 1위부터). 지금 앉은 사람 모두에게 계급이 있을 때만 */
+function rankIdx(){
   const lr=H.lastRanks,n=H.players.length;
-  if(!H.cfg.swap||!lr||n<2)return null;
+  if(!lr||n<2)return null;
   const rk=H.players.map(p=>lr[p.name]);
   if(rk.some(r=>!(r>0)))return null;
-  const idx=H.players.map((_,i)=>i).sort((a,b)=>rk[a]-rk[b]);
+  return H.players.map((_,i)=>i).sort((a,b)=>rk[a]-rk[b]);
+}
+function doExchange(idx){
+  idx=idx||rankIdx();const n=H.players.length;
+  if(!H.cfg.swap||!idx)return null;
   const pairs=n>=4?[[n-1,0,2],[n-2,1,1]]:[[n-1,0,1]];
   for(const [lo,hi,k] of pairs){
     const g=H.players[idx[lo]],t=H.players[idx[hi]];
@@ -160,8 +257,11 @@ function doExchange(){
   }
   return idx[n-1];
 }
+/* 패스하면 쉬기(stay): 이번 판에 패스한 사람은 판이 끝날 때까지 차례가 오지 않음 */
+const sitting=j=>!!(H.cfg.stay&&H.out&&H.out[j]);
+function nextTurn(i){const n=H.players.length;for(let k=1;k<=n;k++){const j=(i+k)%n;if(isActive(j)&&!sitting(j))return j}return -1}
 function newTrick(st){
-  H.tk=null;H.tkP=-1;H.lock=null;H.b11=false;H.passes=0;H.seatNote={};H.graceUntil=0;
+  H.tk=null;H.tkP=-1;H.lock=null;H.b11=false;H.passes=0;H.seatNote={};H.out={};H.graceUntil=0;
   if(st>=0&&!isActive(st))st=nextActive(st);
   startTurn(st);
 }
@@ -174,6 +274,7 @@ function startTurn(i){
   mark();
 }
 function trickDone(){
+  if(H.cfg.stay)return !H.players.some((p,j)=>isActive(j)&&j!==H.tkP&&!sitting(j));   // 낸 사람 말고는 모두 쉬는 중
   const act=H.players.filter((p,j)=>isActive(j)).length;
   const need=act-(H.tkP>=0&&isActive(H.tkP)?1:0);   // 마지막으로 낸 사람을 뺀 나머지가 연달아 패스
   return H.passes>=need;
@@ -183,37 +284,64 @@ function endTrick(){
   addLog('모두 패스. 판이 끝났습니다.','sys');
   newTrick(st);
 }
+/* 판 안에서 다음 차례로: 낸 사람 말고는 아무도 받을 수 없으면 판이 끝남 */
+function goNext(i,skip){
+  let nx=nextTurn(i);
+  if(skip&&nx>=0&&nx!==i){addLog(`${H.players[nx].name} 건너뜀`,'sys');nx=nextTurn(nx)}
+  if(H.tk&&(nx<0||nx===H.tkP)){endTrick();return}   // 한 바퀴 돌아 낸 사람에게 다시 오면(모두 패스·쉬는 중·건너뜀) 판 끝
+  startTurn(nx>=0?nx:nextActive(i));
+}
+/* 판 도중 자리를 비우게 될 때(항복·도시오치): 그 사람이 낸 패스는 빼야 남은 사람이 모두 대답하기 전에 판이 끝나지 않음 */
+function leaveTrick(j){
+  if(H.seatNote[j]&&!H.cfg.stay)H.passes=Math.max(0,H.passes-1);
+  delete H.seatNote[j];if(H.out)delete H.out[j];
+}
 function doPlay(i,ids){
   if(H.phase!=='play')return;
   const p=H.players[i],c=parseCombo(ids,H.cfg);if(!c)return;
   const set=new Set(ids);p.hand=p.hand.filter(id=>!set.has(id));
-  const prev=H.tk;
+  const prev=H.tk,S0=stateH(),eff0=effRev(S0);
+  const s3=!!(H.cfg.s3&&isS3Counter(ids,prev));
+  const skip=!!(H.cfg.skip&&prev&&!s3&&c.ty==='set'&&prev.ty==='set'&&c.k!==JOKER_KEY&&cmbKey(c,eff0)===cmbKey(prev,eff0));
+  const foul=!p.hand.length&&!!H.cfg.foul&&isFoulFinish(ids,S0,H.cfg);
   // 묶기: 같은 무늬 구성이 연달아 나오면 그 무늬로 묶임
   if(H.cfg.lock&&!H.lock&&prev&&c.ty==='set'&&prev.ty==='set'&&!c.jk&&!prev.jk&&c.suits.slice().sort().join()===prev.suits.slice().sort().join()){
     H.lock=c.suits.slice();addLog(`묶기! ${c.suits.map(s=>SUITS[s]).join('')} 무늬만 낼 수 있습니다.`,'sp');
   }
-  H.tk={...c,ids:ids.slice()};H.tkP=i;H.passes=0;H.seatNote={};
+  H.tk={...c,ids:ids.slice()};H.tkP=i;H.passes=0;
+  H.seatNote={};if(H.cfg.stay)for(const j in (H.out||{}))H.seatNote[j]='쉬는 중';
   H.lp={p:i,ids:ids.slice(),sq:(H.lp?H.lp.sq:0)+1};
   addLog(`${p.name}: ${comboStr(ids)}`);
   let cut=false;
+  if(s3){cut=true;addLog('스페이드 3 반격! 조커를 이겼습니다.','sp')}
   if(c.ty==='set'&&c.k!==JOKER_KEY){
     if(H.cfg.rev&&c.n>=4){H.rev=!H.rev;addLog(H.rev?'혁명! 카드 강약이 뒤집힙니다.':'혁명! 카드 강약이 원래대로 돌아옵니다.','sp')}
     if(H.cfg.b11&&c.k===8){H.b11=!H.b11;addLog(H.b11?'11 백! 이 판 동안 강약이 뒤집힙니다.':'11 백! 강약이 원래대로 돌아옵니다.','sp')}
     if(H.cfg.r8&&c.k===5){cut=true;addLog('8 끊기! 판이 바로 끝납니다.','sp')}
   }
-  if(!p.hand.length){finish(i);if(H.phase==='over')return}
+  if(!p.hand.length){
+    if(foul){p.finished=true;p.fouled=true;p.rank=H.rankBottom--;addLog(`반칙 탈출! ${p.name} 님은 조커·2·8 같은 카드로 끝내서 ${p.rank}위입니다.`,'sp');checkEnd()}
+    else finish(i);
+    if(H.phase==='over')return;
+  }
   if(cut){newTrick(isActive(i)?i:nextActive(i));return}
-  startTurn(nextActive(i));
+  goNext(i,skip);
 }
 function doPass(i,auto){
   if(H.phase!=='play'||!H.tk)return;
-  H.passes++;H.seatNote[i]=auto?'시간 초과':'패스';
+  H.passes++;H.out=H.out||{};H.out[i]=1;
+  H.seatNote[i]=auto?'시간 초과':(H.cfg.stay?'쉬는 중':'패스');
   addLog(`${H.players[i].name} ${auto?'시간 초과 ':''}패스`,'sys');
   if(trickDone()){endTrick();return}
-  startTurn(nextActive(i));
+  goNext(i,false);
 }
 function finish(i){
   const p=H.players[i];p.finished=true;p.rank=H.rankNext++;addLog(`${p.name} 탈출! ${p.rank}위`,'fin');
+  // 도시오치: 지난 판 대부호가 1등을 놓치면 바로 대빈민 (4명 이상)
+  if(p.rank===1&&H.cfg.miyako&&H.players.length>=4&&H.prevTop&&H.prevTop!==p.name){
+    const j=H.players.findIndex(x=>x.name===H.prevTop);
+    if(j>=0&&isActive(j)){const q=H.players[j];leaveTrick(j);q.hand=[];q.finished=true;q.fell=true;q.rank=H.rankBottom--;addLog(`도시오치! ${q.name} 님이 대부호 자리를 지키지 못해 ${q.rank}위로 떨어집니다.`,'sp')}
+  }
   if(H.cfg.fast&&p.rank===1){
     // 빠른 모드: 1등이 나오면 끝, 나머지는 남은 카드가 적을수록 높은 순위 (같으면 공동 순위)
     const rest=H.players.filter(x=>!x.finished);
@@ -225,13 +353,13 @@ function finish(i){
 function doSurrender(i){
   if(H.phase!=='play'||i<0||!isActive(i))return;
   const p=H.players[i];
-  if(H.seatNote[i]){H.passes=Math.max(0,H.passes-1);delete H.seatNote[i]}   // 이미 패스했던 사람이 항복하면 그 패스는 빼야 남은 사람이 모두 대답하기 전에 판이 끝나지 않음
+  leaveTrick(i);
   p.hand=[];p.finished=true;p.surrendered=true;p.rank=H.rankBottom--;
   addLog(`${p.name} 항복! ${p.rank}위`,'lie');
   const act=H.players.filter(x=>!x.finished);
   if(act.length<=1){checkEnd();return}
   if(H.tk&&trickDone()){endTrick();return}
-  if(H.turn===i)startTurn(nextActive(i));else mark();
+  if(H.turn===i)goNext(i,false);else mark();
 }
 function endGame(){
   H.phase='over';
@@ -260,7 +388,8 @@ function botTurn(i){
   const P=H.players[i],h=P.hand,lv=botLv(P),S=stateH(),eff=effRev(S),rules=H.cfg;
   const mv=legalPlays(h,S,rules);
   if(!mv.length){doPass(i);return}
-  const fin=mv.find(m=>m.length===h.length);   // 한 번에 다 털 수 있으면 무조건
+  const foulOK=m=>!(rules.foul&&m.length===h.length&&isFoulFinish(m,S,rules));
+  const fin=mv.find(m=>m.length===h.length&&foulOK(m));   // 한 번에 다 털 수 있으면 무조건 (반칙 탈출이면 빼고)
   if(fin){doPlay(i,fin);return}
   const lead=!H.tk;
   const byR={};h.forEach(id=>{if(!isJ(id)){const r=rkOf(id);byR[r]=(byR[r]||0)+1}});
@@ -271,6 +400,8 @@ function botTurn(i){
     const c=parseCombo(ids,rules),v=cmbKey(c,eff),top=c.ty==='run'?(eff?c.k:c.hi):c.k;
     let s=c.k===JOKER_KEY?20:v;
     s+=c.jk*(h.length<=4?1:9);                                  // 조커는 아껴 둠
+    if(!foulOK(ids))s+=60;                                       // 반칙 탈출은 정말 낼 게 없을 때만
+    else if(rules.foul&&lv>=1){const left=h.filter(x=>!ids.includes(x));if(left.length&&left.every(x=>isFoulFinish([x],{...S,tk:null},rules)))s+=lv===2?6:3}   // 남는 카드가 전부 반칙 카드면 피함
     if(lead)s-=(ids.length-1)*.9;                               // 먼저 낼 땐 여러 장을 한꺼번에
     if(lv>=1&&c.ty==='set'&&c.k!==JOKER_KEY){                   // 묶음을 쪼개지 않음
       const left=(byR[c.k]||0)-(ids.length-c.jk);if(left>0)s+=lv===2?2.2:1;
@@ -284,6 +415,7 @@ function botTurn(i){
   });
   scored.sort((a,b)=>a.s-b.s);
   let pk=scored[0];
+  if(!lead&&!foulOK(pk.ids)){doPass(i);return}   // 이어 낼 차례면 반칙 탈출 대신 패스
   if(lv===0)pk=scored[Math.min(scored.length-1,(Math.random()*3)|0)];
   if(!lead){
     const strong=pk.c.k===JOKER_KEY||pk.c.jk>0||(eff?pk.top<=1:pk.top>=11);   // A·2·조커(혁명 중엔 3·4)
@@ -296,7 +428,7 @@ function botTurn(i){
   doPlay(i,pk.ids);
 }
 /* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
-G._test={newTrick,doPlay,doPass,doSurrender,botTurn,stateH,cardStr,doExchange};
+G._test={newTrick,doPlay,doPass,doSurrender,botTurn,stateH,cardStr,doExchange,isFoulFinish,presetOf,diffKeys,PRESETS};
 G.engine={
   /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
   start(){
@@ -306,8 +438,11 @@ G.engine={
     const order=shuffle([...Array(n).keys()]);let k=0;while(deck.length)H.players[order[k++]].hand.push(deck.pop());
     Object.assign(H,{phase:'play',log:[],seatNote:{},lp:null,tk:null,tkP:-1,lock:null,rev:false,b11:false,passes:0,rankNext:1,rankBottom:n,graceUntil:0,roundNo:(H.roundNo||0)+1});
     addLog(`${n}명 ${H.roundNo}번째 판 시작${H.cfg.jokers?` (조커 ${H.cfg.jokers}장)`:''}.`,'sys');
-    let first=H.players.findIndex(p=>p.hand.includes(0));   // ♦3을 가진 사람부터
-    const ex=doExchange();if(ex!=null)first=ex;             // 교환이 있었다면 대빈민부터
+    // 첫 판(또는 계급이 없는 사람이 있으면)은 ♦3을 가진 사람부터. 계급이 이어지면 교환 뒤 대빈민(또는 대부호)부터
+    let first=H.players.findIndex(p=>p.hand.includes(0));
+    const idx=rankIdx();
+    H.prevTop=idx?H.players[idx[0]].name:'';H.out={};
+    if(idx){doExchange(idx);first=H.cfg.dlead?idx[n-1]:idx[0]}
     H.players.forEach(p=>p.hand.sort(cmpCard));
     if(first<0)first=0;
     addLog(`${H.players[first].name}부터 시작합니다.`,'sys');
@@ -430,7 +565,8 @@ G.buttons=()=>{
   play.disabled=!(ready&&k>0&&!err);
   play.classList.toggle('ready',!play.disabled);
   const main=k?`${k}장 내기`:'내기';
-  const sub=k&&ready?(err||'낼 수 있음'):keyLabel(KEYS.play);
+  const foulWarn=ready&&k&&!err&&+V.cfg.foul&&k===myHand().length&&isFoulFinish(selIds(),stateV(),V.cfg);   // 반칙 탈출이 되는 마지막 카드
+  const sub=k&&ready?(err||(foulWarn?'반칙 탈출 (꼴찌)':'낼 수 있음')):keyLabel(KEYS.play);
   if($('#playMain').textContent!==main)$('#playMain').textContent=main;
   if($('#playSub').textContent!==sub)$('#playSub').textContent=sub;
   pass.disabled=!(ready&&V.tk);
@@ -469,7 +605,31 @@ G.field3D=(v,pv,me,fk)=>{
 G.clear3D=()=>{T.fieldKey=''};
 G.enter=()=>{BG.on=true};
 G.leave=()=>{BG.on=false;const bd=$('#ruleBadges');bd.innerHTML='';bd.dataset.k='';const f=$('#field2d');f.hidden=true;f.innerHTML='';f.dataset.k='';T.fieldKey=''};
-G.init=()=>{};
+G.init=()=>{
+  const css=document.createElement('style');
+  css.textContent=`
+.pdiff{color:#9a5b00;background:#fbe7b0;border-radius:4px;padding:0 3px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.plever{position:relative;display:grid;grid-template-columns:repeat(3,1fr);margin:8px 0 6px;padding:4px;border-radius:14px;background:var(--well,#ebe0cc);border:1.5px solid var(--line-strong,#cdb391);box-shadow:inset 0 2px 4px rgba(59,42,31,.18)}
+.pl-knob{position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px)/3);border-radius:10px;background:var(--mustard,#f2b632);border:1.5px solid var(--mustard-edge,#c08a17);box-shadow:0 3px 0 var(--mustard-edge,#c08a17),0 4px 8px -2px rgba(59,42,31,.35);transform:translateX(calc(var(--p)*100%));animation:plSlide .26s cubic-bezier(.3,1.4,.5,1)}
+@keyframes plSlide{from{transform:translateX(calc(var(--f)*100%))}to{transform:translateX(calc(var(--p)*100%))}}
+.pl-o{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:8px 4px 7px;background:none;border:0;border-radius:10px;color:var(--muted,#7a6a58);cursor:pointer;font:inherit}
+.pl-o b{font-size:14px;color:inherit}
+.pl-o small{font-size:11px;opacity:.85}
+.pl-o.on{color:#3b2a1f}
+.pl-o:focus-visible{outline:2px solid var(--focus,#b86e00);outline-offset:-2px}
+.pl-sum{margin:2px 0 4px;font-size:12.5px;color:var(--muted,#7a6a58);line-height:1.6}
+.pl-sum b{color:var(--ink,#3b2a1f)}
+.pl-sum b.pdiff{color:#9a5b00}
+.pl-more{display:flex;align-items:center;gap:6px;margin:2px 0 4px;padding:6px 2px;background:none;border:0;font:inherit;font-size:13px;font-weight:600;color:var(--wood-dark,#6b4a2b);cursor:pointer}
+.pl-det{border-top:1px dashed var(--line,#e3d4bb);margin-top:2px}
+.stp.pdiff-row{background:#fbe7b0;border-radius:10px;box-shadow:0 0 0 6px #fbe7b0}
+.rs-grid .stp.pdiff-row{margin:4px 0}
+.pd-note{display:inline-block;margin-left:6px;font-style:normal;font-size:11px;font-weight:600;color:#9a5b00;white-space:nowrap}
+.pl-lead .segrow{flex:none;width:150px}
+@media (max-width:480px){.pl-o b{font-size:13px}.pl-lead{flex-wrap:wrap}.pl-lead .segrow{width:100%}}
+`;
+  document.head.appendChild(css);
+};
 
 
 /* ---------- 배경음악 (대부호 방에 있을 때만): 평시 「왕궁의 오후」 ↔ 혁명 「뒤집힌 왕좌」 ----------

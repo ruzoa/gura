@@ -75,3 +75,48 @@ H.lastRanks={p0:1,p1:2,p2:3,p3:4};hostStart();
  if(!g0||g0.length!==2||!g3||g3.length!==2)fail('swap got');
  else if(!g0.every(x=>H.players[0].hand.includes(x))||!g3.every(x=>H.players[3].hand.includes(x)))fail('swap got not in hand');
  if(H.turn!==3)fail('daihinmin leads after swap');}
+
+// 다음 판 선: 대부호 시작(dlead 0)
+cfgP({fast:0,jokers:0,swap:1,r8:0,rev:0,run:0,lock:0,b11:0,dlead:0});H.members=[0,1,2,3].map(i=>({name:'p'+i,bot:true,conn:null,host:i===0}));
+H.lastRanks={p0:1,p1:2,p2:3,p3:4};hostStart();
+if(H.turn!==0)fail('daifugo leads (dlead 0)');
+// 스페이드 3 반격
+{const S1={tk:{...parseCombo([JOKER_BASE],{s3:1}),ids:[JOKER_BASE]},rev:false,b11:false,lock:null};
+ if(playError([3],S1,{s3:1})!=='')fail('s3 counters joker');
+ if(playError([3],S1,{s3:0})==='')fail('s3 off');
+ if(playError([id(0,2)],S1,{s3:1})==='')fail('only spade 3');}
+cfgP({fast:0,jokers:1,swap:0,r8:0,rev:0,run:0,lock:0,b11:0,s3:1,foul:0});H.members=[0,1,2].map(i=>({name:'p'+i,bot:false,conn:null,host:i===0}));
+hostStart();H.players[0].hand=[JOKER_BASE,id(4,0)];H.players[1].hand=[3,id(6,0)];H.players[2].hand=[id(7,0),id(8,0)];
+newTrick(0);doPlay(0,[JOKER_BASE]);doPlay(1,[3]);
+if(H.tk||H.turn!==1)fail('s3 cut, p1 leads');
+// 같은 숫자 건너뛰기
+cfgP({fast:0,jokers:0,swap:0,r8:0,rev:0,run:0,lock:0,b11:0,skip:1,foul:0});H.members=[0,1,2].map(i=>({name:'p'+i,bot:false,conn:null,host:i===0}));
+hostStart();H.players[0].hand=[id(4,0),id(1,0)];H.players[1].hand=[id(4,1),id(1,1)];H.players[2].hand=[id(9,0),id(9,1)];
+newTrick(0);doPlay(0,[id(4,0)]);
+if(playError([id(4,1)],stateH(),H.cfg)!=='')fail('skip equal allowed');
+doPlay(1,[id(4,1)]);
+if(H.turn!==0)fail('skip: p2 skipped, p0 turn '+H.turn);
+// 패스하면 쉬기
+cfgP({fast:0,jokers:0,swap:0,r8:0,rev:0,run:0,lock:0,b11:0,stay:1,foul:0});H.members=[0,1,2].map(i=>({name:'p'+i,bot:false,conn:null,host:i===0}));
+hostStart();H.players[0].hand=[id(1,0),id(9,0),id(2,0)];H.players[1].hand=[id(2,1),id(3,1)];H.players[2].hand=[id(5,0),id(6,0)];
+newTrick(0);doPlay(0,[id(1,0)]);doPass(1);
+if(H.turn!==2)fail('stay turn p2');
+doPlay(2,[id(5,0)]);
+if(H.turn!==0)fail('stay: p1 sitting, p0 next '+H.turn);
+doPlay(0,[id(9,0)]);
+if(H.turn!==2)fail('stay: skip p1 again '+H.turn);
+doPass(2);
+if(H.tk||H.turn!==0)fail('stay: trick ends, p0 leads');
+// 반칙 탈출
+cfgP({fast:0,jokers:0,swap:0,r8:0,rev:0,run:0,lock:0,b11:0,foul:1});H.members=[0,1,2].map(i=>({name:'p'+i,bot:false,conn:null,host:i===0}));
+hostStart();H.players[0].hand=[id(12,0)];H.players[1].hand=[id(2,1),id(3,1)];H.players[2].hand=[id(5,0),id(6,0)];
+newTrick(0);doPlay(0,[id(12,0)]);
+if(H.players[0].rank!==3)fail('foul -> last rank '+H.players[0].rank);
+if(!PT.isFoulFinish([id(0,0)],{tk:null,rev:true,b11:false,lock:null},{foul:1}))fail('foul 3 in revolution');
+if(PT.isFoulFinish([id(11,0)],{tk:null,rev:false,b11:false,lock:null},{foul:1}))fail('ace is not foul');
+// 도시오치
+cfgP({fast:0,jokers:0,swap:0,r8:0,rev:0,run:0,lock:0,b11:0,foul:0,miyako:1,dlead:1});H.members=[0,1,2,3].map(i=>({name:'p'+i,bot:false,conn:null,host:i===0}));
+H.lastRanks={p0:1,p1:2,p2:3,p3:4};hostStart();
+H.players[0].hand=[id(0,0),id(1,0)];H.players[1].hand=[id(2,1)];H.players[2].hand=[id(5,0),id(6,0)];H.players[3].hand=[id(7,0),id(8,0)];
+newTrick(1);doPlay(1,[id(2,1)]);
+if(H.players[1].rank!==1||H.players[0].rank!==4||!H.players[0].finished)fail('miyako-ochi '+H.players.map(p=>p.rank));

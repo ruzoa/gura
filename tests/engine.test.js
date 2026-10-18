@@ -62,6 +62,7 @@ function playOut(game,n,over,lvs){
 run(`{
 const {parseCombo,playError,legalPlays}=GAMES.president;
 const {newTrick,doPlay,doPass,doSurrender,stateH,cardStr}=GAMES.president._test;
+const PT=GAMES.president._test;
 const cfgP=o=>{hostNew(false,'t','t');H.cfg={...cfgFor('president'),...o,game:'president'}};
 `+fs.readFileSync(path.join(__dirname,'president.cases.js'),'utf8')+`
 }`,'president.cases.js');
@@ -203,7 +204,7 @@ run(`
 let ticks=0;
 for(let rep=0;rep<60;rep++){
   const n=2+(rep%7);
-  ticks+=playOut('president',n,{fast:rep%5===0?1:0,jokers:rep%3,r8:rep%2,rev:(rep>>1)%2,run:(rep>>2)%2,lock:(rep>>1)%2,b11:(rep>>3)%2,swap:1,turn:30,max:8},[0,1,2,1]);
+  ticks+=playOut('president',n,{fast:rep%5===0?1:0,jokers:rep%3,r8:rep%2,rev:(rep>>1)%2,run:(rep>>2)%2,lock:(rep>>1)%2,b11:(rep>>3)%2,swap:1,s3:(rep>>1)%2,skip:(rep>>2)%2,stay:(rep>>3)%2,foul:rep%2,miyako:(rep>>1)%2,dlead:(rep>>2)%2,turn:30,max:8},[0,1,2,1]);
 }
 for(let rep=0;rep<60;rep++){
   const n=2+(rep%7);
