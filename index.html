@@ -774,7 +774,7 @@ function hostStart(){
   if(EG().dealAnim)beginDeal();
 }
 /* 카드 섞고 나누는 연출 동안(DEAL_MS)은 제한 시간·봇·행동을 멈춤. 화면 쪽 연출은 dealStart3D */
-const DEAL_MS=4650;
+const DEAL_MS=4720;
 function beginDeal(){
   const t=clock();H.dealUntil=t+DEAL_MS;H.dealId=(H.dealId||0)+1;
   if(typeof H.deadline==='number'&&H.deadline)H.deadline+=DEAL_MS;
@@ -2428,7 +2428,7 @@ function makeCard(pos,rx,ry,s){
 function killCard(c){T.scene.remove(c);T.cards.delete(c)}
 /* ===== 게임 시작 연출: 리플 셔플 → 커트 → 한 장씩 점점 빠르게 곡선을 타고 나누기 → 내 패가 고개를 들듯 일어나 부채꼴로 펼쳐짐
    카드게임만 (G.dealAnim). 방장이 그동안 시간을 멈춤(DEAL_MS). 늦게 들어오거나 다시 연결된 사람은 연출 없이 바로 보임 */
-const DL={split:[250,520],riffle:[520,960],square:[960,1060],cut1:[1080,1300],cut2:[1300,1500],slide:[1500,1600],deal:[1600,2500],lift:2700,liftDur:700,fan:3340,fanDur:1270};
+const DL={split:[250,520],riffle:[520,960],square:[960,1060],cut1:[1080,1300],cut2:[1300,1500],slide:[1500,1600],deal:[1600,2500],lift:2700,liftDur:760,fan:3360,fanDur:1270};
 const PILE_DY=.007,clamp01=x=>x<0?0:x>1?1:x,smooth=x=>{x=clamp01(x);return x*x*(3-2*x)},eOut=x=>{x=clamp01(x);return 1-Math.pow(1-x,3)};
 const dealingV=()=>!!(V&&V.dealAt&&clock()<V.dealAt);
 let dealSeen='';
@@ -2551,31 +2551,27 @@ function dealPose(d,c,a){
   setPose(g,x,y,z,Math.PI/2-.35*Math.sin(Math.PI*u),ry,0,S);
 }
 function dealLift(d,c,a){
-  // 내 앞에 모인 카드: 뒷면이 위인 채로 한 묶음 그대로, 테이블을 따라 낮게 내 쪽으로 미끄러지다가 위로 휘어 카메라 쪽으로 올라가며
-  // 화면 아래 경계를 넘어 사라짐. 사라지는 순간의 크기는 2D 손패 카드보다 살짝 작게 (그래야 2D 카드로 자연스럽게 이어짐)
-  const g=c.g,S=.8,x0=clamp01((a-DL.lift)/DL.liftDur),u=Math.pow(x0,1.7);   // 천천히 출발해서 점점 빠르게
+  // 내 앞에 모인 카드: 뒷면이 위인 채로 한 묶음 그대로, 테이블을 따라 낮게 내 쪽으로 미끄러지다가 들어 올려져
+  // 카메라(내 눈) 가까이까지 휘어 올라오며 크게 보이다가 화면 아래 경계를 넘어 사라짐
+  const g=c.g,S=.8,x0=clamp01((a-DL.lift)/DL.liftDur),u=Math.pow(x0,1.6);   // 천천히 출발해서 점점 빠르게
   if(!d.out){
-    const cam=T.cam.position,cv=T.r.domElement,W=cv.clientWidth||1,Hh=cv.clientHeight||1;
-    const el=$('#hand').children[0],k=parseFloat($('#hand').style.getPropertyValue('--k'))||1;
-    const want=(el?el.offsetWidth:60)*k*.9;   // 2D 카드보다 10% 작게
-    const half=.31*S,v=new THREE.Vector3(),pA=new THREE.Vector3(),pB=new THREE.Vector3();
-    const px=p=>{pA.copy(p).add(new THREE.Vector3(-half,0,0)).project(T.cam);pB.copy(p).add(new THREE.Vector3(half,0,0)).project(T.cam);return Math.abs(pB.x-pA.x)/2*W};
-    // 화면 아래 경계(카드 반 장만큼 더 아래) 쪽으로 카메라에서 뻗은 방향
-    v.set(new THREE.Vector3(c.dx,c.dy,c.dz).project(T.cam).x,-1-(88*k/2)/(Hh/2),.5).unproject(T.cam);
-    const dir=v.sub(cam).normalize();
-    let D=cam.distanceTo(new THREE.Vector3(c.dx,c.dy,c.dz))*.6;
-    for(let it=0;it<4;it++){const p=cam.clone().addScaledVector(dir,D),w=px(p);if(w>0)D*=w/want}
-    let P2=cam.clone().addScaledVector(dir,D),s2=S;
-    // 그 크기가 되는 곳이 테이블보다 낮으면(가로 화면): 테이블 위로 올라간 지점에서 나가고, 크기는 카드를 살짝 줄여서 맞춤
-    const yMin=c.dy+.5;
-    if(P2.y<yMin&&dir.y<0){D=(yMin-cam.y)/dir.y;P2=cam.clone().addScaledVector(dir,D);s2=S*want/Math.max(1,px(P2))}
-    d.out={x:P2.x,y:P2.y,z:P2.z,p1z:c.dz+(P2.z-c.dz)*.6,s2};
+    const cam=T.cam.position.clone(),pile=new THREE.Vector3(c.dx,c.dy,c.dz);
+    const D=cam.distanceTo(pile)*.33;   // 카메라와 카드 더미 사이의 1/3 지점까지 다가옴 → 처음보다 약 3배 크게 보임
+    const at=ndcY=>{const v=new THREE.Vector3(pile.clone().project(T.cam).x,ndcY,.5).unproject(T.cam);return cam.clone().addScaledVector(v.sub(cam).normalize(),D)};
+    // 카드 전체가 화면 아래로 빠지는 높이: 그 거리에서 카드 반 장이 화면에서 차지하는 만큼 더 아래
+    let ny=-1.2;
+    for(let it=0;it<3;it++){const p=at(ny),t=p.clone().add(new THREE.Vector3(0,0,-.45*S)).project(T.cam),bt=p.clone().add(new THREE.Vector3(0,0,.45*S)).project(T.cam);ny=-1-Math.abs(t.y-bt.y)/2*1.15}
+    const P2=at(ny);
+    d.out={x:P2.x,y:P2.y,z:P2.z,p1z:c.dz+(P2.z-c.dz)*.55};
   }
   const o=d.out,x=bez(c.dx,c.dx,o.x,u),y=bez(c.dy,c.dy+.04,o.y,u),z=bez(c.dz,o.p1z,o.z,u);
-  // 움직이는 방향을 따라 앞쪽 모서리부터 들림 (너무 세우면 옆면만 보여서 30도까지)
-  const ty=2*(1-u)*(c.dy+.04-c.dy)+2*u*(o.y-c.dy-.04),tz=2*(1-u)*(o.p1z-c.dz)+2*u*(o.z-o.p1z);
-  const th=Math.min(.52,Math.atan2(ty,Math.max(.001,tz)));
-  setPose(g,x,y,z,Math.PI/2-th,c.dry,0,S+(o.s2-S)*u);
+  // 처음엔 움직이는 방향을 따라 앞쪽 모서리가 살짝 들리고, 들어 올려질수록 뒷면이 나(카메라)를 정면으로 보게 돌아섬
+  // (방향만 따라가면 카메라 가까이에서 옆면만 보여 얇게 보임)
+  const ty=2*(1-u)*.04+2*u*(o.y-c.dy-.04),tz=2*(1-u)*(o.p1z-c.dz)+2*u*(o.z-o.p1z);
+  const th=Math.min(.3,Math.atan2(ty,Math.max(.001,tz)));
+  const cp=T.cam.position,vy=cp.y-y,vz=cp.z-z,face=Math.atan2(vy,-vz);   // 뒷면이 카메라를 보는 각도
+  const w=smooth((u-.15)/.6);
+  setPose(g,x,y,z,(Math.PI/2-th)*(1-w)+face*w,c.dry,0,S);
   g.visible=x0<1;
 }
 function dealUpdate(t){
