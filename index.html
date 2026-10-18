@@ -782,7 +782,7 @@ function hostStart(){
   if(EG().dealAnim)beginDeal();
 }
 /* 카드 섞고 나누는 연출 동안(DEAL_MS)은 제한 시간·봇·행동을 멈춤. 화면 쪽 연출은 dealStart3D */
-const DEAL_MS=4720;
+const DEAL_MS=4350;
 function beginDeal(){
   const t=clock();H.dealUntil=t+DEAL_MS;H.dealId=(H.dealId||0)+1;
   if(typeof H.deadline==='number'&&H.deadline)H.deadline+=DEAL_MS;
@@ -2462,7 +2462,7 @@ function makeCard(pos,rx,ry,s){
 function killCard(c){T.scene.remove(c);T.cards.delete(c)}
 /* ===== 게임 시작 연출: 리플 셔플 → 커트 → 한 장씩 점점 빠르게 곡선을 타고 나누기 → 내 패가 고개를 들듯 일어나 부채꼴로 펼쳐짐
    카드게임만 (G.dealAnim). 방장이 그동안 시간을 멈춤(DEAL_MS). 늦게 들어오거나 다시 연결된 사람은 연출 없이 바로 보임 */
-const DL={split:[250,520],riffle:[520,960],square:[960,1060],cut1:[1080,1300],cut2:[1300,1500],slide:[1500,1600],deal:[1600,2500],lift:2700,liftDur:760,fan:3360,fanDur:1150};
+const DL={split:[250,520],riffle:[520,960],square:[960,1060],cut1:[1080,1300],cut2:[1300,1500],slide:[1500,1600],deal:[1600,2500],lift:2700,liftDur:720,hold:90,fanDur:820};
 const PILE_DY=.007,clamp01=x=>x<0?0:x>1?1:x,smooth=x=>{x=clamp01(x);return x*x*(3-2*x)},eOut=x=>{x=clamp01(x);return 1-Math.pow(1-x,3)};
 const dealingV=()=>!!(V&&V.dealAt&&clock()<V.dealAt);
 let dealSeen='';
@@ -2523,7 +2523,7 @@ function dealStart(v,t0,key){
       c.g=makeCard(new THREE.Vector3(0,-1,0),Math.PI/2,0,.8);c.g.userData.man=true;c.g.visible=false;
       if(c.seat===me)c.g.renderOrder=2;
       // 받는 자리
-      if(c.seat===me){const p=seatPos(me,3.85);c.dx=p.x;c.dz=p.z;c.dy=.03+c.m*.006;c.dry=seatAngle(me)}   // 다른 사람과 같은 거리(나무 위)
+      if(c.seat===me){const p=seatPos(me,3.85);c.dx=p.x;c.dz=p.z;c.dy=.03+c.m*.006;c.dry=seatAngle(me);if(c.m===0&&myIds.length)c.id=myIds[myIds.length-1]}   // 다른 사람과 같은 거리(나무 위). 맨 아래 카드 앞면 = 손패 맨 위 카드
       else{const p=seatPos(c.seat,3.85);c.dx=p.x;c.dz=p.z;c.dy=.03+Math.min(c.m,13)*.016;c.dry=seatAngle(c.seat)}
       // 날아가는 방향이 휘는 쪽 (시계 방향으로 살짝)
       c.bend=.35+.25*Math.random();
@@ -2585,37 +2585,39 @@ function dealPose(d,c,a){
   setPose(g,x,y,z,Math.PI/2-.35*Math.sin(Math.PI*u),ry,0,S);
 }
 function dealLift(d,c,a){
-  // 내 앞에 모인 카드: 뒷면이 위인 채로 한 묶음 그대로, 테이블을 따라 낮게 내 쪽으로 미끄러지다가 들어 올려져
-  // 카메라 쪽으로 휘어 오며 커지다가 화면 아래 경계를 넘어 사라짐. 카드 기울기는 언제나 그 지점의 경로 방향과 같음
-  const g=c.g,S=.8,x0=clamp01((a-DL.lift)/DL.liftDur),u=Math.pow(x0,1.6);   // 천천히 출발해서 점점 빠르게
+  // 실제로 카드를 가져와 눈앞에서 펼치듯: 테이블을 따라 낮게 끌어오다가 곡선을 타고 들어 올리며
+  // 내 쪽 모서리부터 일어서서 앞면은 나를, 뒷면은 맞은편(상대)을 향하게 → 손패 자리에서 손패 카드와 같은 크기로 멈춤
+  // (멈춘 순간 같은 자리·크기·방향의 2D 카드 묶음으로 바뀌고 펼쳐짐)
+  const g=c.g,S=.8,x0=clamp01((a-DL.lift)/DL.liftDur),u=smooth(x0);
   if(!d.out){
-    const cam=T.cam.position.clone(),pile=new THREE.Vector3(c.dx,c.dy,c.dz),dist=cam.distanceTo(pile),px=pile.clone().project(T.cam).x;
-    const ray=ny=>new THREE.Vector3(px,ny,.5).unproject(T.cam).sub(cam).normalize();
-    const endAt=f=>{   // 카메라 쪽으로 dist*f 거리, 카드 전체가 화면 아래로 빠지는 높이
-      let ny=-1.2,p=null;
-      for(let it=0;it<3;it++){p=cam.clone().addScaledVector(ray(ny),dist*f);const t=p.clone().add(new THREE.Vector3(0,0,-.45*S*(T.cardK||1))).project(T.cam),bt=p.clone().add(new THREE.Vector3(0,0,.45*S*(T.cardK||1))).project(T.cam);ny=-1-Math.abs(t.y-bt.y)/2*1.15}
-      return p;
-    };
-    // 도착 지점은 지난번보다 아래(카메라에서 더 먼 곳). 끝 방향으로 기울어도 카메라에서 뒷면이 보이는 곳까지만
-    let P2=null,p1z=0;
-    for(let f=.64;f<=.95;f+=.03){
-      P2=endAt(f);p1z=c.dz+(P2.z-c.dz)*.55;
-      const th=Math.atan2(P2.y-(c.dy+.04),P2.z-p1z),edge=Math.atan2(cam.z-P2.z,cam.y-P2.y);
-      if(Math.PI/2-th-edge>.25)break;   // 뒷면이 카메라 쪽으로 충분히 보임
+    const cam=T.cam,cv=T.r.domElement,W=cv.clientWidth||1,Hh=cv.clientHeight||1,hand=$('#hand');
+    const k=parseFloat(hand.style.getPropertyValue('--k'))||1,bb=parseFloat(hand.style.getPropertyValue('--b'))||10;
+    const el=hand.children[0],cwPx=(el?el.offsetWidth:60)*k,chPx=(el?el.offsetHeight:88)*k;
+    const sy=Hh-bb*k-chPx/2;   // 손패가 겹쳐 있을 때 카드 가운데 (화면 좌표)
+    const ndc=new THREE.Vector3(0,1-2*sy/Hh,.5).unproject(cam),dir=ndc.sub(cam.position).normalize();
+    const right=new THREE.Vector3(1,0,0).applyQuaternion(cam.quaternion),half=.31*(T.cardK||1)*S;
+    const pA=new THREE.Vector3(),pB=new THREE.Vector3();
+    // 눈앞에 든 카드는 손패보다 크게 보임: 손패 카드의 1.5배 크기가 되는 거리 (테이블 위로 충분히 올라올 때까지 더 가까이)
+    let r=1.5,P2=null;
+    for(let t=0;t<12;t++){
+      let D=4;for(let it=0;it<6;it++){const P=cam.position.clone().addScaledVector(dir,D);pA.copy(P).addScaledVector(right,-half).project(cam);pB.copy(P).addScaledVector(right,half).project(cam);const px=Math.abs(pB.x-pA.x)/2*W;D*=px/(cwPx*r)}
+      P2=cam.position.clone().addScaledVector(dir,D);if(P2.y>=.6)break;r+=.15;
     }
-    d.out={x:P2.x,y:P2.y,z:P2.z,p1z};
+    d.handR=r;
+    const qL=new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI/2,c.dry,0,'YXZ')),qF=cam.quaternion.clone();
+    d.out={p2:P2,p1z:c.dz+(P2.z-c.dz)*.6,qL,qF,back:new THREE.Vector3()};
   }
-  const o=d.out,x=bez(c.dx,c.dx,o.x,u),y=bez(c.dy,c.dy+.04,o.y,u),z=bez(c.dz,o.p1z,o.z,u);
-  // 기울기 = 지금 지점의 경로 방향 (미분): 이동하는 만큼 정확히 그만큼 기울어짐
-  const ty=2*(1-u)*.04+2*u*(o.y-c.dy-.04),tz=2*(1-u)*(o.p1z-c.dz)+2*u*(o.z-o.p1z);
-  const th=Math.atan2(ty,Math.max(1e-4,tz));
-  setPose(g,x,y,z,Math.PI/2-th,c.dry,0,S);
-  // 화면 아래로 다 빠져나간 순간 2D 카드가 이어서 올라옴
-  if(c.m===0&&!d.exited&&x0>.2){
-    const W=T.r.domElement.clientWidth||1,ck=T.cardK||1,pts=[[-.31,-.45],[.31,-.45],[-.31,.45],[.31,.45]].map(([px,py])=>g.localToWorld(new THREE.Vector3(px*ck,py*ck,0)).project(T.cam));
-    if(Math.max(...pts.map(p=>p.y))<-1||x0>=1){d.exited=true;d.exitW=Math.abs(pts[1].x-pts[0].x)/2*W}
-  }
-  g.visible=x0<1&&!d.exited;
+  const o=d.out;
+  // 위치: 낮게 오다가 휘어 올라오는 곡선 (모든 카드가 한 묶음)
+  const bx=bez(c.dx,c.dx,o.p2.x,u),by=bez(.03,.08,o.p2.y,u),bz=bez(c.dz,o.p1z,o.p2.z,u);
+  // 방향: 들어 올리는 만큼 일어섬 (뒤쪽 절반에서 주로 돌아섬)
+  const w=smooth((u-.12)/.8);_q.copy(o.qL).slerp(o.qF,w);g.quaternion.copy(_q);
+  // 묶음 두께: 뒷면 쪽으로 쌓임 (맨 아래 카드가 나를 향한 맨 앞)
+  o.back.set(0,0,-1).applyQuaternion(_q);
+  g.position.set(bx,by,bz).addScaledVector(o.back,-c.m*.006*(1-w)+c.m*.0012*w);
+  g.scale.setScalar(S);
+  if(c.m===0&&c.id!=null&&!c.faced){c.faced=1;g.children[0].material=faceMat(c.id)}
+  g.visible=!d.handed;
 }
 function dealUpdate(t){
   const d=T.deal;if(!d)return;
@@ -2626,7 +2628,7 @@ function dealUpdate(t){
   if(a>=DL.cut2[0])dealFire(d,'c2',()=>sfx('cut'));
   if(a>=DL.slide[1])dealFire(d,'sl',()=>sfx('tick'));
   if(d.me>=0&&a>=DL.lift)dealFire(d,'lift',()=>sfx('lift'));
-  if(d.me>=0&&!d.fanned&&(d.exited||a>=DL.fan+250)){d.fanned=true;fanIn(d)}   // 3D 카드가 화면을 벗어나는 순간 이어서
+  if(d.me>=0&&!d.fanned&&a>=DL.lift+DL.liftDur+DL.hold){d.fanned=true;d.handed=true;fanIn(d)}   // 눈앞에 멈춘 3D 묶음 → 같은 자리의 2D 묶음으로 바꾸고 펼침
   if(T.ok)for(const c of d.cards){
     if(!c.g)continue;
     if(c.k!=null&&a>=c.dt&&!c.fl){c.fl=1;if(c.k%2===0||c.k<12)sfx('flick')}
@@ -2653,23 +2655,14 @@ function dealEnd(d){
 }
 /* 손패: 화면 아래 밖에서 한 장처럼 고개를 숙인 채 올라와 고개를 들고, 다 올라오면 부채꼴로 펼쳐짐 */
 function fanIn(d){
+  // 3D 묶음이 멈춘 자리(손패 가운데)에 겹친 채 나타나서 그대로 부채꼴로 펼쳐짐
   const hand=$('#hand');hand.classList.remove('dealing');$('#stage').classList.remove('dealing');
   const cards=[...hand.children];if(!cards.length||!cards[0].animate)return;
-  const R=parseFloat(hand.style.getPropertyValue('--R'))||600,k=parseFloat(hand.style.getPropertyValue('--k'))||1,b=parseFloat(hand.style.getPropertyValue('--b'))||10;
-  const cw=(cards[0].offsetWidth||60)*k;
-  const r=Math.max(1,Math.min(1.4,d&&d.exitW?d.exitW/cw:1.2));   // 사라질 때의 3D 카드 크기로 시작
-  const mk=(rot,dy,rx,sc)=>`rotate(${rot}) translateY(${dy}px) translateY(${-R}px) perspective(700px) rotateX(${rx}deg) scale(${sc}) translateY(${R}px)`;
-  const up=Math.round(b+88*r+12);   // 화면 바로 아래 (3D 카드가 나간 자리)
-  // 3D 카드가 빠져나간 속도로 이어서 똑바로 선 채 올라오다가, 고개를 살짝 숙였다 들고(위쪽이 나를 향했다가 섬) → 부채꼴로 펼침
+  const R=parseFloat(hand.style.getPropertyValue('--R'))||600,r=d&&d.handR||1,mid=R+44;   // 카드 가운데 기준으로 크기 조절
+  const tf=(rot,sc)=>`rotate(${rot}) translateY(${-mid}px) scale(${sc}) translateY(${mid}px)`;
   cards.forEach(c=>{
     const a=c.style.getPropertyValue('--a')||'0rad';
-    try{c.animate([
-      {transform:mk('0rad',up,0,r),easing:'cubic-bezier(.2,.6,.35,1)'},
-      {transform:mk('0rad',-4,-16,1),offset:.36,easing:'ease-in-out'},
-      {transform:mk('0rad',0,0,1),offset:.5},
-      {transform:mk('0rad',0,0,1),offset:.58,easing:'cubic-bezier(.3,.7,.3,1)'},
-      {transform:mk(a,0,0,1)}
-    ],{duration:DL.fanDur,easing:'linear',fill:'backwards'})}catch(e){}
+    try{c.animate([{transform:tf('0rad',r)},{transform:tf('0rad',1),offset:.45},{transform:tf(a,1)}],{duration:DL.fanDur,easing:'cubic-bezier(.3,.7,.25,1)',fill:'backwards'})}catch(e){}
   });
 }
 function fieldSpot(k){const a=k*2.399,r=.25+Math.min(.85,k*.06);return new THREE.Vector3(Math.cos(a)*r,.02+k*.012,Math.sin(a)*r)}
