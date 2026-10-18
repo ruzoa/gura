@@ -774,7 +774,7 @@ function hostStart(){
   if(EG().dealAnim)beginDeal();
 }
 /* 카드 섞고 나누는 연출 동안(DEAL_MS)은 제한 시간·봇·행동을 멈춤. 화면 쪽 연출은 dealStart3D */
-const DEAL_MS=3950;
+const DEAL_MS=4750;
 function beginDeal(){
   const t=clock();H.dealUntil=t+DEAL_MS;H.dealId=(H.dealId||0)+1;
   if(typeof H.deadline==='number'&&H.deadline)H.deadline+=DEAL_MS;
@@ -2428,7 +2428,7 @@ function makeCard(pos,rx,ry,s){
 function killCard(c){T.scene.remove(c);T.cards.delete(c)}
 /* ===== 게임 시작 연출: 리플 셔플 → 커트 → 한 장씩 점점 빠르게 곡선을 타고 나누기 → 내 패가 고개를 들듯 일어나 부채꼴로 펼쳐짐
    카드게임만 (G.dealAnim). 방장이 그동안 시간을 멈춤(DEAL_MS). 늦게 들어오거나 다시 연결된 사람은 연출 없이 바로 보임 */
-const DL={split:[250,520],riffle:[520,960],square:[960,1060],cut1:[1080,1300],cut2:[1300,1500],slide:[1500,1600],deal:[1600,2900],lift:3020,fan:3180,fanDur:760};
+const DL={split:[250,520],riffle:[520,960],square:[960,1060],cut1:[1080,1300],cut2:[1300,1500],slide:[1500,1600],deal:[1600,2900],lift:3020,liftDur:650,fan:3450,fanDur:1270};
 const PILE_DY=.007,clamp01=x=>x<0?0:x>1?1:x,smooth=x=>{x=clamp01(x);return x*x*(3-2*x)},eOut=x=>{x=clamp01(x);return 1-Math.pow(1-x,3)};
 const dealingV=()=>!!(V&&V.dealAt&&clock()<V.dealAt);
 let dealSeen='';
@@ -2551,15 +2551,17 @@ function dealPose(d,c,a){
   setPose(g,x,y,z,Math.PI/2-.35*Math.sin(Math.PI*u),ry,0,S);
 }
 function dealLift(d,c,a){
-  // 내 앞에 모인 카드: 뒷면이 위인 채로 한 묶음 그대로(펼치지 않고) 살짝 들려서 화면 아래 밖으로 가져감
-  const g=c.g,S=.8,u=smooth((a-DL.lift)/260);
-  if(d.outZ==null){   // 화면 아래 밖까지 가는 거리 (세로 화면은 카메라가 높아서 더 멀리)
-    d.outZ=3.4;const v=new THREE.Vector3();
-    for(let k=0;k<40;k++){v.set(c.dx,c.dy+.15,c.dz+d.outZ).project(T.cam);if(v.y<-1.25||v.z>1)break;d.outZ+=.35}
+  // 내 앞에 모인 카드: 뒷면이 위인 채로 한 묶음 그대로(펼치지 않고) 들려서, 카메라 쪽으로 곡선을 타고 화면 아래 밖으로
+  const g=c.g,S=.8,u=smooth((a-DL.lift)/DL.liftDur);
+  if(d.out==null){   // 화면 아래 밖에서 끝나는 점 (세로 화면은 카메라가 높아서 더 멀리)
+    const v=new THREE.Vector3();let z=c.dz+3,y=2.2;
+    for(let k=0;k<40;k++){v.set(c.dx,y,z).project(T.cam);if(v.y<-1.3||v.z>1)break;z+=.35;y+=.12}
+    d.out={y,z};
   }
-  const x=c.dx,y=c.dy+.35*Math.sin(u*Math.PI)*.8+.15*u,z=c.dz+d.outZ*u;
-  setPose(g,x,y,z,Math.PI/2-.12*Math.sin(u*Math.PI),c.dry,0,S*(1+.1*u));
-  g.visible=u<.98;
+  const P1y=c.dy+1.5,P1z=c.dz+.7;   // 먼저 위로 들렸다가 내 쪽(카메라)으로 휘어 옴
+  const y=bez(c.dy,P1y,d.out.y,u),z=bez(c.dz,P1z,d.out.z,u);
+  setPose(g,c.dx,y,z,Math.PI/2+.75*smooth(u*1.3),c.dry,0,S);   // 뒷면이 나를 향하게 살짝 기울임
+  g.visible=u<.995;
 }
 function dealUpdate(t){
   const d=T.deal;if(!d)return;
@@ -2606,12 +2608,12 @@ function fanIn(){
   cards.forEach(c=>{
     const a=c.style.getPropertyValue('--a')||'0rad';
     try{c.animate([
-      {transform:mk('0rad',up,-58)},
-      {transform:mk('0rad',-10,-14),offset:.38},
-      {transform:mk('0rad',0,4),offset:.5},
-      {transform:mk('0rad',0,0),offset:.58},
+      {transform:mk('0rad',up,-58),easing:'cubic-bezier(.3,.55,.45,1)'},   // 3D 카드가 빠져나간 속도로 이어서 천천히 올라옴
+      {transform:mk('0rad',-8,-6),offset:.5,easing:'ease-in-out'},
+      {transform:mk('0rad',0,3),offset:.58,easing:'ease-in-out'},
+      {transform:mk('0rad',0,0),offset:.64,easing:'cubic-bezier(.3,.7,.3,1)'},
       {transform:mk(a,0,0)}
-    ],{duration:DL.fanDur,easing:'cubic-bezier(.3,.6,.35,1)',fill:'backwards'})}catch(e){}
+    ],{duration:DL.fanDur,easing:'linear',fill:'backwards'})}catch(e){}
   });
 }
 function fieldSpot(k){const a=k*2.399,r=.25+Math.min(.85,k*.06);return new THREE.Vector3(Math.cos(a)*r,.02+k*.012,Math.sin(a)*r)}
