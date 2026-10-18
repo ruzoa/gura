@@ -1722,9 +1722,12 @@ const FAN={n:0,stepPx:20,half:30};
 let lastFanH=-1;
 function layoutFan(){
   const fan=$('#hand'),st=$('#stage'),cards=[...fan.children],n=cards.length;
-  // 손패 크기: 화면의 짧은 쪽에 비례 (휴대폰 1배 ~ 큰 모니터 1.8배) → 어떤 기기에서도 화면 대비 비슷한 크기
-  const W=st.clientWidth,wide=W>=820,k=Math.max(wide?1.2:1,Math.min(1.8,Math.min(W,st.clientHeight||W)/670));
-  const R=wide?720:560,reserve=wide?2*345:20;
+  // 손패 크기: 화면 높이에 비례(세로로 긴 화면은 폭에 비례) → 어떤 기기에서도 화면 대비 같은 크기 (휴대폰 1배 ~ 큰 화면 1.8배)
+  // 옆 배치(내 정보·버튼을 손패 양옆에)는 가로로 충분히 넓은 화면에서만. 아니면 버튼을 손패 위로 올려 손패가 폭 전체를 씀
+  const W=st.clientWidth,Hs=st.clientHeight||W,k=Math.max(Hs<600?.8:1,Math.min(1.8,Math.min(Hs/677,W/460)));   // 높이가 낮은 화면(휴대폰 가로)은 0.8배까지 줄임
+  const side=Math.max($('#me').offsetWidth||0,$('#actions').offsetWidth||0)+24;
+  const wide=W>=820&&W/Hs>=1.25&&W-2*side>=(60+26*Math.max(0,n-1))*k*.7;
+  const R=wide?720:560,reserve=wide?2*side:20;
   const avail=Math.max(150,(W-reserve)/k);
   let step=n>1?Math.min(40,(avail-60)/(n-1)):0;step=Math.max(step,9);
   const da=step/(R+44),half=da*(n-1)/2;
@@ -2410,13 +2413,22 @@ function init3D(){
 function resize3D(){
   const st=$('#stage'),w=st.clientWidth,h=st.clientHeight;if(!T.r||!w||!h)return;
   T.r.setSize(w,h,false);T.cam.aspect=w/h;
-  if(w/h<1.05)T.cam.position.set(0,13.5,11.5);else T.cam.position.set(0,8.8,9.4);
-  // 테이블 위 카드 크기: 가로 화면은 테이블이 화면 높이에 맞춰 들어가 카드가 상대적으로 작아 보여서 1.2배 (세로 화면과 비슷한 비율)
-  {const ck=w/h<1.05?1:1.2;if(T.geo&&ck!==T.cardK){const f=ck/(T.cardK||1);T.geo.scale(f,f,1);T.olGeo.scale(f,f,1);T.cardK=ck}}
+  // 테이블 위 카드 크기 (모든 화면 같음)
+  {const ck=1.2;if(T.geo&&ck!==T.cardK){const f=ck/(T.cardK||1);T.geo.scale(f,f,1);T.olGeo.scale(f,f,1);T.cardK=ck}}
+  // 카메라: 어떤 화면이든 같은 각도(46도)로 내려다보고, 다른 사람 자리·카드 더미가 화면(위쪽 버튼 아래 ~ 손패 위)에 꼭 맞게 거리를 정함
+  // → 화면 비율이 달라도 테이블이 화면을 채우는 모양이 같음
+  const off=Math.min(h*.4,(T.fanH||0)*.75);if(off>0)T.cam.setViewOffset(w,h+off,0,off,w,h);else T.cam.clearViewOffset();
+  const EL=46*Math.PI/180,dir=new THREE.Vector3(0,Math.sin(EL),Math.cos(EL)),tgt=new THREE.Vector3(0,0,.5);
+  // 꼭 보여야 하는 곳: 다른 사람 자리(카드 더미, 내 앞쪽 부채꼴 범위 제외)와 가운데 필드. 내 앞쪽 테이블은 손패 뒤로 가려져도 됨
+  const pts=[];for(let i=0;i<=24;i++){const a=(50+i*260/24)*Math.PI/180;pts.push(new THREE.Vector3(Math.sin(a)*4.05,.3,Math.cos(a)*4.05))}
+  for(let i=0;i<8;i++){const a=i/8*Math.PI*2;pts.push(new THREE.Vector3(Math.sin(a)*1.4,.1,Math.cos(a)*1.4))}
+  const mt=1-2*40/h,mb=-1+2*8/h,mx=1-2*6/w,q=new THREE.Vector3();
+  const fits=D=>{T.cam.position.copy(tgt).addScaledVector(dir,D);T.cam.lookAt(tgt);T.cam.updateProjectionMatrix();T.cam.updateMatrixWorld();
+    return pts.every(p=>{q.copy(p).project(T.cam);return Math.abs(q.x)<=mx&&q.y<=mt&&q.y>=mb})};
+  let lo=4,hi=80;for(let it=0;it<28;it++){const mid=(lo+hi)/2;if(fits(mid))hi=mid;else lo=mid}
+  fits(hi);
   if(T.scene&&T.scene.fog){const d=T.cam.position.length();T.scene.fog.near=d+5;T.scene.fog.far=d+22}
-  T.cam.lookAt(0,0,.5);
-  const off=Math.min(h*.4,T.fanH||0);if(off>0)T.cam.setViewOffset(w,h+off,0,off,w,h);else T.cam.clearViewOffset();
-  T.cam.updateProjectionMatrix();placeLabels();
+  placeLabels();
 }
 function seatBase(){const i=myIdx();return i>=0?i:0}
 function seatAngle(i){const N=V&&V.ps?V.ps.length:1,off=myIdx()<0&&V&&V.st!=='wait'?.5:0;return((i-seatBase()+N)%N+off)*Math.PI*2/N}   // 관전 중에는 내 앞자리를 비워서 모두가 보이게
@@ -2566,7 +2578,7 @@ function dealLift(d,c,a){
     };
     // 도착 지점은 지난번보다 아래(카메라에서 더 먼 곳). 끝 방향으로 기울어도 카메라에서 뒷면이 보이는 곳까지만
     let P2=null,p1z=0;
-    for(let f=.5;f<=.9;f+=.03){
+    for(let f=.64;f<=.95;f+=.03){
       P2=endAt(f);p1z=c.dz+(P2.z-c.dz)*.55;
       const th=Math.atan2(P2.y-(c.dy+.04),P2.z-p1z),edge=Math.atan2(cam.z-P2.z,cam.y-P2.y);
       if(Math.PI/2-th-edge>.25)break;   // 뒷면이 카메라 쪽으로 충분히 보임
