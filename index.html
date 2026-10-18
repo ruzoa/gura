@@ -478,6 +478,9 @@ body.kb .fan .card.cur{z-index:70!important}
 .pilenum.held{visibility:hidden;animation:none}
 @keyframes pnpop{0%{transform:translate(-50%,-100%) scale(.6)}60%{transform:translate(-50%,-100%) scale(1.12)}}
 .fan.dealing .card{visibility:hidden}
+/* 카드를 나누는 동안은 내 정보·버튼을 숨겨서 내 앞에 놓이는 카드가 가리지 않게 (끝나면 다시 나타남) */
+.stage .actions,.stage .myplate,.stage .numpick{transition:opacity .35s}
+.stage.dealing .actions,.stage.dealing .myplate,.stage.dealing #numpick{opacity:0;pointer-events:none}
 .fan .card.newcard{box-shadow:0 0 0 3px var(--mustard),0 4px 8px -2px rgba(59,42,31,.3)}
 /* 필드 장수와 카드 낼 때 이펙트 */
 .pilecount{position:absolute;z-index:6;transform:translate(-50%,-50%);display:flex;align-items:center;gap:4px;background:var(--ink);color:var(--paper);border:2px solid var(--mustard);border-radius:99px;padding:2px 11px 2px 8px;font-size:13px;font-weight:600;white-space:nowrap;pointer-events:none;box-shadow:0 3px 0 rgba(59,42,31,.3)}
@@ -2473,7 +2476,7 @@ function dealCheck(v){
 function dealAbort(){
   const d=T.deal;if(!d)return;T.deal=null;
   if(T.ok)d.cards.forEach(c=>killCard(c.g));
-  $('#hand').classList.remove('dealing');
+  $('#hand').classList.remove('dealing');$('#stage').classList.remove('dealing');
 }
 const _q=window.THREE?new THREE.Quaternion():null,_qz=window.THREE?new THREE.Quaternion():null,_e=window.THREE?new THREE.Euler(0,0,0,'YXZ'):null,_Z=window.THREE?new THREE.Vector3(0,0,1):null;
 function setPose(g,x,y,z,rx,ry,tz,s){
@@ -2489,6 +2492,7 @@ function dealStart(v,t0,key){
   const N=cnt.reduce((a,b)=>a+b,0);if(!N)return;
   const d={key,t0,me,N,cards:[],fired:{},fanned:false,cutAt:0};
   if(me>=0)$('#hand').classList.add('dealing');
+  $('#stage').classList.add('dealing');
   // 나누는 순서: 첫 차례인 사람부터 돌아가며 한 장씩 (장수가 다르면 다 받은 사람은 건너뜀)
   const got=Array(n).fill(0),order=[];let s0=v.t!=null&&v.t>=0?v.t:0;
   for(let k=0,i=s0;k<N;i=(i+1)%n){if(got[i]<cnt[i]){order.push([i,got[i]]);got[i]++;k++}}
@@ -2519,7 +2523,7 @@ function dealStart(v,t0,key){
       c.g=makeCard(new THREE.Vector3(0,-1,0),Math.PI/2,0,.8);c.g.userData.man=true;c.g.visible=false;
       if(c.seat===me)c.g.renderOrder=2;
       // 받는 자리
-      if(c.seat===me){const p=seatPos(me,2.75);c.dx=p.x;c.dz=p.z;c.dy=.03+c.m*.006;c.dry=seatAngle(me)}
+      if(c.seat===me){const p=seatPos(me,3.85);c.dx=p.x;c.dz=p.z;c.dy=.03+c.m*.006;c.dry=seatAngle(me)}   // 다른 사람과 같은 거리(나무 위)
       else{const p=seatPos(c.seat,3.85);c.dx=p.x;c.dz=p.z;c.dy=.03+Math.min(c.m,13)*.016;c.dry=seatAngle(c.seat)}
       // 날아가는 방향이 휘는 쪽 (시계 방향으로 살짝)
       c.bend=.35+.25*Math.random();
@@ -2631,7 +2635,7 @@ function dealUpdate(t){
   if(a>=DEAL_MS)dealEnd(d);
 }
 function dealEnd(d){
-  T.deal=null;$('#hand').classList.remove('dealing');
+  T.deal=null;$('#hand').classList.remove('dealing');$('#stage').classList.remove('dealing');
   if(T.ok){
     const by=new Map();
     for(const c of d.cards){
@@ -2649,7 +2653,7 @@ function dealEnd(d){
 }
 /* 손패: 화면 아래 밖에서 한 장처럼 고개를 숙인 채 올라와 고개를 들고, 다 올라오면 부채꼴로 펼쳐짐 */
 function fanIn(d){
-  const hand=$('#hand');hand.classList.remove('dealing');
+  const hand=$('#hand');hand.classList.remove('dealing');$('#stage').classList.remove('dealing');
   const cards=[...hand.children];if(!cards.length||!cards[0].animate)return;
   const R=parseFloat(hand.style.getPropertyValue('--R'))||600,k=parseFloat(hand.style.getPropertyValue('--k'))||1,b=parseFloat(hand.style.getPropertyValue('--b'))||10;
   const cw=(cards[0].offsetWidth||60)*k;
