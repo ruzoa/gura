@@ -871,7 +871,7 @@ G.intro=(t0,o)=>{
   if(!V||!V.q||!V.ps)return;
   const q=V.q,L=[];for(let i=0;i<q.cnt;i++)if(q.pos[i])L.push(i);
   if(!L.length)return;
-  const fast=(o&&o.fast)||0;
+  const fast=o&&o.fast;   // 없으면 roulette.js 기본값 (introMs와 같은 계산)
   IN.on=true;IN.t0=t0;IN.said=false;IN.snd={};IN.fromLobby=!Q3.on;IN.L=L;IN.total=(o&&o.total)||G.introMs(false,fast);
   IN.fp=firstPick(t0+INTRO.roul,{seats:L,first:V.t,fast});   // 방장이 정한 빠른 칸 수로 모두 같은 룰렛이 돎
   IN.on3d=true;
