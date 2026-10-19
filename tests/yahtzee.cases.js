@@ -312,11 +312,11 @@ function soloGame(lv){
 /* 3D 연출용 물리: 트레이 밖으로 나가지 않고, 바닥에 놓이고, 방장이 정한 눈이 위로 오게 돌릴 수 있음 */
 {const P=Y._test.phys;
  let seed=11;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
- const dir=[-.85,0,-.53],dl=Math.hypot(dir[0],dir[2]);dir[0]/=dl;dir[2]/=dl;
+ const dir=[-.97,0,.22],dl=Math.hypot(dir[0],dir[2]);dir[0]/=dl;dir[2]/=dl;
  let flat=0,tot=0,slow=0;
  for(let t=0;t<60;t++){
    const n=1+t%5,statics=[];for(let i=n;i<5;i++)statics.push(P.slotPos(i));
-   const r=P.simThrow(P.throwStarts(n,[1.0,.86,-.2],dir,rnd),statics);
+   const r=P.simThrow(P.throwStarts(n,[1.06,1.56,-.84],dir,rnd,P.POUR_GAP),statics);
    if(r.dur>3.4)slow++;
    if(r.frames.length<2||r.frames[0].length!==n*7)fail('yahtzee sim frames');
    r.fin.forEach((q,i)=>{

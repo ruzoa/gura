@@ -240,22 +240,26 @@ const slotPos=i=>[(i-2)*SLOT_DX,FLOOR+DH,SLOT_Z];
 /* 칸 정렬: 눈이 작은 주사위부터 왼쪽 칸에 (같은 눈은 주사위 번호 순). 돌려주는 값: 주사위 번호 → 칸 번호 */
 function slotOrder(vals){const idx=[0,1,2,3,4].sort((a,b)=>(vals[a]-vals[b])||(a-b)),so=[];idx.forEach((i,s)=>{so[i]=s});return so}
 /* 컵에서 쏟아질 때의 처음 상태. mouth: 컵 입구, dir: 쏟는 방향(수평 단위 벡터) */
-function throwStarts(n,mouth,dir,rnd){
+/* gap: 주사위를 하나씩 쏟는 간격(초). k번째 주사위는 k×gap초 뒤에 입구에서 나옴 (그 전엔 움직이지도 부딪히지도 않음) */
+const POUR_GAP=.075;
+function throwStarts(n,mouth,dir,rnd,gap){
   const side=[-dir[2],0,dir[0]],out=[];
   for(let k=0;k<n;k++){
-    const a=(k/n)*Math.PI*2+rnd()*.6,r=n>1?.42:0,f=.25+k*.2;   // 처음부터 겹치지 않게 조금씩 떨어뜨려 둠
-    const p=[mouth[0]+dir[0]*f+side[0]*Math.cos(a)*r,mouth[1]+Math.sin(a)*r*.6,mouth[2]+dir[2]*f+side[2]*Math.cos(a)*r];
-    const sp=2.55+rnd()*1.45,lat=(rnd()-.5)*1.3;   // 벽이 없으니 펠트 안에서 멈출 만큼만
-    const v=[dir[0]*sp+side[0]*lat,-.6+rnd()*1.4,dir[2]*sp+side[2]*lat];
+    const f=.3+rnd()*.12,l=(rnd()-.5)*.34;   // 입구 바로 앞, 가운데 근처
+    const p=[mouth[0]+dir[0]*f+side[0]*l,mouth[1]+(rnd()-.5)*.14,mouth[2]+dir[2]*f+side[2]*l];
+    const sp=POUR_SP[0]+rnd()*POUR_SP[1],lat=(rnd()-.5)*1.5;   // 벽이 없으니 펠트 안에서 멈출 만큼만
+    const v=[dir[0]*sp+side[0]*lat,-.5+rnd()*1.1,dir[2]*sp+side[2]*lat];
     const wl=12+rnd()*12,wa=[rnd()-.5,rnd()-.5,rnd()-.5],wn=Math.hypot(...wa)||1;
-    out.push({p,v,q:qnorm([rnd()-.5,rnd()-.5,rnd()-.5,rnd()-.5]),w:wa.map(x=>x/wn*wl)});
+    out.push({p,v,q:qnorm([rnd()-.5,rnd()-.5,rnd()-.5,rnd()-.5]),w:wa.map(x=>x/wn*wl),t0:k*(gap||0)});
   }
   return out;
 }
+const POUR_SP=[2.3,1.4];
 /* 끝까지 미리 계산해서 1/60초마다 자세를 기록. statics: 칸에 고정된 주사위 위치 (움직이지 않는 장애물) */
 function simThrow(starts,statics){
   const n=starts.length,dt=1/240,INV=6/(DS*DS),MU=.45,RS=DH*1.06;
-  const B=starts.map(s=>({p:s.p.slice(),v:s.v.slice(),q:qnorm(s.q),w:s.w.slice(),fl:false,calm:0,lastHit:-1}));
+  const B=starts.map(s=>({p:s.p.slice(),v:s.v.slice(),q:qnorm(s.q),w:s.w.slice(),fl:false,calm:0,lastHit:-1,t0:+s.t0||0}));
+  const out=b=>step*dt<b.t0;   // 아직 컵에서 안 나온 주사위
   const C=[];for(const a of [-1,1])for(const b of [-1,1])for(const c of [-1,1])C.push([a*DIN,b*DIN,c*DIN]);
   const frames=[],hits=[];
   const rec=()=>{const f=new Float32Array(n*7);B.forEach((b,i)=>{f[i*7]=b.p[0];f[i*7+1]=b.p[1];f[i*7+2]=b.p[2];f[i*7+3]=b.q[0];f[i*7+4]=b.q[1];f[i*7+5]=b.q[2];f[i*7+6]=b.q[3]});frames.push(f)};
@@ -280,9 +284,10 @@ function simThrow(starts,statics){
     const c=Math.min(pen,.05)*.5;b.p[0]+=nx*c;b.p[1]+=ny*c;b.p[2]+=nz*c;
   };
   rec();
-  const MAXS=Math.round(3.2/dt);let quiet=0,step=0;
+  const MAXS=Math.round(3.6/dt);let quiet=0,step=0;
   for(;step<MAXS;step++){
     for(const b of B){
+      if(out(b))continue;
       b.v[1]+=GRAV*dt;
       const wd=b.fl?1-3.2*dt:1-.35*dt,vd=b.fl?1-1.1*dt:1-.04*dt;
       b.w[0]*=wd;b.w[1]*=wd;b.w[2]*=wd;b.v[0]*=vd;b.v[2]*=vd;
@@ -293,6 +298,7 @@ function simThrow(starts,statics){
     }
     for(let it=0;it<3;it++){
       for(const b of B){
+        if(out(b))continue;
         for(const c of C){
           const r=qrot(b.q,c),px=b.p[0]+r[0],py=b.p[1]+r[1],pz=b.p[2]+r[2];
           const pf=FLOOR+DRAD-py;
@@ -304,9 +310,10 @@ function simThrow(starts,statics){
       }
       // 주사위끼리 (공으로 단순화), 칸에 고정된 주사위는 움직이지 않음
       for(let i=0;i<n;i++){
-        const a=B[i];
+        const a=B[i];if(out(a))continue;
         for(let j=i+1;j<=n-1+statics.length;j++){
           const o=j<n?B[j]:null,op=o?o.p:statics[j-n];
+          if(o&&out(o))continue;
           const dx=op[0]-a.p[0],dy=op[1]-a.p[1],dz=op[2]-a.p[2],d=Math.hypot(dx,dy,dz);
           if(d>=RS*2||d<1e-6)continue;
           const nx=dx/d,ny=dy/d,nz=dz/d,pen=RS*2-d;
@@ -324,7 +331,7 @@ function simThrow(starts,statics){
     }
     let all=true;
     for(const b of B){
-      const calm=b.fl&&Math.hypot(...b.v)<.08&&Math.hypot(...b.w)<.7;
+      const calm=!out(b)&&b.fl&&Math.hypot(...b.v)<.08&&Math.hypot(...b.w)<.7;
       b.calm=calm?b.calm+1:0;if(b.calm<20)all=false;
     }
     quiet=all?quiet+1:0;
@@ -450,7 +457,7 @@ function timeout(){
   autoFinish(i);
 }
 /* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
-G._test={doHold,phys:{simThrow,throwStarts,topFace,preRot,restQ,qrot,qmul,qAxis,FACE_N,slotPos,slotOrder,EDGE_R,FIELD_Z,DS,DH,FLOOR,DRAD},CATS,calc,allowed,totals,jokerOf,plan,bestFor,doRoll,doShake,doScore,doSurrender,autoFinish,timeout,botStep,rerollDist,msIdx,MS,ROUNDS,hasRun,counts,isY,mkSc,
+G._test={doHold,phys:{simThrow,throwStarts,topFace,preRot,restQ,qrot,qmul,qAxis,FACE_N,slotPos,slotOrder,EDGE_R,FIELD_Z,POUR_GAP,DS,DH,FLOOR,DRAD},CATS,calc,allowed,totals,jokerOf,plan,bestFor,doRoll,doShake,doScore,doSurrender,autoFinish,timeout,botStep,rerollDist,msIdx,MS,ROUNDS,hasRun,counts,isY,mkSc,
   d3:()=>({A,D3}),view:{turnHTML,diceHTML,rollHTML,boardHTML,hintText,preView:()=>G.preView(),overExtra:()=>G.overExtra(),setCat:c=>{yCat=c},getCat:()=>yCat,getHold:()=>yHold.slice(),setHold:h=>{yHold=h.slice()}}};
 G.engine={
   /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
@@ -567,9 +574,9 @@ function pickCat(id){
 const D3={on:false,built:false,fail:false,dirty:true,lastR:0,lay:'',layDirty:true,layAt:0,root:null,cam:null,cup:null,band:null,dice:[],held:[],bandCol:-1,d:12};
 const A={st:'idle',tn:-1,rl:-1,t0:0,mine:false,released:false,pend:null,rec:null,thrown:[],keep:[false,false,false,false,false],shakeT0:0,recT0:0,hitK:0,rattleAt:0,waitUntil:0};
 const CUP_K=1.3,CUP_H=1*CUP_K;   // 컵 크기 배율(모델은 높이 1로 만들고 키움)과 실제 높이
-const CUP_REST=[3.3,0,-1.7],CUP_UP=[1.95,1.25,.4];   // 컵이 쉬는 자리(펠트 밖 오른쪽, 휴대폰 위쪽 버튼에 가리지 않게), 흔드는 자리
-const POUR_DIR=(()=>{const x=-.85,z=-.53,l=Math.hypot(x,z);return [x/l,0,z/l]})();   // 왼쪽 뒤로 쏟아서 테이블 가운데에 퍼지게
-const Q_ID=[0,0,0,1],Q_POUR=qAxis((()=>{const l=Math.hypot(POUR_DIR[2],POUR_DIR[0]);return [POUR_DIR[2]/l,0,-POUR_DIR[0]/l]})(),1.95);
+const CUP_REST=[3.3,0,-1.7],CUP_UP=[2.2,1.3,-1.1];   // 컵이 쉬는 자리(펠트 밖 오른쪽, 휴대폰 위쪽 버튼에 가리지 않게), 흔드는 자리
+const POUR_DIR=(()=>{const x=-.97,z=.22,l=Math.hypot(x,z);return [x/l,0,z/l]})();   // 왼쪽(살짝 화면 쪽)으로 쏟아서 입구 안이 보이고 테이블 가운데에 퍼지게
+const Q_ID=[0,0,0,1],Q_POUR=qAxis((()=>{const l=Math.hypot(POUR_DIR[2],POUR_DIR[0]);return [POUR_DIR[2]/l,0,-POUR_DIR[0]/l]})(),1.35);   // 거의 눕힘: 입구가 카메라 쪽으로 조금 보이게
 const ease=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 const reduced=()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}};
 function qslerp(a,b,k){
@@ -764,7 +771,7 @@ function d3Sim(keep){
   const thrown=[];
   for(let i=0;i<5;i++)if(!keep[i])thrown.push(i);
   A.thrown=thrown;A.simKeep=keep.slice();
-  A.rec=thrown.length?simThrow(throwStarts(thrown.length,mouthOf(CUP_UP,Q_POUR),POUR_DIR,Math.random),[]):null;
+  A.rec=thrown.length?simThrow(throwStarts(thrown.length,mouthOf(CUP_UP,Q_POUR),POUR_DIR,Math.random,POUR_GAP),[]):null;   // 하나씩 연달아 쏟아짐
 }
 function d3Launch(){
   const pd=A.pend;A.pend=null;
@@ -778,7 +785,7 @@ function d3Launch(){
   }
   const f0=A.rec.frames[0];
   A.thrown.forEach((i,k)=>{const d=D3.dice[i];d.pr=preRot(A.rec.fin[k],d.val);d.k=k;d.where='fly';d.tw=null;d.fp=null;d.slot=-1;d.g.visible=true;
-    d.from=d.p.slice();d.s0=d.s});   // 컵 안 자리에서 쏟아지며 원래 크기로
+    d.from=null});   // 자기 차례(k×POUR_GAP)가 오면 컵 안 자리에서 빠져나오며 원래 크기로
   A.st='fly';A.recT0=clock();A.hitK=0;A.cupBack=false;
 }
 function d3Abort(){
@@ -850,12 +857,15 @@ function d3Step(now){
     if(A.pend)d3Launch();else if(now>A.waitUntil)d3Abort();
   }else if(A.st==='fly'){
     const R=A.rec,el=now-A.recT0,fi=Math.min(R.frames.length-1,Math.floor(el/1000*60)),f=R.frames[fi];
-    const OUT=110,out=Math.min(1,el/OUT),grow=ease((el-OUT)/500);   // 컵을 빠져나간(0.11초) 뒤 0.5초 동안 원래 크기로
-    A.thrown.forEach(i=>{const d=D3.dice[i],k=d.k,sp=[f[k*7],f[k*7+1],f[k*7+2]];
-      d.p=out<1&&d.from?d.from.map((x,j)=>x+(sp[j]-x)*out):sp;d.q=qmul([f[k*7+3],f[k*7+4],f[k*7+5],f[k*7+6]],d.pr);
-      d.s=(d.s0||IN_S)+(1-(d.s0||IN_S))*grow});
+    const OUT=110;   // 컵 안에서 입구까지 0.11초, 빠져나간 뒤 0.5초 동안 원래 크기로
+    A.thrown.forEach(i=>{const d=D3.dice[i],k=d.k,le=el-k*POUR_GAP*1000;
+      if(le<0){const c=inCup(i,cp,cq,now,.35);d.p=c.p;d.q=c.q;d.s=IN_S;return}   // 아직 차례가 안 온 주사위는 기운 컵 안에서 달그락
+      if(!d.from){d.from=d.p.slice();d.s0=d.s}
+      const sp=[f[k*7],f[k*7+1],f[k*7+2]],out=Math.min(1,le/OUT),grow=ease((le-OUT)/500);
+      d.p=out<1?d.from.map((x,j)=>x+(sp[j]-x)*out):sp;d.q=qmul([f[k*7+3],f[k*7+4],f[k*7+5],f[k*7+6]],d.pr);
+      d.s=d.s0+(1-d.s0)*grow});
     while(A.hitK<R.hits.length&&R.hits[A.hitK][0]*1000<=el){const s=R.hits[A.hitK++][1];tone(420+Math.random()*420,.045,{type:'triangle',vol:Math.min(.16,.03+s*.018)});hiss(.03,{freq:2400,vol:Math.min(.1,s*.014)})}
-    if(!A.cupBack&&el>160){A.cupBack=true;cupTo(CUP_REST,Q_ID,520)}
+    if(!A.cupBack&&el>(A.thrown.length-1)*POUR_GAP*1000+220){A.cupBack=true;cupTo(CUP_REST,Q_ID,520)}   // 다 쏟은 뒤 제자리로
     if(fi>=R.frames.length-1){A.st='rest';A.t0=now}
   }else if(A.st==='rest'&&now-A.t0>=120)d3Settle();
   // 주사위
@@ -1359,6 +1369,16 @@ G.init=()=>{
   #yz .yz-hint{font-size:14px;text-align:left;padding:0 2px}
   #yz .yz-tbl th.lb{width:132px}
   #yz .yz-tbl{font-size:13.5px}
+  /* 가로 화면: 점수 종이 높이를 줄들이 나눠 써서 아래가 비지 않게 (아주 큰 화면은 종이 높이에 상한을 두고 가운데) */
+  #yz .yz-card{align-self:center;height:100%;max-height:820px}
+  #yz .yz-tbl{height:100%;font-size:14.5px}
+  #yz .yz-tbl th.lb{font-size:14px;padding:2px 12px}
+  #yz .yz-tbl td.c{font-size:15px;height:auto}
+  #yz .yz-tbl td.c.f{font-size:18px}
+  #yz .yz-tbl thead th.pc{height:56px}
+  #yz .yz-tbl thead th.pc b{font-size:15px}
+  #yz .yz-tbl thead th.pc .tot{font-size:13px}
+  #yz .yz-tbl tr.tot th.lb,#yz .yz-tbl tr.tot td.c{font-size:19px}
 }
 .yz-res{margin:4px 0 2px;text-align:left}
 .yz-res-h{margin-bottom:6px}
