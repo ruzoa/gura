@@ -843,11 +843,11 @@ function q3Render(t){
    0.15~0.6초  보드가 위에서 툭 내려앉음, 0.45~1.1초 칸 81개가 가운데부터 바깥으로 솟아오름, 0.9초부터 좌표 글자
    1.0~1.4초   보관함이 바깥에서 미끄러져 들어옴, 1.25~2.0초 벽이 홈에 하나씩 꽂힘(탁탁탁)
    1.95~2.7초  말이 출발 칸에 하나씩 떨어져 튕기고, 닿는 순간 그 사람의 목표 줄이 그어짐
-   2.75~3.45초 차례 고리가 말들 사이를 돌다가 점점 느려져 첫 차례 사람에서 멈춤 → 'OO부터 시작합니다'
+   2.6~3.9초  차례 고리가 말들 사이를 빠르게 돌다가 눈에 띄게 점점 느려져(마지막 칸은 0.4초쯤 머뭇거림) 첫 차례 사람에서 멈춤 → 'OO부터 시작합니다'
    다시 하기(이미 쿼리도 화면)는 카메라·보드 없이 벽·말·룰렛만. 늦게 들어오거나 다시 연결된 사람은 연출 없이 바로 (공통 dealCheck)
    움직임 줄이기를 켠 기기는 연출 없이 첫 차례 안내만, WebGL이 없으면 위쪽 이름 목록의 룰렛만 */
-const INTRO={cam:1300,ui:650,board:[150,450],cells:[450,90,260],lab:[900,350],tray:[1000,380],walls:[1250,55,220],pawn:[1950,110,380],stripe:300,roul:[2750,3450]};
-G.introMs=3550;
+const INTRO={cam:1300,ui:650,board:[150,450],cells:[450,90,260],lab:[900,350],tray:[1000,380],walls:[1250,55,220],pawn:[1950,110,380],stripe:300,roul:[2600,3900]};
+G.introMs=4000;
 const IN={on:false,on3d:false,t0:0,fromLobby:true,said:false,seq:null,tick:0,snd:{}};
 const introOn=()=>IN.on&&clock()<IN.t0+G.introMs;
 const introWait=()=>introOn()&&!IN.said;   // 첫 차례 안내 전
@@ -867,7 +867,9 @@ G.intro=t0=>{
   if(!L.length)return;
   IN.on=true;IN.t0=t0;IN.said=false;IN.tick=0;IN.snd={};IN.fromLobby=!Q3.on;
   const f=Math.max(0,L.indexOf(V.t)),times=[];
-  for(let t=INTRO.roul[0],dt=55;t+dt<INTRO.roul[1]-40;dt*=1.16){t+=dt;times.push(t)}   // 처음엔 빠르게, 점점 느리게
+  {const D=INTRO.roul[1]-INTRO.roul[0]-250,N=Math.max(10,Math.min(14,L.length*3+4)),r=Math.pow(10,1/(N-1));   // 바퀴가 감속하듯 칸 사이 간격이 매번 같은 비율로 늘어남 (마지막 간격 = 처음의 10배), 멈춘 뒤 0.25초 있다가 안내
+   let sum=0;const g=[];for(let k=0;k<N;k++){g.push(Math.pow(r,k));sum+=g[k]}
+   let t=INTRO.roul[0];for(const x of g){t+=x/sum*D;times.push(t)}}
   IN.seq={L,times,f,start:((f-times.length)%L.length+L.length)%L.length};
   if(reduced()){IN.on3d=false;IN.t0=t0-INTRO.roul[1];return}   // 움직임 줄이기: 바로 안내
   IN.on3d=true;
@@ -925,7 +927,7 @@ function introTick(){
     const L=IN.seq?IN.seq.L:[];
     L.forEach((i,k)=>{if(e>=INTRO.pawn[0]+k*INTRO.pawn[1]+INTRO.pawn[2]*.68)once('p'+k,()=>{tone(190,.08,{type:'triangle',vol:.16});hiss(.04,{freq:1500,vol:.08});tone(520+k*130,.12,{type:'sine',vol:.06,at:.05})})});
   }
-  if(e>=INTRO.roul[0]&&e<INTRO.roul[1]&&!reduced()){const c=IN.seq?IN.seq.times.filter(x=>x<=e).length:0;if(c>IN.tick){IN.tick=c;sfx('tick')}}
+  if(e>=INTRO.roul[0]&&e<INTRO.roul[1]&&!reduced()){const c=IN.seq?IN.seq.times.filter(x=>x<=e).length:0;if(c>IN.tick){IN.tick=c;const r=c/IN.seq.times.length;tone(1400-r*650,.035,{type:'square',vol:.03+r*.03})}}   // 느려질수록 낮고 또렷한 틱
   if(e>=INTRO.roul[1]&&!IN.said){
     IN.said=true;$('#stage').classList.remove('qd-intro');if(elQd)elQd.classList.remove('intro');
     const p=V&&V.ps&&V.ps[V.t];if(p)say(V.t===myIdx()?'내가 먼저 시작합니다.':`${p.n}부터 시작합니다.`);
