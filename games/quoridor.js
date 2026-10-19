@@ -424,7 +424,7 @@ function setMode(m){
   else if(Q3.on&&Q3.sel==null){const sl=Q3.slots.get(me);if(sl)for(let g=9;g>=0;g--)if(sl.w[g]){Q3.sel=g;break}}   // 키(X)로 벽 모드: 끝 쪽 벽을 고름
   sfx('tick');redraw();
 }
-function redraw(){drawAll();G.buttons();Q3.dirty=true}
+function redraw(){qMsgUntil=0;drawAll();G.buttons();Q3.dirty=true}   // 직접 고르면 잠깐 띄운 안내(시작 안내 등)는 내리고 고른 내용을 보임
 /* 마우스를 올린 벽 자리 (벽 모드, 아직 고르지 않았을 때) */
 function hoverAt(x,y){
   if(qMode!=='wall'||!myTurnNow()||!QS){if(hov){hov=null;drawGhost();drawHint();Q3.dirty=true}return}
@@ -500,7 +500,7 @@ function boardHTML(S,me){
 function barHTML(q,me){
   return V.ps.map((p,i)=>{
     if(i>=q.cnt&&p.f)return '';
-    const on=V.st==='play'&&V.t===i&&!p.f;
+    const on=introWait()?clock()-IN.t0>=INTRO.roul[0]&&introIdx(clock()-IN.t0)===i:V.st==='play'&&V.t===i&&!p.f;
     return `<div class="qd-p${on?' on':''}${i===me?' me':''}${p.f?' out':''}" style="--pc:${PCOL[i%4]}"><i class="dot"></i><b>${esc(p.n)}${i===me?' (나)':''}</b>${p.f?`<span class="w">${p.sr===2?'시간 초과':p.sr?'항복':(+p.f)+'위'}</span>`:`<span class="w">벽 ${+q.wl[i]}</span>`}${on?'<span class="tb"><i></i></span>':''}</div>`;
   }).join('');
 }
@@ -508,6 +508,7 @@ function hintText(me){
   if(Date.now()<qMsgUntil&&qMsg)return qMsg;
   if(!V||!V.q)return '';
   if(V.st==='over')return '게임이 끝났습니다.';
+  if(introWait())return '게임을 준비하는 중…';
   if(me<0)return V.ps[V.t]?`${V.ps[V.t].n} 차례입니다. 관전 중입니다.${lastRec()}`:'';
   const p=V.ps[me];
   if(p.f)return p.sr===2?'제한 시간이 지나 패배했습니다. 남은 판을 지켜봅니다.':p.sr?'항복했습니다. 남은 판을 지켜봅니다.':V.q.dn[me]?'도착했습니다! 남은 판을 지켜봅니다.':'';
@@ -620,18 +621,22 @@ function q3Build(){
     // 보드 틀 (진한 원목)
     const frameT=canvasTex(512,512,(g,w,h)=>woodPaint(g,w,h,'#6f4020','#2a1206',110,3));
     const fg=new THREE.BoxGeometry(2*BH*U,TOP-.02,2*BH*U);
-    const frame=new THREE.Mesh(fg,toon({map:frameT,rim:.08}));frame.position.y=.02+(TOP-.02)/2;frame.castShadow=frame.receiveShadow=true;root.add(frame);
-    const fo=new THREE.Mesh(new THREE.BoxGeometry(2*BH*U+.05,TOP-.02+.02,2*BH*U+.05),inkM);fo.position.copy(frame.position);root.add(fo);
+    const bg=new THREE.Group();root.add(bg);Q3.boardG=bg;   // 보드 틀·홈·좌표 판 (시작 연출에서 함께 내려앉음)
+    const frame=new THREE.Mesh(fg,toon({map:frameT,rim:.08}));frame.position.y=.02+(TOP-.02)/2;frame.castShadow=frame.receiveShadow=true;bg.add(frame);
+    const fo=new THREE.Mesh(new THREE.BoxGeometry(2*BH*U+.05,TOP-.02+.02,2*BH*U+.05),inkM);fo.position.copy(frame.position);bg.add(fo);
     // 좌표·목표 줄을 그리는 판 (틀 위, 홈 바닥 아래)
     Q3.labTex=canvasTex(1024,1024,()=>{});
     const lab=new THREE.Mesh(new THREE.PlaneGeometry(2*BH*U,2*BH*U),new THREE.MeshBasicMaterial({map:Q3.labTex,transparent:true,depthWrite:false}));
-    lab.rotation.x=-Math.PI/2;lab.position.y=TOP+.002;lab.renderOrder=1;root.add(lab);Q3.lab=lab;
+    lab.rotation.x=-Math.PI/2;lab.position.y=TOP+.002;lab.renderOrder=1;bg.add(lab);Q3.lab=lab;
+    // 목표 줄 (사람마다 자기 색, 시작 연출에서 그어짐)
+    const stT=canvasTex(256,32,(g,w,h)=>{g.fillStyle='#fff';rr(g,0,0,w,h,h/2);g.fill()});
+    Q3.stripes=[0,1,2,3].map(i=>{const m=new THREE.Mesh(new THREE.PlaneGeometry((INN-.2)*U,.13*U),new THREE.MeshBasicMaterial({map:stT,color:PCOL[i],transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.y=TOP+.003;m.renderOrder=1;m.visible=false;bg.add(m);return m});
     // 홈 바닥 (칸 사이)
-    const groove=new THREE.Mesh(new THREE.BoxGeometry((INN+.2)*U,.01,(INN+.2)*U),toon({color:0x3a200e,rim:0}));groove.position.y=TOP+.005;groove.receiveShadow=true;root.add(groove);
+    const groove=new THREE.Mesh(new THREE.BoxGeometry((INN+.2)*U,.01,(INN+.2)*U),toon({color:0x3a200e,rim:0}));groove.position.y=TOP+.005;groove.receiveShadow=true;bg.add(groove);
     // 칸 81개 (밝은 원목)
     const cellT=canvasTex(256,256,(g,w,h)=>woodPaint(g,w,h,'#ecca93','#8a5520',46,11));
     const cellM=toon({map:cellT,rim:0}),cellG=new THREE.BoxGeometry(SZ*U,.05,SZ*U);
-    for(let vr=0;vr<9;vr++)for(let vc=0;vc<9;vc++){const [x,y]=cellXY(vr,vc),m=new THREE.Mesh(cellG,cellM);m.position.set(x*U,TOP+.035,y*U);m.receiveShadow=true;root.add(m)}
+    Q3.cells=[];for(let vr=0;vr<9;vr++)for(let vc=0;vc<9;vc++){const [x,y]=cellXY(vr,vc),m=new THREE.Mesh(cellG,cellM);m.position.set(x*U,TOP+.035,y*U);m.receiveShadow=true;m.userData.ring=Math.max(Math.abs(vr-4),Math.abs(vc-4));bg.add(m);Q3.cells.push(m)}
     Q3.trays=[0,1,2,3].map(sd=>{const g=trayGroup(sd);g.visible=false;root.add(g);return g});
     // 갈 수 있는 칸 표시 (초록) — 미리 8개 만들어 두고 켜고 끔
     const hlM=new THREE.MeshBasicMaterial({color:0x55c271,transparent:true,opacity:.42,depthWrite:false}),dotM=new THREE.MeshBasicMaterial({color:0x1f7a2e,transparent:true,opacity:.8,depthWrite:false});
@@ -658,10 +663,11 @@ function q3Labels(q,K){
   const key=K+'|'+act;if(key===Q3.labKey)return;Q3.labKey=key;
   const cv=Q3.labTex.image,g=cv.getContext('2d'),N=cv.width,s=N/(2*BH),X=v=>(v+BH)*s;
   g.clearRect(0,0,N,N);
-  for(let i=0;i<q.cnt;i++){if(!q.pos[i]||q.dn[i])continue;
-    const vs=(((q.sd[i]+2)&3)+K)&3,o=INN/2+.2,hh=.065,l=INN/2-.1;
-    const R=vs===0?[-l,o-hh,l,o+hh]:vs===2?[-l,-o-hh,l,-o+hh]:vs===1?[-o-hh,-l,-o+hh,l]:[o-hh,-l,o+hh,l];
-    g.fillStyle=PCOL[i%4];rr(g,X(R[0]),X(R[1]),(R[2]-R[0])*s,(R[3]-R[1])*s,hh*s);g.fill()}
+  Q3.stripes.forEach((m,i)=>{
+    m.visible=i<q.cnt&&!!q.pos[i]&&!q.dn[i];if(!m.visible)return;
+    const vs=(((q.sd[i]+2)&3)+K)&3,o=(INN/2+.2)*U,n=SIDE_N[vs];   // 목표 줄: 출발한 변의 맞은편
+    m.position.x=n[0]*o;m.position.z=n[1]*o;m.rotation.z=vs&1?Math.PI/2:0;
+  });
   const back=(4-K)&3,lab=(r1,c1,r2,c2)=>{const a=rc(r1,c1,back),b=rc(r2,c2,back);return a[1]===b[1]?COLS[a[1]]:String(9-a[0])};
   g.fillStyle='rgba(252,236,206,.92)';g.font=`700 ${Math.round(.3*s)}px "IBM Plex Mono", monospace`;g.textAlign='center';g.textBaseline='middle';
   for(let v=0;v<9;v++){g.fillText(lab(0,v,8,v),X((v-4)*PT),X(INN/2+.45));g.fillText(lab(v,0,v,8),X(-INN/2-.45),X((v-4)*PT))}
@@ -718,7 +724,7 @@ function q3Sync(){
   Q3.K=K;Q3.recN=(q.rec||[]).length;Q3.wN=q.w.length;
   q3Labels(q,K);
   const from={},on=new Set();for(let i=0;i<q.cnt;i++)if(q.pos[i])on.add((q.sd[i]+K)&3);
-  Q3.trays.forEach((g,sd)=>{g.visible=on.has(sd)});
+  Q3.trays.forEach((g,sd)=>{g.visible=g.userData.on=on.has(sd)});
   // 보관함 (벽을 하나 쓰면 그 홈에서 벽이 날아감)
   for(let i=0;i<q.n;i++){
     if(i>=q.cnt||!q.pos[i]){const sl=Q3.slots.get(i);if(sl){sl.w.forEach(m=>m&&Q3.root.remove(m));Q3.slots.delete(i)}continue}
@@ -771,6 +777,7 @@ function q3Marks(){
   if(sl){if(!(mine&&qMode==='wall'))Q3.sel=null;
     sl.w.forEach((m,g)=>{if(!m)return;const p=slotPose(sl.side,g);m.position.y=p.y+(g===Q3.sel?.16:0)})}
   // 차례 고리
+  if(IN.on3d)return void(Q3.dirty=true);   // 시작 연출 중 차례 고리는 룰렛이 정함
   const ti=V.st==='play'?V.t:-1,pw=Q3.pawns.get(ti);
   if(pw){Q3.ring.material.color.set(PCOL[ti%4]);Q3.ring.userData.pw=pw;Q3.ring.visible=true}else Q3.ring.visible=false;
   Q3.dirty=true;
@@ -811,14 +818,121 @@ function q3Step(now){
 function q3Render(t){
   if(!Q3.on||!T.ok)return;
   if(q3Layout(t))Q3.dirty=true;
-  const busy=q3Step(t);
-  if(!busy&&!Q3.dirty&&t-Q3.lastR<(Q3.ring.visible?60:400))return;   // 움직이는 게 없으면 가끔만 그림 (배터리)
+  const busy=q3Step(t),intro=IN.on3d&&introStep(t);
+  if(!busy&&!intro&&!Q3.dirty&&t-Q3.lastR<(Q3.ring.visible?60:400))return;   // 움직이는 게 없으면 가끔만 그림 (배터리)
   Q3.dirty=false;Q3.lastR=t;
   const fog=T.scene.fog,fn=fog?fog.near:0,ff=fog?fog.far:0;
   if(fog){fog.near=Q3.d+4;fog.far=Q3.d+26}
   for(const m of [T.timerBg,T.timerArc,T.ring])if(m)m.visible=false;   // 공통 테이블의 자리별 시간 고리는 숨김 (시간은 위쪽 목록에 표시)
-  T.r.render(T.scene,Q3.cam);
+  let cam=Q3.cam;
+  {const k=intro&&IN.fromLobby?ease((t-IN.t0)/INTRO.cam):1;
+   if(k<1){   // 시작 연출: 이 기기의 로비 카메라(공통 T.cam: 화면 크기마다 다른 위치·범위)에서 쿼리도 카메라로 위치·방향·화면 범위를 함께 옮김
+     const ic=Q3.icam||(Q3.icam=new THREE.PerspectiveCamera());
+     ic.position.copy(T.cam.position).lerp(Q3.cam.position,k);ic.quaternion.copy(T.cam.quaternion).slerp(Q3.cam.quaternion,k);
+     const a=T.cam.projectionMatrix.elements,b=Q3.cam.projectionMatrix.elements,m=ic.projectionMatrix.elements;
+     for(let j=0;j<16;j++)m[j]=a[j]+(b[j]-a[j])*k;
+     ic.projectionMatrixInverse.copy(ic.projectionMatrix).invert();ic.updateMatrixWorld();
+     if(fog){fog.near=fn+(fog.near-fn)*k;fog.far=ff+(fog.far-ff)*k}
+     cam=ic;
+   }}
+  T.r.render(T.scene,cam);
   if(fog){fog.near=fn;fog.far=ff}
+}
+/* ---------- 시작 연출 (게임이 시작되면 한 번: 방장이 그동안 제한 시간·봇을 멈춤, 길이 G.introMs) ----------
+   0~1.3초     로비 카메라(이 기기 화면의 테이블 앞 눈높이) → 바로 위 90도. 0.65초부터 위쪽 이름 목록이 들어옴
+   0.15~0.6초  보드가 위에서 툭 내려앉음, 0.45~1.1초 칸 81개가 가운데부터 바깥으로 솟아오름, 0.9초부터 좌표 글자
+   1.0~1.4초   보관함이 바깥에서 미끄러져 들어옴, 1.25~2.0초 벽이 홈에 하나씩 꽂힘(탁탁탁)
+   1.95~2.7초  말이 출발 칸에 하나씩 떨어져 튕기고, 닿는 순간 그 사람의 목표 줄이 그어짐
+   2.75~3.45초 차례 고리가 말들 사이를 돌다가 점점 느려져 첫 차례 사람에서 멈춤 → 'OO부터 시작합니다'
+   다시 하기(이미 쿼리도 화면)는 카메라·보드 없이 벽·말·룰렛만. 늦게 들어오거나 다시 연결된 사람은 연출 없이 바로 (공통 dealCheck)
+   움직임 줄이기를 켠 기기는 연출 없이 첫 차례 안내만, WebGL이 없으면 위쪽 이름 목록의 룰렛만 */
+const INTRO={cam:1300,ui:650,board:[150,450],cells:[450,90,260],lab:[900,350],tray:[1000,380],walls:[1250,55,220],pawn:[1950,110,380],stripe:300,roul:[2750,3450]};
+G.introMs=3550;
+const IN={on:false,on3d:false,t0:0,fromLobby:true,said:false,seq:null,tick:0,snd:{}};
+const introOn=()=>IN.on&&clock()<IN.t0+G.introMs;
+const introWait=()=>introOn()&&!IN.said;   // 첫 차례 안내 전
+const eOut=x=>{x=x<0?0:x>1?1:x;return 1-Math.pow(1-x,3)};
+const popS=x=>x<=0?0:x>=1?1:1+2.2*Math.pow(x-1,3)+1.2*Math.pow(x-1,2);   // 0→1, 살짝 넘쳤다가 제자리
+const dropY=(x,h)=>x>=1?0:x<.68?h*(1-(x/.68)*(x/.68)):h*.13*Math.sin(Math.PI*(x-.68)/.32);   // 떨어진 뒤 한 번 튕김
+/* 룰렛: 지금 가리키는 사람 (끝나면 첫 차례 사람) */
+function introIdx(e){
+  const q=IN.seq;if(!q)return V?V.t:0;
+  if(e>=INTRO.roul[1])return q.L[q.f];
+  let c=0;while(c<q.times.length&&q.times[c]<=e)c++;
+  return q.L[(q.start+c)%q.L.length];
+}
+G.intro=t0=>{
+  if(!V||!V.q||!V.ps)return;
+  const q=V.q,L=[];for(let i=0;i<q.cnt;i++)if(q.pos[i])L.push(i);
+  if(!L.length)return;
+  IN.on=true;IN.t0=t0;IN.said=false;IN.tick=0;IN.snd={};IN.fromLobby=!Q3.on;
+  const f=Math.max(0,L.indexOf(V.t)),times=[];
+  for(let t=INTRO.roul[0],dt=55;t+dt<INTRO.roul[1]-40;dt*=1.16){t+=dt;times.push(t)}   // 처음엔 빠르게, 점점 느리게
+  IN.seq={L,times,f,start:((f-times.length)%L.length+L.length)%L.length};
+  if(reduced()){IN.on3d=false;IN.t0=t0-INTRO.roul[1];return}   // 움직임 줄이기: 바로 안내
+  IN.on3d=true;
+  $('#stage').classList.add('qd-intro');if(elQd&&IN.fromLobby)elQd.classList.add('intro');
+  lastBar='';Q3.dirty=true;
+};
+/* 연출 중 3D: 매 프레임 물체 위치를 시간에 맞춤 (게임 상태로 정해진 자리 = 끝난 자리) */
+function introStep(now,force){
+  if(!Q3.built||!V||!V.q)return false;
+  const e=now-IN.t0,done=force||e>=G.introMs,fl=IN.fromLobby;
+  if(done)IN.on3d=false;
+  // 보드
+  {const x=done||!fl?1:(e-INTRO.board[0])/INTRO.board[1];Q3.boardG.visible=x>0;Q3.boardG.position.y=dropY(Math.max(0,x),1.6)}
+  for(const m of Q3.cells){const x=done||!fl?1:(e-INTRO.cells[0]-m.userData.ring*INTRO.cells[1])/INTRO.cells[2];m.scale.setScalar(Math.max(.001,popS(x)))}
+  Q3.lab.material.opacity=done||!fl?1:eOut((e-INTRO.lab[0])/INTRO.lab[1]);
+  // 보관함: 바깥에서 미끄러져 들어옴
+  Q3.trays.forEach((g,sd)=>{const x=done||!fl?1:(e-INTRO.tray[0])/INTRO.tray[1],o=(1-eOut(x))*2.2,n=SIDE_N[sd];g.position.set(n[0]*o,0,n[1]*o);g.visible=!!g.userData.on&&x>0});
+  // 보관함의 벽: 홈 순서대로 위에서 꽂힘 (모든 사람 같이)
+  for(const sl of Q3.slots.values())sl.w.forEach((m,g)=>{if(!m)return;
+    const x=done?1:(e-INTRO.walls[0]-g*INTRO.walls[1])/INTRO.walls[2],p=slotPose(sl.side,g);
+    m.visible=x>0;m.position.y=p.y+dropY(Math.max(0,x),1.1)});
+  // 말과 목표 줄
+  const L=IN.seq?IN.seq.L:[];
+  for(const [i,pw] of Q3.pawns){
+    const k=Math.max(0,L.indexOf(i)),x=done?1:(e-INTRO.pawn[0]-k*INTRO.pawn[1])/INTRO.pawn[2];
+    pw.visible=x>0;pw.position.y=CT+dropY(Math.max(0,x),2.4);
+    const st=Q3.stripes[i];if(st){const y=done?1:(e-INTRO.pawn[0]-k*INTRO.pawn[1]-INTRO.pawn[2]*.68)/INTRO.stripe;st.scale.x=Math.max(.001,eOut(y))}
+  }
+  // 차례 고리: 룰렛
+  if(!done&&e<INTRO.roul[1]+80){
+    const pw=e>=INTRO.roul[0]?Q3.pawns.get(introIdx(e)):null;
+    Q3.ring.visible=!!pw;if(pw){Q3.ring.userData.pw=pw;Q3.ring.material.color.set(PCOL[introIdx(e)%4])}
+  }
+  if(done){for(const pw of Q3.pawns.values())pw.visible=true;q3Marks()}
+  return true;
+}
+/* 연출을 바로 끝냄 (게임을 떠날 때) */
+function introEnd(){
+  if(IN.on3d)introStep(clock(),true);
+  IN.on=false;IN.on3d=false;IN.said=true;
+  $('#stage').classList.remove('qd-intro');if(elQd)elQd.classList.remove('intro');
+}
+/* 연출 중 소리·화면 글자 (매 프레임, G.live) */
+function introTick(){
+  if(!IN.on)return;
+  const e=clock()-IN.t0,S=IN.snd,once=(k,f)=>{if(!S[k]){S[k]=1;f()}},d3=IN.on3d&&Q3.on;
+  if(e>=INTRO.ui&&elQd&&elQd.classList.contains('intro'))elQd.classList.remove('intro');
+  if(d3&&IN.fromLobby){
+    if(e>=INTRO.board[0]+INTRO.board[1]*.68)once('thud',()=>{tone(120,.13,{type:'triangle',vol:.2});hiss(.09,{freq:650,vol:.12})});
+    for(let r=0;r<5;r++)if(e>=INTRO.cells[0]+r*INTRO.cells[1])once('c'+r,()=>tone(700+r*110,.035,{type:'triangle',vol:.04}));
+    if(e>=INTRO.tray[0])once('tray',()=>hiss(.3,{freq:500,sweep:1400,q:.7,vol:.08}));
+  }
+  if(d3){
+    for(let g=0;g<10;g++)if(e>=INTRO.walls[0]+g*INTRO.walls[1]+INTRO.walls[2]*.68)once('w'+g,()=>{hiss(.03,{freq:2600,q:2,vol:.1});tone(380+g*22,.04,{type:'triangle',vol:.08})});
+    const L=IN.seq?IN.seq.L:[];
+    L.forEach((i,k)=>{if(e>=INTRO.pawn[0]+k*INTRO.pawn[1]+INTRO.pawn[2]*.68)once('p'+k,()=>{tone(190,.08,{type:'triangle',vol:.16});hiss(.04,{freq:1500,vol:.08});tone(520+k*130,.12,{type:'sine',vol:.06,at:.05})})});
+  }
+  if(e>=INTRO.roul[0]&&e<INTRO.roul[1]&&!reduced()){const c=IN.seq?IN.seq.times.filter(x=>x<=e).length:0;if(c>IN.tick){IN.tick=c;sfx('tick')}}
+  if(e>=INTRO.roul[1]&&!IN.said){
+    IN.said=true;$('#stage').classList.remove('qd-intro');if(elQd)elQd.classList.remove('intro');
+    const p=V&&V.ps&&V.ps[V.t];if(p)say(V.t===myIdx()?'내가 먼저 시작합니다.':`${p.n}부터 시작합니다.`);
+    sfx('turn');lastBar='';if(Q3.on)q3Marks();
+  }
+  if(e>=G.introMs){IN.on=false;lastBar='';lastHint='';G.buttons()}
+  drawAll();
 }
 /* 3D 화면에서 누른 곳 → 보드 위 점 (화면 기준 칸 단위) */
 const q3Ray=()=>Q3.ray||(Q3.ray=new THREE.Raycaster());
@@ -881,6 +995,7 @@ G.hud=inGame=>{
   // 3D: WebGL이 되면 공통 테이블 위에 보드를 놓고, 안 되면 2D 그림
   const d3=on&&q3Build();
   if(d3!==Q3.on){Q3.on=d3;Q3.lay='';Q3.K=-1;if(Q3.root)Q3.root.visible=d3;$('#stage').classList.toggle('qd3d',d3);lastBoard='';lastHint=''}
+  $('#stage').classList.toggle('qd2d',on&&!d3);
   if(!on){lastBoard='';lastBar='';lastHint='';lastModes='';return}
   drawAll();
   q3Sync();
@@ -903,6 +1018,7 @@ G.buttons=()=>{
   const sub=keyLabel(KEYS.play);if($('#playSub').textContent!==sub)$('#playSub').textContent=sub;
 };
 G.live=()=>{
+  if(IN.on){introTick();return}
   if(elHint&&V&&V.st==='play'&&V.t===myIdx())drawHint();   // 남은 시간 안내
   const bar=elBar&&elBar.querySelector('.qd-p.on .tb i');
   if(bar&&V&&V.st==='play'){const left=Math.max(0,(V.deadAt-clock())/1000);bar.style.width=Math.min(100,left/(V.cfg.turn||30)*100)+'%'}
@@ -920,7 +1036,7 @@ G.onKey=(act,e)=>{
 };
 /* 공통 코드가 다른 사람 자리에 놓는 카드 더미(손패 표시 1장)는 쿼리도에 없으니 숨김 */
 G.field3D=()=>{if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=false})};
-G.render3D=t=>q3Render(t);   // 3D 화면이면 자기 카메라로 그림 (2D면 아무것도 안 그려서 배터리를 아낌)
+G.render3D=t=>{if(Q3.on)q3Render(t);else if(T.ok&&!$('#stage').classList.contains('qd2d'))T.r.render(T.scene,T.cam)};   // 게임 중(3D)은 자기 카메라로, 대기실은 다른 게임처럼 공통 테이블(시작 연출이 이 카메라에서 출발), 2D 게임 중은 그리기를 쉼
 /* 이 게임으로 바뀔 때 / 다른 게임으로 바뀔 때 */
 G.enter=()=>{
   $('#stage').classList.add('qd');
@@ -929,7 +1045,8 @@ G.enter=()=>{
   if(elQd)fit();
 };
 G.leave=()=>{
-  $('#stage').classList.remove('qd','qd-over','qd3d');
+  introEnd();   // 연출 도중에 나가면 물체를 제자리로
+  $('#stage').classList.remove('qd','qd-over','qd3d','qd2d');
   if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
   if(Q3.root)Q3.root.visible=false;Q3.on=false;Q3.anim=[];
   $('#btnPass').hidden=false;
@@ -940,7 +1057,10 @@ G.init=()=>{
   const css=document.createElement('style');
   css.textContent=`
 .stage.qd{background:radial-gradient(ellipse at 50% 38%,#f3e4c2 0%,#e2c89a 70%,#d3b27c 100%)}
-.stage.qd:not(.qd3d) #cv,.stage.qd #dim{visibility:hidden}
+.stage.qd.qd2d #cv,.stage.qd #dim{visibility:hidden}   /* 3D 캔버스는 WebGL 없이 2D로 하는 게임 중에만 숨김 (대기실은 다른 게임처럼 테이블이 보임) */
+.stage.qd-intro .actions,.stage.qd-intro .myplate,.stage.qd-intro #qd .qd-row{opacity:0;pointer-events:none}
+.stage.qd .actions,.stage.qd .myplate,#qd .qd-row,#qd .qd-bar{transition:opacity .35s}
+#qd.intro .qd-bar{opacity:0}
 .stage.qd3d #qd svg,.stage.qd3d #qd .qd-modes{display:none}
 .stage.qd3d #qd .qd-hint{flex:0 1 auto;background:rgba(255,250,240,.9);border:1px solid var(--line-strong,#cdb391);border-radius:99px;padding:4px 12px;box-shadow:0 2px 6px -2px rgba(59,42,31,.35)}
 .stage.qd .labels{visibility:hidden}
@@ -1004,6 +1124,6 @@ G.init=()=>{
 };
 
 const toW=p=>({x:p.x*BS,y:p.y*BS,z:p.z*BS,ry:p.ry});
-G._q3={Q3,wallPose:(w)=>toW(wallPose(w,viewK)),pawnPose:(p)=>toW(pawnPose(p,viewK)),trayRect:()=>Q3.trayRect,U:U*BS};   // 화면 검사용
+G._q3={Q3,IN,introEnd,wallPose:(w)=>toW(wallPose(w,viewK)),pawnPose:(p)=>toW(pawnPose(p,viewK)),trayRect:()=>Q3.trayRect,U:U*BS};   // 화면 검사용
 (window.GAMES=window.GAMES||{}).quoridor=G;
 })();
