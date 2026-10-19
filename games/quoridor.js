@@ -725,6 +725,9 @@ function q3Sync(){
   q3Labels(q,K);
   const from={},on=new Set();for(let i=0;i<q.cnt;i++)if(q.pos[i])on.add((q.sd[i]+K)&3);
   Q3.trays.forEach((g,sd)=>{g.visible=g.userData.on=on.has(sd)});
+  // 지난 판이 사람이 더 많았으면(4명 → 2명) 남은 사람 수 밖의 말·보관함 벽을 치움
+  for(const [i,sl] of Q3.slots)if(i>=q.n){sl.w.forEach(m=>m&&Q3.root.remove(m));Q3.slots.delete(i)}
+  for(const [i,pw] of Q3.pawns)if(i>=q.n){Q3.root.remove(pw);Q3.pawns.delete(i)}
   // 보관함 (벽을 하나 쓰면 그 홈에서 벽이 날아감)
   for(let i=0;i<q.n;i++){
     if(i>=q.cnt||!q.pos[i]){const sl=Q3.slots.get(i);if(sl){sl.w.forEach(m=>m&&Q3.root.remove(m));Q3.slots.delete(i)}continue}
@@ -789,10 +792,14 @@ function q3Layout(t){
   const st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight;if(!W||!Hh||!V||!V.q)return false;
   const sr=st.getBoundingClientRect(),bd=elQd.querySelector('.qd-bd').getBoundingClientRect();
   const q=V.q,sides=new Set();for(let i=0;i<q.cnt;i++)if(q.pos[i])sides.add((q.sd[i]+viewK)&3);
-  const key=[W,Hh,Math.round(bd.top-sr.top),Math.round(bd.height),[...sides].sort().join('')].join(',');
+  // 보드 자리 위쪽 끝: 화면 크기·참가한 변이 같으면 아래로만 옮김 (위쪽 이름 목록이 '벽 10'→'벽 9'처럼 줄어들 때마다 보드가 들썩이지 않게)
+  const base=[W,Hh,[...sides].sort().join('')].join(',');
+  if(Q3.topBase!==base){Q3.topBase=base;Q3.topMax=0}
+  const top=Math.max(Math.round(bd.top-sr.top),Q3.topMax);Q3.topMax=top;
+  const key=base+','+top;
   if(key===Q3.lay)return false;
   Q3.lay=key;
-  const narrow=W<700,fy=bd.top-sr.top+2,fh=(narrow?Hh-78:Hh-8)-fy,fw=W-8;
+  const narrow=W<700,fy=top+2,fh=(narrow?Hh-78:Hh-8)-fy,fw=W-8;
   // 보드와 보관함이 다 들어오게. 좁은 화면(휴대폰 세로)에서는 양옆 보관함을 벽 끝만 보이게 해서 보드를 크게
   const hy=(sides.has(0)||sides.has(2)?TO:BH)+.05,side=sides.has(1)||sides.has(3);
   const full=Math.min(fw/(2*((side?TO:BH)+.05)),fh/(2*hy)),peek=Math.min(fw/(2*(BH+(side?PEEK:0))),fh/(2*hy));
@@ -843,11 +850,11 @@ function q3Render(t){
    0.15~0.6초  보드가 위에서 툭 내려앉음, 0.45~1.1초 칸 81개가 가운데부터 바깥으로 솟아오름, 0.9초부터 좌표 글자
    1.0~1.4초   보관함이 바깥에서 미끄러져 들어옴, 1.25~2.0초 벽이 홈에 하나씩 꽂힘(탁탁탁)
    1.95~2.7초  말이 출발 칸에 하나씩 떨어져 튕기고, 닿는 순간 그 사람의 목표 줄이 그어짐
-   2.6~3.9초  차례 고리가 말들 사이를 빠르게 돌다가 눈에 띄게 점점 느려져(마지막 칸은 0.4초쯤 머뭇거림) 첫 차례 사람에서 멈춤 → 'OO부터 시작합니다'
+   2.6~7.65초 차례 고리가 말들 사이를 빠르게 한두 바퀴 돌다가 점점 느려져(… 0.44 → 0.67 → 1 → 1.5초) 첫 차례 사람에서 멈춤 → 'OO부터 시작합니다'
    다시 하기(이미 쿼리도 화면)는 카메라·보드 없이 벽·말·룰렛만. 늦게 들어오거나 다시 연결된 사람은 연출 없이 바로 (공통 dealCheck)
    움직임 줄이기를 켠 기기는 연출 없이 첫 차례 안내만, WebGL이 없으면 위쪽 이름 목록의 룰렛만 */
-const INTRO={cam:1300,ui:650,board:[150,450],cells:[450,90,260],lab:[900,350],tray:[1000,380],walls:[1250,55,220],pawn:[1950,110,380],stripe:300,roul:[2600,3900]};
-G.introMs=4000;
+const INTRO={cam:1300,ui:650,board:[150,450],cells:[450,90,260],lab:[900,350],tray:[1000,380],walls:[1250,55,220],pawn:[1950,110,380],stripe:300,roul:[2600,7650]};
+G.introMs=7750;
 const IN={on:false,on3d:false,t0:0,fromLobby:true,said:false,seq:null,tick:0,snd:{}};
 const introOn=()=>IN.on&&clock()<IN.t0+G.introMs;
 const introWait=()=>introOn()&&!IN.said;   // 첫 차례 안내 전
@@ -867,9 +874,9 @@ G.intro=t0=>{
   if(!L.length)return;
   IN.on=true;IN.t0=t0;IN.said=false;IN.tick=0;IN.snd={};IN.fromLobby=!Q3.on;
   const f=Math.max(0,L.indexOf(V.t)),times=[];
-  {const D=INTRO.roul[1]-INTRO.roul[0]-250,N=Math.max(10,Math.min(14,L.length*3+4)),r=Math.pow(10,1/(N-1));   // 바퀴가 감속하듯 칸 사이 간격이 매번 같은 비율로 늘어남 (마지막 간격 = 처음의 10배), 멈춘 뒤 0.25초 있다가 안내
-   let sum=0;const g=[];for(let k=0;k<N;k++){g.push(Math.pow(r,k));sum+=g[k]}
-   let t=INTRO.roul[0];for(const x of g){t+=x/sum*D;times.push(t)}}
+  {// 처음 0.3초는 0.03초마다 빠르게 돌고, 그 뒤 칸 사이 간격이 매번 1.5배씩 늘어 마지막은 1 → 1.5초 (바퀴가 감속하듯). 멈춘 뒤 0.3초 있다가 안내
+   const gaps=[];for(let k=0;k<10;k++)gaps.push(30);for(let k=9;k>=0;k--)gaps.push(1500/Math.pow(1.5,k));
+   let t=INTRO.roul[0];for(const x of gaps){t+=x;times.push(t)}}
   IN.seq={L,times,f,start:((f-times.length)%L.length+L.length)%L.length};
   if(reduced()){IN.on3d=false;IN.t0=t0-INTRO.roul[1];return}   // 움직임 줄이기: 바로 안내
   IN.on3d=true;
@@ -1084,6 +1091,7 @@ G.init=()=>{
 #qd .qd-p .tb{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(0,0,0,.08)}
 #qd .qd-p .tb i{display:block;height:100%;width:100%;background:var(--pc)}
 #qd .qd-row{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;width:100%;pointer-events:none;min-height:44px}
+.stage.qd3d #qd .qd-row{height:44px;min-height:0;flex:none;align-items:flex-start;padding-top:4px;overflow:visible;position:relative;z-index:1}   /* 3D: 안내 글이 길어지거나 글자가 커도 줄 높이는 그대로 (넘치면 보드 위로 살짝 겹침) → 보드·카메라가 움직이지 않음 */
 #qd .qd-hint{flex:1 1 200px;min-width:0;font-size:13px;line-height:1.3;color:#5b4129;text-align:center;min-height:17px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}   /* 안내 글이 바뀌어도 보드가 움직이지 않게 줄 높이 고정 (최대 2줄) */
 #qd .qd-modes{display:flex;gap:4px;pointer-events:auto}
 #qd .qd-m{height:34px;padding:0 12px;border-radius:10px;border:2px solid var(--mustard-edge,#c08a17);background:#fffaf0;color:#3b2a1f;font-family:var(--f-display,inherit);font-size:15px;cursor:pointer}
