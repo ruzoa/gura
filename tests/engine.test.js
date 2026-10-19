@@ -26,6 +26,7 @@ run(fs.readFileSync(path.join(root,'games/gura.js'),'utf8'),'gura.js');
 run(fs.readFileSync(path.join(root,'games/president.js'),'utf8'),'president.js');
 run(fs.readFileSync(path.join(root,'games/quoridor.js'),'utf8'),'quoridor.js');
 run(fs.readFileSync(path.join(root,'games/yahtzee.js'),'utf8'),'yahtzee.js');
+run(fs.readFileSync(path.join(root,'games/omok.js'),'utf8'),'omok.js');
 run(cut('/* 카드 id 규칙은','const PEER_PREFIX='),'core-consts');
 run(cut('let H=null, flushQueued=false, lastBeat=0;','function seatOfConn(conn){').replace('setInterval(engineTick,100);',''),'core-engine');
 run(`
@@ -201,6 +202,18 @@ for(let rep=0;rep<36;rep++){
 }
 console.log('yahtzee ticks',yt);
 `,'yahtzee.run');
+// 오목: 규칙 단위 테스트 + 54가지 규칙 조합을 봇끼리 끝까지
+run(`{
+const OM=GAMES.omok;
+`+fs.readFileSync(path.join(__dirname,'omok.cases.js'),'utf8')+`
+}`,'omok.cases.js');
+run(`
+let ot=0;
+for(let sz=0;sz<2;sz++)for(let b33=0;b33<3;b33++)for(let ov=0;ov<3;ov++)for(let op=0;op<3;op++){
+  ot+=playOutO({sz,b33,ov,op,tm:10,inc:5,first:(sz+b33+ov+op)%3},[(sz+op)%3,(b33+ov+1)%3]);
+}
+console.log('omok ticks',ot);
+`,'omok.run');
 run(`
 let ticks=0;
 for(let rep=0;rep<60;rep++){

@@ -1,6 +1,6 @@
-# 게임 모음 (구라! · 대부호 · 쿼리도 · 야추다이스)
+# 게임 모음 (구라! · 대부호 · 쿼리도 · 야추다이스 · 오목)
 
-친구들과 브라우저에서 하는 온라인 게임 모음입니다 (카드게임은 3D 테이블, 쿼리도는 3D 테이블 위 원목 보드를 바로 위에서 내려다봄, 야추다이스는 3D 테이블 위 주사위 트레이 + 2D 점수 종이). GitHub Pages로 배포하고 빌드 과정은 없습니다.
+친구들과 브라우저에서 하는 온라인 게임 모음입니다 (카드게임은 3D 테이블, 쿼리도는 3D 테이블 위 원목 보드를 바로 위에서 내려다봄, 야추다이스는 3D 테이블 위 주사위 트레이 + 2D 점수 종이, 오목은 3D 테이블 위 오목판 + 체스 시계). GitHub Pages로 배포하고 빌드 과정은 없습니다.
 
 ## 파일 구조
 
@@ -11,7 +11,8 @@
 | `games/president.js` | 대부호 규칙 엔진, 봇, 카드 모양, 화면 표시 |
 | `games/quoridor.js` | 쿼리도 규칙 엔진, 봇, 공통 테이블 위 3D 보드(바로 위 90도 자기 카메라, 참가한 사람 앞에 보드와 떨어진 진갈색 보관함(홈 10개)에 벽을 세워 둠, 말 점프·벽 날아가기, 누르면 반투명 미리 보기 → [놓기]로 확정, 내 보관함의 벽을 눌러 고르면 살짝 올라오고 벽 모드, 개인 설정 '두 번 눌러 놓기'(`gura-dbltap`), 시작 연출: 로비 카메라→바로 위 카메라·보드 내려앉기와 칸 솟기·보관함과 벽 꽂기·말 떨어지며 목표 줄 긋기·첫 차례 룰렛(공통 `firstPick` + `roulette.js`, 빠른 칸 수가 판마다 달라 연출은 약 9~10초), 대기실은 공통 테이블). 벽 수는 공식 규칙(2명 10개, 4명 5개). WebGL이 없으면 2D 보드(SVG) (카드 없음, 최대 4명, 빠른 모드 없음) |
 | `games/yahtzee.js` | 야추다이스 규칙 엔진, 봇, 3D 컵·주사위(자체 물리, 눈은 방장이 정하고 그 눈으로 떨어지게 연출, 떨어진 주사위를 누르면 앞쪽 고정 칸으로·다시 누르면 테이블로, 시작 연출: 로비 카메라→야추 카메라·펠트와 고정 칸·컵에 주사위 담기·첫 차례 룰렛 3.6초, 바로 시작은 테이블 그대로 주사위만 컵으로 모으고 룰렛 2.3초), 점수 종이 (카드 없음, 최대 4명, 빠른 모드 없음, 굴리기 키 `C`를 누르고 있다 떼기). WebGL이 없으면 2D 주사위 칸 |
-| `tests/engine.test.js` | 엔진 테스트 (`node tests/engine.test.js`). `tests/*.cases.js`(야추다이스는 `tests/yahtzee.cases.js`), `tests/quoridor.fuzz.js`를 불러서 함께 돌림 |
+| `games/omok.js` | 오목 규칙 엔진(순수 함수 `judge`·`scanFours` 등: 장목 3종, 3-3·4-4 3종, 5목 우선, 거짓 3), 오프닝(없음·Swap·Swap2), 체스 시계(총 시간+추가 시간, 시간 초과 패배), 봇, 방 설정 레버(자유·커스텀·렌주, 세부 설정 접기), 공통 테이블 위 3D 오목판과 체스 시계(바로 위 자기 카메라, 판 아래/옆에 시계, 누르면 반투명 미리 보기 → [놓기], 금수는 빨간 ✕, 이긴 줄 표시, 시작 연출 2.4초), 2D 판(SVG), 기보 복사 (최대 2명, 빠른 모드 없음, `tests/omok.cases.js`) |
+| `tests/engine.test.js` | 엔진 테스트 (`node tests/engine.test.js`). `tests/*.cases.js`(야추다이스는 `tests/yahtzee.cases.js`, 오목은 `tests/omok.cases.js`), `tests/quoridor.fuzz.js`를 불러서 함께 돌림 |
 | `roulette.js` | 첫 차례 룰렛 순서 계산(순수 함수, 화면·소리 없음). `Roulette.plan(인원, 첫 차례, 옵션)` → 칸 넘김 시각 목록. 빠른 구간 칸 수는 매 판 무작위(`pickFast`), 감속은 빠른 간격에서 바로 같은 비율로 늘어 마지막 간격에 닿음. 값은 `Roulette.DEF` 한 곳(테스트룸에서 맞춘 값). 쿼리도에 연결됨, 나머지 게임은 아직 |
 | `lab.html` | 연출 테스트룸 (메인에 링크 없음, 배포 주소 `/gura/lab.html`). 지금은 첫 차례 룰렛만: 인원·첫 차례·화면 비율, 슬라이더(빠른 칸 수 범위, 빠른 간격, 감속 비율, 마지막 간격, 멈춘 뒤 대기), [다시 보기], [값 복사]. 마지막 값은 `gura-lab-roulette`에 저장 |
 | `tests/roulette.test.js` | 룰렛 계산 테스트 (`node tests/roulette.test.js`). `tests/engine.test.js`도 `roulette.js`를 불러서 `hostStart`가 돌아가게 함 |
@@ -45,4 +46,4 @@
 - **화면 문구**:
   - ~니다 체로 씁니다.
   - 같은 기능은 어디서나 같은 이름으로 부릅니다 (대기 시간, 제한 시간, 별카드, 관전 등).
-- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`).
+- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`). 오목은 이 밖에 커스텀 규칙 기억(`gura-omok-custom`)과 세부 설정 펼침(`gura-omok-more`)도 저장합니다.
