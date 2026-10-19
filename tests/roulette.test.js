@@ -8,7 +8,7 @@ for(const n of [2,3,4])for(let f=0;f<n;f++)for(const fc of [0,1,10,17,26]){
   ok(p.at(-1)===p.start,`시작 자리 n=${n}`);
   for(let k=1;k<p.times.length;k++)ok(p.times[k]>p.times[k-1],'시각이 늘어남');
   const g=p.gaps;
-  ok(Math.abs(g[g.length-1]-1500)<1,`마지막 간격 1500 (${g[g.length-1]})`);
+  ok(Math.abs(g[g.length-1]-R.DEF.endGap)<1,`마지막 간격 ${R.DEF.endGap} (${g[g.length-1]})`);
   // 이음새: 빠른 구간 다음 칸이 더 빠르지 않음
   if(fc>0)ok(g[fc]>=g[fc-1]-1e-9,`감속 이음새 fast=${fc}`);
   // 감속 구간은 매번 같은 비율로 늘어남

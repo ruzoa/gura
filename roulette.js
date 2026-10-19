@@ -10,7 +10,7 @@
    total    : 마지막 칸 넘김 뒤 wait만큼 기다린 시각 (= 안내가 나오는 시각)
    at(e)    : e ms 시점에 가리키는 자리 */
 (function(root){
-  const DEF={fastCount:10,fastGap:30,endGap:1500,ratio:1.5,wait:300};
+  const DEF={fastMin:10,fastMax:30,fastCount:10,fastGap:50,endGap:1250,ratio:1.3,wait:650};   // 확정 값: 빠른 칸 10~30(매 판 무작위), 빠른 간격 50ms, 감속 ×1.3, 마지막 1.25초, 멈춘 뒤 0.65초
 
   /* 빠르게 도는 구간(fastGap 일정) 다음, 칸 사이 간격이 fastGap에서 바로 매번 같은 비율로 늘어 endGap에 닿음 */
   function gaps(opt){
