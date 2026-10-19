@@ -224,7 +224,6 @@ G.cardHTML=()=>'';G.drawFace=()=>{};G.cmpCard=()=>0;G.labelOf=()=>'';
 
 /* ---------- 방장 엔진 (규칙 처리) ---------- */
 const other=i=>1-i;
-const startedAt=()=>clock();
 function sameNames(a,b){return a.length===2&&b.length===2&&a.every(x=>b.includes(x))&&a[0]!==a[1]}
 /* 첫 선플레이어: 결과 화면에서 바로 시작하면 이긴 사람(비기면 서로 바꿈), 아니면 방 설정 */
 function pickFirst(again){
@@ -245,7 +244,7 @@ function setMover(to,inc){
   if(cur&&!cur.bot)O.rem[from]=Math.max(0,O.rem[from]-el);   // 사람이 쓴 시간만 깎음 (봇·자리 비운 사람은 시계가 안 감)
   if(inc&&from!==to&&cur&&!cur.bot)O.rem[from]+=O.R.inc*1000;
   O.mv=to;H.turn=to;O.since=t;
-  const nx=H.players[to];
+  const nx=H.players[to];O.mvBot=nx&&nx.bot?1:0;
   H.botActAt=nx&&nx.bot?t+rand(700,1600):0;
   mark();
 }
@@ -283,9 +282,17 @@ function doMove(seat,r,c){
   if(j.bad)return false;
   placeStone(seat,r,c,col,false);
   if(j.win>=0){const line=winCells(O.b,n,r,c,j.win);finishGame(seat,'',line);return true}
-  if(O.cnt>=n*n){finishGame(-1);return true}
+  if(O.cnt>=n*n||!canMove(O,nextColor(O.cnt))){finishGame(-1);return true}   // 판이 차거나, 다음 색이 둘 곳이 모두 금수면 무승부
   setMover(seatOfColor(nextColor(O.cnt)),true);
   return true;
+}
+/* col이 둘 수 있는 빈 칸이 하나라도 있나 (빈 칸이 적을 때만 하나씩 확인: 금수 판정이 무거움) */
+function canMove(O,col){
+  const b=O.b,R=O.R,n=R.n,left=n*n-O.cnt;
+  if(!left)return false;
+  if(!bound(col,R)||left>40)return true;
+  for(let i=0;i<b.length;i++)if(!b[i]&&!judge(b,R,(i/n)|0,i%n,col,0).bad)return true;
+  return false;
 }
 /* 오프닝 돌 놓기 (p1, p2) */
 function doOpenStone(seat,r,c){
@@ -330,7 +337,7 @@ function botTurn(i){
   }else doPick(i,botPick(O,i,lv));
 }
 /* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
-G._test={rulesOf,runLen,winLen,bound,scanFours,openThree,judge,legalAt,winCells,forbidCells,nextColor,cellScore,cands,botMove,botPick,botOpenStone,sqName,presetOf,baseOf,diffKeys,PRESETS,doMove,doOpenStone,doPick,doSurrender,timeout,pickFirst,recordText:v=>recordText(v)};
+G._test={canMove,rulesOf,runLen,winLen,bound,scanFours,openThree,judge,legalAt,winCells,forbidCells,nextColor,cellScore,cands,botMove,botPick,botOpenStone,sqName,presetOf,baseOf,diffKeys,PRESETS,doMove,doOpenStone,doPick,doSurrender,timeout,pickFirst,recordText:v=>recordText(v)};
 G.engine={
   /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
   start(){
@@ -341,7 +348,7 @@ G.engine={
       if(i<2)p.hand=[0];else{p.hand=[];p.finished=true;p.rank=i+1}   // 자리가 모자라면(3명 이상) 구경만 함 (보통은 최대 인원 2명이라 생기지 않음)
     });
     const A=pickFirst(again),t=clock();
-    const O={R,A,ph:R.op?'p1':'play',co:R.op?[0,0]:(A===0?[1,2]:[2,1]),mv:A,rem:[R.tm*60000,R.tm*60000],since:t,b:Array(n*n).fill(0),cnt:0,lm:null,rec:[],res:null};
+    const O={mvBot:H.players[A].bot?1:0,R,A,ph:R.op?'p1':'play',co:R.op?[0,0]:(A===0?[1,2]:[2,1]),mv:A,rem:[R.tm*60000,R.tm*60000],since:t,b:Array(n*n).fill(0),cnt:0,lm:null,rec:[],res:null};
     H.o=O;H.turn=A;
     H.botActAt=H.players[A].bot?t+rand(900,2000):0;
     const nm=H.players[A].name;
@@ -366,7 +373,14 @@ G.engine={
     const O=H.o;
     if(!O||H.phase!=='play')return;
     const p=H.players[O.mv];if(!p)return;
-    if(p.bot){if(H.botActAt&&t>=H.botActAt&&!(p.away&&t<p.awayAt+AWAY_WAIT))botTurn(O.mv);return}
+    if(p.bot){
+      // 연결이 끊겨 봇이 맡은 동안은 시계를 멈춤: 끊기기 전까지 쓴 시간만 깎고, 그 뒤로는 시작 시각을 계속 지금으로 둠 (다시 연결되면 그때부터 흐름)
+      if(!O.mvBot){O.rem[O.mv]=Math.max(0,O.rem[O.mv]-Math.max(0,t-O.since));O.mvBot=1}
+      O.since=t;
+      if(H.botActAt&&t>=H.botActAt&&!(p.away&&t<p.awayAt+AWAY_WAIT))botTurn(O.mv);
+      return;
+    }
+    if(O.mvBot){O.mvBot=0;O.since=t}
     if(O.rem[O.mv]-Math.max(0,t-O.since)<=0)timeout();
   },
   snap(s,you,t){
@@ -450,7 +464,6 @@ G.panelAct=a=>{
 
 /* ---------- 화면 (모든 참가자) ----------
    2D(SVG)와 3D(공통 테이블 위 원목 판 + 체스 시계)는 같은 상태(OS)를 보고 그림 */
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 let OS=null,pend=null,msg='',msgUntil=0,msgTimer=null;   // OS: 지금 판 {n,R,b,...}, pend: 미리 보기로 고른 칸 {r,c}
 let elOm=null,elSvg=null,elMain=null,elGhost=null,elBar=null,elHint=null,elModes=null,lastBoard='',lastBar='',lastHint='',lastModes='';
 const OC={at:0,fk:'',fl:[]};   // OC.at: 상태를 받은 시각 (시계가 흐른 시간 계산), fk·fl: 금수 칸 캐시
@@ -481,7 +494,6 @@ function forbidNow(){
   if(OC.fk!==k){OC.fk=k;OC.fl=forbidCells(OS.b.slice(),OS.R,col)}
   return OC.fl;
 }
-const myColor=()=>{const me=myIdx();return me>=0&&OS?OS.co[me]:0};
 /* 눌러서 고르기 (미리 보기): 확정은 [놓기] */
 function pickCell(r,c){
   if(!V||!V.o||V.st!=='play'||!OS)return;
@@ -608,19 +620,17 @@ function drawAll(){
   if(!Om3.on){
     const vb=vbOf(OS.n),vs=`${vb.x} ${vb.y} ${vb.w} ${vb.w}`;
     if(elSvg.getAttribute('viewBox')!==vs)elSvg.setAttribute('viewBox',vs);
-    const bd=boardHTML()+(V.st==='play'&&myTurnNow()?'1':'0');
-    if(bd!==lastBoard){elMain.innerHTML=boardHTML();lastBoard=bd}
+    const bd=boardHTML();   // 같은 그림이면 다시 넣지 않음 (내 차례 여부에 따라 금수 ✕가 바뀌므로 글 전체로 비교)
+    if(bd!==lastBoard){elMain.innerHTML=bd;lastBoard=bd}
   }
   const bar=barHTML();if(bar!==lastBar){elBar.innerHTML=bar;lastBar=bar}
   drawGhost();drawHint();fit();
 }
-/* 기보 (복사용 글은 위의 recordText) */
-function lastRec(){const L=OS&&OS.rec&&OS.rec[OS.rec.length-1];return L}
 
 /* ---------- 3D: 공통 원목 테이블 위의 오목판 + 체스 시계, 바로 위(90도)에서 내려다보는 자기 카메라 ----------
    단위: 월드 그대로. 판 반폭 BW(틀 포함), 교점 간격은 판 크기에 맞춤. 화면 x→월드 x, 화면 아래→월드 +z, 줄 번호는 위가 15 · 아래가 1
-   시계: 좁은 화면(세로)은 판 아래에, 넓은 화면은 판 옆(오른쪽)에 놓음. 내 칸은 아래/왼쪽 */
-const BW=2.3,GM=.3,TOP=.2,SPAN=2*BW-2*GM,GAPC=.38,CD=1.7,CL=3.1;   // 틀 반폭, 틀 안쪽 여백, 판 윗면 높이, 격자 폭, 판과 시계 사이, 시계 두께, 시계 길이
+   시계: 좁은 화면(세로)은 판 아래에, 넓은 화면은 판 오른쪽 아래에 가로로 놓음. 내 칸은 왼쪽 */
+const BW=2.3,GM=.3,TOP=.2,SPAN=2*BW-2*GM,GAPC=.38,CD=1.05,CL=3.0,CH=.14,CB=.03,CT=CH+2*CB;   // 틀 반폭, 틀 안쪽 여백, 판 윗면 높이, 격자 폭, 판과 시계 사이, 시계 폭(앞뒤)·길이·몸통 높이·모서리 둥글기·윗면 높이
 const Om3={on:false,built:false,fail:false,root:null,cam:null,dirty:true,lastR:0,lay:'',layAt:0,d:12,W:0,H:0,K:'',stones:new Map(),anim:[],cnt:-1,ck:'',forbid:[],tx:{}};
 const reduced=()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}};
 const ease=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
@@ -663,20 +673,20 @@ function drawBoardTex(n){
   Om3.boardTex.needsUpdate=true;Om3.texN=n;
 }
 function panelTex(){
-  const cv=document.createElement('canvas');cv.width=256;cv.height=128;
+  const cv=document.createElement('canvas');cv.width=320;cv.height=140;
   const t=new THREE.CanvasTexture(cv);t.anisotropy=4;return t;
 }
 /* 시계 한 칸(표시판)을 그림: 이름·색·남은 시간. 켜진 쪽(두는 차례)은 밝게 */
 function drawPanel(tex,label,col,ms,on,low){
   const cv=tex.image,g=cv.getContext('2d'),w=cv.width,h=cv.height;
   g.clearRect(0,0,w,h);
-  g.fillStyle=on?'#f3e3a0':'#3a3f38';rr(g,2,2,w-4,h-4,14);g.fill();
-  g.strokeStyle=on?'#c9a233':'#1f2420';g.lineWidth=4;rr(g,2,2,w-4,h-4,14);g.stroke();
-  g.fillStyle=on?'#3b2a1f':'#9aa294';g.font='700 26px "IBM Plex Sans KR", sans-serif';g.textAlign='left';g.textBaseline='middle';
-  g.fillText(label,40,26);
-  if(col){g.fillStyle=col===1?'#1b1b1e':'#f7f2e8';g.strokeStyle=on?'#6b4a26':'#707868';g.lineWidth=2.5;g.beginPath();g.arc(22,26,10,0,7);g.fill();g.stroke()}
-  g.fillStyle=low&&on?'#c0281c':on?'#2a1c10':'#c9d0c0';g.font='700 62px "IBM Plex Mono", monospace';g.textAlign='center';
-  g.fillText(fmtT(ms),w/2,86);
+  g.fillStyle='#1a120b';rr(g,0,0,w,h,18);g.fill();   // 테두리 (시계 몸통에 박힌 창)
+  g.fillStyle=on?'#f3e3a0':'#2f352e';rr(g,7,7,w-14,h-14,12);g.fill();
+  g.fillStyle=on?'#3b2a1f':'#9aa294';g.font='700 25px "IBM Plex Sans KR", sans-serif';g.textAlign='left';g.textBaseline='middle';
+  g.fillText(label,46,32);
+  if(col){g.fillStyle=col===1?'#1b1b1e':'#f7f2e8';g.strokeStyle=on?'#6b4a26':'#707868';g.lineWidth=2.5;g.beginPath();g.arc(28,32,10,0,7);g.fill();g.stroke()}
+  g.fillStyle=low&&on?'#c0281c':on?'#2a1c10':'#c9d0c0';g.font='700 70px "IBM Plex Mono", monospace';g.textAlign='center';
+  g.fillText(fmtT(ms),w/2,96);
   tex.needsUpdate=true;
 }
 function om3Build(){
@@ -700,34 +710,28 @@ function om3Build(){
     Om3.lastM=new THREE.Mesh(new THREE.CircleGeometry(1,20),new THREE.MeshBasicMaterial({color:0xd6342a,transparent:true,opacity:.95,depthWrite:false}));Om3.lastM.rotation.x=-Math.PI/2;Om3.lastM.visible=false;Om3.lastM.renderOrder=4;root.add(Om3.lastM);
     Om3.winM=new THREE.Mesh(new THREE.BoxGeometry(1,.03,1),new THREE.MeshBasicMaterial({color:0xf2b632,transparent:true,opacity:.9}));Om3.winM.visible=false;Om3.winM.renderOrder=5;root.add(Om3.winM);
     Om3.ghost=new THREE.Group();Om3.ghost.visible=false;root.add(Om3.ghost);
-    // 체스 시계: 짙은 원목 몸체 + 표시판 둘 + 누름 단추 둘. 로컬 x가 긴 쪽
+    // 체스 시계: 낮고 납작한 원목 몸통(모서리 둥근 판) + 표시판 둘 + 뒤쪽의 작은 누름 단추 둘. 로컬 x가 긴 쪽, 왼쪽(−x)이 내 칸
     const clk=new THREE.Group();root.add(clk);Om3.clk=clk;
-    const bodyT=toon({map:canvasTex(256,256,(g,w,h)=>woodPaint(g,w,h,'#3d2210','#120600',60,5)),rim:.06});
-    const shell=new THREE.Group();clk.add(shell);Om3.shell=shell;   // 몸체와 단추 (옆에 놓을 때만 돌림. 표시판 글자는 항상 바로 보이게 따로)
-    const body=new THREE.Mesh(new THREE.BoxGeometry(CL,.34,CD),bodyT);body.position.y=.17;body.castShadow=body.receiveShadow=true;shell.add(body);
-    const bo=new THREE.Mesh(new THREE.BoxGeometry(CL+.05,.34,CD+.05),inkM);bo.position.y=.17;shell.add(bo);
-    Om3.pan=[0,1].map(k=>{const tex=panelTex(),m=new THREE.Mesh(new THREE.PlaneGeometry(CL/2-.2,(CL/2-.2)/2),new THREE.MeshBasicMaterial({map:tex}));m.rotation.x=-Math.PI/2;m.renderOrder=2;clk.add(m);return {m,tex}});
+    const bodyT=toon({map:canvasTex(256,256,(g,w,h)=>woodPaint(g,w,h,'#4a2a14','#160800',60,5)),rim:.06});
+    const sh=new THREE.Shape(),hw=CL/2,hd=CD/2,rad=.2;
+    sh.moveTo(-hw+rad,-hd);sh.lineTo(hw-rad,-hd);sh.quadraticCurveTo(hw,-hd,hw,-hd+rad);sh.lineTo(hw,hd-rad);sh.quadraticCurveTo(hw,hd,hw-rad,hd);
+    sh.lineTo(-hw+rad,hd);sh.quadraticCurveTo(-hw,hd,-hw,hd-rad);sh.lineTo(-hw,-hd+rad);sh.quadraticCurveTo(-hw,-hd,-hw+rad,-hd);
+    const bgeo=new THREE.ExtrudeGeometry(sh,{depth:CH,bevelEnabled:true,bevelThickness:CB,bevelSize:CB,bevelSegments:3,curveSegments:8});
+    const body=new THREE.Mesh(bgeo,bodyT);body.rotation.x=-Math.PI/2;body.position.y=CB;body.castShadow=body.receiveShadow=true;clk.add(body);
+    const bo=new THREE.Mesh(bgeo,inkM);bo.rotation.x=-Math.PI/2;bo.position.y=CB-.012;bo.scale.set(1+.05/CL,1+.05/CD,1.15);clk.add(bo);
+    Om3.pan=[0,1].map(k=>{const tex=panelTex(),m=new THREE.Mesh(new THREE.PlaneGeometry(1.26,.55),new THREE.MeshBasicMaterial({map:tex}));m.rotation.x=-Math.PI/2;m.position.set((k?1:-1)*.73,CT+.004,.1);m.renderOrder=2;clk.add(m);return {m,tex}});
     const btnM=toon({color:0xc9831a,rim:.2});
-    Om3.btn=[0,1].map(k=>{const b=new THREE.Mesh(new THREE.CylinderGeometry(.13,.15,.16,24),btnM);b.position.set((k?1:-1)*CL/4,.42,-CD/2+.2);b.castShadow=true;shell.add(b);const o=new THREE.Mesh(new THREE.CylinderGeometry(.15,.18,.18,24),inkM);o.position.copy(b.position);shell.add(o);b.userData.o=o;return b});
+    Om3.btn=[0,1].map(k=>{const b=new THREE.Mesh(new THREE.CylinderGeometry(.09,.1,.07,24),btnM);b.position.set((k?1:-1)*.73,CT+.03,-hd+.17);b.castShadow=true;clk.add(b);const o=new THREE.Mesh(new THREE.CylinderGeometry(.11,.12,.08,24),inkM);o.position.copy(b.position);clk.add(o);b.userData.o=o;return b});
     Om3.cam=new THREE.PerspectiveCamera(44,1,.1,100);Om3.cam.up.set(0,0,-1);
     T.scene.add(root);Om3.root=root;Om3.built=true;
   }catch(e){Om3.fail=true;try{console.warn('오목 3D 준비 실패',e)}catch(_){}}
   return Om3.built;
 }
-/* 시계를 판 아래(narrow) 또는 오른쪽(side)에 놓고, 내 칸이 아래/왼쪽에 오게 칸을 맞춤 */
+/* 시계는 늘 가로로 눕혀 둠: 좁은 화면(세로)은 판 아래 가운데, 넓은 화면은 판 오른쪽 아래(내 쪽 모서리에 맞춤). 왼쪽 칸이 나 */
 function placeClock(lay){
   const clk=Om3.clk,me=myIdx()===1?1:0;
-  const side=lay==='side',sc=side?.72:1;
-  Om3.shell.rotation.y=side?-Math.PI/2:0;
-  clk.position.set(side?BW+GAPC+CD/2:0,0,side?0:BW+GAPC+CD/2);
-  Om3.pan.forEach((pn,k)=>{   // 표시판: 아래에 놓으면 좌우로, 옆에 놓으면 위아래로 (글자는 항상 똑바로)
-    pn.m.scale.set(sc,sc,1);
-    if(side)pn.m.position.set(0,.345,(k?1:-1)*CL/4);else pn.m.position.set((k?1:-1)*CL/4,.345,.12);
-  });
-  // 내 칸: narrow는 왼쪽(로컬 −x), side는 아래(로컬 +x가 아래). 사람 i의 칸 번호
-  Om3.meSlot=lay==='side'?1:0;
-  Om3.slotOf=i=>i===me?Om3.meSlot:1-Om3.meSlot;
-  Om3.seatOf=k=>k===Om3.meSlot?me:1-me;
+  if(lay==='side')clk.position.set(BW+GAPC+CL/2,0,BW-CD/2);else clk.position.set(0,0,BW+GAPC+CD/2);
+  Om3.seatOf=k=>k===0?me:1-me;
 }
 function om3Clock(force){
   if(!Om3.on||!V||!V.o||!OS||!Om3.seatOf)return;
@@ -737,7 +741,7 @@ function om3Clock(force){
     const key=[i,sec,on?1:0,o.co[i],V.ps[i]&&V.ps[i].n].join('|');
     const pn=Om3.pan[k];
     if(force||pn.key!==key){pn.key=key;drawPanel(pn.tex,i===myIdx()?'나':(V.ps[i]?V.ps[i].n.slice(0,5):'?'),o.co[i],ms,on,sec<=10);Om3.dirty=true}
-    const b=Om3.btn[k],y=on?.5:.4;if(Math.abs(b.position.y-y)>1e-3){b.position.y=y;b.userData.o.position.y=y;Om3.dirty=true}
+    const b=Om3.btn[k],y=CT+(on?.045:.012);if(Math.abs(b.position.y-y)>1e-3){b.position.y=y;b.userData.o.position.y=y;Om3.dirty=true}
   }
 }
 /* 상태를 3D 물체에 맞춤 (새 상태가 올 때마다) */
@@ -795,13 +799,14 @@ function om3Layout(t){
   if(key===Om3.lay)return false;
   Om3.lay=key;
   const narrow=W<700,fy=top+2,fh=(narrow?Hh-78:Hh-54)-fy,fw=W-8;
-  const ext=2*BW+GAPC+CD;
-  const sBelow=Math.min(fw/(2*BW),fh/ext),sSide=Math.min(fw/ext,fh/(2*BW));
+  const sBelow=Math.min(fw/(2*BW),fh/(2*BW+GAPC+CD)),sSide=Math.min(fw/(2*BW+GAPC+CL),fh/(2*BW));
   const lay=sSide>sBelow?'side':'below',s=Math.max(sBelow,sSide)*.97;
   Om3.layout=lay;placeClock(lay);
-  const cx=lay==='side'?(GAPC+CD)/2:0,cz=lay==='below'?(GAPC+CD)/2:0;
+  // 판+시계 묶음의 가운데를 테이블 가운데에 둠 (시계가 테이블 밖으로 나가지 않게)
+  const cx=lay==='side'?(GAPC+CL)/2:0,cz=lay==='below'?(GAPC+CD)/2:0;
+  Om3.root.position.set(-cx,0,-cz);
   const cam=Om3.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(s*f);
-  cam.aspect=W/Hh;cam.position.set(cx,TOP+d,cz);cam.lookAt(cx,TOP,cz);
+  cam.aspect=W/Hh;cam.position.set(0,TOP+d,0);cam.lookAt(0,TOP,0);
   const oy=(fy+fh/2)-Hh/2;
   cam.setViewOffset(W,Hh,0,-oy,W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
   Om3.d=d;Om3.W=W;Om3.H=Hh;Om3.dirty=true;
@@ -900,7 +905,7 @@ function om3Point(e){
   const nx=(e.clientX-r.left)/r.width*2-1,ny=-(e.clientY-r.top)/r.height*2+1;
   const ray=omRay();ray.setFromCamera({x:nx,y:ny},Om3.cam);
   const o=ray.ray.origin,dv=ray.ray.direction;if(Math.abs(dv.y)<1e-6)return null;
-  const k=(TOP-o.y)/dv.y,x=o.x+dv.x*k,z=o.z+dv.z*k,n=OS.n,p=pitchOf(n);
+  const k=(TOP-o.y)/dv.y,x=o.x+dv.x*k-Om3.root.position.x,z=o.z+dv.z*k-Om3.root.position.z,n=OS.n,p=pitchOf(n);
   const c=Math.round(x/p+(n-1)/2),rw=Math.round(z/p+(n-1)/2);
   if(Math.abs(x/p+(n-1)/2-c)>.6||Math.abs(z/p+(n-1)/2-rw)>.6)return null;
   return [rw,c];
@@ -949,6 +954,11 @@ G.me=(i,h)=>{
   $('#meSub').innerHTML=c?`<b>${c===1?'흑':'백'}</b>을 잡았습니다`:'오프닝 중입니다';
 };
 G.specNote='관전 중입니다. 두 사람의 대국을 지켜봅니다.';
+/* 결과 창 순위 옆 글자: 비기면 둘 다 1위라 '무승부'로 알려 줌 */
+G.overRank=p=>{
+  const r=V&&V.o&&V.o.res,t=p.sr===2?'시간 초과':p.sr?'항복':r&&r.w<0?'무승부':'';
+  return t?`<span class="left">${t}</span>`:'';
+};
 G.usesDbl=true;
 G.no3D=true;
 G.buttons=()=>{

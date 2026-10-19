@@ -298,3 +298,34 @@ function playOutO(over,lvs){
   return ticks;
 }
 globalThis.playOutO=playOutO;
+/* 연결이 끊긴 동안(봇이 맡은 동안)은 시계가 멈추고, 끊기기 전에 쓴 시간만 깎임 */
+{mkRoom({first:1,op:0,tm:1,inc:0});
+ put(0,7,7);   // 0 → 1 차례 (사람 1)
+ NOW+=10000;engineTick();
+ const p=H.players[1];p.bot=true;p.away=true;p.awayAt=NOW;   // 10초 쓰고 끊김
+ engineTick();eq(H.o.rem[1],50000,'away: time used before disconnect is charged');
+ NOW+=8000;engineTick();eq(H.o.rem[1],50000,'away: clock stops while away');
+ eq(snapFor(0).o.run,0,'away: snap clock not running');
+ p.bot=false;p.away=false;engineTick();   // 다시 연결
+ NOW+=5000;engineTick();eq(snapFor(0).o.rem[1],45000,'reconnect: clock runs again from reconnect');
+ eq(H.phase,'play','no timeout from away time');
+}
+/* 남은 빈 칸이 모두 금수면 무승부 */
+{const R=RU({b33:1}),n=15,b=Array(n*n).fill(0);
+ const O={b,R,cnt:0};
+ eq(T.canMove(O,1),true,'canMove empty board');
+ // 판을 줄이 안 생기게 채우고 한 칸만 남긴 뒤 그 칸이 흑 3-3이 되게
+ for(let r=0;r<n;r++)for(let c=0;c<n;c++)b[r*n+c]=2;
+ for(const [r,c] of [[6,4],[6,5],[4,6],[5,6]])b[r*n+c]=1;
+ for(const [r,c] of [[6,3],[6,7],[3,6],[7,6],[6,2],[6,8],[2,6],[8,6]])b[r*n+c]=0;
+ // 열린 3이 되도록 양 끝을 비웠으니 빈 칸이 9개: (6,6) 말고는 백으로 막을 수 없게 이 판은 그대로 두고 확인만
+ O.cnt=b.filter(x=>x).length;
+ eq(T.judge(b,R,6,6,1,0).bad,'33','canMove setup 33');
+ eq(T.canMove(O,1),true,'other empty cells are legal');
+ eq(T.canMove(O,2),true,'white always can move under b33=1');
+}
+{const R=RU({ov:2,b33:1}),n=15,b=Array(n*n).fill(2);
+ for(let c=0;c<9;c++)b[6*n+c]=1;b[6*n+5]=0;   // 남은 한 칸에 두면 9목(장목 금수)
+ eq(T.canMove({b,R,cnt:n*n-1},1),false,'only cell left is forbidden -> cannot move');
+ eq(T.canMove({b,R,cnt:n*n-1},2),true,'white can take it');
+}
