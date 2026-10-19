@@ -66,6 +66,7 @@ details div{font-variant-numeric:tabular-nums;word-break:break-all;margin-top:4p
   <div class="row"><label>빠른 간격</label><input type="range" id="fastGap" min="15" max="120" step="1"><output id="fastGapO"></output></div>
   <div class="row"><label>감속 비율</label><input type="range" id="ratio" min="1.1" max="2.5" step="0.05"><output id="ratioO"></output></div>
   <div class="row"><label>마지막 간격</label><input type="range" id="endGap" min="200" max="3000" step="50"><output id="endGapO"></output></div>
+  <div class="row"><label>앞 연출(후보)</label><input type="range" id="lead" min="0" max="1500" step="50"><output id="leadO"></output></div>
   <div class="row"><label>멈춘 뒤 대기</label><input type="range" id="wait" min="0" max="1500" step="50"><output id="waitO"></output></div>
   <div class="row"><span class="sw"><input type="checkbox" id="snd" checked> 소리</span></div>
 </section>
@@ -88,7 +89,7 @@ const NAME=['나','왼쪽','맞은편','오른쪽'];
 const VIEWS=[['휴대폰 세로',390,780],['휴대폰 가로',780,390],['PC 1280',1280,800],['PC 1920',1920,1080]];
 /* 지금 게임이 쓰는 값 = roulette.js의 Roulette.DEF (값을 바꾸면 여기도 자동으로 따라감) */
 const D=Roulette.DEF;
-const GAME={fastMin:D.fastMin,fastMax:D.fastMax,fastGap:D.fastGap,ratio:D.ratio,endGap:D.endGap,wait:D.wait};
+const GAME={fastMin:D.fastMin,fastMax:D.fastMax,fastGap:D.fastGap,ratio:D.ratio,endGap:D.endGap,wait:D.wait,lead:D.lead};
 const DEFAULT=Object.assign({n:4,first:'random',view:0,snd:true},GAME);
 let S=Object.assign({},DEFAULT);
 try{const j=JSON.parse(localStorage.getItem(KEY)||'null');if(j)S=Object.assign(S,j)}catch(e){}
@@ -101,10 +102,10 @@ function audio(){
   if(ctx&&ctx.state==='suspended')ctx.resume().catch(()=>{});
   return ctx;
 }
-function tone(f,dur,vol,type){
+function tone(f,dur,vol,type,slide){
   if(!S.snd||!ctx||ctx.state!=='running')return;
   const t=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();
-  o.type=type||'square';o.frequency.value=f;
+  o.type=type||'square';o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+dur);
   g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
   o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+dur+.03);
 }
@@ -117,7 +118,7 @@ function chips(el,items,cur,on){
     b.onclick=()=>{on(v);draw()};el.appendChild(b);
   });
 }
-const fmt={fastMin:v=>v+'칸',fastMax:v=>v+'칸',fastGap:v=>v+'ms',ratio:v=>'×'+(+v).toFixed(2),endGap:v=>v+'ms',wait:v=>v+'ms'};
+const fmt={fastMin:v=>v+'칸',fastMax:v=>v+'칸',fastGap:v=>v+'ms',ratio:v=>'×'+(+v).toFixed(2),endGap:v=>v+'ms',wait:v=>v+'ms',lead:v=>v+'ms'};
 function bindRanges(){
   for(const k of Object.keys(fmt)){
     const el=$('#'+k);el.value=S[k];$('#'+k+'O').textContent=fmt[k](S[k]);
@@ -155,7 +156,7 @@ function draw(){
 }
 
 /* ---------- 계산·표시 ---------- */
-const opt=fast=>({fastCount:fast,fastGap:S.fastGap,endGap:S.endGap,ratio:S.ratio,wait:S.wait});
+const opt=fast=>({fastCount:fast,fastGap:S.fastGap,endGap:S.endGap,ratio:S.ratio,wait:S.wait,lead:S.lead});
 function info(){
   const p=Roulette.plan(S.n,0,opt(S.fastMin)),q=Roulette.plan(S.n,0,opt(S.fastMax));
   const tot=a=>(a/1000).toFixed(2)+'초';
@@ -168,7 +169,7 @@ function info(){
   $('#gaps').textContent=`빠른 구간 ${range} × ${S.fastGap} → `+p.gaps.slice(p.fast).map(Math.round).join(', ');
   $('#line').value=line();
 }
-const line=()=>`n=${S.n} 첫차례=${S.first==='random'?'랜덤':'P'+(+S.first+1)} 빠른칸=${S.fastMin}~${S.fastMax} 빠른간격=${S.fastGap} 감속비율=${(+S.ratio).toFixed(2)} 마지막간격=${S.endGap} 대기=${S.wait} 화면=${VIEWS[S.view][0]}`;
+const line=()=>`n=${S.n} 첫차례=${S.first==='random'?'랜덤':'P'+(+S.first+1)} 빠른칸=${S.fastMin}~${S.fastMax} 빠른간격=${S.fastGap} 감속비율=${(+S.ratio).toFixed(2)} 마지막간격=${S.endGap} 대기=${S.wait} 앞연출=${S.lead} 화면=${VIEWS[S.view][0]}`;
 
 let raf=0;
 function play(){
@@ -181,10 +182,12 @@ function play(){
   const step=now=>{
     const e=now-t0,done=e>=p.total;
     let c=0;while(c<p.times.length&&p.times[c]<=e)c++;
+    const lead=e<p.lead,key=lead?-1:c;
     const cur=(p.start+c)%S.n,r=c/p.times.length;
-    if(c!==last){   // 칸이 넘어갈 때만 소리·표시
-      if(c>0){tone(1400-r*650,.035,.03+r*.03)}
-      seats.forEach((s,i)=>s.classList.toggle('on',i===cur));last=c;
+    if(key!==last){   // 칸이 넘어갈 때만 소리·표시
+      if(lead){seats.forEach(s=>s.classList.add('on'));tone(420,.34,.1,'triangle',900)}   // 앞 연출: 후보 전체 켜짐 + 시작 신호음 (게임과 같음)
+      else{if(c>0)tone(1400-r*650,.035,.03+r*.03);seats.forEach((s,i)=>s.classList.toggle('on',i===cur))}
+      last=key;
     }
     if(done){
       seats[first].classList.add('win');

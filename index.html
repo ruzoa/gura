@@ -175,6 +175,9 @@ body.nofs .fsbtn.snd{right:106px}
 .slots .slot-emo{width:30px;height:30px;flex:none;margin:-5px -6px -5px 4px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--panel);font-size:16px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 0 var(--line)}
 .slots .botlv{margin-left:auto;box-sizing:border-box;width:4.6em;flex:none;text-align:center;font-size:11px;font-weight:700;padding:3px 0;border-radius:99px;border:1.5px solid var(--line-strong);background:var(--panel);color:var(--ink);line-height:1.2}
 .slots .botlv+.tag{margin-left:6px}
+.slots .firstbtn{flex:none;margin-left:6px;box-sizing:border-box;min-width:2.4em;text-align:center;font-size:11px;font-weight:700;padding:3px 8px;border-radius:99px;border:1.5px solid var(--line-strong);background:var(--panel);color:var(--muted)}
+.slots .firstbtn.on{background:var(--amber);border-color:var(--amber);color:#fff}
+.slots .firstbtn.ro{padding:3px 8px}
 .slots .botlv.lv0{color:var(--ok);border-color:#9bc4a8}
 .slots .botlv.lv2{color:var(--gura);border-color:#e3a59d}
 .slots .botlv.ro{cursor:default}
@@ -775,6 +778,15 @@ function hostAddBot(force){
   const nm=BOT_NAMES.map(n=>n+' 봇').find(n=>!used.has(n))||'봇';
   H.members.push({name:nm,bot:true,conn:null,host:false,lv:1});mark();
 }
+/* 선 플레이어: 방 설정에서 '선 플레이어 직접 선택'을 켠 방은 방장이 대기실에서 고른 사람(H.firstName, 안 골랐거나 나갔으면 방장), 아니면 랜덤 */
+function firstSeat(cnt){
+  if(H.cfg.pickfirst){
+    let i=H.players.findIndex(p=>p.name===H.firstName);
+    if(i<0||i>=cnt)i=H.players.findIndex(p=>p.host);
+    if(i>=0&&i<cnt)return i;
+  }
+  return Math.random()*cnt|0;
+}
 function hostStart(){
   if(!H||(H.phase!=='wait'&&H.phase!=='over'))return;
   const again=H.phase==='over';   // 결과 화면에서 '바로 시작': 시작 연출을 짧게 하는 게임이 있음 (G.introMs(again))
@@ -784,23 +796,26 @@ function hostStart(){
   EG().engine.start();   // 카드 나누기·첫 차례는 게임마다 다름
   H.fp=0;
   if(EG().dealAnim)beginDeal();
-  else if(EG().introMs){H.dealAgain=again?1:0;H.fp=EG().firstPick?Roulette.pickFast(Roulette.DEF.fastMin,Roulette.DEF.fastMax):0;beginDeal(introLen(EG(),again,H.fp))}   // 카드가 없는 게임의 시작 연출 (야추다이스·쿼리도: 카메라 이동·준비·첫 차례 룰렛)
+  else if(EG().introMs){H.dealAgain=again?1:0;H.fp=EG().firstPick?(H.cfg.pickfirst?-1:Roulette.pickFast(Roulette.DEF.fastMin,Roulette.DEF.fastMax)):0;beginDeal(introLen(EG(),again,H.fp))}   // 카드가 없는 게임의 시작 연출 (야추다이스·쿼리도: 카메라 이동·준비·첫 차례 룰렛)
 }
 /* 카드 섞고 나누는 연출 동안(DEAL_MS)은 제한 시간·봇·행동을 멈춤. 화면 쪽 연출은 dealStart3D
    카드가 없는 게임은 G.introMs만큼 같은 방식으로 멈추고, 화면 쪽은 G.intro(시작 시각, {total, again})가 그림
    G.introMs는 숫자, 또는 바로 시작(again)이면 다른 길이를 돌려주는 함수 */
 /* ===== 첫 차례 룰렛 공통 실행부 (게임 연출 안에서 쓰는 도구, 계산은 roulette.js)
-   쓰는 법: 게임에 G.firstPick=true를 두고 G.introMs=(again,fast)=>시작 전 연출 ms + Roulette.plan(2,0,{fastCount:fast}).total + 여유.
+   쓰는 법: 게임에 G.firstPick=true를 두고 G.introMs=(again,fast)=>시작 전 연출 ms + Roulette.planFor(2,0,fast).total + 여유.
    G.intro(t0,{fast})에서 ctl=firstPick(룰렛 시작 시각, {seats,first,fast}) →
    매 프레임 ctl.idx(now)로 지금 켜진 자리를 그리고, ctl.tick(now)를 부르면 틱 소리가 나고 끝나는 순간 한 번 true(그때 게임이 ctl.msg()를 안내로 보여 줌).
-   seats: 룰렛에 들어가는 자리 번호들(V.ps 기준), first: 첫 차례 자리 번호. 결과는 엔진이 정함 — 화면은 그 자리에서 멈추도록 맞춰 돎 */
+   seats: 룰렛에 들어가는 자리 번호들(V.ps 기준), first: 첫 차례 자리 번호. 결과는 엔진이 정함 — 화면은 그 자리에서 멈추도록 맞춰 돎
+   방 설정의 '선 플레이어 직접 선택'(pickfirst)을 켜면 방장이 대기실에서 고르고(H.firstName), 신호 fp=-1 → 룰렛 없이 그 자리만 짧게 알림 */
 function firstPick(t0,{seats,first,fast}){
-  const L=seats.slice(),f=Math.max(0,L.indexOf(first)),P=Roulette.plan(L.length,f,{fastCount:fast});
-  const c={t0,total:P.total,seats:L,first:L[f],plan:P,n:0,said:false,
-    idx(now){return now-t0>=P.total?L[f]:L[P.at(now-t0)]},   // 지금 켜진 자리
+  const L=seats.slice(),f=Math.max(0,L.indexOf(first)),P=Roulette.planFor(L.length,f,fast);   // fast<0: 방장이 직접 고른 선 (돌지 않음)
+  const c={t0,total:P.total,seats:L,first:L[f],plan:P,fixed:P.fixed,n:0,said:false,cued:false,
+    idx(now){const e=now-t0;if(e>=P.total)return L[f];const k=P.at(e);return k<0?-1:L[k]},   // 지금 켜진 자리 (-1: 아직 후보만 켜진 중)
+    cand(now){return !P.fixed&&now>=t0&&now-t0<P.lead},   // 후보(모든 자리)가 한꺼번에 켜져 있는 구간 — 게임이 모든 자리를 켜 줌
     msg(){const p=V&&V.ps&&V.ps[c.first];return p?(c.first===myIdx()?'내가 먼저 시작합니다.':`${p.n}부터 시작합니다.`):''},   // 끝날 때 보여 줄 안내 (표시는 게임이 함)
     tick(now){   // 틱 소리 + 끝나면 안내 (끝나는 순간 한 번 true)
       const e=now-t0,m=P.times.length;let k=0;while(k<m&&P.times[k]<=e)k++;
+      if(!c.cued&&e>=0&&!P.fixed){c.cued=true;tone(420,.34,{type:'triangle',vol:.1,slide:900})}   // 룰렛이 시작된다는 신호음 (후보가 켜지는 순간)
       if(k>c.n){c.n=k;const r=k/m;tone(1400-r*650,.035,{type:'square',vol:.03+r*.03})}   // 느려질수록 낮고 또렷한 틱
       if(e>=P.total&&!c.said){
         c.said=true;sfx('turn');return true;
@@ -880,7 +895,7 @@ function snapFor(you){
   if(H.emos&&H.emos.length)s.em=H.emos;
   if(H.specs&&H.specs.length)s.sv=H.specs.map(x=>x.name);
   s.mc=H.members.length;
-  if(H.phase==='wait'){s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0,lv:m.bot?(m.lv??1):undefined}));if(EG().engine.waitSnap)EG().engine.waitSnap(s);return s}   // waitSnap: 대기실에도 게임별 값 (대부호의 계급)
+  if(H.phase==='wait'){s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0,lv:m.bot?(m.lv??1):undefined}));if(H.firstName)s.fn=H.firstName;if(EG().engine.waitSnap)EG().engine.waitSnap(s);return s}   // waitSnap: 대기실에도 게임별 값 (대부호의 계급)
   s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=p.surrendered==='time'?2:1;if(p.away)o.aw=1;if(i===you)o.h=p.hand.slice();return o});
   s.t=H.turn;
   if(H.dealUntil>t){s.dk=Math.round(H.dealUntil-t);s.di=H.dealId;s.dm=H.dealMs||0;if(H.dealAgain)s.dg=1;if(H.fp)s.fp=H.fp}   // 카드를 나누는 중 (남은 ms, fp: 첫 차례 룰렛의 빠른 칸 수)
@@ -1849,7 +1864,11 @@ function renderPanel(){
   const me=myIdx(),isHost=mode==='host';
   if(V.st==='wait'){
     const max=+V.cfg.max;
-    let li=V.ps.map((p,i)=>`<li data-i="${i}">${G.nameTag?G.nameTag(p,i):''}${esc(p.n)}${i===me?' (나)':''}${p.b?(isHost?`<button type="button" class="botlv lv${p.lv??1}" data-act="botlv:${i}" data-name="${esc(p.n)}" title="눌러서 난이도 바꾸기">${BOT_LV[p.lv??1]}</button>`:`<span class="botlv lv${p.lv??1} ro">${BOT_LV[p.lv??1]}</span>`):''}<span class="tag ${p.hs?'host':''}">${p.hs?'방장':p.b?'봇':p.aw?'연결 끊김':'참가자'}</span>${i===me?'<button type="button" class="slot-emo emo-open" data-act="emopad" aria-label="이모티콘" title="이모티콘">😊</button>':''}${isHost&&!p.hs?`<button type="button" class="kick" data-act="kick:${i}" data-name="${esc(p.n)}" aria-label="${esc(p.n)} 내보내기" title="내보내기">✕</button>`:''}</li>`).join('');
+    // 선 플레이어를 직접 고르는 방(방 설정의 '선 플레이어 직접 선택'): 고른 사람(없으면 방장)에 '선' 표시, 방장은 눌러서 바꿈
+    const pickF=!!(G.firstPick&&+V.cfg.pickfirst);
+    let fi=pickF?V.ps.findIndex(p=>p.n===V.fn):-1;if(pickF&&fi<0)fi=Math.max(0,V.ps.findIndex(p=>p.hs));
+    const fBtn=i=>!pickF?'':isHost?`<button type="button" class="firstbtn${i===fi?' on':''}" data-act="first:${i}" aria-pressed="${i===fi}" title="눌러서 선 플레이어로 정하기">선</button>`:i===fi?'<span class="firstbtn on ro">선</span>':'';
+    let li=V.ps.map((p,i)=>`<li data-i="${i}">${G.nameTag?G.nameTag(p,i):''}${esc(p.n)}${i===me?' (나)':''}${p.b?(isHost?`<button type="button" class="botlv lv${p.lv??1}" data-act="botlv:${i}" data-name="${esc(p.n)}" title="눌러서 난이도 바꾸기">${BOT_LV[p.lv??1]}</button>`:`<span class="botlv lv${p.lv??1} ro">${BOT_LV[p.lv??1]}</span>`):''}<span class="tag ${p.hs?'host':''}">${p.hs?'방장':p.b?'봇':p.aw?'연결 끊김':'참가자'}</span>${fBtn(i)}${i===me?'<button type="button" class="slot-emo emo-open" data-act="emopad" aria-label="이모티콘" title="이모티콘">😊</button>':''}${isHost&&!p.hs?`<button type="button" class="kick" data-act="kick:${i}" data-name="${esc(p.n)}" aria-label="${esc(p.n)} 내보내기" title="내보내기">✕</button>`:''}</li>`).join('');
     for(let k=V.ps.length;k<max;k++)li+='<li class="empty">빈 자리</li>';
     const full=V.ps.length>=max;
     const sv=Array.isArray(V.sv)?V.sv:[],spm=+(V.cfg.spec??4);
@@ -1922,6 +1941,10 @@ $('#panel').addEventListener('click',e=>{
   if(a.startsWith('kick:')){
     const i=+a.slice(5),nm=b.dataset.name||'';
     if(mode==='host'&&H&&H.phase==='wait'&&H.members[i]&&!H.members[i].host&&H.members[i].name===nm&&(H.members[i].bot||confirm(`${nm}님을 방에서 내보낼까요?\n내보낸 사람은 이 방에 다시 들어올 수 없습니다.`)))hostKick(i);
+    return}
+  if(a.startsWith('first:')){
+    const i=+a.slice(6);
+    if(mode==='host'&&H&&H.phase==='wait'&&EG().firstPick&&H.cfg.pickfirst&&H.members[i]){H.firstName=H.members[i].name;sfx('tick');lastPanelHtml='';mark()}
     return}
   if(a==='setopen'){roomSetOpen=true;renderPanel();return}
   if(a==='setclose'){roomSetOpen=false;renderPanel();return}

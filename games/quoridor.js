@@ -185,12 +185,12 @@ function botChoose(S,i,lv){
 /* ---------- 규칙 설명·방 설정 ---------- */
 G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 말을 맞은편 끝줄의 아무 칸에 가장 먼저 도착시키면 <b>승리</b>하고 게임이 끝납니다. 나머지 순위는 목표까지 남은 거리가 짧은 순서입니다</li><li><b>내 차례</b> : <b>말 이동</b>과 <b>벽 세우기</b> 중 하나만 합니다</li><li><b>말 이동</b> : 위·아래·왼쪽·오른쪽으로 한 칸. 벽은 넘을 수 없습니다</li><li><b>뛰어넘기</b> : 상대 말이 바로 앞에 있으면 그 말을 뛰어넘습니다. 그 뒤가 벽이나 끝이라서 못 넘으면 대각선 옆 칸으로 비켜 갑니다</li><li><b>벽 세우기</b> : 칸 사이의 틈에 두 칸 길이의 벽을 놓아 길을 막습니다. 벽은 한 번 놓으면 옮길 수 없고, 벽끼리 겹치거나 십자로 놓을 수 없습니다</li><li><b>반칙</b> : 누구든 목표까지 갈 길이 완전히 막히는 자리에는 벽을 놓을 수 없습니다</li><li><b>4명</b> : 네 방향에서 출발해 맞은편 끝줄이 목표입니다. 벽은 인원수대로 나눠 가집니다</li><li><b>조작</b> : 갈 칸이나 벽 자리를 누르면 반투명으로 미리 보이고, <b>[놓기]</b>를 누르면 확정합니다. 벽은 내 앞 보관함에서 놓을 벽을 눌러 고릅니다(3D 화면이 안 되는 기기는 [벽 세우기]). 설정의 <b>두 번 눌러 놓기</b>를 켜면 같은 자리를 한 번 더 눌러 바로 둡니다</li><li><b>제한 시간</b> : 내 차례에 제한 시간이 지나면 <b>패배</b>합니다. 연결이 끊긴 사람은 봇이 대신 둡니다</li><li><b>기보</b> : 세로줄은 왼쪽부터 a~i, 가로줄은 빨강 출발점 쪽부터 1~9입니다. 말 이동은 도착한 칸(e2), 벽은 벽 가운데가 오른쪽 위 꼭짓점인 칸에 가로 h·세로 v를 붙여 적습니다(e3h)</li></ol>';
 G.modeDesc=['먼저 도착한 사람이 이기면 끝','먼저 도착한 사람이 이기면 끝'];
-G.defaults={max:2,turn:30};
+G.defaults={max:2,turn:30,pickfirst:0};
 G.roomSet=[
   {k:'turn',label:'제한 시간',unit:'초',lo:10,hi:180,step:5,desc:'제한 시간이 지나면 패배합니다. 연결이 끊긴 사람은 봇이 대신 둡니다'}];
-G.ruleSet=[];
-G.cfgChips=c=>`<span class="chip">제한 시간 <b>${+c.turn}초</b></span>`;
-G.cfgSum=c=>`제한 시간 ${+c.turn}초`;
+G.ruleSet=[{k:'pickfirst',label:'선 플레이어 직접 선택 (끄면 랜덤)',desc:'끄면 룰렛으로 랜덤하게 정합니다. 켜면 방장이 대기실에서 선 플레이어를 고릅니다'}];
+G.cfgChips=c=>`<span class="chip">제한 시간 <b>${+c.turn}초</b></span><span class="chip">선 <b>${c.pickfirst?'방장 선택':'랜덤'}</b></span>`;
+G.cfgSum=c=>`제한 시간 ${+c.turn}초 · 선 ${c.pickfirst?'방장 선택':'랜덤'}`;
 G.roomSub=()=>'2~4명 보드게임';
 G.pubExtra=()=>({});
 G.cardInfo=(c,nowN)=>{
@@ -318,7 +318,7 @@ G.engine={
       else{Q.sd.push(0);Q.pos.push(null);Q.done.push(1);Q.wl.push(0);p.hand=[];p.finished=true;p.rank=i+1}   // 자리가 모자라면(5명 이상) 구경만 함 (보통은 최대 인원 4명이라 생기지 않음)
     });
     H.q=Q;
-    const first=Math.random()*cnt|0;Q.first=first;
+    const first=typeof firstSeat==='function'?firstSeat(cnt):Math.random()*cnt|0;Q.first=first;   // 방장이 고른 선 또는 랜덤
     addLog(`${cnt}명 게임 시작 (벽 ${per}개씩). ${H.players[first].name}부터 시작합니다.`,'sys');
     startTurn(first);
   },
@@ -500,7 +500,7 @@ function boardHTML(S,me){
 function barHTML(q,me){
   return V.ps.map((p,i)=>{
     if(i>=q.cnt&&p.f)return '';
-    const on=introWait()?clock()-IN.t0>=INTRO.roul&&introIdx(clock()-IN.t0)===i:V.st==='play'&&V.t===i&&!p.f;
+    const on=introWait()?clock()-IN.t0>=IN.r&&(IN.fp&&IN.fp.cand(clock())?IN.L.includes(i):introIdx(clock()-IN.t0)===i):V.st==='play'&&V.t===i&&!p.f;
     return `<div class="qd-p${on?' on':''}${i===me?' me':''}${p.f?' out':''}" style="--pc:${PCOL[i%4]}"><i class="dot"></i><b>${esc(p.n)}${i===me?' (나)':''}</b>${p.f?`<span class="w">${p.sr===2?'시간 초과':p.sr?'항복':(+p.f)+'위'}</span>`:`<span class="w">벽 ${+q.wl[i]}</span>`}${on?'<span class="tb"><i></i></span>':''}</div>`;
   }).join('');
 }
@@ -508,7 +508,7 @@ function hintText(me){
   if(Date.now()<qMsgUntil&&qMsg)return qMsg;
   if(!V||!V.q)return '';
   if(V.st==='over')return '게임이 끝났습니다.';
-  if(introWait())return '게임을 준비하는 중…';
+  if(introWait())return clock()-IN.t0>=IN.r?(IN.fp&&IN.fp.fixed?'선 플레이어를 알립니다…':'첫 차례를 정합니다…'):'게임을 준비하는 중…';
   if(me<0)return V.ps[V.t]?`${V.ps[V.t].n} 차례입니다. 관전 중입니다.${lastRec()}`:'';
   const p=V.ps[me];
   if(p.f)return p.sr===2?'제한 시간이 지나 패배했습니다. 남은 판을 지켜봅니다.':p.sr?'항복했습니다. 남은 판을 지켜봅니다.':V.q.dn[me]?'도착했습니다! 남은 판을 지켜봅니다.':'';
@@ -853,10 +853,13 @@ function q3Render(t){
    2.6~7.65초 차례 고리가 말들 사이를 빠르게 한두 바퀴 돌다가 점점 느려져(… 0.44 → 0.67 → 1 → 1.5초) 첫 차례 사람에서 멈춤 → 'OO부터 시작합니다'
    다시 하기(이미 쿼리도 화면)는 카메라·보드 없이 벽·말·룰렛만. 늦게 들어오거나 다시 연결된 사람은 연출 없이 바로 (공통 dealCheck)
    기기의 '움직임 줄이기' 설정과 상관없이 보임 (야추다이스와 같게), WebGL이 없으면 위쪽 이름 목록의 룰렛만 */
-const INTRO={cam:1300,ui:650,board:[150,450],cells:[450,90,260],lab:[900,350],tray:[1000,380],walls:[1250,55,220],pawn:[1950,110,380],stripe:300,roul:2600};   // roul: 첫 차례 룰렛이 시작되는 시각 (길이는 공통 firstPick이 정함: 빠른 칸 수가 판마다 달라서 연출 길이도 달라짐)
+const INTRO={cam:1300,ui:650,board:[150,450],cells:[450,90,260],lab:[900,350],tray:[1000,380],walls:[1250,55,220],pawn:[1950,110,380],stripe:300,rest:500};   // rest: 보드 준비(마지막 말의 목표 줄)가 끝난 뒤 룰렛 전 쉬는 박자. 룰렛의 길이는 공통 firstPick이 정함(빠른 칸 수가 판마다 달라서 연출 길이도 달라짐)
+/* 룰렛 시작 시각: 마지막 말이 떨어져 목표 줄이 다 그어진 뒤 + 쉬는 박자 (인원수에 따라) */
+const roulAt=n=>INTRO.pawn[0]+(Math.max(1,n)-1)*INTRO.pawn[1]+INTRO.pawn[2]*.68+INTRO.stripe+INTRO.rest;
+const introN=()=>(typeof H!=='undefined'&&H&&H.q&&H.q.cnt)||(V&&V.q&&V.q.cnt)||4;
 G.firstPick=true;   // 첫 차례 룰렛은 index.html의 firstPick + roulette.js를 씀 (값은 테스트룸 lab.html에서 맞춤)
-G.introMs=(again,fast)=>INTRO.roul+Roulette.plan(2,0,{fastCount:fast}).total+100;   // 룰렛 시작 + 룰렛 길이 + 여유 0.1초
-const IN={on:false,on3d:false,t0:0,total:0,fromLobby:true,said:false,fp:null,L:[],snd:{}};
+G.introMs=(again,fast)=>Math.round(roulAt(introN())+Roulette.planFor(2,0,fast).total+100);   // 룰렛 시작 + 룰렛 길이 + 여유 0.1초 (정수 ms: 방장 시계와 신호가 소수로 어긋나지 않게)
+const IN={on:false,on3d:false,t0:0,total:0,r:0,fromLobby:true,said:false,fp:null,L:[],snd:{}};
 const introOn=()=>IN.on&&clock()<IN.t0+IN.total;
 const introWait=()=>introOn()&&!IN.said;   // 첫 차례 안내 전
 const eOut=x=>{x=x<0?0:x>1?1:x;return 1-Math.pow(1-x,3)};
@@ -872,8 +875,8 @@ G.intro=(t0,o)=>{
   const q=V.q,L=[];for(let i=0;i<q.cnt;i++)if(q.pos[i])L.push(i);
   if(!L.length)return;
   const fast=o&&o.fast;   // 없으면 roulette.js 기본값 (introMs와 같은 계산)
-  IN.on=true;IN.t0=t0;IN.said=false;IN.snd={};IN.fromLobby=!Q3.on;IN.L=L;IN.total=(o&&o.total)||G.introMs(false,fast);
-  IN.fp=firstPick(t0+INTRO.roul,{seats:L,first:V.t,fast});   // 방장이 정한 빠른 칸 수로 모두 같은 룰렛이 돎
+  IN.on=true;IN.t0=t0;IN.said=false;IN.snd={};IN.fromLobby=!Q3.on;IN.L=L;IN.r=roulAt(L.length);IN.total=(o&&o.total)||G.introMs(false,fast);
+  IN.fp=firstPick(t0+IN.r,{seats:L,first:V.t,fast});   // 방장이 정한 빠른 칸 수로 모두 같은 룰렛이 돎
   IN.on3d=true;
   $('#stage').classList.add('qd-intro');if(elQd&&IN.fromLobby)elQd.classList.add('intro');
   lastBar='';Q3.dirty=true;
@@ -901,11 +904,19 @@ function introStep(now,force){
     const st=Q3.stripes[i];if(st){const y=done?1:(e-INTRO.pawn[0]-k*INTRO.pawn[1]-INTRO.pawn[2]*.68)/INTRO.stripe;st.scale.x=Math.max(.001,eOut(y))}
   }
   // 차례 고리: 룰렛
-  if(!done&&IN.fp&&e<INTRO.roul+IN.fp.total+80){
-    const pw=e>=INTRO.roul?Q3.pawns.get(introIdx(e)):null;
+  if(!done&&IN.fp&&e<IN.r+IN.fp.total+80){
+    const pw=e>=IN.r?Q3.pawns.get(introIdx(e)):null;
     Q3.ring.visible=!!pw;if(pw){Q3.ring.userData.pw=pw;Q3.ring.material.color.set(PCOL[introIdx(e)%4])}
+    // 후보 표시: 돌기 전에 모든 말에 고리가 한꺼번에 켜졌다가 룰렛이 시작되면 하나만 남음
+    const cand=e>=IN.r&&IN.fp.cand(now);if(!Q3.candR)Q3.candR=new Map();
+    for(const i of L){
+      const p2=Q3.pawns.get(i);if(!p2)continue;
+      let r=Q3.candR.get(i);
+      if((!r||r.parent!==Q3.ring.parent)&&cand&&Q3.ring.parent){r=Q3.ring.clone();r.material=Q3.ring.material.clone();Q3.ring.parent.add(r);Q3.candR.set(i,r)}
+      if(r){r.visible=!!cand;if(cand){r.position.x=p2.position.x;r.position.z=p2.position.z;r.material.color.set(PCOL[i%4]);const s=1+.14*Math.sin(now/80);r.scale.set(s,s,1)}}
+    }
   }
-  if(done){for(const pw of Q3.pawns.values())pw.visible=true;q3Marks()}
+  if(done){for(const pw of Q3.pawns.values())pw.visible=true;if(Q3.candR)for(const r of Q3.candR.values())r.visible=false;q3Marks()}
   return true;
 }
 /* 연출을 바로 끝냄 (게임을 떠날 때) */
@@ -929,7 +940,7 @@ function introTick(){
     const L=IN.L;
     L.forEach((i,k)=>{if(e>=INTRO.pawn[0]+k*INTRO.pawn[1]+INTRO.pawn[2]*.68)once('p'+k,()=>{tone(190,.08,{type:'triangle',vol:.16});hiss(.04,{freq:1500,vol:.08});tone(520+k*130,.12,{type:'sine',vol:.06,at:.05})})});
   }
-  if(IN.fp&&e>=INTRO.roul&&IN.fp.tick(IN.t0+e)){   // 틱 소리, 끝나는 순간 한 번 안내
+  if(IN.fp&&e>=IN.r&&IN.fp.tick(IN.t0+e)){   // 틱 소리, 끝나는 순간 한 번 안내
     IN.said=true;$('#stage').classList.remove('qd-intro');if(elQd)elQd.classList.remove('intro');
     const m=IN.fp.msg();if(m)say(m);
     lastBar='';if(Q3.on)q3Marks();
