@@ -136,7 +136,7 @@ const mkRoom=(over,names=['가','나'])=>{
 const put=(i,r,c)=>OM.engine.act(i,{t:'put',r,c});
 const pick=(i,v)=>OM.engine.act(i,{t:'pick',v});
 /* 오프닝 없음: 선플레이어가 흑 */
-{mkRoom({first:1,op:0});
+{mkRoom({pickfirst:1,op:0});
  eq(H.o.A,0,'first=host -> A=0');eq(H.o.co.join(),'1,2','black for A');eq(H.turn,0,'turn');
  put(1,7,7);eq(H.o.cnt,0,'wrong seat ignored');
  put(0,7,7);eq(H.o.cnt,1,'put ok');put(0,7,8);eq(H.o.cnt,1,'put twice ignored');eq(H.turn,1,'turn after put');
@@ -145,7 +145,7 @@ const pick=(i,v)=>OM.engine.act(i,{t:'pick',v});
  const s=snapFor(0);eq(s.o.b.length,225,'snap board');eq(s.o.ph,'play','snap ph');
 }
 /* 5목 승리, 순위, 다음 판 선플레이어 */
-{mkRoom({first:1,op:0,tm:10,inc:0});
+{mkRoom({pickfirst:1,op:0,tm:10,inc:0});
  for(let k=0;k<4;k++){put(0,7,3+k);put(1,9,3+k)}
  put(0,7,7);
  eq(H.phase,'over','game over after five');
@@ -160,7 +160,7 @@ const pick=(i,v)=>OM.engine.act(i,{t:'pick',v});
  // 위 순서: 0 흑 한수, 1 백 한수 ... 백 5목
  eq(H.phase==='over'||H.o.cnt>0,true,'second game progressed');
 }
-{mkRoom({first:1,op:0,inc:0});
+{mkRoom({pickfirst:1,op:0,inc:0});
  // 백이 이기는 판: 흑이 흩어져 두는 동안 백이 가로 5
  const bl=[[0,0],[2,0],[4,0],[6,0],[8,0]];
  for(let k=0;k<5;k++){put(0,bl[k][0],bl[k][1]);put(1,10,3+k);if(H.phase==='over')break}
@@ -169,7 +169,7 @@ const pick=(i,v)=>OM.engine.act(i,{t:'pick',v});
  eq(H.o.A,1,'next game: winner (white) is first');eq(H.o.co[1],1,'winner takes black');
 }
 /* 무승부 → 서로 바꿈 */
-{mkRoom({first:1,op:0,inc:0});
+{mkRoom({pickfirst:1,op:0,inc:0});
  H.phase='play';
  // 판을 거의 채움: 줄이 안 생기는 패턴으로 마지막 한 칸만 남김
  const n=15,O=H.o;
@@ -192,10 +192,10 @@ const pick=(i,v)=>OM.engine.act(i,{t:'pick',v});
  }
 }
 /* 이름이 같으면 방 설정으로 */
-{mkRoom({first:1,op:0},['같','같']);H.phase='over';H.oLast={ns:['같','같'],w:'같',A:'같'};
- hostStart();NOW+=10000;H.o.since=NOW;eq(H.o.A,0,'duplicate names fall back to cfg.first (host)');}
+{mkRoom({pickfirst:1,op:0},['같','같']);H.phase='over';H.oLast={ns:['같','같'],w:'같',A:'같'};
+ hostStart();NOW+=10000;H.o.since=NOW;eq(H.o.A,0,'duplicate names fall back to picked first (host)');}
 /* 시계: 증가, 시간 초과, 항복 */
-{mkRoom({first:1,op:0,tm:1,inc:5});
+{mkRoom({pickfirst:1,op:0,tm:1,inc:5});
  const t0=NOW;NOW=t0+4000;put(0,7,7);
  eq(H.o.rem[0],60000-4000+5000,'increment added after move');
  eq(H.turn,1,'mover switched');
@@ -205,12 +205,12 @@ const pick=(i,v)=>OM.engine.act(i,{t:'pick',v});
  eq(H.players[1].surrendered,'time','timeout flag');eq(snapFor(1).ps[1].sr,2,'timeout sr');
  eq(H.players[0].rank,1,'timeout winner');
 }
-{mkRoom({first:1,op:0});put(0,7,7);OM.engine.act(0,{t:'surrender'});
+{mkRoom({pickfirst:1,op:0});put(0,7,7);OM.engine.act(0,{t:'surrender'});
  eq(H.phase,'over','surrender ends');eq(H.o.res.w,1,'surrender winner');eq(snapFor(0).ps[0].sr,1,'surrender sr');}
 /* 시계는 시작 연출 동안 멈춤 */
-{mkRoom({first:1,op:0,tm:1});const rem=H.o.rem[0];OM.engine.restore(2000);eq(H.o.since>0,true,'restore shifts since');eq(rem,60000,'full time');}
+{mkRoom({pickfirst:1,op:0,tm:1});const rem=H.o.rem[0];OM.engine.restore(2000);eq(H.o.since>0,true,'restore shifts since');eq(rem,60000,'full time');}
 /* 금수는 놓기가 막힘(반칙패 없음) */
-{mkRoom({first:1,op:0,b33:1});
+{mkRoom({pickfirst:1,op:0,b33:1});
  const O=H.o,n=15;
  for(const [r,c] of [[6,4],[6,5],[4,6],[5,6]])O.b[r*n+c]=1;
  O.cnt=4;O.mv=0;H.turn=0;
@@ -219,7 +219,7 @@ const pick=(i,v)=>OM.engine.act(i,{t:'pick',v});
  const f=T.judge(O.b,O.R,6,6,1,0);eq(f.bad,'33','judge says 33');
 }
 /* 오프닝 Swap */
-{mkRoom({first:1,op:1});
+{mkRoom({pickfirst:1,op:1});
  const O=H.o;eq(O.ph,'p1','swap starts p1');eq(O.A,0,'A');
  put(0,7,7);put(0,7,8);put(0,8,8);eq(O.cnt,3,'3 opening stones');eq(O.ph,'c1','choose phase');eq(H.turn,1,'B chooses');
  eq(O.b[7*15+7],1,'stone1 black');eq(O.b[7*15+8],2,'stone2 white');eq(O.b[8*15+8],1,'stone3 black');
@@ -230,12 +230,12 @@ const pick=(i,v)=>OM.engine.act(i,{t:'pick',v});
  eq(H.turn,1,'white moves next');
  put(1,0,0);eq(O.cnt,4,'white moved');eq(H.turn,0,'black next');
 }
-{mkRoom({first:1,op:1});
+{mkRoom({pickfirst:1,op:1});
  const O=H.o;put(0,7,7);put(0,7,8);put(0,8,8);pick(1,1);
  eq(O.co[1],1,'B picked black');eq(H.turn,0,'A is white and moves');
 }
 /* 오프닝 Swap2 */
-{mkRoom({first:1,op:2});
+{mkRoom({pickfirst:1,op:2});
  const O=H.o;put(0,7,7);put(0,7,8);put(0,8,8);eq(O.ph,'c1','c1');
  pick(1,3);eq(O.ph,'p2','more stones');eq(H.turn,1,'B places more');
  put(1,9,9);eq(O.ph,'p2','one more');put(1,6,6);eq(O.cnt,5,'5 stones');eq(O.ph,'c2','A chooses');eq(H.turn,0,'A picks');
@@ -245,19 +245,19 @@ const pick=(i,v)=>OM.engine.act(i,{t:'pick',v});
  eq(H.turn,0,'5 stones -> white to move = A');
  put(0,1,1);eq(O.cnt,6,'white moves');
 }
-{mkRoom({first:1,op:2});
+{mkRoom({pickfirst:1,op:2});
  const O=H.o;put(0,7,7);put(0,7,8);put(0,8,8);pick(1,2);
  eq(O.co[1],2,'B white (3 stones)');eq(H.turn,1,'white moves');
  const rec=OM._test.recordText(snapFor(0));
  if(!rec.includes('1.흑h8')&&!rec.includes('1.흑'))fail('omok record text '+rec);
 }
 /* 오프닝 돌에는 금수 판정을 하지 않음 */
-{mkRoom({first:1,op:1,b33:1});
+{mkRoom({pickfirst:1,op:1,b33:1});
  put(0,6,4);put(0,6,5);put(0,6,6);   // 흑 백 흑 : 판정 없이 놓임
  eq(H.o.cnt,3,'opening stones ignore fouls');
 }
 /* 다음 판 오프닝이면 선플레이어 = 이긴 사람, 오프닝 단계로 시작 */
-{mkRoom({first:1,op:1,inc:0});
+{mkRoom({pickfirst:1,op:1,inc:0});
  const O=H.o;put(0,7,7);put(0,7,8);put(0,8,8);pick(1,1);
  // A=0 백, B=1 흑: 백이 둠
  O.b.fill(0);O.cnt=0;
@@ -299,7 +299,7 @@ function playOutO(over,lvs){
 }
 globalThis.playOutO=playOutO;
 /* 연결이 끊긴 동안(봇이 맡은 동안)은 시계가 멈추고, 끊기기 전에 쓴 시간만 깎임 */
-{mkRoom({first:1,op:0,tm:1,inc:0});
+{mkRoom({pickfirst:1,op:0,tm:1,inc:0});
  put(0,7,7);   // 0 → 1 차례 (사람 1)
  NOW+=10000;engineTick();
  const p=H.players[1];p.bot=true;p.away=true;p.awayAt=NOW;   // 10초 쓰고 끊김
@@ -328,4 +328,15 @@ globalThis.playOutO=playOutO;
  for(let c=0;c<9;c++)b[6*n+c]=1;b[6*n+5]=0;   // 남은 한 칸에 두면 9목(장목 금수)
  eq(T.canMove({b,R,cnt:n*n-1},1),false,'only cell left is forbidden -> cannot move');
  eq(T.canMove({b,R,cnt:n*n-1},2),true,'white can take it');
+}
+/* 선 플레이어 직접 선택: 방장이 대기실에서 고른 사람(H.firstName)이 선, 안 골랐으면 방장, 끄면 랜덤 */
+{hostNew(false,'t','t');H.cfg={...cfgFor('omok'),pickfirst:1,op:0,game:'omok'};
+ H.members=[{name:'가',bot:false,conn:null,host:true},{name:'나',bot:false,conn:null,host:false}];
+ H.firstName='나';hostStart();eq(H.o.A,1,'picked first player is A');eq(H.o.co[1],1,'picked first is black');
+ eq(snapFor(0).ps.length,2,'snap ok');
+ hostNew(false,'t','t');H.cfg={...cfgFor('omok'),pickfirst:0,op:0,game:'omok'};
+ H.members=[{name:'가',bot:false,conn:null,host:true},{name:'나',bot:false,conn:null,host:false}];
+ const seen=new Set();for(let k=0;k<40;k++){H.phase='wait';hostStart();seen.add(H.o.A)}
+ eq(seen.size,2,'random first picks both seats');
+ eq(GAMES.omok.ruleSet[0].k,'pickfirst','pickfirst is a rule switch');
 }

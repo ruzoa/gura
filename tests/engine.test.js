@@ -210,7 +210,7 @@ const OM=GAMES.omok;
 run(`
 let ot=0;
 for(let sz=0;sz<2;sz++)for(let b33=0;b33<3;b33++)for(let ov=0;ov<3;ov++)for(let op=0;op<3;op++){
-  ot+=playOutO({sz,b33,ov,op,tm:10,inc:5,first:(sz+b33+ov+op)%3},[(sz+op)%3,(b33+ov+1)%3]);
+  ot+=playOutO({sz,b33,ov,op,tm:10,inc:5,pickfirst:(sz+b33+ov+op)%2},[(sz+op)%3,(b33+ov+1)%3]);
 }
 console.log('omok ticks',ot);
 `,'omok.run');

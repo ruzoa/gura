@@ -2,10 +2,10 @@
    공통 코드(index.html)가 GAMES.omok의 함수를 불러서 이 게임의 규칙·봇·화면을 그림.
    판: 15×15 또는 19×19. 칸 (r,c): r = 위에서 아래로 0~n-1, c = 왼쪽에서 오른쪽으로. 돌: 1 흑, 2 백 (0은 빈 칸)
    두 사람이 하는 게임이고 모든 화면이 같은 방향(아래가 1줄)으로 봄. 좌표는 'h8'처럼 가로 a~, 세로 1~(아래가 1)
-   방 설정(레버): 판 크기 sz, 3-3·4-4 b33, 장목(6목 이상) ov, 오프닝 op, 총 시간 tm(분), 추가 시간 inc(초), 첫 판 선플레이어 first
+   방 설정(레버): 판 크기 sz, 3-3·4-4 b33, 장목(6목 이상) ov, 오프닝 op, 총 시간 tm(분), 추가 시간 inc(초), 선 플레이어 직접 선택 pickfirst(쿼리도와 같은 공통 스위치: 켜면 방장이 대기실 목록의 [선]으로 고름)
    손패(hand)는 카드가 아니라 '돌 하나'를 뜻하는 표시: 공통 코드가 hand가 비면 끝난 사람으로 보기 때문에 게임 중에는 [0]으로 둠 */
 (function(){
-const G={id:'omok',name:'오목',short:'오목',lead:'렌주 금수와 스왑 오프닝까지',brand:'오목',brandPx:62,maxHi:2,noFast:true};   // 두 사람이 하는 게임 (게임 모드 선택 없음)
+const G={id:'omok',name:'오목',short:'오목',lead:'렌주 금수와 스왑 오프닝까지',brand:'오목',brandPx:62,maxHi:2,noFast:true,firstPick:true};   // firstPick: 대기실 목록의 [선] 버튼을 씀 (룰렛 연출은 아직 없음: 랜덤이면 시작 안내로만 알림)   // 두 사람이 하는 게임 (게임 모드 선택 없음)
 
 /* ---------- 규칙 (방장 엔진과 화면이 같은 함수를 씀) ---------- */
 const COLS='abcdefghijklmnopqrs';
@@ -186,15 +186,14 @@ const LV={
   sz:{label:'판 크기',vals:['15×15','19×19'],desc:'기본은 15×15입니다'},
   b33:{label:'3-3 · 4-4',vals:['가능','흑만 금지','양쪽 금지'],desc:'열린 3이 둘, 또는 4가 둘이 되는 수를 둘 수 있는지 정합니다'},
   ov:{label:'장목 (6목 이상)',vals:['승리','승리 아님','흑만 금수'],desc:'승리: 6목도 이김 · 승리 아님: 두어도 되지만 이기지 못함 · 흑만 금수: 흑은 둘 수 없고 백은 6목도 이김'},
-  op:{label:'오프닝',vals:['없음','Swap','Swap2'],desc:'없음: 선플레이어가 흑 · Swap: 돌 3개를 놓고 상대가 색을 고름 · Swap2: 거기에 돌 2개를 더 놓고 넘기는 선택이 있음'},
-  first:{label:'첫 판 선플레이어',vals:['랜덤','방장','상대'],desc:'오프닝이 있으면 오프닝 돌을 놓는 사람, 없으면 흑입니다. 다음 판부터는 이긴 사람이 합니다'}};
+  op:{label:'오프닝',vals:['없음','Swap','Swap2'],desc:'없음: 선플레이어가 흑 · Swap: 돌 3개를 놓고 상대가 색을 고름 · Swap2: 거기에 돌 2개를 더 놓고 넘기는 선택이 있음'}};
 const presetOf=c=>PRESETS.findIndex(P=>PKEYS.every(k=>(+c[k]||0)===P[k]));   // 0·1, 둘 다 아니면 -1(커스텀)
 const baseOf=c=>{const p=presetOf(c);if(p>=0)return p;const df=PRESETS.map(P=>PKEYS.filter(k=>(+c[k]||0)!==P[k]).length);return df[1]<df[0]?1:0};
 const diffKeys=c=>{const P=PRESETS[baseOf(c)];return PKEYS.filter(k=>(+c[k]||0)!==P[k])};
 const lvTxt=(k,c)=>LV[k].vals[Math.max(0,Math.min(LV[k].vals.length-1,+c[k]||0))];
 const diffLabel=(k,c)=>k==='sz'?lvTxt('sz',c):k==='b33'?'3-3·4-4 '+lvTxt('b33',c):k==='ov'?'장목 '+lvTxt('ov',c):'오프닝 '+lvTxt('op',c);
 const clockTxt=c=>`${+c.tm||10}분${+c.inc?`+${+c.inc}초`:''}`;
-G.defaults={max:2,turn:30,sz:0,b33:0,ov:0,op:0,tm:10,inc:5,first:0};
+G.defaults={max:2,turn:30,sz:0,b33:0,ov:0,op:0,tm:10,inc:5,pickfirst:0};
 /* 방 설정에 저장되는 값들. 시간만 −/+ 칸으로 바꾸고, 나머지는 레버(settingsHTML)로 바꿈 */
 G.roomSet=[
   {k:'tm',label:'총 시간',unit:'분',lo:1,hi:60,step:1,desc:'한 사람이 쓸 수 있는 전체 시간입니다. 다 쓰면 패배합니다'},
@@ -202,15 +201,14 @@ G.roomSet=[
   {k:'sz',label:'판 크기',unit:'',lo:0,hi:1,step:1,desc:'',lever:1},
   {k:'b33',label:'3-3 · 4-4',unit:'',lo:0,hi:2,step:1,desc:'',lever:1},
   {k:'ov',label:'장목',unit:'',lo:0,hi:2,step:1,desc:'',lever:1},
-  {k:'op',label:'오프닝',unit:'',lo:0,hi:2,step:1,desc:'',lever:1},
-  {k:'first',label:'첫 판 선플레이어',unit:'',lo:0,hi:2,step:1,desc:'',lever:1}];
-G.ruleSet=[];
+  {k:'op',label:'오프닝',unit:'',lo:0,hi:2,step:1,desc:'',lever:1}];
+G.ruleSet=[{k:'pickfirst',label:'선 플레이어 직접 선택 (끄면 랜덤)',desc:'켜면 방장이 대기실에서 선 플레이어를 고릅니다. 오프닝이 없으면 선 플레이어가 흑, 있으면 오프닝 돌을 놓습니다. 결과 화면에서 바로 시작하면 이긴 사람이 선입니다'}];
 function ruleLine(c){
   const p=presetOf(c),df=diffKeys(c);
   return `<b>${p>=0?PNAME[p]:'커스텀'}</b>${p>=0?'':` <small>(${PNAME[baseOf(c)]} 기반)</small>`}${p>=0?'':df.map(k=>` · <b class="pdiff">${esc(diffLabel(k,c))}</b>`).join('')}`;
 }
-G.cfgChips=c=>`<span class="chip">규칙 ${ruleLine(c)}</span><span class="chip">${lvTxt('sz',c)}</span><span class="chip">시계 <b>${clockTxt(c)}</b></span>`;
-G.cfgSum=c=>`${lvTxt('sz',c)} · 시계 ${clockTxt(c)}<br>규칙: ${ruleLine(c)}${+c.op?` · 오프닝 ${lvTxt('op',c)}`:''}`;
+G.cfgChips=c=>`<span class="chip">규칙 ${ruleLine(c)}</span><span class="chip">${lvTxt('sz',c)}</span><span class="chip">시계 <b>${clockTxt(c)}</b></span><span class="chip">선 <b>${+c.pickfirst?'방장 선택':'랜덤'}</b></span>`;
+G.cfgSum=c=>`${lvTxt('sz',c)} · 시계 ${clockTxt(c)} · 선 ${+c.pickfirst?'방장 선택':'랜덤'}<br>규칙: ${ruleLine(c)}${+c.op?` · 오프닝 ${lvTxt('op',c)}`:''}`;
 G.roomSub=()=>'2명 보드게임';
 G.pubExtra=()=>({});
 G.cardInfo=(c,nowN)=>`<p class="cardinfo">${nowN>2?'오목은 두 명이 하는 게임입니다.':'두 명이 하는 게임입니다. 사람이 한 명이면 봇이 상대합니다.'}</p>`;
@@ -225,17 +223,14 @@ G.cardHTML=()=>'';G.drawFace=()=>{};G.cmpCard=()=>0;G.labelOf=()=>'';
 /* ---------- 방장 엔진 (규칙 처리) ---------- */
 const other=i=>1-i;
 function sameNames(a,b){return a.length===2&&b.length===2&&a.every(x=>b.includes(x))&&a[0]!==a[1]}
-/* 첫 선플레이어: 결과 화면에서 바로 시작하면 이긴 사람(비기면 서로 바꿈), 아니면 방 설정 */
+/* 첫 선플레이어: 결과 화면에서 바로 시작하면 이긴 사람(비기면 서로 바꿈), 아니면 공통 firstSeat (직접 선택이면 방장이 고른 사람, 아니면 랜덤) */
 function pickFirst(again){
   const ps=H.players.slice(0,2),ns=ps.map(p=>p.name),L=H.oLast;
   if(again&&L&&L.ns&&sameNames(ns,L.ns)){
     if(L.w)return ns.indexOf(L.w);
     return ns.indexOf(L.A)===0?1:0;
   }
-  const f=+H.cfg.first||0,h=ps.findIndex(p=>p.host);
-  if(f===1)return h>=0?h:0;
-  if(f===2)return h>=0?1-h:1;
-  return Math.random()<.5?0:1;
+  return typeof firstSeat==='function'?firstSeat(2):(Math.random()<.5?0:1);
 }
 function setMover(to,inc){
   const O=H.o,t=clock(),from=O.mv;
@@ -437,7 +432,9 @@ G.settingsHTML=(c,{stepRow})=>{
     return `<div class="stp om-seg${df.has(k)?' pdiff-row':''}"><div class="stp-t"><b>${LV[k].label}</b>${note(k)}<small>${LV[k].desc}</small></div><div class="segrow">${LV[k].vals.map((t,j)=>`<button class="btn ${v===j?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${v===j}" data-act="om:set:${k}:${j}">${t}</button>`).join('')}</div></div>`};
   const det=open?`<div class="pl-det"><div class="rs-grid">${['sz','b33','ov','op'].map(seg).join('')}</div></div>`:'';
   const sp=rs.find(d=>d.k==='spec'),tm=rs.find(d=>d.k==='tm'),inc=rs.find(d=>d.k==='inc');
-  return `<div class="rs-grid">${[sp,tm,inc].filter(Boolean).map(stepRow).join('')}${seg('first')}</div><div class="rulehead">게임 규칙</div>${lever}<p class="pl-sum">${ruleLine(c)}</p>${more}${det}`;
+  const pf=!!(+c.pickfirst),pd=G.ruleSet[0];   // 선 플레이어: 쿼리도와 같은 스위치 (켜면 대기실 목록의 [선]으로 고름)
+  const pfRow=`<div class="stp tg om-full"><div class="stp-t"><b>${pd.label}</b><small>${pd.desc}</small></div><div class="stp-c"><button type="button" class="sw${pf?' on':''}" role="switch" aria-checked="${pf}" aria-label="${pd.label}" data-act="tog:pickfirst"><i></i></button></div></div>`;
+  return `<div class="rs-grid">${[sp,tm,inc].filter(Boolean).map(stepRow).join('')}</div><div class="rulehead">게임 규칙</div>${lever}<p class="pl-sum">${ruleLine(c)}</p>${more}${det}<div class="rs-grid tgs">${pfRow}</div>`;
 };
 G.panelAct=a=>{
   if(!a.startsWith('om:'))return false;
@@ -1008,7 +1005,7 @@ G.init=()=>{
 #om.intro .om-bar{opacity:0}
 .stage.om3d #om svg{display:none}
 .stage.om3d #om .om-hint{flex:0 1 auto;background:rgba(255,250,240,.9);border:1px solid var(--line-strong,#cdb391);border-radius:99px;padding:4px 12px;box-shadow:0 2px 6px -2px rgba(59,42,31,.35)}
-.stp.om-seg{flex-wrap:wrap}.stp.om-seg .segrow{flex:1 1 100%;width:100%}.rs-grid .stp.om-seg{grid-column:1/-1}
+.stp.om-seg{flex-wrap:wrap}.stp.om-seg .segrow{flex:1 1 100%;width:100%}.rs-grid .stp.om-seg,.rs-grid .stp.om-full{grid-column:1/-1}
 .stage.om .labels{visibility:hidden}
 .stage.om .nogl{display:none}
 .stage.om.om-over .myplate,.stage.om.om-over .actions{display:none}
