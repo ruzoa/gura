@@ -446,7 +446,7 @@ function drawGhost(){
   if(!elGhost)return;
   const me=myIdx(),out=[];
   if(pend&&pend.k===0&&me>=0){const [vr,vc]=rc(pend.r,pend.c,viewK);out.push(`<circle cx="${vc+.5}" cy="${vr+.5}" r=".33" fill="${PCOL[me%4]}" opacity=".45" stroke="#fffaf0" stroke-width=".07"/>`)}
-  if(pend&&pend.k===1)out.push(wallLine(pend.r,pend.c,pend.o,'#2f9e44',.22,.85));
+  if(pend&&pend.k===1)out.push(wallLine(pend.r,pend.c,pend.o,'#2f9e44',.2,.85));   // 놓인 벽과 같은 굵기
   else if(hov&&qMode==='wall')out.push(wallLine(hov.r,hov.c,hov.o,hov.ok?'#2f9e44':'#d6342a',.2,.55));
   elGhost.innerHTML=out.join('');
   q3Marks();
@@ -642,11 +642,11 @@ function q3Build(){
     Q3.ring.rotation.x=-Math.PI/2;Q3.ring.position.y=CT+.004;Q3.ring.visible=false;root.add(Q3.ring);
     // 미리 보기: 반투명 말, 초록 벽(+빛), 마우스를 올린 벽
     Q3.ghostP=new THREE.Group();Q3.ghostP.visible=false;root.add(Q3.ghostP);
+    // 미리 보기 벽: 실제 벽과 같은 크기·두께의 반투명 초록 벽 하나 (겹치는 빛 판 없이)
     const gw=new THREE.Group();
-    gw.add(new THREE.Mesh(new THREE.BoxGeometry(WLEN*U,WHT*U,WTH*U),new THREE.MeshBasicMaterial({color:0x2f9e44,transparent:true,opacity:.6,depthWrite:false})));
-    const glow=new THREE.Mesh(new THREE.PlaneGeometry(WLEN*U+.14,WTH*U+.14),new THREE.MeshBasicMaterial({color:0x7cf09a,transparent:true,opacity:.55,depthWrite:false}));glow.rotation.x=-Math.PI/2;glow.position.y=-WHT*U/2+.012;gw.add(glow);
+    gw.add(new THREE.Mesh(new THREE.BoxGeometry(WLEN*U,WHT*U,WTH*U),new THREE.MeshBasicMaterial({color:0x4fd36c,transparent:true,opacity:.75})));
     gw.visible=false;root.add(gw);Q3.ghostW=gw;
-    const hw=new THREE.Mesh(new THREE.BoxGeometry(WLEN*U,WHT*U,WTH*U),new THREE.MeshBasicMaterial({color:0x2f9e44,transparent:true,opacity:.35,depthWrite:false}));hw.visible=false;root.add(hw);Q3.hovW=hw;
+    const hw=new THREE.Mesh(new THREE.BoxGeometry(WLEN*U,WHT*U,WTH*U),new THREE.MeshBasicMaterial({color:0x2f9e44,transparent:true,opacity:.4}));hw.visible=false;root.add(hw);Q3.hovW=hw;
     Q3.cam=new THREE.PerspectiveCamera(44,1,.1,100);Q3.cam.up.set(0,0,-1);
     T.scene.add(root);Q3.root=root;Q3.built=true;
   }catch(e){Q3.fail=true;try{console.warn('쿼리도 3D 준비 실패',e)}catch(_){}}
