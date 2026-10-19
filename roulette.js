@@ -12,9 +12,12 @@
 (function(root){
   const DEF={fastMin:10,fastMax:30,fastCount:10,fastGap:50,endGap:1250,ratio:1.3,wait:650};   // 확정 값: 빠른 칸 10~30(매 판 무작위), 빠른 간격 50ms, 감속 ×1.3, 마지막 1.25초, 멈춘 뒤 0.65초
 
+  /* 값이 없거나 숫자가 아닌 옵션은 무시하고 기본값을 씀 (옛 신호·빠진 값에도 안전) */
+  const merge=opt=>{const o=Object.assign({},DEF);if(opt)for(const k in opt)if(Number.isFinite(+opt[k])&&opt[k]!==null&&opt[k]!=='')o[k]=+opt[k];return o};
+
   /* 빠르게 도는 구간(fastGap 일정) 다음, 칸 사이 간격이 fastGap에서 바로 매번 같은 비율로 늘어 endGap에 닿음 */
   function gaps(opt){
-    const o=Object.assign({},DEF,opt),g=[];
+    const o=merge(opt),g=[];
     for(let k=0;k<Math.max(0,Math.round(o.fastCount));k++)g.push(o.fastGap);
     // 감속 칸 수: ratio에 가장 가깝게 맞추고, 실제 비율 r은 마지막 간격이 정확히 endGap이 되도록 조금 보정
     const steps=Math.max(1,Math.round(Math.log(o.endGap/o.fastGap)/Math.log(Math.max(1.01,o.ratio))));
@@ -25,7 +28,7 @@
   }
 
   function plan(n,first,opt){
-    const o=Object.assign({},DEF,opt),G=gaps(o),times=[];
+    const o=merge(opt),G=gaps(o),times=[];
     let t=0;for(const x of G.gaps){t+=x;times.push(t)}
     const m=times.length,start=(((first-m)%n)+n)%n;
     return {
@@ -38,6 +41,6 @@
   /* 매 판 빠르게 도는 칸 수를 무작위로 (min~max). rnd는 0~1 난수 (테스트에서 고정 가능) */
   function pickFast(min,max,rnd){const a=Math.min(min,max),b=Math.max(min,max);return a+Math.floor((rnd==null?Math.random():rnd)*(b-a+1))}
 
-  const api={DEF,gaps,plan,pickFast};
+  const api={DEF,gaps,plan,pickFast,merge};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.Roulette=api;
 })(typeof window!=='undefined'?window:globalThis);

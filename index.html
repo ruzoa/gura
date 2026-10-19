@@ -688,6 +688,7 @@ body.kb .fan .card.cur{z-index:70!important}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <!-- 게임별 규칙·봇·카드·화면: games/*.js. 공통 코드(아래)는 G(지금 게임)의 함수를 부름 -->
+<script src="roulette.js"></script>
 <script src="games/gura.js"></script>
 <script src="games/president.js"></script>
 <script src="games/quoridor.js"></script>
@@ -781,13 +782,33 @@ function hostStart(){
   H.players=H.members.map(m=>({name:m.name,bot:m.bot,lv:m.bot?(m.lv??1):null,conn:m.conn,cid:m.cid||'',host:m.host,hand:[],finished:false,rank:null}));
   EG().engine.start();   // 카드 나누기·첫 차례는 게임마다 다름
   if(EG().dealAnim)beginDeal();
-  else if(EG().introMs){H.dealAgain=again?1:0;beginDeal(introLen(EG(),again))}   // 카드가 없는 게임의 시작 연출 (야추다이스·쿼리도: 카메라 이동·준비·첫 차례 룰렛)
+  else if(EG().introMs){H.dealAgain=again?1:0;H.fp=EG().firstPick?Roulette.pickFast(Roulette.DEF.fastMin,Roulette.DEF.fastMax):0;beginDeal(introLen(EG(),again,H.fp))}   // 카드가 없는 게임의 시작 연출 (야추다이스·쿼리도: 카메라 이동·준비·첫 차례 룰렛)
 }
 /* 카드 섞고 나누는 연출 동안(DEAL_MS)은 제한 시간·봇·행동을 멈춤. 화면 쪽 연출은 dealStart3D
    카드가 없는 게임은 G.introMs만큼 같은 방식으로 멈추고, 화면 쪽은 G.intro(시작 시각, {total, again})가 그림
    G.introMs는 숫자, 또는 바로 시작(again)이면 다른 길이를 돌려주는 함수 */
+/* ===== 첫 차례 룰렛 공통 실행부 (게임 연출 안에서 쓰는 도구, 계산은 roulette.js)
+   쓰는 법: 게임에 G.firstPick=true를 두고 G.introMs=(again,fast)=>시작 전 연출 ms + Roulette.plan(2,0,{fastCount:fast}).total + 여유.
+   G.intro(t0,{fast})에서 ctl=firstPick(룰렛 시작 시각, {seats,first,fast}) →
+   매 프레임 ctl.idx(now)로 지금 켜진 자리를 그리고, ctl.tick(now)를 부르면 틱 소리가 나고 끝나는 순간 한 번 true(그때 게임이 ctl.msg()를 안내로 보여 줌).
+   seats: 룰렛에 들어가는 자리 번호들(V.ps 기준), first: 첫 차례 자리 번호. 결과는 엔진이 정함 — 화면은 그 자리에서 멈추도록 맞춰 돎 */
+function firstPick(t0,{seats,first,fast}){
+  const L=seats.slice(),f=Math.max(0,L.indexOf(first)),P=Roulette.plan(L.length,f,{fastCount:fast});
+  const c={t0,total:P.total,seats:L,first:L[f],plan:P,n:0,said:false,
+    idx(now){return now-t0>=P.total?L[f]:L[P.at(now-t0)]},   // 지금 켜진 자리
+    msg(){const p=V&&V.ps&&V.ps[c.first];return p?(c.first===myIdx()?'내가 먼저 시작합니다.':`${p.n}부터 시작합니다.`):''},   // 끝날 때 보여 줄 안내 (표시는 게임이 함)
+    tick(now){   // 틱 소리 + 끝나면 안내 (끝나는 순간 한 번 true)
+      const e=now-t0,m=P.times.length;let k=0;while(k<m&&P.times[k]<=e)k++;
+      if(k>c.n){c.n=k;const r=k/m;tone(1400-r*650,.035,{type:'square',vol:.03+r*.03})}   // 느려질수록 낮고 또렷한 틱
+      if(e>=P.total&&!c.said){
+        c.said=true;sfx('turn');return true;
+      }
+      return false;
+    }};
+  return c;
+}
 const DEAL_MS=4350;
-const introLen=(g,again)=>typeof g.introMs==='function'?g.introMs(!!again):+g.introMs||0;
+const introLen=(g,again,fast)=>typeof g.introMs==='function'?g.introMs(!!again,fast):+g.introMs||0;   // fast: 첫 차례 룰렛의 빠른 칸 수 (G.firstPick인 게임만)
 function beginDeal(ms){
   ms=ms||DEAL_MS;
   const t=clock();H.dealUntil=t+ms;H.dealMs=ms;H.dealId=(H.dealId||0)+1;
@@ -860,7 +881,7 @@ function snapFor(you){
   if(H.phase==='wait'){s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0,lv:m.bot?(m.lv??1):undefined}));if(EG().engine.waitSnap)EG().engine.waitSnap(s);return s}   // waitSnap: 대기실에도 게임별 값 (대부호의 계급)
   s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=p.surrendered==='time'?2:1;if(p.away)o.aw=1;if(i===you)o.h=p.hand.slice();return o});
   s.t=H.turn;
-  if(H.dealUntil>t){s.dk=Math.round(H.dealUntil-t);s.di=H.dealId;s.dm=H.dealMs||0;if(H.dealAgain)s.dg=1}   // 카드를 나누는 중 (남은 ms)
+  if(H.dealUntil>t){s.dk=Math.round(H.dealUntil-t);s.di=H.dealId;s.dm=H.dealMs||0;if(H.dealAgain)s.dg=1;if(H.fp)s.fp=H.fp}   // 카드를 나누는 중 (남은 ms, fp: 첫 차례 룰렛의 빠른 칸 수)
   EG().engine.snap(s,you,t);   // 필드·판정 등은 게임마다 다름
   return s;
 }
@@ -2480,10 +2501,10 @@ function dealCheck(v){
   if(T.deal&&(v.st==='wait'||!v.ps||v.code+':'+v.di!==T.deal.key&&v.di))dealAbort();
   if(!(G.dealAnim||G.intro)||!v.ps||!v.dk||!v.di)return;
   const key=v.code+':'+v.di;if(key===dealSeen)return;dealSeen=key;
-  const total=G.dealAnim?DEAL_MS:(+v.dm||introLen(G,!!v.dg));
+  const total=G.dealAnim?DEAL_MS:(+v.dm||introLen(G,!!v.dg,+v.fp));
   const done=total-(+v.dk);if(done>900)return;   // 이미 많이 지났으면 연출 없이
   if(G.dealAnim)dealStart(v,clock()-Math.max(0,done),key);
-  else G.intro(clock()-Math.max(0,done),{total,again:!!v.dg});
+  else G.intro(clock()-Math.max(0,done),{total,again:!!v.dg,fast:+v.fp||0});
 }
 function dealAbort(){
   const d=T.deal;if(!d)return;T.deal=null;

@@ -21,6 +21,7 @@ const sfx=()=>{};
 function flush(){flushQueued=false}
 globalThis.queueMicrotask=()=>{};
 `,'stubs');
+run(fs.readFileSync(path.join(root,'roulette.js'),'utf8'),'roulette.js');   // 첫 차례 룰렛 계산 (hostStart가 씀)
 run(fs.readFileSync(path.join(root,'games/gura.js'),'utf8'),'gura.js');
 run(fs.readFileSync(path.join(root,'games/president.js'),'utf8'),'president.js');
 run(fs.readFileSync(path.join(root,'games/quoridor.js'),'utf8'),'quoridor.js');
