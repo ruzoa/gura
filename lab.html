@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>테스트룸 · 첫 차례 룰렛</title>
+<style>
+:root{--bg:#10170f;--panel:#1a241a;--line:#2d3b2c;--fg:#e8efe4;--dim:#93a38f;--acc:#f2c14e}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,'Noto Sans KR',sans-serif}
+main{max-width:560px;margin:0 auto;padding:10px 12px calc(24px + env(safe-area-inset-bottom))}
+h1{font-size:15px;margin:2px 0 8px;color:var(--dim);font-weight:600}
+/* 미리보기: 고른 화면 비율 그대로, 폭에 맞춰 줄임 */
+#viewWrap{position:sticky;top:0;z-index:5;background:var(--bg);padding:4px 0 8px}
+#view{position:relative;margin:0 auto;background:#1f4a2b;border:1px solid #2f6a3d;border-radius:10px;overflow:hidden}
+#view .tbl{position:absolute;inset:8% 6%;border-radius:50%/42%;background:#18401f;box-shadow:inset 0 0 0 2px #2a5c34}
+#view .mid{position:absolute;left:12%;right:12%;top:50%;border-top:2px dashed rgba(242,193,78,.55)}
+.seat{position:absolute;width:var(--sz);height:var(--sz);margin:calc(var(--sz)/-2) 0 0 calc(var(--sz)/-2);border-radius:50%;background:#0d1a10;border:3px solid var(--c);opacity:.5;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:calc(var(--sz)*.4);color:var(--c);transition:none}
+.seat.on{opacity:1;background:var(--c);color:#0d1a10;box-shadow:0 0 0 4px rgba(255,255,255,.5),0 0 18px var(--c)}
+.seat.win{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+#msg{height:26px;text-align:center;font-weight:700;color:var(--acc);margin-top:6px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}
+.row{display:flex;align-items:center;gap:10px;margin:8px 0}
+.row>label{flex:0 0 92px;color:var(--dim);font-size:13px}
+.row>output{flex:0 0 64px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+input[type=range]{flex:1;min-width:0;height:34px;accent-color:var(--acc)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:#0f180f;color:var(--fg);border-radius:18px;padding:7px 12px;font:inherit;cursor:pointer}
+.chip.on{background:var(--acc);color:#1a1405;border-color:var(--acc);font-weight:700}
+.btns{display:flex;gap:8px;margin-top:10px}
+.btn{flex:1;border:0;border-radius:10px;padding:13px 8px;font:inherit;font-weight:700;cursor:pointer;background:#2b3a2a;color:var(--fg)}
+.btn.main{flex:2;background:var(--acc);color:#1a1405;font-size:17px}
+.info{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:13px;color:var(--dim)}
+.info b{color:var(--fg);font-variant-numeric:tabular-nums}
+#line{width:100%;margin-top:8px;background:#0b110b;color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px;font:12px/1.4 ui-monospace,Menlo,monospace;resize:none}
+details{margin-top:8px;color:var(--dim);font-size:12px}
+details div{font-variant-numeric:tabular-nums;word-break:break-all;margin-top:4px}
+.sw{display:inline-flex;align-items:center;gap:6px;color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+<main>
+<h1>테스트룸 · 첫 차례 룰렛 <span style="font-weight:400">(메인에 연결되지 않은 연습용 화면입니다)</span></h1>
+
+<div id="viewWrap">
+  <div id="view"><div class="tbl"></div><div class="mid"></div></div>
+  <div id="msg"></div>
+</div>
+
+<div class="btns" style="margin-top:0">
+  <button class="btn main" id="play">▶ 다시 보기</button>
+  <button class="btn" id="copy">값 복사</button>
+</div>
+
+<section>
+  <div class="row"><label>인원</label><div class="chips" id="nChips"></div></div>
+  <div class="row"><label>첫 차례</label><div class="chips" id="fChips"></div></div>
+  <div class="row"><label>화면</label><div class="chips" id="vChips"></div></div>
+</section>
+
+<section>
+  <div class="row"><label>빠른 칸 수 최소</label><input type="range" id="fastMin" min="0" max="40" step="1"><output id="fastMinO"></output></div>
+  <div class="row"><label>빠른 칸 수 최대</label><input type="range" id="fastMax" min="0" max="40" step="1"><output id="fastMaxO"></output></div>
+  <div class="row"><label>빠른 간격</label><input type="range" id="fastGap" min="15" max="120" step="1"><output id="fastGapO"></output></div>
+  <div class="row"><label>감속 비율</label><input type="range" id="ratio" min="1.1" max="2.5" step="0.05"><output id="ratioO"></output></div>
+  <div class="row"><label>마지막 간격</label><input type="range" id="endGap" min="200" max="3000" step="50"><output id="endGapO"></output></div>
+  <div class="row"><label>멈춘 뒤 대기</label><input type="range" id="wait" min="0" max="1500" step="50"><output id="waitO"></output></div>
+  <div class="row"><span class="sw"><input type="checkbox" id="snd" checked> 소리</span></div>
+</section>
+
+<section>
+  <div class="info" id="info"></div>
+  <details><summary>칸 사이 간격 (ms)</summary><div id="gaps"></div></details>
+  <textarea id="line" rows="3" readonly></textarea>
+  <div class="btns"><button class="btn" id="reset">현재 게임 값으로</button></div>
+</section>
+</main>
+
+<script src="roulette.js"></script>
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const KEY='gura-lab-roulette';
+const PCOL=['#4aa3ff','#ff6b6b','#ffd166','#5fd38d'];
+const NAME=['나','왼쪽','맞은편','오른쪽'];
+const VIEWS=[['휴대폰 세로',390,780],['휴대폰 가로',780,390],['PC 1280',1280,800],['PC 1920',1920,1080]];
+/* 현재 게임(쿼리도)이 쓰는 값: 0.03초 10칸 → 감속 → 마지막 1.5초, 멈춘 뒤 0.3초 */
+const GAME={n:4,first:'random',view:0,fastMin:10,fastMax:10,fastGap:30,ratio:1.5,endGap:1500,wait:300,snd:true};
+const DEFAULT=Object.assign({},GAME,{fastMin:10,fastMax:20});
+let S=Object.assign({},DEFAULT);
+try{const j=JSON.parse(localStorage.getItem(KEY)||'null');if(j)S=Object.assign(S,j)}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+
+/* ---------- 소리 (게임과 같은 틱) ---------- */
+let ctx=null;
+function audio(){
+  if(!ctx){const AC=window.AudioContext||window.webkitAudioContext;if(AC)try{ctx=new AC()}catch(e){}}
+  if(ctx&&ctx.state==='suspended')ctx.resume().catch(()=>{});
+  return ctx;
+}
+function tone(f,dur,vol,type){
+  if(!S.snd||!ctx||ctx.state!=='running')return;
+  const t=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();
+  o.type=type||'square';o.frequency.value=f;
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+dur+.03);
+}
+
+/* ---------- 칩·슬라이더 ---------- */
+function chips(el,items,cur,on){
+  el.innerHTML='';
+  items.forEach(([v,label])=>{
+    const b=document.createElement('button');b.className='chip'+(String(v)===String(cur)?' on':'');b.textContent=label;
+    b.onclick=()=>{on(v);draw()};el.appendChild(b);
+  });
+}
+const fmt={fastMin:v=>v+'칸',fastMax:v=>v+'칸',fastGap:v=>v+'ms',ratio:v=>'×'+(+v).toFixed(2),endGap:v=>v+'ms',wait:v=>v+'ms'};
+function bindRanges(){
+  for(const k of Object.keys(fmt)){
+    const el=$('#'+k);el.value=S[k];$('#'+k+'O').textContent=fmt[k](S[k]);
+    el.oninput=()=>{
+      S[k]=+el.value;
+      if(k==='fastMin'&&S.fastMin>S.fastMax){S.fastMax=S.fastMin;$('#fastMax').value=S.fastMax}
+      if(k==='fastMax'&&S.fastMax<S.fastMin){S.fastMin=S.fastMax;$('#fastMin').value=S.fastMin}
+      for(const j of Object.keys(fmt))$('#'+j+'O').textContent=fmt[j](S[j]);
+      info();save();
+    };
+  }
+  $('#snd').checked=!!S.snd;$('#snd').onchange=e=>{S.snd=e.target.checked;save()};
+}
+
+/* ---------- 미리보기 ---------- */
+const SEAT={2:[[50,86],[50,14]],3:[[50,86],[20,22],[80,22]],4:[[50,86],[10,50],[50,14],[90,50]]};
+let seats=[];
+function layout(){
+  const v=VIEWS[S.view],vw=Math.min(document.querySelector('main').clientWidth-24,560);
+  // 세로로 긴 화면이 화면을 다 가리지 않게 높이는 화면의 45%까지만
+  let w=vw,h=w*v[2]/v[1];const maxH=innerHeight*.45;if(h>maxH){h=maxH;w=h*v[1]/v[2]}
+  const el=$('#view');el.style.width=w+'px';el.style.height=h+'px';
+  el.querySelectorAll('.seat').forEach(x=>x.remove());seats=[];
+  const sz=Math.max(28,Math.min(w,h)*.17);
+  SEAT[S.n].forEach(([x,y],i)=>{
+    const d=document.createElement('div');d.className='seat';d.textContent=i===0?'나':'P'+(i+1);
+    d.style.cssText=`left:${x}%;top:${y}%;--c:${PCOL[i]};--sz:${sz}px`;el.appendChild(d);seats.push(d);
+  });
+}
+function draw(){
+  chips($('#nChips'),[[2,'2명'],[3,'3명'],[4,'4명']],S.n,v=>{S.n=+v;if(S.first!=='random'&&+S.first>=S.n)S.first='random';save();layout()});
+  chips($('#fChips'),[['random','랜덤'],...Array.from({length:S.n},(_,i)=>[i,i===0?'나':'P'+(i+1)])],S.first,v=>{S.first=v;save()});
+  chips($('#vChips'),VIEWS.map((v,i)=>[i,v[0]]),S.view,v=>{S.view=+v;save();layout()});
+  info();
+}
+
+/* ---------- 계산·표시 ---------- */
+const opt=fast=>({fastCount:fast,fastGap:S.fastGap,endGap:S.endGap,ratio:S.ratio,wait:S.wait});
+function info(){
+  const p=Roulette.plan(S.n,0,opt(S.fastMin)),q=Roulette.plan(S.n,0,opt(S.fastMax));
+  const tot=a=>(a/1000).toFixed(2)+'초';
+  const range=S.fastMin===S.fastMax?`${S.fastMin}칸`:`${S.fastMin}~${S.fastMax}칸`;
+  $('#info').innerHTML=
+    `<span>빠르게 도는 시간</span><b>${tot(S.fastMin*S.fastGap)}${S.fastMin===S.fastMax?'':' ~ '+tot(S.fastMax*S.fastGap)}</b>`+
+    `<span>감속 칸 수</span><b>${p.steps}칸 (실제 ×${p.ratio.toFixed(3)})</b>`+
+    `<span>감속 시간</span><b>${tot(p.gaps.slice(p.fast).reduce((a,b)=>a+b,0))}</b>`+
+    `<span>전체 연출</span><b>${S.fastMin===S.fastMax?tot(p.total):tot(p.total)+' ~ '+tot(q.total)}</b>`;
+  $('#gaps').textContent=`빠른 구간 ${range} × ${S.fastGap} → `+p.gaps.slice(p.fast).map(Math.round).join(', ');
+  $('#line').value=line();
+}
+const line=()=>`n=${S.n} 첫차례=${S.first==='random'?'랜덤':'P'+(+S.first+1)} 빠른칸=${S.fastMin}~${S.fastMax} 빠른간격=${S.fastGap} 감속비율=${(+S.ratio).toFixed(2)} 마지막간격=${S.endGap} 대기=${S.wait} 화면=${VIEWS[S.view][0]}`;
+
+let raf=0;
+function play(){
+  cancelAnimationFrame(raf);audio();
+  const first=S.first==='random'?Math.floor(Math.random()*S.n):+S.first;
+  const fast=Roulette.pickFast(S.fastMin,S.fastMax);
+  const p=Roulette.plan(S.n,first,opt(fast));
+  $('#msg').textContent='';seats.forEach(s=>s.className='seat');
+  const t0=performance.now();let last=-1,shown=-1;
+  const step=now=>{
+    const e=now-t0,done=e>=p.total;
+    let c=0;while(c<p.times.length&&p.times[c]<=e)c++;
+    const cur=(p.start+c)%S.n,r=c/p.times.length;
+    if(c!==last){   // 칸이 넘어갈 때만 소리·표시
+      if(c>0){tone(1400-r*650,.035,.03+r*.03)}
+      seats.forEach((s,i)=>s.classList.toggle('on',i===cur));last=c;
+    }
+    if(done){
+      seats[first].classList.add('win');
+      $('#msg').textContent=(first===0?'내가':'P'+(first+1)+'(이)가')+' 먼저 시작합니다.';
+      tone(660,.12,.07,'sine');tone(990,.18,.07,'sine');
+      return;
+    }
+    raf=requestAnimationFrame(step);
+  };
+  // 시작 직전 상태: 처음 켜지는 자리는 첫 칸이 넘어간 뒤 켜짐
+  raf=requestAnimationFrame(step);
+}
+
+$('#play').onclick=play;
+$('#copy').onclick=async()=>{
+  const t=line();
+  try{await navigator.clipboard.writeText(t);$('#copy').textContent='복사됨'}
+  catch(e){const a=$('#line');a.removeAttribute('readonly');a.select();try{document.execCommand('copy');$('#copy').textContent='복사됨'}catch(_){$('#copy').textContent='아래 글을 복사'}a.setAttribute('readonly','')}
+  setTimeout(()=>$('#copy').textContent='값 복사',1500);
+};
+$('#reset').onclick=()=>{Object.assign(S,GAME,{view:S.view,n:S.n});save();bindRanges();draw()};
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&!/INPUT|TEXTAREA|BUTTON/.test(e.target.tagName)){e.preventDefault();play()}});
+addEventListener('resize',layout);
+bindRanges();layout();draw();
+})();
+</script>
+</body>
+</html>
