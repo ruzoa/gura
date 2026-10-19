@@ -775,19 +775,22 @@ function hostAddBot(force){
 }
 function hostStart(){
   if(!H||(H.phase!=='wait'&&H.phase!=='over'))return;
+  const again=H.phase==='over';   // 결과 화면에서 '바로 시작': 시작 연출을 짧게 하는 게임이 있음 (G.introMs(again))
   H.members=H.members.filter(m=>!m.away);   // 대기실에서 끊긴 채인 사람은 빼고 시작
   while(H.members.length<2)hostAddBot(true);
   H.players=H.members.map(m=>({name:m.name,bot:m.bot,lv:m.bot?(m.lv??1):null,conn:m.conn,cid:m.cid||'',host:m.host,hand:[],finished:false,rank:null}));
   EG().engine.start();   // 카드 나누기·첫 차례는 게임마다 다름
   if(EG().dealAnim)beginDeal();
-  else if(EG().introMs)beginDeal(EG().introMs);   // 카드가 없는 게임의 시작 연출 (야추다이스: 카메라 이동·컵 준비·첫 차례 룰렛)
+  else if(EG().introMs){H.dealAgain=again?1:0;beginDeal(introLen(EG(),again))}   // 카드가 없는 게임의 시작 연출 (야추다이스·쿼리도: 카메라 이동·준비·첫 차례 룰렛)
 }
 /* 카드 섞고 나누는 연출 동안(DEAL_MS)은 제한 시간·봇·행동을 멈춤. 화면 쪽 연출은 dealStart3D
-   카드가 없는 게임은 G.introMs만큼 같은 방식으로 멈추고, 화면 쪽은 G.intro(시작 시각)가 그림 */
+   카드가 없는 게임은 G.introMs만큼 같은 방식으로 멈추고, 화면 쪽은 G.intro(시작 시각, {total, again})가 그림
+   G.introMs는 숫자, 또는 바로 시작(again)이면 다른 길이를 돌려주는 함수 */
 const DEAL_MS=4350;
+const introLen=(g,again)=>typeof g.introMs==='function'?g.introMs(!!again):+g.introMs||0;
 function beginDeal(ms){
   ms=ms||DEAL_MS;
-  const t=clock();H.dealUntil=t+ms;H.dealId=(H.dealId||0)+1;
+  const t=clock();H.dealUntil=t+ms;H.dealMs=ms;H.dealId=(H.dealId||0)+1;
   if(typeof H.deadline==='number'&&H.deadline)H.deadline+=ms;
   if(H.botActAt)H.botActAt+=ms;
   H.graceUntil=Math.max(+H.graceUntil||0,t)+ms;
@@ -857,7 +860,7 @@ function snapFor(you){
   if(H.phase==='wait'){s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0,lv:m.bot?(m.lv??1):undefined}));if(EG().engine.waitSnap)EG().engine.waitSnap(s);return s}   // waitSnap: 대기실에도 게임별 값 (대부호의 계급)
   s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=p.surrendered==='time'?2:1;if(p.away)o.aw=1;if(i===you)o.h=p.hand.slice();return o});
   s.t=H.turn;
-  if(H.dealUntil>t){s.dk=Math.round(H.dealUntil-t);s.di=H.dealId}   // 카드를 나누는 중 (남은 ms)
+  if(H.dealUntil>t){s.dk=Math.round(H.dealUntil-t);s.di=H.dealId;s.dm=H.dealMs||0;if(H.dealAgain)s.dg=1}   // 카드를 나누는 중 (남은 ms)
   EG().engine.snap(s,you,t);   // 필드·판정 등은 게임마다 다름
   return s;
 }
@@ -2477,9 +2480,10 @@ function dealCheck(v){
   if(T.deal&&(v.st==='wait'||!v.ps||v.code+':'+v.di!==T.deal.key&&v.di))dealAbort();
   if(!(G.dealAnim||G.intro)||!v.ps||!v.dk||!v.di)return;
   const key=v.code+':'+v.di;if(key===dealSeen)return;dealSeen=key;
-  const done=(G.dealAnim?DEAL_MS:G.introMs)-(+v.dk);if(done>900)return;   // 이미 많이 지났으면 연출 없이
+  const total=G.dealAnim?DEAL_MS:(+v.dm||introLen(G,!!v.dg));
+  const done=total-(+v.dk);if(done>900)return;   // 이미 많이 지났으면 연출 없이
   if(G.dealAnim)dealStart(v,clock()-Math.max(0,done),key);
-  else G.intro(clock()-Math.max(0,done));
+  else G.intro(clock()-Math.max(0,done),{total,again:!!v.dg});
 }
 function dealAbort(){
   const d=T.deal;if(!d)return;T.deal=null;
