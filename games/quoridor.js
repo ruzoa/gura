@@ -852,7 +852,7 @@ function q3Render(t){
    1.95~2.7초  말이 출발 칸에 하나씩 떨어져 튕기고, 닿는 순간 그 사람의 목표 줄이 그어짐
    2.6~7.65초 차례 고리가 말들 사이를 빠르게 한두 바퀴 돌다가 점점 느려져(… 0.44 → 0.67 → 1 → 1.5초) 첫 차례 사람에서 멈춤 → 'OO부터 시작합니다'
    다시 하기(이미 쿼리도 화면)는 카메라·보드 없이 벽·말·룰렛만. 늦게 들어오거나 다시 연결된 사람은 연출 없이 바로 (공통 dealCheck)
-   움직임 줄이기를 켠 기기는 연출 없이 첫 차례 안내만, WebGL이 없으면 위쪽 이름 목록의 룰렛만 */
+   기기의 '움직임 줄이기' 설정과 상관없이 보임 (야추다이스와 같게), WebGL이 없으면 위쪽 이름 목록의 룰렛만 */
 const INTRO={cam:1300,ui:650,board:[150,450],cells:[450,90,260],lab:[900,350],tray:[1000,380],walls:[1250,55,220],pawn:[1950,110,380],stripe:300,roul:[2600,7650]};
 G.introMs=7750;
 const IN={on:false,on3d:false,t0:0,fromLobby:true,said:false,seq:null,tick:0,snd:{}};
@@ -878,7 +878,6 @@ G.intro=t0=>{
    const gaps=[];for(let k=0;k<10;k++)gaps.push(30);for(let k=9;k>=0;k--)gaps.push(1500/Math.pow(1.5,k));
    let t=INTRO.roul[0];for(const x of gaps){t+=x;times.push(t)}}
   IN.seq={L,times,f,start:((f-times.length)%L.length+L.length)%L.length};
-  if(reduced()){IN.on3d=false;IN.t0=t0-INTRO.roul[1];return}   // 움직임 줄이기: 바로 안내
   IN.on3d=true;
   $('#stage').classList.add('qd-intro');if(elQd&&IN.fromLobby)elQd.classList.add('intro');
   lastBar='';Q3.dirty=true;
@@ -934,7 +933,7 @@ function introTick(){
     const L=IN.seq?IN.seq.L:[];
     L.forEach((i,k)=>{if(e>=INTRO.pawn[0]+k*INTRO.pawn[1]+INTRO.pawn[2]*.68)once('p'+k,()=>{tone(190,.08,{type:'triangle',vol:.16});hiss(.04,{freq:1500,vol:.08});tone(520+k*130,.12,{type:'sine',vol:.06,at:.05})})});
   }
-  if(e>=INTRO.roul[0]&&e<INTRO.roul[1]&&!reduced()){const c=IN.seq?IN.seq.times.filter(x=>x<=e).length:0;if(c>IN.tick){IN.tick=c;const r=c/IN.seq.times.length;tone(1400-r*650,.035,{type:'square',vol:.03+r*.03})}}   // 느려질수록 낮고 또렷한 틱
+  if(e>=INTRO.roul[0]&&e<INTRO.roul[1]){const c=IN.seq?IN.seq.times.filter(x=>x<=e).length:0;if(c>IN.tick){IN.tick=c;const r=c/IN.seq.times.length;tone(1400-r*650,.035,{type:'square',vol:.03+r*.03})}}   // 느려질수록 낮고 또렷한 틱
   if(e>=INTRO.roul[1]&&!IN.said){
     IN.said=true;$('#stage').classList.remove('qd-intro');if(elQd)elQd.classList.remove('intro');
     const p=V&&V.ps&&V.ps[V.t];if(p)say(V.t===myIdx()?'내가 먼저 시작합니다.':`${p.n}부터 시작합니다.`);
