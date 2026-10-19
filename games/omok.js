@@ -632,7 +632,6 @@ function drawAll(){
    시계: 좁은 화면(세로)은 판 아래에, 넓은 화면은 판 오른쪽 아래에 가로로 놓음. 내 칸은 왼쪽 */
 const BW=2.3,GM=.3,TOP=.2,SPAN=2*BW-2*GM,GAPC=.38,CD=1.05,CL=3.0,CH=.14,CB=.03,CT=CH+2*CB;   // 틀 반폭, 틀 안쪽 여백, 판 윗면 높이, 격자 폭, 판과 시계 사이, 시계 폭(앞뒤)·길이·몸통 높이·모서리 둥글기·윗면 높이
 const Om3={on:false,built:false,fail:false,root:null,cam:null,dirty:true,lastR:0,lay:'',layAt:0,d:12,W:0,H:0,K:'',stones:new Map(),anim:[],cnt:-1,ck:'',forbid:[],tx:{}};
-const reduced=()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}};
 const ease=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 const pitchOf=n=>SPAN/(n-1);
 const cellW=(n,r,c)=>{const p=pitchOf(n);return [(c-(n-1)/2)*p,(r-(n-1)/2)*p]};   // 칸 (r,c) → 월드 (x,z)
@@ -759,7 +758,7 @@ function om3Sync(){
     if(m&&m.userData.col!==v){Om3.root.remove(m);Om3.stones.delete(key);m=null}
     if(!m){
       m=stoneMesh(v);const [x,z]=cellW(n,r,c);m.position.set(x,stoneY(m),z);Om3.root.add(m);Om3.stones.set(key,m);
-      if(!snap&&!reduced()){const y1=stoneY(m);m.position.y=y1+.7;Om3.anim.push({obj:m,t0:clock(),dur:300,y0:y1+.7,y1})}
+      if(!snap){const y1=stoneY(m);m.position.y=y1+.7;Om3.anim.push({obj:m,t0:clock(),dur:300,y0:y1+.7,y1})}
     }
   }
   for(const [k,m] of Om3.stones)if(!keep.has(k)){Om3.root.remove(m);Om3.stones.delete(k)}

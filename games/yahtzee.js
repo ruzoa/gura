@@ -578,7 +578,6 @@ const CUP_REST=[3.3,0,-1.7],CUP_UP=[2.2,1.3,-1.1];   // 컵이 쉬는 자리(펠
 const POUR_DIR=(()=>{const x=-.97,z=.22,l=Math.hypot(x,z);return [x/l,0,z/l]})();   // 왼쪽(살짝 화면 쪽)으로 쏟아서 입구 안이 보이고 테이블 가운데에 퍼지게
 const Q_ID=[0,0,0,1],Q_POUR=qAxis((()=>{const l=Math.hypot(POUR_DIR[2],POUR_DIR[0]);return [POUR_DIR[2]/l,0,-POUR_DIR[0]/l]})(),1.35);   // 거의 눕힘: 입구가 카메라 쪽으로 조금 보이게
 const ease=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
-const reduced=()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}};
 function qslerp(a,b,k){
   let d=a[0]*b[0]+a[1]*b[1]+a[2]*b[2]+a[3]*b[3],s=1;if(d<0){d=-d;s=-1}
   if(d>.9995)return qnorm(a.map((x,i)=>x+(s*b[i]-x)*k));
@@ -779,7 +778,7 @@ function d3Launch(){
   D3.dice.forEach((d,i)=>{d.val=pd.d[i]||1});
   const so=holdSlots(pd.hd,pd.d);
   pd.hd.forEach((h,i)=>{const d=D3.dice[i];if(h&&destOf(d)!=='hold'){d.tw=null;d.where='hold';d.slot=so[i];d.p=slotPos(so[i]);d.q=restQ(d.val,d.q);d.g.visible=true}});
-  if(!A.rec||reduced()){   // 움직임 줄이기: 컵에서 바로 테이블로 (d3Arrange가 놓음)
+  if(!A.rec){   // 던질 주사위가 없음: 컵에서 바로 테이블로 (d3Arrange가 놓음). 기기의 '움직임 줄이기'와 상관없이 굴러감
     A.thrown.forEach(i=>{const d=D3.dice[i];d.tw=null;d.where='cup';d.fp=null});
     cupTo(CUP_REST,Q_ID,450);d3Land();return;
   }

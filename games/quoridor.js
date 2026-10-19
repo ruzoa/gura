@@ -579,7 +579,6 @@ const TOP=.2,CT=TOP+.06;
 const BS=.78;   // 보드 묶음 전체 배율: 테이블 둘레가 보이게 줄임 (카메라도 같은 비율로 가까워져서 원근감은 그대로)   // 보드 틀 윗면, 칸 윗면 높이 (테이블 윗면 = 0)
 const Q3={on:false,built:false,fail:false,root:null,cam:null,dirty:true,lastR:0,lay:'',layAt:0,d:12,W:0,H:0,K:-1,labKey:'',lab:null,
   anim:[],pawns:new Map(),walls:new Map(),slots:new Map(),sel:null,flyFrom:null,hl:[],ghostP:null,ghostW:null,hovW:null,ring:null,trayRect:null,recN:-1,wN:-1};   // slots: 사람마다 {side, w:[홈 10개의 벽 또는 null]}, sel: 내가 고른 홈
-const reduced=()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}};
 const ease=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 const cellXY=(vr,vc)=>[(vc-4)*PT,(vr-4)*PT];
 const latXY=(X,Y)=>[(X-4.5)*PT,(Y-4.5)*PT];
@@ -713,7 +712,6 @@ function q3Slots(i,side,n,reset){
 function wallPose(w,K){const [X,Y]=rp(w[1]+1,w[0]+1,K),vo=w[2]^(K&1),[x,y]=latXY(X,Y);return {x:x*U,z:y*U,y:TOP+.01+WHT*U/2,ry:vo?Math.PI/2:0}}
 function pawnPose(p,K){const [vr,vc]=rc(p[0],p[1],K),[x,y]=cellXY(vr,vc);return {x:x*U,z:y*U,y:CT}}
 function q3Anim(obj,to,dur,hop,fromRy){
-  if(reduced()){obj.position.set(to.x,to.y,to.z);if(to.ry!=null)obj.rotation.y=to.ry;return}
   Q3.anim=Q3.anim.filter(a=>a.obj!==obj);
   Q3.anim.push({obj,t0:clock(),dur,hop,from:obj.position.clone(),to,ry0:fromRy!=null?fromRy:obj.rotation.y});
 }
