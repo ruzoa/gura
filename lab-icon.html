@@ -68,6 +68,7 @@ input[type=range]{flex:1;min-width:0;height:34px;accent-color:var(--acc)}
   <div class="row"><label>위아래 위치</label><input type="range" id="lift" min="-3" max="3" step="0.05"><output id="liftO"></output></div>
   <div class="row"><label>원근감</label><input type="range" id="fov" min="10" max="60" step="1"><output id="fovO"></output></div>
   <div class="row"><label>다리 길이</label><input type="range" id="leg" min="1" max="4" step="0.05"><output id="legO"></output></div>
+  <div class="row"><label>안개 거리</label><input type="range" id="fog" min="0" max="100" step="1"><output id="fogO"></output></div>
   <div class="row"><label>윤곽선</label><input type="range" id="ol" min="0" max="4" step="0.1"><output id="olO"></output></div>
 </section>
 
@@ -78,7 +79,7 @@ input[type=range]{flex:1;min-width:0;height:34px;accent-color:var(--acc)}
   <div class="row"><label>구름 그림자</label><div class="chips" id="cloudChips"></div></div>
   <div class="row"><label>펠트 매트</label><div class="chips" id="feltChips"></div></div>
   <div class="row"><label>안전 영역</label><div class="chips" id="safeChips"></div></div>
-  <p class="note">다리 길이 1, 윤곽선 1이 게임 속 탁자와 같습니다. 게임 탁자는 다리가 짧아서 위에서 보면 받침이 가려지므로, 아이콘에서는 조금 길게 하는 것을 추천합니다.<br>점선 원은 안드로이드가 아이콘을 원으로 자를 때 남는 부분입니다. 탁자가 이 안에 들어오면 잘리지 않습니다.</p>
+  <p class="note">안개 거리는 탁자 뒤로 얼마나 떨어진 곳부터 흐려질지입니다(게임은 5). 오른쪽 끝은 안개 없음입니다. 다리 길이 1, 윤곽선 1이 게임 속 탁자와 같습니다. 게임 탁자는 다리가 짧아서 위에서 보면 받침이 가려지므로, 아이콘에서는 조금 길게 하는 것을 추천합니다.<br>점선 원은 안드로이드가 아이콘을 원으로 자를 때 남는 부분입니다. 탁자가 이 안에 들어오면 잘리지 않습니다.</p>
 </section>
 
 <section>
@@ -99,7 +100,7 @@ input[type=range]{flex:1;min-width:0;height:34px;accent-color:var(--acc)}
 const $=s=>document.querySelector(s);
 if(!window.THREE){$('#err').textContent='3D 라이브러리를 불러오지 못했습니다. 새로고침해 주세요.';return}
 const KEY='gura-lab-icon';
-const DEFAULT={yaw:-24,pitch:12,zoom:1.25,lift:0,fov:30,ol:1.6,leg:2.2,grass:'few',props:'off',shadow:'on',cloud:'off',felt:'on',safe:'on'};
+const DEFAULT={yaw:-24,pitch:12,zoom:1.25,lift:0,fov:30,ol:1.6,leg:2.2,fog:5,grass:'few',props:'off',shadow:'on',cloud:'off',felt:'on',safe:'on'};
 let S=Object.assign({},DEFAULT);
 try{const j=JSON.parse(localStorage.getItem(KEY)||'null');if(j)S=Object.assign(S,j)}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
@@ -227,7 +228,8 @@ function aim(c,aspect,fit){
   c.position.set(tgt.x+Math.sin(y)*Math.cos(p)*dist,tgt.y+Math.sin(p)*dist,tgt.z+Math.cos(y)*Math.cos(p)*dist);
   c.lookAt(tgt);c.near=Math.max(.1,dist-40);c.far=dist+200;
   // 게임처럼 탁자 바로 뒤에서부터 흐려지게: 멀리서 찍어도(망원) 탁자는 또렷함
-  scene.fog.near=dist+5;scene.fog.far=dist+30;c.updateProjectionMatrix();
+  // 안개 거리: 카메라에서 탁자까지 거리 + 이 값부터 흐려짐. 100이면 안개 없음
+  if(S.fog>=100){scene.fog.near=1e5;scene.fog.far=1e5+1}else{scene.fog.near=dist+S.fog;scene.fog.far=dist+S.fog+25}c.updateProjectionMatrix();
 }
 function apply(){
   // 다리 길이: 게임은 1 (상판 아래 받침 높이 1.25). 늘리면 받침이 길어지고 땅이 그만큼 내려감
@@ -292,7 +294,7 @@ function make(){
 }
 
 /* ===== 조절 칸 ===== */
-const RANGES={yaw:v=>v+'°',pitch:v=>v+'°',zoom:v=>(+v).toFixed(2),lift:v=>(+v).toFixed(2),fov:v=>v+'°',leg:v=>(+v).toFixed(2),ol:v=>(+v).toFixed(1)};
+const RANGES={yaw:v=>v+'°',pitch:v=>v+'°',zoom:v=>(+v).toFixed(2),lift:v=>(+v).toFixed(2),fov:v=>v+'°',leg:v=>(+v).toFixed(2),fog:v=>+v>=100?'없음':v,ol:v=>(+v).toFixed(1)};
 function bind(){
   for(const k in RANGES){const el=$('#'+k),o=$('#'+k+'O');el.value=S[k];o.textContent=RANGES[k](S[k]);
     el.oninput=()=>{S[k]=+el.value;o.textContent=RANGES[k](S[k]);save();if(k==='ol'||k==='leg')apply();render();line()}}
