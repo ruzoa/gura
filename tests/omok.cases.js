@@ -340,3 +340,18 @@ globalThis.playOutO=playOutO;
  eq(seen.size,2,'random first picks both seats');
  eq(GAMES.omok.ruleSet[0].k,'pickfirst','pickfirst is a rule switch');
 }
+/* 돌을 집어 들기(hold): 화면 표시용. 대국 중에만, 바뀔 때만 반영, 두면 풀림. 봇은 차례가 오면 집어 듦 */
+{mkRoom({pickfirst:1,op:0});
+ OM.engine.act(1,{t:'hold',v:1});eq(H.o.hd[1],1,'opponent can hold during my turn');
+ eq(snapFor(0).o.hd[1],1,'hold in snapshot');
+ OM.engine.act(0,{t:'hold',v:1});put(0,7,7);eq(H.o.hd[0],0,'hold cleared after placing');
+ OM.engine.act(1,{t:'hold',v:0});eq(H.o.hd[1],0,'release hold');
+ OM.engine.act(5,{t:'hold',v:1});eq(H.o.hd.length,2,'bad seat ignored');
+}
+{hostNew(false,'t','t');H.cfg={...cfgFor('omok'),pickfirst:1,op:0,game:'omok'};
+ H.members=[{name:'가',bot:false,conn:null,host:true},{name:'봇',bot:true,conn:null,host:false,lv:1}];
+ hostStart();NOW+=10000;H.o.since=NOW;
+ put(0,7,7);eq(H.o.hd[1],1,'bot holds a stone when its turn comes');
+ for(let k=0;k<20&&H.turn===1;k++){NOW+=250;engineTick()}
+ eq(H.o.hd[1],0,'bot hold cleared after its move');
+}

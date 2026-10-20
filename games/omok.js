@@ -240,6 +240,7 @@ function setMover(to,inc){
   if(inc&&from!==to&&cur&&!cur.bot)O.rem[from]+=O.R.inc*1000;
   O.mv=to;H.turn=to;O.since=t;
   const nx=H.players[to];O.mvBot=nx&&nx.bot?1:0;
+  if(nx&&nx.bot&&O.ph==='play')O.hd[to]=1;
   H.botActAt=nx&&nx.bot?t+rand(700,1600):0;
   mark();
 }
@@ -275,7 +276,7 @@ function doMove(seat,r,c){
   const O=H.o,n=O.R.n,col=O.co[seat];
   const j=judge(O.b,O.R,r,c,col,0);
   if(j.bad)return false;
-  placeStone(seat,r,c,col,false);
+  placeStone(seat,r,c,col,false);O.hd[seat]=0;
   if(j.win>=0){const line=winCells(O.b,n,r,c,j.win);finishGame(seat,'',line);return true}
   if(O.cnt>=n*n||!canMove(O,nextColor(O.cnt))){finishGame(-1);return true}   // 판이 차거나, 다음 색이 둘 곳이 모두 금수면 무승부
   setMover(seatOfColor(nextColor(O.cnt)),true);
@@ -343,8 +344,9 @@ G.engine={
       if(i<2)p.hand=[0];else{p.hand=[];p.finished=true;p.rank=i+1}   // 자리가 모자라면(3명 이상) 구경만 함 (보통은 최대 인원 2명이라 생기지 않음)
     });
     const A=pickFirst(again),t=clock();
-    const O={mvBot:H.players[A].bot?1:0,R,A,ph:R.op?'p1':'play',co:R.op?[0,0]:(A===0?[1,2]:[2,1]),mv:A,rem:[R.tm*60000,R.tm*60000],since:t,b:Array(n*n).fill(0),cnt:0,lm:null,rec:[],res:null};
+    const O={hd:[0,0],mvBot:H.players[A].bot?1:0,R,A,ph:R.op?'p1':'play',co:R.op?[0,0]:(A===0?[1,2]:[2,1]),mv:A,rem:[R.tm*60000,R.tm*60000],since:t,b:Array(n*n).fill(0),cnt:0,lm:null,rec:[],res:null};
     H.o=O;H.turn=A;
+    if(O.ph==='play'&&H.players[A].bot)O.hd[A]=1;   // 봇은 차례가 오면 돌을 집어 듦
     H.botActAt=H.players[A].bot?t+rand(900,2000):0;
     const nm=H.players[A].name;
     addLog(R.op?`${nm}님이 오프닝 돌 3개를 놓습니다.`:`${nm}님이 흑으로 먼저 시작합니다.`,'sys');
@@ -353,6 +355,8 @@ G.engine={
   act(seat,a){
     if(a.t==='surrender'){doSurrender(seat);return}
     const O=H.o;
+    // 돌을 집어 들었다/내려놓았다 (화면 표시만: 상대 통 위에 돌이 떠 보임). 바뀔 때만 오므로 가벼움
+    if(a.t==='hold'){if(O&&H.phase==='play'&&O.ph==='play'&&(seat===0||seat===1)&&O.hd){const v=a.v?1:0;if(O.hd[seat]!==v){O.hd[seat]=v;mark()}}return}
     if(!O||H.phase!=='play'||seat<0||seat>1||O.mv!==seat)return;
     if(a.t==='put'){
       const r=a.r,c=a.c,n=O.R.n;
@@ -381,7 +385,7 @@ G.engine={
   snap(s,you,t){
     const O=H.o,p=H.players[O.mv],run=H.phase==='play'&&p&&!p.bot?1:0;
     const el=run?Math.max(0,t-O.since):0,rem=O.rem.map((v,i)=>Math.max(0,Math.round(v-(run&&i===O.mv?el:0))));
-    s.o={n:O.R.n,b:O.b.join(''),ph:O.ph,A:O.A,co:O.co.slice(),cnt:O.cnt,lm:O.lm?{...O.lm}:null,rec:O.rec.map(x=>x.slice()),rem,run,hold:run?Math.max(0,Math.round(O.since-t)):0,R:{...O.R},res:O.res?{w:O.res.w,why:O.res.why,line:O.res.line}:null};
+    s.o={n:O.R.n,b:O.b.join(''),ph:O.ph,A:O.A,co:O.co.slice(),cnt:O.cnt,lm:O.lm?{...O.lm}:null,rec:O.rec.map(x=>x.slice()),hd:(O.hd||[0,0]).slice(),rem,run,hold:run?Math.max(0,Math.round(O.since-t)):0,R:{...O.R},res:O.res?{w:O.res.w,why:O.res.why,line:O.res.line}:null};
     s.gr=0;s.dl=rem[O.mv];
   },
   restore(ms){if(H.o&&ms)H.o.since+=ms},   // 시작 연출 동안·방장이 꺼져 있던 동안은 시계를 멈춤
@@ -466,7 +470,7 @@ let elOm=null,elSvg=null,elMain=null,elGhost=null,elBar=null,elHint=null,elModes
 const OC={at:0,fk:'',fl:[]};   // OC.at: 상태를 받은 시각 (시계가 흐른 시간 계산), fk·fl: 금수 칸 캐시
 function buildS(o){
   const n=o.n,b=Array.from(o.b,Number),R=o.R&&o.R.n?o.R:rulesOf({sz:n===19?1:0,b33:0,ov:0,op:0,tm:10,inc:5});
-  return {n,R,b,cnt:o.cnt,ph:o.ph,A:o.A,co:o.co,lm:o.lm,rec:o.rec,rem:o.rem,run:o.run,hold:o.hold,res:o.res};
+  return {n,R,b,hd:o.hd||[0,0],cnt:o.cnt,ph:o.ph,A:o.A,co:o.co,lm:o.lm,rec:o.rec,rem:o.rem,run:o.run,hold:o.hold,res:o.res};
 }
 const myTurnNow=()=>!!(V&&V.o&&V.st==='play'&&myReady());
 const dblOn=()=>typeof dblTap!=='undefined'&&!!dblTap;
@@ -485,7 +489,8 @@ function fmtT(ms){const s=Math.ceil(ms/1000),m=Math.floor(s/60);return m+':'+Str
 /* 지금 두는 색의 금수 칸 (판이 바뀔 때만 다시 계산) */
 function forbidNow(){
   if(!OS||V.st!=='play'||OS.ph!=='play')return [];
-  const col=nextColor(OS.cnt);
+  const col=myTurnNow()?nextColor(OS.cnt):canPre()?OS.co[myIdx()]:0;   // 내 차례, 또는 상대 차례에 미리 고를 때는 내 색 기준
+  if(!col)return [];
   if(!bound(col,OS.R))return [];
   const k=V.o.b+'|'+col+'|'+OS.R.b33+OS.R.ov;
   if(OC.fk!==k){OC.fk=k;OC.fl=forbidCells(OS.b.slice(),OS.R,col)}
@@ -495,23 +500,19 @@ function forbidNow(){
 const canPre=()=>{const me=myIdx();return !!(V&&V.o&&OS&&V.st==='play'&&me>=0&&!introWait()&&OS.ph==='play'&&OS.co[me]&&!(V.ps[me]&&V.ps[me].f))};
 /* 미리 보기 돌의 색: 대국 중이면 내 색, 오프닝이면 이번에 놓을 돌의 색 */
 const pendCol=()=>{const me=myIdx();return OS.ph==='play'&&me>=0&&OS.co[me]?OS.co[me]:nextColor(OS.cnt)};
-const badMsg=b=>b==='6'?'장목(6목 이상)은 금수입니다.':b==='44'?'4-4는 금수입니다.':'3-3은 금수입니다.';
 /* 눌러서 고르기 (미리 보기): 확정은 [놓기]. 상대 차례에도 골라 둘 수 있고, 내 차례가 오면 [놓기]로 둠 */
 function pickCell(r,c){
   if(!V||!V.o||V.st!=='play'||!OS)return;
   const me=myIdx();if(me<0)return;
   const mine=myTurnNow();
-  if(!mine&&!canPre()){say(V.t===me?'잠시만 기다려 주세요.':'아직 내 차례가 아닙니다.');return}
-  if(OS.ph==='c1'||OS.ph==='c2'){say('위의 버튼으로 흑·백을 먼저 고릅니다.');return}
-  if(r<0||c<0||r>=OS.n||c>=OS.n||OS.b[r*OS.n+c])return;
-  if(OS.ph==='play'){
-    const j=judge(OS.b.slice(),OS.R,r,c,pendCol(),0);
-    if(j.bad){say(badMsg(j.bad));return}
-  }
-  if(dblOn()&&mine&&pend&&pend.r===r&&pend.c===c){confirmPend();return}   // 두 번 눌러 놓기 (내 차례에만)
-  if(pend&&pend.r===r&&pend.c===c)return;
+  if(!mine&&!canPre()){sndNo();return}
+  if(OS.ph==='c1'||OS.ph==='c2'){sndNo();return}
+  if(r<0||c<0||r>=OS.n||c>=OS.n)return;
+  if(OS.b[r*OS.n+c]){sndNo();return}
+  if(OS.ph==='play'&&judge(OS.b.slice(),OS.R,r,c,pendCol(),0).bad){sndNo();return}   // 금수: 빨간 ✕ + 소리
+  if(pend&&pend.r===r&&pend.c===c){if(dblOn()&&mine)confirmPend();else cancelPend();return}   // 같은 칸을 다시 누르면: 두 번 눌러 놓기면 둠, 아니면 취소
   pend={r,c};
-  if(OS.ph==='play'&&!held){held=true;sndPick(.16);om3Bowls()}else sfx('pick');   // 처음 고를 때 통에서 돌을 집는 소리 (통이 하나 빔)
+  if(OS.ph==='play'&&!held)setHeld(true);else sfx('pick');   // 처음 고를 때 통에서 돌을 집어 듦
   redraw();
 }
 function confirmPend(){
@@ -519,8 +520,17 @@ function confirmPend(){
   const p=pend;pend=null;
   sendAct({t:'put',r:p.r,c:p.c});redraw();
 }
-/* 내 통을 누르면 돌 집는 소리만 (움직임 없음, 나만 들음, 언제든) */
-function bowlTap(){sndPick(.16)}
+/* 돌을 집어 들기/내려놓기 (내 화면은 바로, 상대에게는 방장을 거쳐 알림: 상대 통 위에도 돌이 떠 보임) */
+function setHeld(v){
+  if(held===v)return;
+  held=v;if(v)sndPick(.16);
+  if(OS&&OS.ph==='play')sendAct({t:'hold',v:v?1:0});
+  om3Bowls();
+}
+/* 미리 고른 칸 취소: 들고 있던 돌은 통으로 내려앉음 */
+function cancelPend(){pend=null;if(held)setHeld(false);redraw()}
+/* 내 통을 누르면 집는 소리 (돌을 들고 있으면 통에 내려놓고 취소) */
+function bowlTap(){if(pend&&held){cancelPend();sndPick(.1)}else sndPick(.16)}
 function sendPick(v){if(myTurnNow()&&(OS.ph==='c1'||OS.ph==='c2'))sendAct({t:'pick',v})}
 function redraw(){msgUntil=0;drawAll();G.buttons();Om3.dirty=true}
 const sqn=(r,c)=>sqName(OS.n,r,c);
@@ -552,7 +562,7 @@ function boardHTML(){
   for(let r=0;r<n;r++)for(let c=0;c<n;c++){const v=OS.b[r*n+c];if(v)out.push(stoneSvg(c,r,v,1))}
   if(OS.lm){out.push(`<circle cx="${OS.lm.c}" cy="${OS.lm.r}" r=".16" fill="${OS.lm.col===1?'#ffcf3d':'#d6342a'}"/>`)}
   if(line)for(const [r,c] of line)out.push(`<circle cx="${c}" cy="${r}" r=".5" fill="none" stroke="#f2b632" stroke-width=".08"/>`);
-  if(V.st==='play'&&myTurnNow())for(const i of fb){const r=(i/n)|0,c=i%n;out.push(`<path d="M${c-.26} ${r-.26}L${c+.26} ${r+.26}M${c+.26} ${r-.26}L${c-.26} ${r+.26}" stroke="#d6342a" stroke-width=".13" stroke-linecap="round"/>`)}
+  if(V.st==='play'&&(myTurnNow()||canPre()))for(const i of fb){const r=(i/n)|0,c=i%n;out.push(`<path d="M${c-.26} ${r-.26}L${c+.26} ${r+.26}M${c+.26} ${r-.26}L${c-.26} ${r+.26}" stroke="#d6342a" stroke-width=".13" stroke-linecap="round"/>`)}
   return out.join('');
 }
 function drawGhost(){
@@ -573,6 +583,7 @@ function barHTML(){
     return `<div class="om-p${on?' on':''}${i===me?' me':''}">${stoneDot(o.co[i])}<b>${esc(p.n)}${i===me?' (나)':''}</b><span class="w" data-ct="${i}">${fmtT(remMs(i))}</span>${st?`<span class="st">${st}</span>`:''}</div>`;
   }).join('');
 }
+/* 안내 줄: 꼭 필요한 것만 짧게 (누구 차례인지는 바둑통 고리·이름 칸이, 놓기는 [놓기] 버튼이 보여 줌) */
 function hintText(){
   if(Date.now()<msgUntil&&msg)return msg;
   if(!V||!V.o||!OS)return '';
@@ -580,25 +591,12 @@ function hintText(){
     const r=OS.res;if(!r)return '게임이 끝났습니다.';
     return r.w<0?'무승부입니다.':`${nm(r.w)} 승리${r.why==='time'?' (시간 초과)':r.why==='surrender'?' (항복)':''}`;
   }
-  if(introWait())return '게임을 준비하는 중…';
-  const me=myIdx(),mover=V.t,ph=OS.ph,mine=me>=0&&mover===me;
-  const nextS=nextColor(OS.cnt)===1?'흑':'백';
-  if(me<0){
-    return ph==='p1'||ph==='p2'?`${nm(mover)}님이 오프닝 돌을 놓는 중입니다.`:ph==='c1'||ph==='c2'?`${nm(mover)}님이 색을 고르는 중입니다.`:`${nm(mover)}님 차례입니다.`;
-  }
-  if(!mine&&ph==='play'&&canPre())return pend?`${sqn(pend.r,pend.c)}에 미리 골랐습니다. 내 차례에 [놓기]로 둡니다.`:`${nm(mover)}님 차례입니다. 둘 곳을 미리 골라도 됩니다.`;
-  if(!mine){
-    return ph==='p1'||ph==='p2'?`${nm(mover)}님이 오프닝 돌을 놓는 중입니다. (${OS.cnt}/${ph==='p1'?3:5})`:ph==='c1'||ph==='c2'?`${nm(mover)}님이 흑과 백 중에서 고르는 중입니다.`:`${nm(mover)}님 차례입니다.`;
-  }
-  if(!myTurnNow())return '내 차례입니다.';
-  if(ph==='c1')return OS.R.op===2?'놓인 돌 3개를 보고 흑·백을 고르거나, 돌 2개를 더 놓아 선택권을 넘깁니다.':'놓인 돌 3개를 보고 흑과 백 중 하나를 고릅니다. 고르면 백부터 둡니다.';
-  if(ph==='c2')return '놓인 돌 5개를 보고 흑과 백 중 하나를 고릅니다. 고르면 백부터 둡니다.';
-  if(pend)return `${sqn(pend.r,pend.c)}에 ${ph==='play'?'놓기':nextS+' 돌 놓기'}: ${dblOn()?'한 번 더 누르거나 ':''}[놓기]를 누르면 확정합니다.`;
-  if(ph==='p1')return `오프닝 돌을 놓습니다. (${OS.cnt+1}/3) 이번 돌은 ${nextS}입니다.`;
-  if(ph==='p2')return `돌을 더 놓습니다. (${OS.cnt+1}/5) 이번 돌은 ${nextS}입니다.`;
-  {const left=remMs(me)/1000;if(left<=10&&left>0)return `${Math.ceil(left)}초 남았습니다. 시간이 다 되면 패배합니다.`}
-  const mc=OS.co[me]===1?'흑':'백';
-  return `내 차례입니다 (${mc}). ${forbidNow().length?'빨간 ✕ 자리에는 둘 수 없습니다. ':''}놓을 칸을 누릅니다.`;
+  if(introWait())return '';
+  const me=myIdx(),ph=OS.ph,mine=me>=0&&V.t===me;
+  if(ph==='p1')return `오프닝 ${Math.min(3,OS.cnt+1)}/3`;
+  if(ph==='p2')return `오프닝 ${Math.min(5,OS.cnt+1)}/5`;
+  if(ph==='c1'||ph==='c2')return mine?'흑·백 고르기':'흑·백 고르는 중';
+  return '';
 }
 function modesHTML(){
   if(!(V&&V.o&&OS&&myTurnNow()&&(OS.ph==='c1'||OS.ph==='c2')))return '';
@@ -701,7 +699,11 @@ function bowlGroup(){
   // 차례 표시: 통 둘레의 노란 고리
   const ring=new THREE.Mesh(new THREE.RingGeometry(BR+.06,BR+.13,48),new THREE.MeshBasicMaterial({color:0xf2b632,transparent:true,opacity:.85,depthWrite:false}));
   ring.rotation.x=-Math.PI/2;ring.position.y=.012;ring.visible=false;ring.renderOrder=2;g.add(ring);
-  g.userData={st,ik,mat,ring,col:0,n:BN,drop:null};
+  // 집어 든 돌: 통 위로 떠오름 (내려놓으면 통으로 내려앉고, 판에 두면 그 자리에서 사라짐)
+  const fl=new THREE.Group(),fm=new THREE.Mesh(new THREE.SphereGeometry(BOWL_ST*1.15,20,12),mat);fm.scale.y=.5;fm.castShadow=true;fl.add(fm);
+  const fo=new THREE.Mesh(new THREE.SphereGeometry(BOWL_ST*1.15*1.1,20,12),new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide}));fo.scale.y=.58;fl.add(fo);
+  fl.scale.setScalar(1.2);fl.visible=false;g.add(fl);
+  g.userData={st,ik,mat,ring,fl,fs:'none',ft0:0,lastCnt:-1,col:0,n:BN,drop:null};
   bowlFill(g,BN,null);
   return g;
 }
@@ -723,6 +725,7 @@ function bowlFill(g,n,drop){
 }
 /* 소리: 통에서 돌을 집는 소리(자르륵), 판에 놓는 소리(딱). 코드로 만든 소리 */
 function sndPick(vol,at){for(let k=0;k<4;k++)hiss(.022,{freq:2400+Math.random()*1600,q:5,vol:vol*(.55+Math.random()*.45),at:(at||0)+k*.034+Math.random()*.018})}
+function sndNo(){tone(150,.08,{type:'triangle',vol:.16});hiss(.05,{freq:420,vol:.06})}   // 안 되는 곳을 눌렀을 때 (글 대신)
 function sndPut(at){hiss(.03,{freq:3300,q:2.4,vol:.24,at});tone(2100,.025,{type:'triangle',vol:.07,at});tone(820,.06,{type:'sine',vol:.07,at:at+.004})}
 function om3Build(){
   if(Om3.built||Om3.fail)return Om3.built;
@@ -766,9 +769,14 @@ function om3Bowls(){
   Om3.bowls.forEach((g,k)=>{
     const seat=k?1-me:me,col=o.co[seat]||(seat===o.A?1:2),u=g.userData;
     if(u.col!==col){u.col=col;u.mat.color.setHex(col===1?0x26262a:0xece4d4);Om3.dirty=true}
-    if(!IN.on3d){const n=Math.max(6,BN-used[col]-(k===0&&held&&myIdx()>=0?1:0));if(n!==u.n){bowlFill(g,n,null);Om3.dirty=true}}   // 놓은 돌 수만큼 통이 빔 (집어 든 돌 하나 포함, 바닥은 남겨 둠)
+    // 집어 든 돌: 내 통은 내 화면의 상태(held), 상대 통은 방장이 알려 준 상태(hd). 판에 두었으면 바로 사라지고, 내려놓았으면 통으로 내려앉음
+    const want=V.st==='play'&&!IN.on3d&&(k===0?(held&&myIdx()>=0):!!(o.hd&&o.hd[seat]));
+    const L=o.cnt>u.lastCnt&&u.lastCnt>=0?(o.rec||[]).filter(x=>x[0]==='s').pop():null,placed=!!(L&&L[1]===seat);u.lastCnt=o.cnt;
+    if(want&&(u.fs==='none'||u.fs==='down')){u.fs='up';u.ft0=clock();u.fl.visible=true;Om3.dirty=true}
+    else if(!want&&(u.fs==='up'||u.fs==='held')){if(placed||V.st!=='play'){u.fs='none';u.fl.visible=false}else{u.fs='down';u.ft0=clock()}Om3.dirty=true}
+    if(!IN.on3d){const n=Math.max(6,BN-used[col]-(u.fs!=='none'?1:0));if(n!==u.n){bowlFill(g,n,null);Om3.dirty=true}}   // 놓은 돌 수만큼 통이 빔 (손에 든 돌 하나 포함, 바닥은 남겨 둠)
     const on=V.st==='play'&&V.t===seat&&!introWait();
-    if(u.ring.visible!==on){u.ring.visible=on;Om3.dirty=true}
+    if(u.ring.visible!==on){u.ring.visible=on;Om3.dirty=true}   // 누구 차례인지: 통 둘레의 노란 고리 (시간은 보여 주지 않음)
   });
 }
 /* 상태를 3D 물체에 맞춤 (새 상태가 올 때마다) */
@@ -804,7 +812,7 @@ function om3Sync(){
 /* 금수 ✕, 미리 보기 돌 (고를 때마다) */
 function om3Marks(){
   if(!Om3.on||!V||!V.o||!OS)return;
-  const n=OS.n,p=pitchOf(n),fb=V.st==='play'&&myTurnNow()?forbidNow():[];
+  const n=OS.n,p=pitchOf(n),fb=V.st==='play'&&(myTurnNow()||canPre())?forbidNow():[];
   Om3.xs.forEach((m,k)=>{const i=fb[k];m.visible=i!=null;if(i!=null){const [x,z]=cellW(n,(i/n)|0,i%n);m.position.x=x;m.position.z=z;m.scale.set(p*.8,p*.8,1)}});
   if(pend){
     const col=pendCol();
@@ -849,7 +857,16 @@ function om3Render(t){
   if(!Om3.on||!T.ok)return;
   if(om3Layout(t))Om3.dirty=true;
   const busy=om3Step(t),intro=IN.on3d&&introStep(t);
-  {const r=Om3.bowls.find(g=>g.userData.ring.visible);if(r){r.userData.ring.material.opacity=.55+.35*Math.sin(t/260);Om3.dirty=Om3.dirty||t-Om3.lastR>60}}   // 차례 고리가 숨 쉬듯
+  let flBusy=false;
+  for(const g of Om3.bowls){   // 집어 든 돌: 떠오르기 0.15초, 내려앉기 0.17초
+    const u=g.userData;if(u.fs==='none')continue;
+    const lo=.3,hi=.95,toB=(()=>{const x=-g.position.x,z=-g.position.z,l=Math.hypot(x,z)||1,f=u.fs==='down'?1-Math.min(1,(t-u.ft0)/170):u.fs==='up'?Math.min(1,(t-u.ft0)/150):1;return [x/l*.4*f,z/l*.4*f]})();   // 통 위로 떠올라 판 쪽 가장자리에 (그림자가 통에 떨어져 '들었다'는 게 보이게)
+    u.fl.position.x=toB[0];u.fl.position.z=toB[1];
+    if(u.fs==='up'){const k=Math.min(1,(t-u.ft0)/150);u.fl.position.y=lo+(hi-lo)*(1-Math.pow(1-k,3));if(k>=1)u.fs='held';flBusy=true}
+    else if(u.fs==='held')u.fl.position.y=hi;
+    else{const k=Math.min(1,(t-u.ft0)/170);u.fl.position.y=hi-(hi-lo)*k*k;flBusy=true;if(k>=1){u.fs='none';u.fl.visible=false;om3Bowls()}}
+  }
+  if(flBusy)Om3.dirty=true;
   if(!busy&&!intro&&!Om3.dirty&&t-Om3.lastR<400)return;
   Om3.dirty=false;Om3.lastR=t;
   const fog=T.scene.fog,fn=fog?fog.near:0,ff=fog?fog.far:0;
@@ -959,8 +976,8 @@ G.preView=()=>{
     const L=(V.o.rec||[]).filter(x=>x[0]==='s').pop();
     if(L&&L[1]===me){held=false;pend=null}
     else if(pend){
-      if(OS.b[pend.r*OS.n+pend.c]){pend=null;say('미리 고른 자리에 상대가 두었습니다.')}
-      else if(OS.ph==='play'&&me>=0&&OS.co[me]){const j=judge(OS.b.slice(),OS.R,pend.r,pend.c,OS.co[me],0);if(j.bad){pend=null;say(`미리 고른 자리가 ${j.bad==='6'?'장목':j.bad==='44'?'4-4':'3-3'} 금수가 되어 지웠습니다.`)}}
+      // 상대가 그 자리에 두었거나 금수가 되면 조용히 지우고 돌은 통으로 (알림 없음)
+      if(OS.b[pend.r*OS.n+pend.c]||(OS.ph==='play'&&me>=0&&OS.co[me]&&judge(OS.b.slice(),OS.R,pend.r,pend.c,OS.co[me],0).bad)){pend=null;if(held)setHeld(false)}
     }
   }
   if(V.st!=='play')pend=null;
@@ -1016,12 +1033,10 @@ G.live=()=>{
   if(IN.on){introTick();}
   if(!V||!V.o||!OS)return;
   // 시계: 위쪽 이름 칸과 내 정보 칸의 시간 (매 프레임 조금씩)
-  if(elBar)elBar.querySelectorAll('[data-ct]').forEach(el=>{const t=fmtT(remMs(+el.dataset.ct));if(el.textContent!==t)el.textContent=t});
+  if(elBar)elBar.querySelectorAll('[data-ct]').forEach(el=>{const i=+el.dataset.ct,ms=remMs(i),t=fmtT(ms);if(el.textContent!==t)el.textContent=t;
+    const low=V.st==='play'&&V.t===i&&V.o.run&&ms<=10000;if(el.parentNode.classList.contains('low')!==low)el.parentNode.classList.toggle('low',low)});   // 10초 남으면 이름 칸 시간이 빨갛게 깜빡임 (글 안내 대신)
   const me=myIdx();
   if(me>=0){const mt=$('#meTime');const t=V.st==='play'?fmtT(remMs(me)):'';if(mt.textContent!==t)mt.textContent=t}
-  if(V.st==='play'&&V.t===me&&!IN.on){
-    const left=remMs(me)/1000;if(left<=10)drawHint();
-  }
 };
 G.play=confirmPend;
 G.pass=()=>{};
@@ -1070,10 +1085,13 @@ G.init=()=>{
 #om .dot.non{background:#d9c9aa;box-shadow:0 0 0 2px #fffaf0,0 0 0 3px #b9a37c}
 #om .om-p b{font-weight:600;overflow:hidden;text-overflow:ellipsis;max-width:8em}
 #om .om-p .w{font-family:var(--f-num,monospace);font-size:13px;font-weight:700;color:#5b4129;min-width:3em;text-align:right}
+#om .om-p.low .w{color:#c0281c;animation:omBlink 1s steps(2,start) infinite}
+@keyframes omBlink{50%{opacity:.25}}
 #om .om-p .st{font-size:12px;color:var(--muted,#7a6550)}
 #om .om-p.on{border-color:#c08a17;box-shadow:0 0 0 2px #f2b632}
 #om .om-row{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;width:100%;pointer-events:none;min-height:44px}
 .stage.om3d #om .om-row{height:44px;min-height:0;flex:none;align-items:flex-start;padding-top:4px;overflow:visible;position:relative;z-index:1}
+#om .om-hint:empty{visibility:hidden}
 #om .om-hint{flex:1 1 200px;min-width:0;font-size:13px;line-height:1.3;color:#5b4129;text-align:center;min-height:17px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 #om .om-modes{display:flex;gap:4px;pointer-events:auto;flex-wrap:wrap;justify-content:center}
 #om .om-m{height:34px;padding:0 12px;border-radius:10px;border:2px solid var(--mustard-edge,#c08a17);background:var(--mustard,#f2b632);color:#3b2a1f;font-family:var(--f-display,inherit);font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
@@ -1090,7 +1108,7 @@ G.init=()=>{
   elBar=elOm.querySelector('.om-bar');elHint=elOm.querySelector('.om-hint');elModes=elOm.querySelector('.om-modes');
   elSvg.addEventListener('click',onSvgClick);
   elModes.addEventListener('click',e=>{const b=e.target.closest('.om-m');if(!b)return;sendPick(+b.dataset.v)});
-  document.addEventListener('keydown',e=>{if(e.code==='Escape'&&pend&&elOm&&!elOm.hidden){pend=null;redraw()}});
+  document.addEventListener('keydown',e=>{if(e.code==='Escape'&&pend&&elOm&&!elOm.hidden)cancelPend()});
   window.addEventListener('resize',()=>{fit();Om3.lay=''});
   $('#cv').addEventListener('click',om3Click);
   document.addEventListener('click',e=>{
