@@ -298,17 +298,18 @@ function playOutO(over,lvs){
   return ticks;
 }
 globalThis.playOutO=playOutO;
-/* 연결이 끊긴 동안(봇이 맡은 동안)은 시계가 멈추고, 끊기기 전에 쓴 시간만 깎임 */
+/* 연결이 끊겨도 시계는 그대로 흐름 (멈추면 일부러 끊어 생각할 시간을 벌 수 있음). 봇은 두지 않고, 시간이 다 되면 패배 */
 {mkRoom({pickfirst:1,op:0,tm:1,inc:0});
  put(0,7,7);   // 0 → 1 차례 (사람 1)
+ if(H.players[1].host){H.players[1].host=false;H.players[0].host=true}
  NOW+=10000;engineTick();
- const p=H.players[1];p.bot=true;p.away=true;p.awayAt=NOW;   // 10초 쓰고 끊김
- engineTick();eq(H.o.rem[1],50000,'away: time used before disconnect is charged');
- NOW+=8000;engineTick();eq(H.o.rem[1],50000,'away: clock stops while away');
- eq(snapFor(0).o.run,0,'away: snap clock not running');
+ const p=H.players[1];p.bot=true;p.away=true;p.awayAt=NOW;H.botActAt=NOW+800;   // 10초 쓰고 끊김
+ NOW+=8000;engineTick();eq(snapFor(0).o.rem[1],42000,'away: clock keeps running');
+ eq(snapFor(0).o.run,1,'away: snap clock running');eq(H.o.b.filter(x=>x).length,1,'away: no bot move');
  p.bot=false;p.away=false;engineTick();   // 다시 연결
- NOW+=5000;engineTick();eq(snapFor(0).o.rem[1],45000,'reconnect: clock runs again from reconnect');
- eq(H.phase,'play','no timeout from away time');
+ NOW+=5000;engineTick();eq(snapFor(0).o.rem[1],37000,'reconnect: clock keeps the same time');
+ p.bot=true;p.away=true;p.awayAt=NOW;   // 다시 끊김: 남은 37초 안에 돌아오지 않으면 시간 초과 (탈주 45초보다 먼저)
+ NOW+=37500;engineTick();eq(H.phase,'over','away player loses on time');eq(snapFor(0).ps[1].sr,2,'away timeout sr');
 }
 /* 남은 빈 칸이 모두 금수면 무승부 */
 {const R=RU({b33:1}),n=15,b=Array(n*n).fill(0);

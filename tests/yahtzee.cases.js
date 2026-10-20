@@ -187,8 +187,8 @@ for(let rep=0;rep<30;rep++){
  const t2=H.turn;Y.engine.act(t2,{t:'roll'});NOW=H.deadline+1;engineTick();
  eq(filled(t2),1,'timeout after a roll');if(H.turn===t2)fail('yahtzee turn after timeout 2')}
 
-/* 연결이 끊긴 사람: 봇이 두지 않고 기다리다(제한 시간도 멈춤) 탈주로 항복 처리 */
-{mk({},2);
+/* 연결이 끊긴 사람: 봇이 두지 않고 기다리다(제한 시간은 흐름) 탈주로 항복 처리 */
+{mk({turn:120},2);
  const t=H.turn,p=H.players[t];if(p.host){p.host=false;H.players[1-t].host=true}
  p.bot=true;p.away=true;p.awayAt=NOW;H.botActAt=NOW;
  engineTick();eq(H.y.rolled,false,'away player waits');

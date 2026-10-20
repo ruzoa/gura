@@ -122,16 +122,23 @@ if(!atGoal(0,0,5)||atGoal(0,8,5)||!atGoal(1,3,8)||!atGoal(2,8,0)||!atGoal(3,5,0)
  if(!H.players[t3].finished||H.players[t3].surrendered!=='time'||H.players[t3].rank!==4||H.q.pos[t3]!==null)fail('quoridor timeout lose');
  if(H.phase!=='play'||H.turn===t3||H.players[H.turn].finished)fail('quoridor turn after timeout');
  if(snapFor(t3).ps[t3].sr!==2)fail('quoridor timeout snap sr');
- // 연결이 끊긴 사람은 기다리는 동안 시간이 멈춰 지지 않고, 봇도 두지 않음 (돌아오면 이어서)
+ // 연결이 끊긴 사람: 봇이 두지 않고, 제한 시간은 멈추지 않음 (돌아오면 이어서)
  const ta=H.turn;if(H.players[ta].host){H.players[ta].host=false;H.players[(ta+1)%4].host=true}
- H.players[ta].bot=true;H.players[ta].away=true;H.players[ta].awayAt=NOW;H.botActAt=0;H.tickAt=NOW;
- const nw=Qs.walls.length,np=JSON.stringify(Qs.pos[ta]);NOW=H.deadline+1;engineTick();
- if(H.players[ta].finished||Qs.walls.length!==nw||JSON.stringify(Qs.pos[ta])!==np||H.turn!==ta)fail('quoridor away player should be waited for');
+ H.players[ta].bot=true;H.players[ta].away=true;H.players[ta].awayAt=NOW;H.botActAt=NOW+800;
+ const nw=Qs.walls.length,np=JSON.stringify(Qs.pos[ta]),dl0=H.deadline;NOW+=3000;engineTick();
+ if(H.players[ta].finished||Qs.walls.length!==nw||JSON.stringify(Qs.pos[ta])!==np||H.turn!==ta)fail('quoridor away player: no bot');
+ if(H.deadline!==dl0)fail('quoridor away player: timer must keep running');
  Object.assign(H.players[ta],{bot:false,away:false});
  // 항복
  const t4=H.turn;Q.engine.act(t4,{t:'surrender'});
  if(!H.players[t4].finished||H.players[t4].rank!==3||H.q.pos[t4]!==null)fail('quoridor surrender');
  if(H.phase!=='play'||H.players[H.turn].finished)fail('quoridor turn after surrender')}
+// 연결이 끊긴 사람도 제한 시간이 지나면 패배 (끊어서 시간을 벌 수 없음)
+{hostNew(false,'t','t');H.cfg={...cfgFor('quoridor'),game:'quoridor'};
+ H.members=[0,1].map(i=>({name:'p'+i,bot:false,conn:null,host:i===0,cid:i?'c1':''}));hostStart();
+ const t=H.turn;if(H.players[t].host){H.players[t].host=false;H.players[1-t].host=true}
+ Object.assign(H.players[t],{bot:true,away:true,awayAt:NOW});NOW=H.deadline+1;engineTick();
+ if(H.phase!=='over'||H.players[t].surrendered!=='time'||H.players[t].rank!==2)fail('quoridor away player timeout')}
 // 2명: 제한 시간이 지나면 상대가 1위로 끝
 {hostNew(false,'t','t');H.cfg={...cfgFor('quoridor'),game:'quoridor'};
  H.members=[0,1].map(i=>({name:'p'+i,bot:false,conn:null,host:i===0}));hostStart();
@@ -217,25 +224,24 @@ for(let sz=0;sz<2;sz++)for(let b33=0;b33<3;b33++)for(let ov=0;ov<3;ov++)for(let 
 console.log('omok ticks',ot);
 `,'omok.run');
 // 탈주: 나가기 버튼은 바로, 연결 끊김은 DESERT_WAIT(45초) 이어질 때 항복 처리 + 표시 (모든 게임).
-//  기다리는 동안은 봇이 두지 않고 그 사람의 제한 시간이 멈춤. 그 전에 돌아오면 그대로. 방장은 사람이 혼자일 때만
+//  기다리는 동안 봇은 두지 않고 제한 시간은 그대로 흐름(멈추면 끊어서 시간을 벌 수 있음). 그 전에 돌아오면 그대로. 방장은 해당 없음
 run(`
 for(const [g,n] of [['gura',3],['president',3],['quoridor',3],['yahtzee',3],['omok',2]]){
-  const setup=(bots)=>{hostNew(false,'t','t');H.cfg={...cfgFor(g),game:g,turn:60};
+  const setup=(bots)=>{hostNew(false,'t','t');H.cfg={...cfgFor(g),game:g,turn:120};
     H.members=[];for(let i=0;i<n;i++)H.members.push(bots&&i?{name:'b'+i,bot:true,conn:null,host:false,lv:1}:{name:'p'+i,bot:false,conn:i?{}:null,host:i===0,cid:i?'c'+i:''});
     hostStart();for(let k=0;k<60;k++){NOW+=250;engineTick()}   // 시작 연출이 끝날 때까지 (제한 시간 안)
     if(!bots&&H.players[H.turn].host){const o=H.players.findIndex(p=>!p.host);H.players[H.turn].host=false;H.players[o].host=true}};   // 차례인 사람이 방장이 아니게
   const away=i=>{Object.assign(H.players[i],{bot:true,conn:null,away:true,awayAt:NOW});if(H.turn===i)H.botActAt=NOW+800};   // 실제 연결 끊김(hostConn의 gone)과 같게
   const said=w=>H.log.some(l=>String(l[0]).includes(w));
   const doneOK=p=>p.finished||H.phase==='over';
-  // 1) 차례인 사람의 연결이 끊김: 45초 동안 봇도 안 두고 시간도 멈춤 → 그 뒤 탈주(항복)
+  // 1) 차례인 사람의 연결이 끊김: 45초 동안 봇은 안 두고 시간은 흐름 → 그 뒤 탈주(항복)
   setup();let i=H.turn;away(i);
-  const left0=H.deadline-NOW,c0=H.players[i].hand.length,y0=g==='yahtzee'?JSON.stringify(H.y.dice)+H.y.left:'',q0=g==='quoridor'?JSON.stringify(H.q.pos)+H.q.walls.length:'',o0=g==='omok'?H.o.b.join(''):'';
-  if(snapFor(0).pz!==1&&g!=='omok')fail(g+' pause flag');
+  const oleft=()=>H.o.rem[H.o.mv]-Math.max(0,NOW-H.o.since),left0=g==='omok'?oleft():H.deadline-NOW,c0=H.players[i].hand.length,y0=g==='yahtzee'?JSON.stringify(H.y.dice)+H.y.left:'',q0=g==='quoridor'?JSON.stringify(H.q.pos)+H.q.walls.length:'',o0=g==='omok'?H.o.b.join(''):'';
   for(let k=0;k<(DESERT_WAIT/250)-4;k++){NOW+=250;engineTick()}
   {const p=H.players[i];
    if(p.deserter||p.finished)fail(g+' deserted too early');
    if(H.turn!==i)fail(g+' turn moved while waiting');
-   if(g!=='omok'&&Math.abs((H.deadline-NOW)-left0)>300)fail(g+' timer not paused '+(H.deadline-NOW)+' vs '+left0);
+   {const el=DESERT_WAIT-1000,now=g==='omok'?oleft():H.deadline-NOW;if(Math.abs(now-(left0-el))>300)fail(g+' timer must keep running '+now+' vs '+(left0-el))}
    if(p.hand.length!==c0||(g==='yahtzee'&&JSON.stringify(H.y.dice)+H.y.left!==y0)||(g==='quoridor'&&JSON.stringify(H.q.pos)+H.q.walls.length!==q0)||(g==='omok'&&H.o.b.join('')!==o0))fail(g+' bot played while waiting')}
   for(let k=0;k<12;k++){NOW+=250;engineTick()}
   {const p=H.players[i];
@@ -256,11 +262,11 @@ for(const [g,n] of [['gura',3],['president',3],['quoridor',3],['yahtzee',3],['om
   // 4) 다른 사람이 있으면 방장은 탈주 처리하지 않음
   setup();{const h=H.players.findIndex(p=>p.host);desertSeat(h,'out');H.players[h].away=true;H.players[h].awayAt=NOW-DESERT_WAIT*3;engineTick();
    if(H.players[h].deserter)fail(g+' host deserted with others')}
-  // 5) 사람이 혼자 봇과 하는 판: 방장도 바로 탈주
-  setup(true);{const h=H.players.findIndex(p=>p.host);
-   if(!soloHost())fail(g+' soloHost');
-   desertSeat(h,'out');for(let k=0;k<4;k++){NOW+=250;engineTick()}
-   if(!H.players[h].deserter||!doneOK(H.players[h]))fail(g+' solo host not deserted')}
+  // 5) 사람이 혼자 봇과 하는 판: 탈주가 아니라 탁자를 떠난 것 (저장된 상태로 판별해 이어서 열지 않음)
+  setup(true);{const h=H.players.findIndex(p=>p.host),sv=JSON.parse(JSON.stringify(H,(k,v)=>k==='conn'?undefined:v));
+   if(!soloTable(sv))fail(g+' solo table not detected');
+   desertSeat(h,'out');engineTick();if(H.players[h].deserter)fail(g+' solo host marked deserter')}
+  setup();if(soloTable(JSON.parse(JSON.stringify(H,(k,v)=>k==='conn'?undefined:v))))fail(g+' table with people seen as solo');
   // 6) 이미 항복한 사람이 나가면 탈주로 바꾸지 않음
   if(n>2){setup();i=H.players.findIndex(p=>!p.host);
    for(let k=0;k<40&&!H.players[i].finished;k++){hostAct(i,{t:'surrender'});NOW+=250;engineTick()}

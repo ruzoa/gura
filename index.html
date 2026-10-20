@@ -887,9 +887,8 @@ function hostAct(seat,a){
 function engineTick(){
   if(!H)return;
   const t=clock();
-  const dt=H.tickAt?Math.max(0,t-H.tickAt):0;H.tickAt=t;
   const inGame=ph=>ph!=='wait'&&ph!=='over';   // 게임 중 (구라!의 판정 'reveal'도 포함)
-  if(inGame(H.phase))deserterTick(t,dt);
+  if(inGame(H.phase))deserterTick(t);
   if(H&&inGame(H.phase)&&!dealing())EG().engine.tick(t);
   if(H&&H.phase==='wait'){   // 대기실에서 끊긴 뒤 돌아오지 않은 사람은 정리
     const before=H.members.length;
@@ -900,22 +899,22 @@ function engineTick(){
 }
 const DESERT_WAIT=45000;   // 연결이 끊긴 채 이만큼 이어지면 탈주로 확정
 const AWAY_WAIT=DESERT_WAIT;   // 게임 파일이 씀: 끊긴 사람 자리는 이 시간 전에는 봇이 두지 않음 (기다리다 탈주로 넘어감)
-/* 탈주: '탁자 떠나기'는 바로, 연결 끊김은 DESERT_WAIT 동안 이어졌을 때. 기다리는 동안은 봇 없이 그 사람의 제한 시간을 멈춤.
-   탈주한 자리는 항복 처리하고(항복을 못 받는 동안만 봇이 둠) 이름표에 표시. 방장은 사람이 혼자일 때만(나가면 탁자를 넘길 사람이 없음) */
+const awayHuman=p=>!!p&&p.away&&!p.deserter;   // 연결이 끊겨 기다리는 사람 (bot 표시여도 사람으로 시간 규칙을 받음)
+/* 탈주: '탁자 떠나기'는 바로, 연결 끊김은 DESERT_WAIT 동안 이어졌을 때. 기다리는 동안 봇은 두지 않고 제한 시간도 멈추지 않음
+   (멈추면 일부러 끊었다 붙어 생각할 시간을 벌 수 있음: 끊긴 사람은 자리를 비운 사람과 똑같이 시간 초과 규칙을 받음).
+   탈주한 자리는 항복 처리하고(항복을 못 받는 동안만 봇이 둠) 이름표에 표시. 방장은 해당 없음 */
 const humanP=p=>!p.deserter&&(!p.bot||p.away||!!p.cid);   // 봇 자리는 cid가 없음. 끊긴 사람은 bot이어도 사람
-const soloHost=()=>!!H&&H.players.every(p=>p.host||!humanP(p));
+const soloTable=h=>!!h&&h.phase!=='wait'&&h.phase!=='over'&&(h.players||[]).every(p=>p.host||!humanP(p));   // 사람이 방장 혼자 봇과 하는 게임 중
 function desertSeat(i,why){
   const p=H&&H.players[i];
   if(!p||p.deserter||p.finished||H.phase==='wait'||H.phase==='over')return;   // 이미 끝난(탈출·항복) 사람은 그대로
-  if(p.host&&!soloHost())return;
+  if(p.host)return;   // 방장이 나가면 탁자가 넘어가거나(사람이 있으면) 정리됨(혼자면)
   p.deserter=true;p.dzWhy=why||'';p.dzTry=0;p.bot=true;p.conn=null;
   if(!p.away||typeof p.awayAt!=='number'){p.away=true;p.awayAt=clock()-AWAY_WAIT}   // 항복을 못 받는 동안은 봇이 바로 이어받음
   else p.awayAt=Math.min(p.awayAt,clock()-AWAY_WAIT);
   mark();
 }
-function deserterTick(t,dt){
-  const cur=H.players[H.turn];
-  if(cur&&cur.away&&!cur.deserter&&!cur.host&&typeof H.deadline==='number'&&!dealing())H.deadline+=dt;   // 끊긴 사람 차례: 돌아오거나 탈주할 때까지 제한 시간을 멈춤
+function deserterTick(t){
   H.players.forEach((p,i)=>{
     if(!p.host&&!p.deserter&&p.away&&typeof p.awayAt==='number'&&t>=p.awayAt+DESERT_WAIT)desertSeat(i);
     if(!p.deserter||p.finished||dealing()||H.phase==='wait'||H.phase==='over')return;
@@ -937,7 +936,6 @@ function snapFor(you){
   s.t=H.turn;
   if(H.dealUntil>t){s.dk=Math.round(H.dealUntil-t);s.di=H.dealId;s.dm=H.dealMs||0;if(H.dealAgain)s.dg=1;if(H.fp)s.fp=H.fp}   // 카드를 나누는 중 (남은 ms, fp: 첫 차례 룰렛의 빠른 칸 수)
   EG().engine.snap(s,you,t);   // 필드·판정 등은 게임마다 다름
-  {const c=H.players[H.turn];if(H.phase==='play'&&c&&c.away&&!c.deserter&&!c.host)s.pz=1}   // 끊긴 사람 차례: 제한 시간이 멈춰 있음
   return s;
 }
 function seatOfConn(conn){
@@ -1111,10 +1109,8 @@ function restoreHost(sv,tries){
     const t=clock();
     for(const m of H.members){m.conn=null;if(!m.bot&&!m.host){m.away=true;m.awayAt=t}}
     for(const pl of H.players||[]){pl.conn=null;if(pl.away&&typeof pl.awayAt==='number')pl.awayAt+=d;if(!pl.bot&&!pl.host){pl.bot=true;pl.away=true;pl.awayAt=t}}
-    H.tickAt=0;
     EG().engine.restore(d);
     addLog('방장이 다시 연결했습니다.','sys');
-    if(H.phase!=='wait'&&H.phase!=='over'){const hi=H.players.findIndex(p=>p.host);if(hi>=0&&soloHost())desertSeat(hi,'out')}   // 사람이 혼자 봇과 하던 판: 기다려 줄 사람이 없으니 나갔다 오면 바로 탈주
     enterRoom();setNote('#resumeNote','');mark();
   });
   hostPeerHandlers(peer);
@@ -2022,7 +2018,6 @@ $('#panel').addEventListener('click',e=>{
 
 /* 실시간 타이머, 버튼 상태 */
 function liveUI(t){
-  if(V&&V.pz)V.deadAt=t+(+V.dl||0);   // 끊긴 사람을 기다리는 동안은 남은 시간을 그대로 보여 줌
   const dim=$('#dim'),myTurn=!!(V&&V.ps&&V.st==='play'&&myIdx()>=0&&V.t===myIdx()&&!T.deal&&!dealingV());   // 카드를 나누는 동안은 어둡게 하지 않음
   if(dim.classList.contains('on')!==myTurn)dim.classList.toggle('on',myTurn);
   if(!V||!V.ps)return;
@@ -2332,6 +2327,7 @@ setTimeout(()=>{
   let sv=null,gv=null;
   try{sv=JSON.parse(store('gura-host')||'null')}catch(e){}
   try{gv=JSON.parse(store('gura-guest')||'null')}catch(e){}
+  if(sv&&sv.H&&soloTable(sv.H)){unstore('gura-host');sv=null}   // 사람이 혼자 봇과 하던 게임 중에 앱을 닫았으면 탁자를 떠난 것으로 (이어서 열지 않음)
   if(sv&&sv.H&&sv.H.code&&Date.now()-sv.at<RESUME_MS){restoreHost(sv,0);return}
   unstore('gura-host');
   if(gv&&/^[a-z0-9]{4}$/.test(gv.code||'')&&Date.now()-gv.at<RESUME_MS){showView('join');$('#inCode').value=gv.code.toUpperCase();joinRoom(gv.code);return}
