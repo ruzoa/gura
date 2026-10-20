@@ -250,14 +250,15 @@ function rankOrder(names){
 }
 const rankIdx=()=>rankOrder(H.players.map(p=>p.name));
 function doExchange(idx){
-  idx=idx||rankIdx();const n=H.players.length;
+  idx=idx||rankIdx();const n=H.players.length;H.xc=[];
   if(!H.cfg.swap||!idx)return null;
   const pairs=n>=4?[[n-1,0,2],[n-2,1,1]]:[[n-1,0,1]];
   for(const [lo,hi,k] of pairs){
     const g=H.players[idx[lo]],t=H.players[idx[hi]];
     g.hand.sort(cmpCard);t.hand.sort(cmpCard);
     const give=g.hand.splice(g.hand.length-k,k),back=t.hand.splice(0,k);
-    t.hand.push(...give);g.hand.push(...back);t.got=give.slice();g.got=back.slice();
+    t.hand.push(...give);g.hand.push(...back);t.got=give.slice();g.got=back.slice();t.gave=back.slice();g.gave=give.slice();
+    H.xc.push([idx[lo],idx[hi],k]);   // 교환 연출용: [대빈민·빈민 자리, 대부호·부호 자리, 장수]
     addLog(`교환: ${g.name} → ${t.name} 강한 카드 ${k}장, ${t.name} → ${g.name} 약한 카드 ${k}장`,'sys');
   }
   return idx[n-1];
@@ -437,6 +438,9 @@ function botTurn(i){
   doPlay(i,pk.ids);
 }
 /* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
+/* 카드 나누기 뒤 교환 연출 시간: 교환이 있는 판만 (방장이 그동안 제한 시간·봇을 멈춤) */
+const XMS=2100;
+G.dealExtra=()=>H.xc&&H.xc.length?XMS:0;
 G._test={newTrick,doPlay,doPass,doSurrender,botTurn,stateH,cardStr,doExchange,isFoulFinish,presetOf,diffKeys,PRESETS};
 G.engine={
   /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
@@ -445,7 +449,7 @@ G.engine={
     const deck=shuffle([...Array(52).keys(),...Array(H.cfg.jokers).fill(0).map((_,k)=>JOKER_BASE+k)]),per=Math.floor(deck.length/n);
     H.players.forEach(p=>p.hand=deck.splice(0,per));
     const order=shuffle([...Array(n).keys()]);let k=0;while(deck.length)H.players[order[k++]].hand.push(deck.pop());
-    Object.assign(H,{phase:'play',log:[],seatNote:{},lp:null,tk:null,tkP:-1,lock:null,rev:false,b11:false,passes:0,rankNext:1,rankBottom:n,graceUntil:0,roundNo:(H.roundNo||0)+1});
+    Object.assign(H,{phase:'play',xc:[],log:[],seatNote:{},lp:null,tk:null,tkP:-1,lock:null,rev:false,b11:false,passes:0,rankNext:1,rankBottom:n,graceUntil:0,roundNo:(H.roundNo||0)+1});
     addLog(`${n}명 ${H.roundNo}번째 판 시작${H.cfg.jokers?` (조커 ${H.cfg.jokers}장)`:''}.`,'sys');
     // 첫 판(또는 계급이 없는 사람이 있으면)은 ♦3을 가진 사람부터. 계급이 이어지면 교환 뒤 대빈민(또는 대부호)부터
     let first=H.players.findIndex(p=>p.hand.includes(0));
@@ -489,6 +493,8 @@ G.engine={
     s.lp=H.lp?{p:H.lp.p,ids:H.lp.ids.slice(),sq:H.lp.sq}:null;
     s.rev=H.rev?1:0;s.b11=H.b11?1:0;s.lk=H.lock?H.lock.slice():null;s.rd=H.roundNo||1;
     const me=H.players[you];if(me&&me.got&&s.ps[you])s.ps[you].g=me.got.slice();
+    if(me&&me.gave&&s.ps[you])s.ps[you].gv=me.gave.slice();   // 내가 준 카드 (나만 봄)
+    if(H.xc&&H.xc.length)s.xc=H.xc.map(x=>x.slice());   // 누가 누구에게 몇 장 (모두 봄, 카드는 비공개)
     H.players.forEach((p,i)=>{const o=s.ps[i];if(!o)return;if(p.pr)o.pr=p.pr;if(p.fouled)o.fo=1;else if(p.fell)o.fo=2});
     s.rk=H.lastRanks?1:0;
   },
@@ -539,11 +545,73 @@ function field2D(fk){
   el.innerHTML=`<div class="f2-cards">${fk.ids.slice().sort(cmpCard).map(id=>cardHTML(id,'')).join('')}</div><div class="f2-n">${esc(nm)}</div>`;el.hidden=false;
 }
 G.preView=()=>{};
+/* ---------- 계급 카드 교환 연출 ----------
+   카드 나누기가 끝나 손패를 펼친 뒤(dealExtra 동안): 먼저 대빈민·빈민의 강한 카드가 대부호·부호에게 날아가고, 이어서 약한 카드가 돌아옴.
+   모두에게 누가 누구에게 몇 장 주는지 보이고(뒷면), 카드 앞면은 주고받는 당사자에게만 (내가 준 카드는 내 앞에서 앞면으로 떠나며 뒤집히고, 받는 카드는 날아오며 앞면으로 뒤집힘).
+   받는 카드 자리는 손패에서 비워 뒀다가 도착하면 채우고 노란 테두리(받은 카드) */
+const XL={wait:200,leg:900,fly:680,gap:110};   // 첫 출발, 두 번째 묶음 출발(첫 묶음 기준), 날아가는 시간, 같은 묶음 카드 사이 간격
+const XIN=new Set();let XA=null;
+function xchStop(){if(!XA)return;if(XA.raf)cancelAnimationFrame(XA.raf);for(const f of XA.fl)if(f.g)killCard(f.g);XA=null;XIN.clear()}
+function xchStart(v){
+  xchStop();
+  const mi=myIdx(),mp=mi>=0?v.ps[mi]:null,got=mp&&Array.isArray(mp.g)?mp.g.slice():[],gave=mp&&Array.isArray(mp.gv)?mp.gv.slice():[];
+  const xc=Array.isArray(v.xc)?v.xc:[],left=+v.dk||0;
+  // 늦게 들어왔거나 연출을 볼 수 없으면: 받은 카드 표시만
+  if(!xc.length||left<XMS-200){if(got.length)showTaken(got);return}
+  const t0=clock()+left-XMS;   // 카드 나누기가 끝나는 때
+  const fl=[];
+  xc.forEach(([lo,hi,k],pi)=>{
+    for(let j=0;j<k;j++){
+      // 1) 강한 카드: lo → hi, 2) 약한 카드: hi → lo
+      fl.push({from:lo,to:hi,at:XL.wait+pi*40+j*XL.gap,id:lo===mi?gave[j]:hi===mi?got[j]:null});
+      fl.push({from:hi,to:lo,at:XL.wait+XL.leg+pi*40+j*XL.gap,id:hi===mi?gave[j]:lo===mi?got[j]:null});
+    }
+  });
+  got.forEach(id=>XIN.add(id));
+  XA={rd:v.rd,t0,fl,got};
+  renderMe();
+  const step=()=>{
+    if(!XA)return;
+    if(!V||!V.ps||V.st!=='play'||V.rd!==XA.rd){xchStop();if(V)renderMe();return}
+    const a=clock()-XA.t0;
+    for(const f of XA.fl)xchFly(f,a,mi);
+    if(a>=XMS){const g=XA.got;xchStop();renderMe();if(g.length){newCards=new Set(g);markNewCards()}return}
+    XA.raf=requestAnimationFrame(step);
+  };
+  XA.raf=requestAnimationFrame(step);
+}
+const angWrap=d=>{while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return d};
+function xchEnd(i,mi){   // 자리의 카드 위치와 방향: 내 자리는 손패 앞(앞면이 나를 봄), 다른 사람은 그 사람 카드 더미 위(뒷면)
+  if(i===mi){const p=nearMe();return {x:p.x,y:p.y,z:p.z,rx:-1.3,ry:0}}
+  const p=seatPos(i,3.85);return {x:p.x,y:.32,z:p.z,rx:Math.PI/2,ry:seatAngle(i)};
+}
+function xchFly(f,a,mi){
+  const u0=(a-f.at)/XL.fly;
+  if(u0<0){if(f.g)f.g.visible=false;return}
+  if(!f.sent){f.sent=1;sfx('cut')}
+  if(u0>=1){
+    if(f.g){killCard(f.g);f.g=null}
+    if(!f.done){f.done=1;if(f.to===mi){if(f.id!=null)XIN.delete(f.id);renderMe();if(f.id!=null){newCards.add(f.id);markNewCards()}sfx('pick')}else sfx('flick')}
+    return;
+  }
+  if(!T.ok)return;
+  const A=xchEnd(f.from,mi),B=xchEnd(f.to,mi);
+  if(!f.g){
+    f.g=makeCard(new THREE.Vector3(A.x,A.y,A.z),A.rx,A.ry,.8);f.g.userData.man=true;f.g.renderOrder=3;
+    if(f.id!=null)f.g.children[0].material=faceMat(f.id);   // 앞면은 당사자만
+  }
+  const u=smooth(u0),e=eOut(u0);
+  const x=bez(A.x,(A.x+B.x)/2,B.x,e),z=bez(A.z,(A.z+B.z)/2,B.z,e),y=bez(A.y,Math.max(A.y,B.y)+1.1,B.y,u);
+  // 뒤집기: 내가 준 카드는 떠나자마자 뒷면으로(상대 쪽에서 앞면이 보이지 않게), 내가 받는 카드는 다가오며 앞면으로, 나머지는 뒷면 그대로
+  const w=f.from===mi?smooth((u0-.08)/.35):f.to===mi?smooth((u0-.45)/.45):smooth(u0),rx=A.rx+(B.rx-A.rx)*w,ry=A.ry+angWrap(B.ry-A.ry)*u;
+  const s=(f.from===mi?1.1:.8)+((f.to===mi?1.1:.8)-(f.from===mi?1.1:.8))*u;
+  f.g.visible=true;setPose(f.g,x,y,z,rx,ry,0,s);
+}
 G.postView=()=>{
   try{BG.sync(V)}catch(e){}
   // 새 판에 계급 카드 교환으로 받은 카드는 노란 테두리로 표시 (마우스를 올리거나 눌러 보면 사라짐)
   const mi=myIdx();
-  if(V.st==='play'&&mi>=0&&Array.isArray(V.ps[mi].g)&&V.ps[mi].g.length&&(!PV||PV.st!=='play'||PV.rd!==V.rd))showTaken(V.ps[mi].g);
+  if(V.st==='play'&&(!PV||PV.st!=='play'||PV.rd!==V.rd))xchStart(V);
 };
 G.logCue=(txt,cls)=>{
   if(cls==='sp'){if(txt.startsWith('혁명'))BG.kick=true;sfx('special');showSpecial((txt.match(/^[^!]*!/)||[txt])[0]);return true}
@@ -581,7 +649,7 @@ G.handMarks=(i,h,hand)=>{
     const pl=legalPlays(h,stateV(),V.cfg);playable=new Set(pl.flat());
     if(pl.some(m=>m.some(isJ)))h.filter(isJ).forEach(id=>playable.add(id));   // 조합 목록에는 첫 조커만 들어가므로, 조커는 모두 같이 표시
   }
-  for(const el of hand.children){const id=+el.dataset.id,s=sel.has(id);el.classList.toggle('match',combo?(!s&&combo.has(id)):!!(playable&&playable.has(id)));el.classList.toggle('combo',!!(combo&&!s&&combo.has(id)));el.classList.toggle('faded',!!(combo&&!s&&!combo.has(id)))}
+  for(const el of hand.children){const id=+el.dataset.id,s=sel.has(id);el.classList.toggle('xin',XIN.has(id));el.classList.toggle('match',combo?(!s&&combo.has(id)):!!(playable&&playable.has(id)));el.classList.toggle('combo',!!(combo&&!s&&combo.has(id)));el.classList.toggle('faded',!!(combo&&!s&&!combo.has(id)))}
 };
 /* 계급 배지 (대부호·부호·평민·빈민·대빈민) */
 const RT_CLS={'대부호':'r1','부호':'r2','평민':'r3','빈민':'r4','대빈민':'r5'};
@@ -644,7 +712,7 @@ G.field3D=(v,pv,me,fk)=>{
 };
 G.clear3D=()=>{T.fieldKey=''};
 G.enter=()=>{BG.on=true};
-G.leave=()=>{BG.on=false;const bd=$('#ruleBadges');bd.innerHTML='';bd.dataset.k='';const f=$('#field2d');f.hidden=true;f.innerHTML='';f.dataset.k='';T.fieldKey=''};
+G.leave=()=>{xchStop();BG.on=false;const bd=$('#ruleBadges');bd.innerHTML='';bd.dataset.k='';const f=$('#field2d');f.hidden=true;f.innerHTML='';f.dataset.k='';T.fieldKey=''};
 G.init=()=>{
   const css=document.createElement('style');
   css.textContent=`
@@ -675,6 +743,7 @@ G.init=()=>{
 .ranks s{color:var(--muted,#7a6a58);text-decoration-thickness:1.5px}
 .ranks .up{color:#2c7d47}.ranks .dn{color:#cc3a2e}
 .rk-note{font-size:12.5px;color:var(--muted,#7a6a58);line-height:1.55;margin:4px 0}
+.card.xin{visibility:hidden}
 .linkbtn{background:none;border:0;padding:0;font:inherit;font-weight:600;color:#cc3a2e;text-decoration:underline;cursor:pointer}
 @media (max-width:480px){.pl-o b{font-size:13px}.pl-lead{flex-wrap:wrap}.pl-lead .segrow{width:100%}}
 `;

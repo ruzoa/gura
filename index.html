@@ -805,7 +805,7 @@ function hostStart(){
   H.players=H.members.map(m=>({name:m.name,bot:m.bot,lv:m.bot?(m.lv??1):null,conn:m.conn,cid:m.cid||'',host:m.host,hand:[],finished:false,rank:null}));
   EG().engine.start();   // 카드 나누기·첫 차례는 게임마다 다름
   H.fp=0;
-  if(EG().dealAnim)beginDeal();
+  if(EG().dealAnim)beginDeal(DEAL_MS+(EG().dealExtra?+EG().dealExtra()||0:0));   // dealExtra: 카드 나누기 뒤 게임의 추가 연출(대부호 카드 교환) 동안도 멈춤
   else if(EG().introMs){H.dealAgain=again?1:0;H.fp=EG().firstPick?(H.cfg.pickfirst?-1:Roulette.pickFast(Roulette.DEF.fastMin,Roulette.DEF.fastMax)):0;beginDeal(introLen(EG(),again,H.fp))}   // 카드가 없는 게임의 시작 연출 (야추다이스·쿼리도: 카메라 이동·준비·첫 차례 룰렛)
 }
 /* 카드 섞고 나누는 연출 동안(DEAL_MS)은 제한 시간·봇·행동을 멈춤. 화면 쪽 연출은 dealStart3D
@@ -2574,7 +2574,7 @@ function dealCheck(v){
   if(T.deal&&(v.st==='wait'||!v.ps||v.code+':'+v.di!==T.deal.key&&v.di))dealAbort();
   if(!(G.dealAnim||G.intro)||!v.ps||!v.dk||!v.di)return;
   const key=v.code+':'+v.di;if(key===dealSeen)return;dealSeen=key;
-  const total=G.dealAnim?DEAL_MS:(+v.dm||introLen(G,!!v.dg,+v.fp));
+  const total=G.dealAnim?(+v.dm||DEAL_MS):(+v.dm||introLen(G,!!v.dg,+v.fp));
   const done=total-(+v.dk);if(done>900)return;   // 이미 많이 지났으면 연출 없이
   if(G.dealAnim)dealStart(v,clock()-Math.max(0,done),key);
   else G.intro(clock()-Math.max(0,done),{total,again:!!v.dg,fast:+v.fp||undefined});
