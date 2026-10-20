@@ -888,6 +888,7 @@ function engineTick(){
   if(!H)return;
   const t=clock();
   if(H.phase!=='wait'&&H.phase!=='over'&&!dealing())EG().engine.tick(t);
+  if(H&&H.phase==='play')deserterTick(t);
   if(H&&H.phase==='wait'){   // 대기실에서 끊긴 뒤 돌아오지 않은 사람은 정리
     const before=H.members.length;
     H.members=H.members.filter(m=>!(m.away&&t>m.awayAt+30000));
@@ -895,10 +896,27 @@ function engineTick(){
   }
   if(H&&H.online&&t-lastBeat>3000)mark();
 }
-const AWAY_WAIT=20000;
+const AWAY_WAIT=20000;   // 연결이 끊기고 이만큼 지나면 봇이 대신 둠
+const DESERT_WAIT=45000;   // 끊긴 채 이만큼 이어지면 탈주로 확정 (방장은 나가면 탁자가 넘어가므로 해당 없음)
+/* 탈주: '탁자 떠나기'는 바로, 연결 끊김은 DESERT_WAIT 동안 이어졌을 때. 그 자리는 항복 처리(항복을 못 받는 때는 봇이 계속 둠)하고 이름표에 표시 */
+function desertSeat(i){
+  const p=H&&H.players[i];
+  if(!p||p.host||p.deserter||H.phase!=='play')return;
+  p.deserter=true;p.bot=true;p.conn=null;
+  if(!p.away){p.away=true;p.awayAt=clock()-AWAY_WAIT}   // 나가기 버튼: 봇이 바로 이어받음
+  addLog(`${p.name} 탈주`,'sys');
+  mark();
+}
+function deserterTick(t){
+  H.players.forEach((p,i)=>{
+    if(p.host)return;
+    if(!p.deserter&&p.away&&typeof p.awayAt==='number'&&t>=p.awayAt+DESERT_WAIT)desertSeat(i);
+    if(p.deserter&&!p.finished&&!dealing()&&(p.dzTry=(p.dzTry||0)+1)<=200)hostAct(i,{t:'surrender'});   // 못 받으면(연출 중 등) 다음 틱에 다시
+  });
+}
 setInterval(engineTick,100);
 
-/* 받는 사람(you)마다 자기 손패만 넣은 상태. sr: 1 항복, 2 제한 시간 초과로 패배(쿼리도) */
+/* 받는 사람(you)마다 자기 손패만 넣은 상태. sr: 1 항복, 2 제한 시간 초과로 패배, 3 탈주로 항복 처리. dz: 탈주 */
 function snapFor(you){
   const t=clock();
   const s={code:H.code,title:H.title,cfg:H.cfg,st:H.phase,lg:H.log,you};
@@ -906,7 +924,7 @@ function snapFor(you){
   if(H.specs&&H.specs.length)s.sv=H.specs.map(x=>x.name);
   s.mc=H.members.length;
   if(H.phase==='wait'){s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0,lv:m.bot?(m.lv??1):undefined}));if(H.firstName)s.fn=H.firstName;if(EG().engine.waitSnap)EG().engine.waitSnap(s);return s}   // waitSnap: 대기실에도 게임별 값 (대부호의 계급)
-  s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=p.surrendered==='time'?2:1;if(p.away)o.aw=1;if(i===you)o.h=p.hand.slice();return o});
+  s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=p.surrendered==='time'?2:p.deserter?3:1;if(p.away)o.aw=1;if(p.deserter)o.dz=1;if(i===you)o.h=p.hand.slice();return o});
   s.t=H.turn;
   if(H.dealUntil>t){s.dk=Math.round(H.dealUntil-t);s.di=H.dealId;s.dm=H.dealMs||0;if(H.dealAgain)s.dg=1;if(H.fp)s.fp=H.fp}   // 카드를 나누는 중 (남은 ms, fp: 첫 차례 룰렛의 빠른 칸 수)
   EG().engine.snap(s,you,t);   // 필드·판정 등은 게임마다 다름
@@ -989,12 +1007,14 @@ function hostConn(conn){
         const pl=cid?H.players.find(x=>x.cid===cid&&!x.host):null;
         if(pl){
           const back=pl.away||pl.conn!==conn;take(pl);pl.bot=false;pl.away=false;
+          if(pl.deserter&&!pl.finished){pl.deserter=false;pl.dzTry=0}   // 항복 처리 전에 돌아오면 탈주 취소
           if(!m)H.members.push({name:pl.name,bot:false,conn,cid,host:false});
           if(back)addLog(`${pl.name} 다시 연결됨`,'sys');
         }else if(!m){if(!hostAddSpec(conn,nick,cid))return}
       }
       mark();return;
     }
+    if(d.t==='out'){conn.__out=true;return}   // '탁자 떠나기'를 누름: 곧 닫히는 연결을 탈주로 처리
     {const sp=specOf(conn);
      if(sp){if(d.t==='join')hostJoinSpec(conn);return}}   // 관전자는 이모티콘을 보낼 수 없음
     if(d.t==='spec'){hostToSpec(conn);return}
@@ -1013,7 +1033,8 @@ function hostConn(conn){
     const pl=H.players.find(x=>x.conn===conn&&!x.bot);
     if(pl&&H.phase!=='wait'){
       pl.bot=true;pl.conn=null;pl.away=true;pl.awayAt=clock();
-      addLog(`${pl.name} 연결 끊김. 20초 안에 돌아오지 않으면 봇이 대신합니다.`,'sys');
+      if(conn.__out&&H.phase==='play')desertSeat(H.players.indexOf(pl));
+      else addLog(H.phase==='play'?`${pl.name} 연결 끊김. 20초 안에 돌아오지 않으면 봇이 대신하고, 45초가 지나면 탈주로 처리합니다.`:`${pl.name} 연결 끊김`,'sys');
       if(H.phase==='play'&&H.players[H.turn]===pl)H.botActAt=Math.max(clock(),H.graceUntil)+800;
     }
     mark();
@@ -1319,9 +1340,12 @@ function leaveRoom(){
     setTimeout(()=>{for(const c of conns){try{c.close()}catch(e){}}try{pr&&pr.destroy()}catch(e){}},400);
   }else{
     for(const c of net.conns){try{c.close()}catch(e){}}net.conns.clear();
-    if(net.peer){try{net.peer.destroy()}catch(e){}net.peer=null}
+    const outing=mode==='guest'&&net.conn&&net.conn.open&&V&&V.st==='play'&&myIdx()>=0;
+    if(outing)try{net.conn.send({t:'out'})}catch(e){}   // 게임 중에 직접 나가면 방장이 바로 탈주로 처리
+    const pr=net.peer;net.peer=null;
+    if(pr)outing?setTimeout(()=>{try{pr.destroy()}catch(e){}},300):(()=>{try{pr.destroy()}catch(e){}})();   // 신호가 가도록 잠깐 뒤에 닫음
   }
-  if(net.conn){try{net.conn.close()}catch(e){}net.conn=null}
+  if(net.conn){const c=net.conn;if(mode==='guest'&&c.open&&V&&V.st==='play'&&myIdx()>=0)setTimeout(()=>{try{c.close()}catch(e){}},250);else{try{c.close()}catch(e){}}net.conn=null}
   if(net.retry){clearTimeout(net.retry.timer);net.retry=null}
   if(net.pub){try{net.pub.destroy()}catch(e){}net.pub=null}
   if(mode==='host')unstore('gura-host');
@@ -1534,6 +1558,7 @@ function cues(v,pv){
     if(cls==='fin')sfx('finish');
     else if(txt.includes('패스'))sfx('pass');
   }
+  if(v.st==='play'&&pv.ps&&v.ps.some((p,i)=>p.dz&&pv.ps[i]&&!pv.ps[i].dz))sfx('no');   // 누가 탈주하면 글 대신 짧은 소리
   if(v.st!=='wait'&&pv.st!=='wait')G.cues(v,pv);
   const me=myIdx();
   if(v.st==='play'&&me>=0&&v.t===me&&!(pv.st==='play'&&pv.t===me))setTimeout(()=>sfx('turn'),Math.max(v.gr>0?Math.min(v.gr,1500):0,v.dk?+v.dk:0));   // 카드를 나누는 중이면 다 나눈 뒤
@@ -1752,8 +1777,8 @@ function renderLabels(){
   box.innerHTML=V.ps.map((p,i)=>{
     if(i===me)return '';
     const on=V.st==='play'&&V.t===i&&activeV(i);
-    const mu=emoMuted.has(p.n),note=p.aw&&!p.f?'연결 끊김':(p.no&&!String(p.no).startsWith('"')?p.no:'');   // 몇 장 냈는지는 표시하지 않음
-    return `<div class="seat${on?' on':''}${p.f?' out':''}${mu?' muted':''}" data-i="${i}"><button type="button" class="spk" data-spk="${i}" aria-pressed="${mu}" aria-label="${esc(p.n)} 이모티콘 ${mu?'켜기':'끄기'}" title="이모티콘 ${mu?'켜기':'끄기'}">${mu?SPK_OFF:SPK_ON}</button><div class="nm">${G.nameTag?G.nameTag(p,i):''}${esc(p.n)}<span class="ct">${p.f?(p.sr?(p.sr===2?'시간 초과':'항복'):G.finLabel(p.f,V.ps.length)):(+p.c+'장')}</span>${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="nt">${esc(note)}</div><svg class="ring" data-ring="${i}" viewBox="0 0 36 36" aria-hidden="true"><circle class="rb" cx="18" cy="18" r="15"/><circle class="rf" cx="18" cy="18" r="15"/></svg><svg class="tb" data-tb="${i}" aria-hidden="true"><rect x="1.5" y="1.5" width="10" height="10" rx="11" pathLength="100"/></svg></div>`;
+    const mu=emoMuted.has(p.n),note=p.dz&&!p.f?'탈주':p.aw&&!p.f?'연결 끊김':(p.no&&!String(p.no).startsWith('"')?p.no:'');   // 몇 장 냈는지는 표시하지 않음
+    return `<div class="seat${on?' on':''}${p.f?' out':''}${mu?' muted':''}" data-i="${i}"><button type="button" class="spk" data-spk="${i}" aria-pressed="${mu}" aria-label="${esc(p.n)} 이모티콘 ${mu?'켜기':'끄기'}" title="이모티콘 ${mu?'켜기':'끄기'}">${mu?SPK_OFF:SPK_ON}</button><div class="nm">${G.nameTag?G.nameTag(p,i):''}${esc(p.n)}<span class="ct">${p.f?(p.sr?(p.sr===2?'시간 초과':p.sr===3?'탈주':'항복'):G.finLabel(p.f,V.ps.length)):(+p.c+'장')}</span>${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="nt">${esc(note)}</div><svg class="ring" data-ring="${i}" viewBox="0 0 36 36" aria-hidden="true"><circle class="rb" cx="18" cy="18" r="15"/><circle class="rf" cx="18" cy="18" r="15"/></svg><svg class="tb" data-tb="${i}" aria-hidden="true"><rect x="1.5" y="1.5" width="10" height="10" rx="11" pathLength="100"/></svg></div>`;
   }).join('');
   placeLabels();
 }
@@ -1768,7 +1793,7 @@ function renderMe(){
     renderButtons();return;
   }
   const p=V.ps[i],h=myHand();
-  $('#meSub').innerHTML=p.f?(p.sr?`${p.sr===2?'시간 초과로':'항복해서'} <b>${+p.f}위</b>입니다. 남은 판을 지켜봅니다.`:`<b>${+p.f}위${G.rankTitle(p.f,V.ps.length)?' '+G.rankTitle(p.f,V.ps.length):''}</b>로 탈출했습니다.`):`<b>${h.length}</b>장`;
+  $('#meSub').innerHTML=p.f?(p.sr?`${p.sr===2?'시간 초과로':p.sr===3?'탈주 처리되어':'항복해서'} <b>${+p.f}위</b>입니다. 남은 판을 지켜봅니다.`:`<b>${+p.f}위${G.rankTitle(p.f,V.ps.length)?' '+G.rankTitle(p.f,V.ps.length):''}</b>로 탈출했습니다.`):`<b>${h.length}</b>장`;
   syncCursor();
   // 같은 카드면 다시 그리지 않고 상태만 바꿔서 마우스 올림·애니메이션이 끊기지 않게
   const key=h.join(',');

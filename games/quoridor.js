@@ -501,7 +501,7 @@ function barHTML(q,me){
   return V.ps.map((p,i)=>{
     if(i>=q.cnt&&p.f)return '';
     const on=introWait()?clock()-IN.t0>=IN.r&&(IN.fp&&IN.fp.cand(clock())?IN.L.includes(i):introIdx(clock()-IN.t0)===i):V.st==='play'&&V.t===i&&!p.f;
-    return `<div class="qd-p${on?' on':''}${i===me?' me':''}${p.f?' out':''}" style="--pc:${PCOL[i%4]}"><i class="dot"></i><b>${esc(p.n)}${i===me?' (나)':''}</b>${p.f?`<span class="w">${p.sr===2?'시간 초과':p.sr?'항복':(+p.f)+'위'}</span>`:`<span class="w">벽 ${+q.wl[i]}</span>`}${on?'<span class="tb"><i></i></span>':''}</div>`;
+    return `<div class="qd-p${on?' on':''}${i===me?' me':''}${p.f?' out':''}" style="--pc:${PCOL[i%4]}"><i class="dot"></i><b>${esc(p.n)}${i===me?' (나)':''}</b>${p.f?`<span class="w">${p.sr===2?'시간 초과':p.sr===3?'탈주':p.sr?'항복':(+p.f)+'위'}</span>`:`<span class="w">벽 ${+q.wl[i]}</span>`}${on?'<span class="tb"><i></i></span>':''}</div>`;
   }).join('');
 }
 function hintText(me){   // 안내·알림 원칙: 차례·할 수 있는 행동·남은 시간은 화면(고리·초록 점·버튼·빨간 선)이 보여 주므로 글은 결과만
@@ -510,7 +510,7 @@ function hintText(me){   // 안내·알림 원칙: 차례·할 수 있는 행동
   if(V.st==='over')return '게임이 끝났습니다.';
   if(introWait()||me<0)return '';
   const p=V.ps[me];
-  if(p&&p.f)return p.sr===2?'시간 초과로 패배했습니다.':p.sr?'항복했습니다.':V.q.dn[me]?'도착했습니다!':'';
+  if(p&&p.f)return p.sr===2?'시간 초과로 패배했습니다.':p.sr===3?'탈주 처리되었습니다.':p.sr?'항복했습니다.':V.q.dn[me]?'도착했습니다!':'';
   return '';
 }
 /* 기보 글: 2명이면 체스처럼 '1. e2 e8', 3명 이상이거나 순서가 비면 색 이름을 붙임 */
@@ -523,7 +523,7 @@ function recordText(v){
     const plain=cnt===2&&list.every(([i],k)=>i===order[k]);
     lines.push(`${n}. `+list.map(([i,m])=>plain?m:`${CNAME[i%4]} ${m}`).join(plain?' ':', '));
   }
-  if(v.st==='over')lines.push('결과: '+v.ps.map((p,i)=>({p,i})).filter(x=>x.i<cnt&&x.p.f).sort((a,b)=>a.p.f-b.p.f).map(x=>`${x.p.f}위 ${x.p.n}${x.p.sr===2?' (시간 초과)':x.p.sr?' (항복)':''}`).join(', '));
+  if(v.st==='over')lines.push('결과: '+v.ps.map((p,i)=>({p,i})).filter(x=>x.i<cnt&&x.p.f).sort((a,b)=>a.p.f-b.p.f).map(x=>`${x.p.f}위 ${x.p.n}${x.p.sr===2?' (시간 초과)':x.p.sr===3?' (탈주)':x.p.sr?' (항복)':''}`).join(', '));
   return lines.join('\n');
 }
 function modesHTML(me){

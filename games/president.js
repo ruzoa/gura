@@ -591,7 +591,7 @@ G.me=i=>{const p=V.ps[i];if(p&&p.pr&&!p.f)$('#meSub').insertAdjacentHTML('afterb
 /* 결과 화면: 지난 판 계급 → 이번 계급 (▲ 올라감, ▼ 내려감) */
 G.overRank=p=>{
   const n=V.ps.length,t=rankTitle(p.f,n),was=p.pr?rankTitle(p.pr,n):'';
-  const why=p.sr?(p.sr===2?'시간 초과':'항복'):p.fo===1?'반칙 탈출':p.fo===2?'도시오치':'';
+  const why=p.sr?(p.sr===2?'시간 초과':p.sr===3?'탈주':'항복'):p.fo===1?'반칙 탈출':p.fo===2?'도시오치':'';
   const mv=p.pr?(p.f<p.pr?' <b class="up">▲</b>':p.f>p.pr?' <b class="dn">▼</b>':''):'';
   return `<span class="left">${why?why+' · ':''}${was&&was!==t?`<s>${was}</s> → `:''}${t}${mv}</span>`;
 };

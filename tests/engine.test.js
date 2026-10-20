@@ -214,6 +214,39 @@ for(let sz=0;sz<2;sz++)for(let b33=0;b33<3;b33++)for(let ov=0;ov<3;ov++)for(let 
 }
 console.log('omok ticks',ot);
 `,'omok.run');
+// 탈주: 나가기 버튼은 바로, 연결 끊김은 DESERT_WAIT 동안 이어질 때 항복 처리 + 표시 (모든 게임). 그 전에 돌아오면 취소, 방장은 해당 없음
+run(`
+for(const [g,n] of [['gura',3],['president',3],['quoridor',3],['yahtzee',3],['omok',2]]){
+  const setup=()=>{hostNew(false,'t','t');H.cfg={...cfgFor(g),game:g,turn:600};
+    H.members=[];for(let i=0;i<n;i++)H.members.push({name:'p'+i,bot:false,conn:i?{}:null,host:i===0,cid:'c'+i});
+    hostStart();for(let k=0;k<80;k++){NOW+=250;engineTick()}};   // 시작 연출이 끝날 때까지
+  const find=()=>H.players.findIndex(p=>!p.host);
+  // 1) 연결 끊김이 이어짐
+  setup();let i=find();
+  Object.assign(H.players[i],{bot:true,conn:null,away:true,awayAt:NOW});
+  for(let k=0;k<(AWAY_WAIT/250);k++){NOW+=250;engineTick()}
+  if(H.players[i].deserter||H.players[i].finished)fail(g+' deserted too early');
+  for(let k=0;k<((DESERT_WAIT-AWAY_WAIT)/250)+8;k++){NOW+=250;engineTick()}
+  {const p=H.players[i];
+   if(!p.deserter)fail(g+' disconnect not deserted');
+   else{if(H.phase!=='over'&&!p.finished)fail(g+' deserter not surrendered');
+     const sn=snapFor(0).ps[i];if(!sn.dz||(p.finished&&sn.sr!==3))fail(g+' snap dz/sr '+JSON.stringify(sn))}}
+  // 2) 나가기 버튼: 바로 탈주
+  setup();i=find();
+  H.players[i].conn=null;desertSeat(i);for(let k=0;k<8;k++){NOW+=250;engineTick()}
+  {const p=H.players[i];if(!p.deserter||(H.phase!=='over'&&!p.finished))fail(g+' leave not deserted')}
+  // 3) 끊겼다가 45초 안에 돌아오면 탈주 아님
+  setup();i=find();
+  Object.assign(H.players[i],{bot:true,conn:null,away:true,awayAt:NOW});
+  for(let k=0;k<(DESERT_WAIT/250)-20;k++){NOW+=250;engineTick()}
+  Object.assign(H.players[i],{bot:false,away:false,conn:{}});
+  for(let k=0;k<400;k++){NOW+=250;engineTick()}
+  if(H.players[i].deserter)fail(g+' returned player deserted');
+  // 4) 방장은 탈주 처리하지 않음
+  setup();H.players[0].away=true;H.players[0].awayAt=NOW-DESERT_WAIT*3;engineTick();
+  if(H.players[0].deserter)fail(g+' host deserted');
+}
+`,'deserter.cases');
 run(`
 let ticks=0;
 for(let rep=0;rep<60;rep++){

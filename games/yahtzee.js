@@ -1097,7 +1097,7 @@ function hintText(me){   // 안내·알림 원칙: 차례(위 칩)·남은 굴�
   if(introOn()&&!IN0.said)return '';
   if(me<0)return '';
   const p=V.ps[me];
-  if(p.f)return p.sr?'항복했습니다.':'';
+  if(p.f)return p.sr===3?'탈주 처리되었습니다.':p.sr?'항복했습니다.':'';
   if(V.t!==me||!myTurnNow()||!V.y.r)return '';
   return jokerOf(scoreOf(me),V.y.d)?'추가 야추 · 조커 규칙':'';   // 기록할 수 있는 칸이 왜 줄었는지는 화면만으로 알 수 없음
 }
@@ -1140,7 +1140,7 @@ function boardHTML(){
   const ok=mine?allowed(SC[me],Y.d):[],joker=mine&&jokerOf(SC[me],Y.d);
   const head=`<thead><tr><th class="lb" scope="col">점수판</th>${ids.map(i=>{
     const p=V.ps[i],on=V.st==='play'&&V.t===i&&!p.f&&!(introOn()&&!IN0.said);
-    return `<th class="pc${on?' on':''}${i===me?' me':''}${p.f&&p.sr?' out':''}" scope="col" style="--pc:${PCOL[i%4]}"><b>${esc(p.n)}${i===me?' (나)':''}</b><span class="tot">${p.f&&p.sr?'항복':T[i].total}</span>${on?'<span class="tb"><i></i></span>':''}</th>`;
+    return `<th class="pc${on?' on':''}${i===me?' me':''}${p.f&&p.sr?' out':''}" scope="col" style="--pc:${PCOL[i%4]}"><b>${esc(p.n)}${i===me?' (나)':''}</b><span class="tot">${p.f&&p.sr?(p.sr===3?'탈주':'항복'):T[i].total}</span>${on?'<span class="tb"><i></i></span>':''}</th>`;
   }).join('')}</tr></thead>`;
   const cell=(i,c)=>{
     const v=SC[i][c.id],m=i===me?' me':'';
@@ -1200,7 +1200,7 @@ G.overExtra=()=>{
   const Y=V.y,list=Array.from({length:Y.cnt},(_,i)=>i).sort((a,b)=>(V.ps[a].f-V.ps[b].f)||(a-b));
   const li=list.map(i=>{
     const T=totals(scoreOf(i),Y.yb[i]),p=V.ps[i];
-    return `<li${i===myIdx()?' class="me"':''}><span class="n">${esc(p.n)}</span><b>${p.sr?'항복':T.total+'점'}</b><small>윗칸 ${T.upper}${T.bonus?` (+${T.bonus})`:''} · 아랫칸 ${T.lower}${T.yb?` · 야추 보너스 ${T.yb}`:''}</small></li>`;
+    return `<li${i===myIdx()?' class="me"':''}><span class="n">${esc(p.n)}</span><b>${p.sr?(p.sr===3?'탈주':'항복'):T.total+'점'}</b><small>윗칸 ${T.upper}${T.bonus?` (+${T.bonus})`:''} · 아랫칸 ${T.lower}${T.yb?` · 야추 보너스 ${T.yb}`:''}</small></li>`;
   }).join('');
   return `<div class="yz-res"><div class="yz-res-h"><b>최종 점수</b></div><ul>${li}</ul></div>`;
 };

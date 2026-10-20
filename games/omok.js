@@ -579,7 +579,7 @@ function barHTML(){
   return order.map(i=>{
     const p=V.ps[i];if(!p||i>1)return '';
     const on=V.st==='play'&&V.t===i&&!introWait();
-    const st=V.st==='over'?(o.res&&o.res.w<0?'무승부':p.f===1?'승리':(p.sr===2?'시간 초과':p.sr?'항복':'패배')):'';
+    const st=V.st==='over'?(o.res&&o.res.w<0?'무승부':p.f===1?'승리':(p.sr===2?'시간 초과':p.sr===3?'탈주':p.sr?'항복':'패배')):'';
     return `<div class="om-p${on?' on':''}${i===me?' me':''}">${stoneDot(o.co[i])}<b>${esc(p.n)}${i===me?' (나)':''}</b><span class="w" data-ct="${i}">${fmtT(remMs(i))}</span>${st?`<span class="st">${st}</span>`:''}</div>`;
   }).join('');
 }
@@ -1017,7 +1017,7 @@ G.me=(i,h)=>{
 G.specNote='관전 중입니다. 두 사람의 대국을 지켜봅니다.';
 /* 결과 창 순위 옆 글자: 비기면 둘 다 1위라 '무승부'로 알려 줌 */
 G.overRank=p=>{
-  const r=V&&V.o&&V.o.res,t=p.sr===2?'시간 초과':p.sr?'항복':r&&r.w<0?'무승부':'';
+  const r=V&&V.o&&V.o.res,t=p.sr===2?'시간 초과':p.sr===3?'탈주':p.sr?'항복':r&&r.w<0?'무승부':'';
   return t?`<span class="left">${t}</span>`:'';
 };
 G.usesDbl=true;
