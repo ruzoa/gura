@@ -461,7 +461,7 @@ G.panelAct=a=>{
 
 /* ---------- 화면 (모든 참가자) ----------
    2D(SVG)와 3D(공통 테이블 위 원목 판 + 체스 시계)는 같은 상태(OS)를 보고 그림 */
-let OS=null,pend=null,msg='',msgUntil=0,msgTimer=null;   // OS: 지금 판 {n,R,b,...}, pend: 미리 보기로 고른 칸 {r,c}
+let OS=null,pend=null,held=false,msg='',msgUntil=0,msgTimer=null;   // OS: 지금 판 {n,R,b,...}, pend: 미리 보기로 고른 칸 {r,c} (상대 차례에도 미리 고를 수 있음), held: 통에서 돌 하나를 집어 든 상태 (놓을 때까지 유지, 취소해도 통에 돌려놓지 않음)
 let elOm=null,elSvg=null,elMain=null,elGhost=null,elBar=null,elHint=null,elModes=null,lastBoard='',lastBar='',lastHint='',lastModes='';
 const OC={at:0,fk:'',fl:[]};   // OC.at: 상태를 받은 시각 (시계가 흐른 시간 계산), fk·fl: 금수 칸 캐시
 function buildS(o){
@@ -491,25 +491,36 @@ function forbidNow(){
   if(OC.fk!==k){OC.fk=k;OC.fl=forbidCells(OS.b.slice(),OS.R,col)}
   return OC.fl;
 }
-/* 눌러서 고르기 (미리 보기): 확정은 [놓기] */
+/* 미리 고를 수 있나: 내 차례(오프닝 돌 놓기 포함), 또는 대국 중 상대 차례(색이 정해진 뒤) */
+const canPre=()=>{const me=myIdx();return !!(V&&V.o&&OS&&V.st==='play'&&me>=0&&!introWait()&&OS.ph==='play'&&OS.co[me]&&!(V.ps[me]&&V.ps[me].f))};
+/* 미리 보기 돌의 색: 대국 중이면 내 색, 오프닝이면 이번에 놓을 돌의 색 */
+const pendCol=()=>{const me=myIdx();return OS.ph==='play'&&me>=0&&OS.co[me]?OS.co[me]:nextColor(OS.cnt)};
+const badMsg=b=>b==='6'?'장목(6목 이상)은 금수입니다.':b==='44'?'4-4는 금수입니다.':'3-3은 금수입니다.';
+/* 눌러서 고르기 (미리 보기): 확정은 [놓기]. 상대 차례에도 골라 둘 수 있고, 내 차례가 오면 [놓기]로 둠 */
 function pickCell(r,c){
   if(!V||!V.o||V.st!=='play'||!OS)return;
   const me=myIdx();if(me<0)return;
-  if(!myTurnNow()){say(V.t===me?'잠시만 기다려 주세요.':'아직 내 차례가 아닙니다.');return}
+  const mine=myTurnNow();
+  if(!mine&&!canPre()){say(V.t===me?'잠시만 기다려 주세요.':'아직 내 차례가 아닙니다.');return}
   if(OS.ph==='c1'||OS.ph==='c2'){say('위의 버튼으로 흑·백을 먼저 고릅니다.');return}
   if(r<0||c<0||r>=OS.n||c>=OS.n||OS.b[r*OS.n+c])return;
   if(OS.ph==='play'){
-    const j=judge(OS.b.slice(),OS.R,r,c,nextColor(OS.cnt),0);
-    if(j.bad){say(j.bad==='6'?'장목(6목 이상)은 금수입니다.':j.bad==='44'?'4-4는 금수입니다.':'3-3은 금수입니다.');return}
+    const j=judge(OS.b.slice(),OS.R,r,c,pendCol(),0);
+    if(j.bad){say(badMsg(j.bad));return}
   }
-  if(dblOn()&&pend&&pend.r===r&&pend.c===c){confirmPend();return}   // 두 번 눌러 놓기
-  pend={r,c};sfx('pick');redraw();
+  if(dblOn()&&mine&&pend&&pend.r===r&&pend.c===c){confirmPend();return}   // 두 번 눌러 놓기 (내 차례에만)
+  if(pend&&pend.r===r&&pend.c===c)return;
+  pend={r,c};
+  if(OS.ph==='play'&&!held){held=true;sndPick(.16);om3Bowls()}else sfx('pick');   // 처음 고를 때 통에서 돌을 집는 소리 (통이 하나 빔)
+  redraw();
 }
 function confirmPend(){
   if(!pend||!myTurnNow())return;
   const p=pend;pend=null;
   sendAct({t:'put',r:p.r,c:p.c});redraw();
 }
+/* 내 통을 누르면 돌 집는 소리만 (움직임 없음, 나만 들음, 언제든) */
+function bowlTap(){sndPick(.16)}
 function sendPick(v){if(myTurnNow()&&(OS.ph==='c1'||OS.ph==='c2'))sendAct({t:'pick',v})}
 function redraw(){msgUntil=0;drawAll();G.buttons();Om3.dirty=true}
 const sqn=(r,c)=>sqName(OS.n,r,c);
@@ -547,7 +558,7 @@ function boardHTML(){
 function drawGhost(){
   if(!elGhost)return;
   const out=[];
-  if(pend&&OS)out.push(stoneSvg(pend.c,pend.r,nextColor(OS.cnt),.5));
+  if(pend&&OS)out.push(stoneSvg(pend.c,pend.r,pendCol(),.5));
   elGhost.innerHTML=out.join('');
   om3Marks();
 }
@@ -575,6 +586,7 @@ function hintText(){
   if(me<0){
     return ph==='p1'||ph==='p2'?`${nm(mover)}님이 오프닝 돌을 놓는 중입니다.`:ph==='c1'||ph==='c2'?`${nm(mover)}님이 색을 고르는 중입니다.`:`${nm(mover)}님 차례입니다.`;
   }
+  if(!mine&&ph==='play'&&canPre())return pend?`${sqn(pend.r,pend.c)}에 미리 골랐습니다. 내 차례에 [놓기]로 둡니다.`:`${nm(mover)}님 차례입니다. 둘 곳을 미리 골라도 됩니다.`;
   if(!mine){
     return ph==='p1'||ph==='p2'?`${nm(mover)}님이 오프닝 돌을 놓는 중입니다. (${OS.cnt}/${ph==='p1'?3:5})`:ph==='c1'||ph==='c2'?`${nm(mover)}님이 흑과 백 중에서 고르는 중입니다.`:`${nm(mover)}님 차례입니다.`;
   }
@@ -754,7 +766,7 @@ function om3Bowls(){
   Om3.bowls.forEach((g,k)=>{
     const seat=k?1-me:me,col=o.co[seat]||(seat===o.A?1:2),u=g.userData;
     if(u.col!==col){u.col=col;u.mat.color.setHex(col===1?0x26262a:0xece4d4);Om3.dirty=true}
-    if(!IN.on3d){const n=Math.max(10,BN-Math.round(used[col]*.6));if(n!==u.n){bowlFill(g,n,null);Om3.dirty=true}}   // 돌을 쓸수록 통이 조금씩 비어 감
+    if(!IN.on3d){const n=Math.max(6,BN-used[col]-(k===0&&held&&myIdx()>=0?1:0));if(n!==u.n){bowlFill(g,n,null);Om3.dirty=true}}   // 놓은 돌 수만큼 통이 빔 (집어 든 돌 하나 포함, 바닥은 남겨 둠)
     const on=V.st==='play'&&V.t===seat&&!introWait();
     if(u.ring.visible!==on){u.ring.visible=on;Om3.dirty=true}
   });
@@ -795,7 +807,7 @@ function om3Marks(){
   const n=OS.n,p=pitchOf(n),fb=V.st==='play'&&myTurnNow()?forbidNow():[];
   Om3.xs.forEach((m,k)=>{const i=fb[k];m.visible=i!=null;if(i!=null){const [x,z]=cellW(n,(i/n)|0,i%n);m.position.x=x;m.position.z=z;m.scale.set(p*.8,p*.8,1)}});
   if(pend){
-    const col=nextColor(OS.cnt);
+    const col=pendCol();
     if(Om3.ghost.userData.k!==col+'|'+n){Om3.ghost.clear();{const gm=stoneMesh(col,true);gm.children[0].renderOrder=5;Om3.ghost.add(gm)}Om3.ghost.userData.k=col+'|'+n}
     const [x,z]=cellW(n,pend.r,pend.c);Om3.ghost.position.set(x,stoneY(Om3.ghost.children[0]),z);Om3.ghost.visible=true;
   }else Om3.ghost.visible=false;
@@ -907,13 +919,19 @@ function introTick(){
     const p=V&&V.o&&V.ps&&V.ps[V.o.A];
     if(p)say(V.o.A===myIdx()?(V.o.R&&V.o.R.op?'내가 먼저 오프닝 돌을 놓습니다.':'내가 흑으로 먼저 시작합니다.'):(V.o.R&&V.o.R.op?`${p.n}님이 먼저 오프닝 돌을 놓습니다.`:`${p.n}님이 흑으로 먼저 시작합니다.`));
     sfx('turn');lastBar='';if(Om3.on){om3Marks();om3Bowls()}
-    if(V&&V.o&&V.st==='play')sndPick(V.t===myIdx()?.16:.08);   // 첫 차례 사람이 통에서 돌을 집음
   }
   if(e>=G.introMs){IN.on=false;lastBar='';lastHint='';G.buttons()}
   drawAll();
 }
 /* 3D 화면에서 누른 곳 → 가장 가까운 교점 */
 const omRay=()=>Om3.ray||(Om3.ray=new THREE.Raycaster());
+/* 누른 곳의 테이블 위 월드 좌표 (판 윗면 높이) */
+function om3World(e){
+  const r=T.r.domElement.getBoundingClientRect();if(!r.width)return null;
+  const ray=omRay();ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},Om3.cam);
+  const o=ray.ray.origin,dv=ray.ray.direction;if(Math.abs(dv.y)<1e-6)return null;
+  const k=(.36-o.y)/dv.y;return [o.x+dv.x*k,o.z+dv.z*k];   // 통 윗면 높이
+}
 function om3Point(e){
   const r=T.r.domElement.getBoundingClientRect();if(!r.width||!OS)return null;
   const nx=(e.clientX-r.left)/r.width*2-1,ny=-(e.clientY-r.top)/r.height*2+1;
@@ -926,6 +944,7 @@ function om3Point(e){
 }
 function om3Click(e){
   if(!Om3.on||G!==GAMES.omok)return;
+  {const w=om3World(e),b=Om3.bowls&&Om3.bowls[0];if(w&&b&&myIdx()>=0&&Math.hypot(w[0]-b.position.x,w[1]-b.position.z)<BR+.06){bowlTap();return}}   // 내 통
   const p=om3Point(e);if(!p)return;
   pickCell(p[0],p[1]);
 }
@@ -933,8 +952,18 @@ function om3Click(e){
 G.preView=()=>{
   if(!V.o){OS=null;return}
   OS=buildS(V.o);OC.at=clock();
-  // 차례가 바뀌거나 돌이 놓이면 미리 골라 둔 칸은 처음으로
-  if(!PV||!PV.o||PV.t!==V.t||PV.st!==V.st||PV.o.cnt!==V.o.cnt||PV.o.ph!==V.o.ph)pend=null;
+  // 새 판·단계가 바뀌면 처음으로. 돌이 놓이면: 내가 놓았으면 든 돌을 내려놓음, 상대가 두어 미리 고른 자리가 막혔거나 금수가 되면 지움
+  const me=myIdx();
+  if(!PV||!PV.o||PV.st!==V.st||PV.o.ph!==V.o.ph||V.o.cnt<PV.o.cnt){pend=null;if(!PV||!PV.o||V.o.cnt<PV.o.cnt||V.st!=='play')held=false}
+  else if(PV.o.cnt!==V.o.cnt){
+    const L=(V.o.rec||[]).filter(x=>x[0]==='s').pop();
+    if(L&&L[1]===me){held=false;pend=null}
+    else if(pend){
+      if(OS.b[pend.r*OS.n+pend.c]){pend=null;say('미리 고른 자리에 상대가 두었습니다.')}
+      else if(OS.ph==='play'&&me>=0&&OS.co[me]){const j=judge(OS.b.slice(),OS.R,pend.r,pend.c,OS.co[me],0);if(j.bad){pend=null;say(`미리 고른 자리가 ${j.bad==='6'?'장목':j.bad==='44'?'4-4':'3-3'} 금수가 되어 지웠습니다.`)}}
+    }
+  }
+  if(V.st!=='play')pend=null;
 };
 G.postView=()=>{};
 G.overExtra=()=>{
@@ -942,12 +971,11 @@ G.overExtra=()=>{
   return `<div class="qd-rec"><div class="qd-rec-h"><b>기보</b><button type="button" class="btn btn-sub om-copy">기보 복사</button></div><pre>${esc(recordText(V))}</pre></div>`;
 };
 G.logCue=()=>false;
-/* 소리: 돌이 놓이면 '딱'(내려앉는 순간에 맞춤), 차례가 바뀌면 그 사람의 통에서 돌 집는 소리(내 차례는 크게) */
+/* 소리: 돌이 놓이면 '딱'(내려앉는 순간에 맞춤). 집는 소리는 내가 칸을 처음 고를 때와 내 통을 누를 때만 (차례가 바뀔 때는 없음) */
 G.cues=(v,pv)=>{
   if(!v.o||!pv.o)return;
   if(v.o.cnt>pv.o.cnt)sndPut(Om3.on?.15:0);
   else if(v.o.ph!==pv.o.ph&&v.st==='play')sfx('pick');
-  if(v.st==='play'&&(v.t!==pv.t||pv.st!=='play')&&!introWait()&&(v.o.ph==='play'||v.o.ph==='p1'||v.o.ph==='p2'))sndPick(v.t===myIdx()?.16:.07,.25);
 };
 G.hud=inGame=>{
   if(!elOm)return;
@@ -1004,7 +1032,7 @@ G.render3D=t=>{if(Om3.on)om3Render(t);else if(T.ok&&!$('#stage').classList.conta
 G.enter=()=>{
   $('#stage').classList.add('om');
   $('#btnPass').hidden=true;$('#btnGura').hidden=true;$('#numpick').hidden=true;
-  pend=null;
+  pend=null;held=false;
   if(elOm)fit();
 };
 G.leave=()=>{
