@@ -138,7 +138,7 @@ const INK=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide});
 function hull(geo,mesh,parent){const o=new THREE.Mesh(geo,INK);o.position.copy(mesh.position);o.rotation.copy(mesh.rotation);o.scale.copy(mesh.scale);parent.add(o);return o}
 
 const GY=-1.55;
-const scene=new THREE.Scene();scene.background=new THREE.Color(0xcfe6ee);   // 안개 없음 (아이콘은 또렷하게)
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xcfe6ee);scene.fog=new THREE.Fog(0xcfe6ee,30,60);   // 안개는 카메라 거리에 맞춰 탁자 뒤로 밀어 둠 (aim)
 const hemi=new THREE.HemisphereLight(0xd8ecff,0x8d8a5c,.6);scene.add(hemi);
 const dl=new THREE.DirectionalLight(0xfff1d8,.62);dl.position.set(-5,10,4);
 dl.castShadow=true;dl.shadow.mapSize.set(2048,2048);
@@ -147,7 +147,7 @@ scene.add(dl);
 
 /* 들판: 땅 · 풀 · 꽃 · 나무 · 바위 (게임 buildEnv의 들판과 같음) */
 const env=new THREE.Group();scene.add(env);   // 땅과 그 위 물건: 다리 길이에 따라 같이 내려감
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(8000,8000),toon({color:0x93c266,rim:0,cloud:true}));ground.rotation.x=-Math.PI/2;ground.position.y=GY;ground.receiveShadow=true;env.add(ground);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(600,600),toon({color:0x93c266,rim:0,cloud:true}));ground.rotation.x=-Math.PI/2;ground.position.y=GY;ground.receiveShadow=true;env.add(ground);
 const grassAll=new THREE.Group(),grassFew=new THREE.Group(),props=new THREE.Group();env.add(grassAll,grassFew,props);
 {
   const r=gfxRng(5),blade=new THREE.ConeGeometry(.05,.38,3,1).translate(0,.19,0);
@@ -225,7 +225,9 @@ function aim(c,aspect,fit){
   const y=S.yaw*Math.PI/180,p=S.pitch*Math.PI/180,tgt=new THREE.Vector3(0,-(.3+1.25*S.leg)*.4+S.lift*-.4,0);
   c.fov=S.fov;c.aspect=aspect;
   c.position.set(tgt.x+Math.sin(y)*Math.cos(p)*dist,tgt.y+Math.sin(p)*dist,tgt.z+Math.cos(y)*Math.cos(p)*dist);
-  c.lookAt(tgt);c.near=Math.max(.1,dist-40);c.far=dist+6000;c.updateProjectionMatrix();
+  c.lookAt(tgt);c.near=Math.max(.1,dist-40);c.far=dist+200;
+  // 게임처럼 탁자 바로 뒤에서부터 흐려지게: 멀리서 찍어도(망원) 탁자는 또렷함
+  scene.fog.near=dist+5;scene.fog.far=dist+30;c.updateProjectionMatrix();
 }
 function apply(){
   // 다리 길이: 게임은 1 (상판 아래 받침 높이 1.25). 늘리면 받침이 길어지고 땅이 그만큼 내려감

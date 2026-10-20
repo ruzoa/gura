@@ -583,7 +583,7 @@ body.kb .fan .card.cur{z-index:70!important}
       <div class="menu-row">
         <button type="button" class="mbtn" id="mKeys" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg><span>키 설정</span></button>
         <button type="button" class="mbtn giveup" id="btnGiveUp" role="menuitem" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg><span>항복</span></button>
-        <button type="button" class="mbtn" id="mLeave" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/></svg><span>방 나가기</span></button>
+        <button type="button" class="mbtn" id="mLeave" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/></svg><span>탁자 떠나기</span></button>
       </div>
     </div>
     <button class="fsbtn snd" id="btnSound" type="button" aria-label="소리 끄기" title="소리 끄기"></button>
@@ -634,9 +634,9 @@ body.kb .fan .card.cur{z-index:70!important}
       <div class="vhead"><button type="button" class="back" data-go="main" aria-label="뒤로">←</button><h2>상차리기</h2></div>
       <div class="field"><span class="fl">게임</span><div class="seg modes" id="segGame"></div></div>
       <div class="field"><span class="fl">게임 모드</span><div class="seg modes" id="segFast"></div></div>
-      <div class="field"><label for="inTitle">방 이름</label><input class="txt" id="inTitle" maxlength="20" autocomplete="off"></div>
-      <div class="field swfield"><div><span class="fl">공개 방</span><small>켜면 누구나 '랜덤 방 참여'와 방 목록으로 들어올 수 있습니다</small></div><button type="button" class="sw" id="swPub" role="switch" aria-checked="false" aria-label="공개 방"><i></i></button></div>
-      <p class="note">게임 종류, 인원, 카드, 시간, 규칙은 상을 차린 뒤 대기실의 <b>방 설정</b>에서도 바꿀 수 있습니다.</p>
+      <div class="field"><label for="inTitle">탁자 이름</label><input class="txt" id="inTitle" maxlength="20" autocomplete="off"></div>
+      <div class="field swfield"><div><span class="fl">공개 탁자</span><small>켜면 누구나 '아무 탁자나 앉기'와 탁자 목록으로 찾아올 수 있습니다</small></div><button type="button" class="sw" id="swPub" role="switch" aria-checked="false" aria-label="공개 탁자"><i></i></button></div>
+      <p class="note">게임 종류, 인원, 카드, 시간, 규칙은 상을 차린 뒤 대기실의 <b>탁자 설정</b>에서도 바꿀 수 있습니다.</p>
       <div class="row">
         <button class="btn btn-red wide" id="btnCreate" type="button">상차리기</button>
       </div>
@@ -644,17 +644,17 @@ body.kb .fan .card.cur{z-index:70!important}
     </div>
 
     <div class="view" data-view="join" hidden>
-      <div class="vhead"><button type="button" class="back" data-go="main" aria-label="뒤로">←</button><h2>찾아가기</h2><button type="button" class="refresh" id="btnRooms" aria-label="방 목록 새로고침" title="방 목록 새로고침"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button></div>
+      <div class="vhead"><button type="button" class="back" data-go="main" aria-label="뒤로">←</button><h2>찾아가기</h2><button type="button" class="refresh" id="btnRooms" aria-label="탁자 목록 새로고침" title="탁자 목록 새로고침"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button></div>
       <p class="nickline">닉네임 <b class="nickShow2">나</b></p>
-      <button class="btn btn-red wide" id="btnRandom" type="button">랜덤 방 참여</button>
+      <button class="btn btn-red wide" id="btnRandom" type="button">아무 탁자나 앉기</button>
       <p class="note" id="randNote"></p>
       <div class="roomlist" id="roomList" aria-live="polite"></div>
-      <div class="orline"><span>코드로 참여</span></div>
+      <div class="orline"><span>번호로 찾아가기</span></div>
       <div class="joinrow">
-        <input class="txt code" id="inCode" maxlength="4" placeholder="방 코드" autocomplete="off" aria-label="방 코드">
+        <input class="txt code" id="inCode" maxlength="4" placeholder="탁자 번호" autocomplete="off" aria-label="탁자 번호">
         <button class="btn btn-play" id="btnJoinCode" type="button">참가</button>
       </div>
-      <p class="note" id="netNote">비공개 방은 친구에게 받은 4자리 코드로 들어갑니다.</p>
+      <p class="note" id="netNote">비공개 탁자는 친구에게 받은 4자리 번호로 찾아갑니다.</p>
     </div>
 
     <div class="view" data-view="settings" hidden>
@@ -743,7 +743,7 @@ const BOT_LV=['쉬움','보통','어려움'];
 /* 방 설정 항목: 대기실의 '방 설정'에서 −/+ 버튼으로 조절. 모든 게임 공통 + 게임별(G.roomSet) */
 const COMMON_SET=[
   {k:'max',label:'최대 인원',unit:'명',lo:2,hi:8,step:1,desc:'현재 인원보다 적게 줄일 수 없습니다'},
-  {k:'spec',label:'관전 인원',unit:'명',lo:0,hi:8,step:1,desc:'게임 중이거나 방이 가득 차면 관전으로 들어옵니다'}];
+  {k:'spec',label:'관전 인원',unit:'명',lo:0,hi:8,step:1,desc:'게임 중이거나 탁자가 가득 차면 관전으로 들어옵니다'}];
 const roomSetOf=g=>[...COMMON_SET.map(d=>d.k==='max'&&g.maxHi?{...d,hi:g.maxHi}:d),...g.roomSet];   // g.maxHi: 그 게임의 최대 인원 (쿼리도 4명)
 const cfgKey=id=>id==='gura'?'gura-roomcfg':'gura-roomcfg-'+id;
 /* 게임별로 저장해 둔 방 설정 (없으면 기본값). 범위 밖이면 가까운 값으로 */
@@ -1068,7 +1068,7 @@ function hostPeerHandlers(peer){
 }
 function restoreHost(sv,tries){
   const code=sv.H.code;
-  setNote('#resumeNote',`${String(code).toUpperCase()} 방을 다시 여는 중입니다…`);
+  setNote('#resumeNote',`${String(code).toUpperCase()} 탁자를 다시 차리는 중입니다…`);
   const peer=new Peer(PEER_PREFIX+code);let ok=false;
   peer.on('open',()=>{
     ok=true;net.peer=peer;mode='host';
@@ -1090,21 +1090,21 @@ function restoreHost(sv,tries){
     try{peer.destroy()}catch(_){}
     // 방금 끊긴 이전 연결이 아직 코드를 잡고 있으면 잠시 뒤 다시 시도
     if((e.type==='unavailable-id'||e.type==='network'||e.type==='server-error'||e.type==='socket-error')&&tries<20){setTimeout(()=>{if(mode==='lobby')restoreHost(sv,tries+1)},2000);return}
-    unstore('gura-host');setNote('#resumeNote','이전 방을 다시 열지 못했습니다.',true);
+    unstore('gura-host');setNote('#resumeNote','이전 탁자를 다시 차리지 못했습니다.',true);
   });
 }
 let createTries=0;
 function createRoom(){
   if(noPeerLib()){setNote('#createNote','온라인 연결 라이브러리를 불러오지 못했습니다. 새로고침이 필요합니다.',true);return}
   saveNick();
-  setNote('#createNote','방을 여는 중입니다…');
+  setNote('#createNote','상을 차리는 중입니다…');
   $('#btnCreate').disabled=true;
   const code=genCode();
   const peer=new Peer(PEER_PREFIX+code);
   let ok=false;
   peer.on('open',()=>{
     ok=true;createTries=0;net.peer=peer;mode='host';
-    hostNew(true,code,($('#inTitle').value.trim()||myNick()+'의 방').slice(0,20));
+    hostNew(true,code,($('#inTitle').value.trim()||myNick()+'의 탁자').slice(0,20));
     enterRoom();mark();setNote('#createNote','');$('#btnCreate').disabled=false;
   });
   hostPeerHandlers(peer);
@@ -1112,7 +1112,7 @@ function createRoom(){
     if(!ok){
       peer.destroy();$('#btnCreate').disabled=false;
       if(e.type==='unavailable-id'&&createTries++<3){createRoom();return}
-      setNote('#createNote','방을 열지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주십시오.',true);
+      setNote('#createNote','상을 차리지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주십시오.',true);
     }
   });
 }
@@ -1126,7 +1126,7 @@ function wireGuestConn(conn){
 function joinRoom(code){
   if(noPeerLib()){setNote('#netNote','온라인 연결 라이브러리를 불러오지 못했습니다. 새로고침이 필요합니다.',true);return}
   saveNick();
-  setNote('#netNote',`${code.toUpperCase()} 방에 연결하는 중입니다…`);
+  setNote('#netNote',`${code.toUpperCase()} 탁자를 찾아가는 중입니다…`);
   $('#btnJoinCode').disabled=true;
   const peer=new Peer();net.peer=peer;
   let opened=false,dead=false;
@@ -1145,7 +1145,7 @@ function joinRoom(code){
   peer.on('disconnected',()=>{if(net.peer===peer&&!peer.destroyed&&mode==='guest'){try{peer.reconnect()}catch(e){}}});
   peer.on('error',e=>{
     if(!opened){
-      if(e.type==='peer-unavailable')fail(`${code.toUpperCase()} 방을 찾지 못했습니다. 코드를 다시 확인해 주십시오.`);
+      if(e.type==='peer-unavailable')fail(`${code.toUpperCase()} 탁자를 찾지 못했습니다. 번호를 다시 확인해 주십시오.`);
       else fail('연결하지 못했습니다. 인터넷 연결을 확인해 주십시오.');
     }else if(mode==='guest'){if(net.retry){clearTimeout(net.retry.timer);net.retry.timer=setTimeout(retryOnce,1500)}else guestReconnect()}
   });
@@ -1201,7 +1201,7 @@ function scanRooms(cb){
   peer.on('open',()=>{
     for(let k=0;k<PUB_SLOTS;k++){
       const c=peer.connect(PUB_PREFIX+k,{reliable:true});
-      c.on('data',d=>{if(d&&d.t==='room'&&/^[a-z0-9]{4}$/.test(d.code||'')){rooms.set(d.code,{code:d.code,title:cleanNick(d.title||'')||'공개 방',host:d.host?cleanNick(d.host):'',n:+d.n||0,max:+d.max||0,ph:String(d.ph||''),fast:+d.fast?1:0,g:GAMES[d.g]?d.g:'gura',maxn:+d.maxn||14,jk:+d.jk||0,wl:+d.wl||0,sp:+d.sp||0,spm:d.spm==null?8:+d.spm||0})}});
+      c.on('data',d=>{if(d&&d.t==='room'&&/^[a-z0-9]{4}$/.test(d.code||'')){rooms.set(d.code,{code:d.code,title:cleanNick(d.title||'')||'공개 탁자',host:d.host?cleanNick(d.host):'',n:+d.n||0,max:+d.max||0,ph:String(d.ph||''),fast:+d.fast?1:0,g:GAMES[d.g]?d.g:'gura',maxn:+d.maxn||14,jk:+d.jk||0,wl:+d.wl||0,sp:+d.sp||0,spm:d.spm==null?8:+d.spm||0})}});
     }
     setTimeout(finish,3500);
   });
@@ -1224,9 +1224,9 @@ function renderRooms(list,loading){
   const open=list.filter(roomOpen).sort((a,b)=>(b.n-a.n)||a.title.localeCompare(b.title));
   const rest=list.filter(x=>!roomOpen(x)).sort((a,b)=>(a.ph==='wait')-(b.ph==='wait')||a.title.localeCompare(b.title));
   let h='';
-  h+=`<div class="rl-h">들어갈 수 있는 방 <b>${open.length}</b></div>`;
-  h+=open.length?open.map(roomCard).join(''):'<p class="rl-empty">지금 들어갈 수 있는 공개 방이 없습니다. <button type="button" class="linkbtn" data-go="create" data-pub="1">공개 방으로 상차리기</button></p>';
-  if(rest.length)h+=`<div class="rl-h">게임 중 · 가득 찬 방 <b>${rest.length}</b></div>`+rest.map(roomCard).join('');
+  h+=`<div class="rl-h">들어갈 수 있는 탁자 <b>${open.length}</b></div>`;
+  h+=open.length?open.map(roomCard).join(''):'<p class="rl-empty">지금 앉을 수 있는 공개 탁자가 없습니다. <button type="button" class="linkbtn" data-go="create" data-pub="1">공개 탁자로 상차리기</button></p>';
+  if(rest.length)h+=`<div class="rl-h">게임 중 · 가득 찬 탁자 <b>${rest.length}</b></div>`+rest.map(roomCard).join('');
   box.innerHTML=h;box.classList.toggle('loading',!!loading);
 }
 function refreshRooms(){
@@ -1238,21 +1238,21 @@ $('#btnRooms').addEventListener('click',refreshRooms);
 $('#roomList').addEventListener('click',e=>{
   const b=e.target.closest('.room[data-code]');if(!b||b.disabled||mode!=='lobby'||net.peer)return;
   const x=roomCache.find(r=>r.code===b.dataset.code);
-  setNote('#randNote',`${x?x.title:'방'}에 ${x&&!roomOpen(x)?'관전으로 ':''}들어가는 중입니다…`);
+  setNote('#randNote',`${x?x.title:'탁자'}에 ${x&&!roomOpen(x)?'관전으로 ':''}찾아가는 중입니다…`);
   joinRoom(b.dataset.code);
 });
 function randomJoin(){
   if(noPeerLib()){setNote('#randNote','온라인 연결 라이브러리를 불러오지 못했습니다. 새로고침이 필요합니다.',true);return}
   if(net.peer||mode!=='lobby')return;
   saveNick();
-  const btn=$('#btnRandom');btn.disabled=true;setNote('#randNote','공개 방을 찾는 중입니다…');
+  const btn=$('#btnRandom');btn.disabled=true;setNote('#randNote','공개 탁자를 찾는 중입니다…');
   scanRooms(list=>{
     btn.disabled=false;renderRooms(list,false);
     const ok=(list||[]).filter(roomOpen);
-    if(!ok.length){setNote('#randNote','지금 들어갈 수 있는 공개 방이 없습니다. 공개 방을 직접 만들어 보십시오.',true);return}
+    if(!ok.length){setNote('#randNote','지금 앉을 수 있는 공개 탁자가 없습니다. 공개 탁자로 상을 차려 보십시오.',true);return}
     // 사람이 더 많은 방을 조금 더 우선 (빨리 시작할 수 있게)
     ok.sort((a,b)=>(b.n-a.n)||(Math.random()-.5));
-    const pick=ok[0];setNote('#randNote',`${pick.title} 방에 들어가는 중입니다…`);
+    const pick=ok[0];setNote('#randNote',`${pick.title}에 찾아가는 중입니다…`);
     joinRoom(pick.code);
   });
 }
@@ -1270,13 +1270,13 @@ function becomeHost(why){
   try{if(net.conn)net.conn.close()}catch(e){}net.conn=null;
   try{if(net.peer)net.peer.destroy()}catch(e){}net.peer=null;
   mode='promoting';
-  showPanel('<h2>새 방장이 되었습니다</h2><p>방을 이어서 여는 중입니다…</p>','promote');
+  showPanel('<h2>새 방장이 되었습니다</h2><p>탁자를 이어서 차리는 중입니다…</p>','promote');
   const tryOpen=n=>{
     const peer=new Peer(PEER_PREFIX+code);let ok=false;
     peer.on('open',()=>{
       ok=true;net.peer=peer;mode='host';unstore('gura-guest');
       const cfg0={...cfgFor((last.cfg&&last.cfg.game)||'gura'),...(last.cfg||{})};
-      H={online:true,code,title:last.title||myName+'의 방',cfg:cfg0,phase:'wait',members:[{name:myName,bot:false,conn:null,cid:CID,host:true}],specs:[],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
+      H={online:true,code,title:last.title||myName+'의 탁자',cfg:cfg0,phase:'wait',members:[{name:myName,bot:false,conn:null,cid:CID,host:true}],specs:[],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
       // 봇은 그대로 남기고, 사람들은 다시 연결되면 자동으로 자리에 들어옴
       (last.ps||[]).forEach((p,i)=>{if(p.b&&!p.f&&H.members.length<H.cfg.max)H.members.push({name:String(p.n).replace(/ \(봇\)$/,''),bot:true,conn:null,host:false,lv:p.lv??1})});
       addLog(why==='left'?`방장이 나가서 ${myName} 님이 새 방장이 되었습니다.`:`방장과 연결이 끊겨 ${myName} 님이 새 방장이 되었습니다.`,'sys');
@@ -1287,7 +1287,7 @@ function becomeHost(why){
     peer.on('error',e=>{
       if(ok)return;try{peer.destroy()}catch(_){}
       if(n<15){setTimeout(()=>{if(mode==='promoting')tryOpen(n+1)},1500);return}
-      mode='closed';showPanel('<h2>방을 이어서 열지 못했습니다</h2><p>인터넷 연결을 확인해 주십시오.</p><div class="row"><button class="btn btn-play" type="button" data-act="leave" data-auto>로비로</button></div>','gone');
+      mode='closed';showPanel('<h2>탁자를 이어서 차리지 못했습니다</h2><p>인터넷 연결을 확인해 주십시오.</p><div class="row"><button class="btn btn-play" type="button" data-act="leave" data-auto>로비로</button></div>','gone');
     });
   };
   tryOpen(0);
@@ -1296,7 +1296,7 @@ function guestKicked(){
   if(mode!=='guest')return;
   mode='closed';unstore('gura-guest');
   if(net.retry){clearTimeout(net.retry.timer);net.retry=null}
-  showPanel('<h2>방에서 나왔습니다</h2><p>방장이 이 방에서 내보냈습니다. 이 방에는 다시 들어갈 수 없습니다.</p><div class="row"><button class="btn btn-play" type="button" data-act="leave" data-auto>로비로</button></div>','kicked');
+  showPanel('<h2>탁자에서 일어났습니다</h2><p>방장이 이 탁자에서 내보냈습니다. 이 탁자에는 다시 앉을 수 없습니다.</p><div class="row"><button class="btn btn-play" type="button" data-act="leave" data-auto>로비로</button></div>','kicked');
 }
 function guestFull(){
   if(mode!=='guest')return;
@@ -1737,7 +1737,7 @@ function renderSpecBar(){
 function roomInfoHTML(){
   if(!V||mode==='lobby')return '';
   const c=V.cfg||cfg;
-  return (V.code?`<span class="chip code">방 코드 <b>${esc(shownCode(V.code))}</b></span>`:'<span class="chip"><b>연습 모드</b></span>')+
+  return (V.code?`<span class="chip code">탁자 번호 <b>${esc(shownCode(V.code))}</b></span>`:'<span class="chip"><b>연습 모드</b></span>')+
     `<span class="chip"><b>${esc(G.name)}</b></span>${G.noFast?'':`<span class="chip"><b>${c.fast?'빠른 모드':'클래식'}</b></span>`}<span class="chip">최대 <b>${+c.max}명</b></span><span class="chip">관전 <b>${+(c.spec??4)}명</b></span>${V.code?`<span class="chip"><b>${c.pub?'공개':'비공개'}</b></span>`:''}${G.cfgChips(c)}`;
 }
 function renderHUD(){
@@ -1895,8 +1895,8 @@ function renderPanel(){
     const link=V.code?roomLink(String(V.code)):'';
     const pubOn=!!V.cfg.pub;
     // 방장: 공개(왼쪽)/비공개(오른쪽) 슬라이드 스위치, 참가자: 표시만
-    const pubCtl=isHost?`<div class="pubsw"><span class="${pubOn?'on':''}">공개 방</span><button type="button" class="sw${pubOn?' on':''}" role="switch" aria-checked="${pubOn}" aria-label="공개 방" data-act="pub"><i></i></button></div>`
-      :`<span class="pubtag${pubOn?' on':''}">${pubOn?'공개 방':'비공개 방'}</span>`;
+    const pubCtl=isHost?`<div class="pubsw"><span class="${pubOn?'on':''}">공개 탁자</span><button type="button" class="sw${pubOn?' on':''}" role="switch" aria-checked="${pubOn}" aria-label="공개 탁자" data-act="pub"><i></i></button></div>`
+      :`<span class="pubtag${pubOn?' on':''}">${pubOn?'공개 탁자':'비공개 탁자'}</span>`;
     // 방장: 인원 수 다시 정하기 (지금 들어와 있는 사람보다 적게는 못 줄임)
     if(isHost&&roomSetOpen){
       const c=V.cfg,minMax=Math.max(2,V.ps.length);
@@ -1909,7 +1909,7 @@ function renderPanel(){
       const rows=roomSetOf(G).map(stepRow).join('');
       // 게임이 규칙 칸을 직접 그릴 수 있음 (G.settingsHTML: 대부호의 룰 레버). 없으면 −/+ 칸과 스위치를 차례로
       const body=G.settingsHTML?G.settingsHTML(c,{stepRow,common:COMMON_SET.map(d=>roomSetOf(G).find(x=>x.k===d.k))}):`<div class="rs-grid">${rows}</div>${rules?`<div class="rulehead">게임 규칙</div><div class="rs-grid tgs">${rules}</div>`:''}`;
-      showPanel(`<div class="vhead"><button type="button" class="back" data-act="setclose" aria-label="대기실로">←</button><h2>방 설정</h2></div>
+      showPanel(`<div class="vhead"><button type="button" class="back" data-act="setclose" aria-label="대기실로">←</button><h2>탁자 설정</h2></div>
         ${gpick}${G.noFast?'':`<div class="rs-seg"><div class="rs-h"><b>게임 모드</b><small>${G.modeDesc[c.fast?1:0]}</small></div><div class="segrow" role="radiogroup" aria-label="게임 모드">${[0,1].map(v=>`<button class="btn ${(c.fast?1:0)===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${(c.fast?1:0)===v}" data-act="mode${v}">${OPT_LABEL.fast[v]}</button>`).join('')}</div></div>`}
         ${body}${cardInfo}
         <div class="row"><button class="btn btn-red" type="button" data-act="setclose" data-auto>완료</button></div>`,'roomset');
@@ -1917,8 +1917,8 @@ function renderPanel(){
     }
     const c=V.cfg;
     const sum=`<p class="cfgsum"><span class="gametag">${esc(G.short)}</span>${G.noFast?'':`<b>${OPT_LABEL.fast[c.fast?1:0]}</b> · `}최대 ${+c.max}명 · 관전 ${+(c.spec??4)}명 · ${G.cfgSum(c)}</p>`;
-    showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="방 나가기" title="방 나가기">←</button><h2>${esc(V.title||'대기실')}</h2>${isHost?'<button type="button" class="btn btn-sub setbtn" data-act="setopen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>방 설정</span></button>':''}</div>
-      <div class="coderow"><div><span class="label">방 코드</span><div class="codewrap"><div class="bigcode">${esc(shownCode(V.code))}</div><button type="button" class="eyebtn" data-act="hidecode" aria-pressed="${hideCode}" aria-label="${hideCode?'방 코드 보이기':'방 코드 가리기'}" title="${hideCode?'방 코드·링크 보이기':'방 코드·링크 가리기'}">${hideCode?EYE_OFF:EYE_ON}</button></div></div>${V.code?pubCtl:''}</div>
+    showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="탁자 떠나기" title="탁자 떠나기">←</button><h2>${esc(V.title||'대기실')}</h2>${isHost?'<button type="button" class="btn btn-sub setbtn" data-act="setopen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>탁자 설정</span></button>':''}</div>
+      <div class="coderow"><div><span class="label">탁자 번호</span><div class="codewrap"><div class="bigcode">${esc(shownCode(V.code))}</div><button type="button" class="eyebtn" data-act="hidecode" aria-pressed="${hideCode}" aria-label="${hideCode?'탁자 번호 보이기':'탁자 번호 가리기'}" title="${hideCode?'탁자 번호·링크 보이기':'탁자 번호·링크 가리기'}">${hideCode?EYE_OFF:EYE_ON}</button></div></div>${V.code?pubCtl:''}</div>
 
       ${isHost&&link?`<div class="linkbox"><input class="txt" id="linkTxt" ${hideCode?'type="password"':''} readonly value="${esc(link)}" aria-label="초대 링크"><button class="btn btn-sub" type="button" data-act="copy">링크 복사</button></div><p>이 링크를 보내면 코드가 자동으로 입력됩니다.</p>`:''}
       <ul class="slots">${li}</ul>${specHtml}${sum}${G.waitExtra?G.waitExtra(isHost):''}${foot}`,'wait');
@@ -1926,7 +1926,7 @@ function renderPanel(){
   }
   if(V.st==='over'){
     const list=V.ps.map((p,i)=>({...p,i})).sort((a,b)=>a.f-b.f);
-    showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="방 나가기" title="방 나가기">←</button><h2>게임 끝</h2></div><ol class="ranks">${list.map(p=>`<li class="${p.i===me?'me':''}" data-i="${p.i}"><span class="r">${+p.f}위</span><span>${esc(p.n)}</span>${G.overRank?G.overRank(p):(()=>{const t=G.rankTitle(p.f,V.ps.length);return p.sr||t?`<span class="left">${p.sr?(p.sr===2?'시간 초과':'항복'):''}${p.sr&&t?' · ':''}${t}</span>`:''})()}${V.cfg&&V.cfg.fast&&p.c>0?`<span class="left">남은 카드 ${+p.c}장</span>`:''}</li>`).join('')}</ol>${G.overExtra?G.overExtra():''}
+    showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="탁자 떠나기" title="탁자 떠나기">←</button><h2>게임 끝</h2></div><ol class="ranks">${list.map(p=>`<li class="${p.i===me?'me':''}" data-i="${p.i}"><span class="r">${+p.f}위</span><span>${esc(p.n)}</span>${G.overRank?G.overRank(p):(()=>{const t=G.rankTitle(p.f,V.ps.length);return p.sr||t?`<span class="left">${p.sr?(p.sr===2?'시간 초과':'항복'):''}${p.sr&&t?' · ':''}${t}</span>`:''})()}${V.cfg&&V.cfg.fast&&p.c>0?`<span class="left">남은 카드 ${+p.c}장</span>`:''}</li>`).join('')}</ol>${G.overExtra?G.overExtra():''}
       ${me>=0?'<div class="row"><button class="btn btn-sub" type="button" data-act="emo:gg">GG 보내기</button></div>':''}
       ${V.spec?(+V.mc<+V.cfg.max?'<div class="row"><button class="btn btn-red" type="button" data-act="join" data-auto>다음 판 참가하기</button></div>':'<p>빈 자리가 없어 계속 관전합니다.</p>'):V.jn?'<p>다음 판에 참가합니다.</p>':''}
       ${isHost?`<div class="row"><button class="btn btn-sub" type="button" data-act="again">대기실</button><button class="btn btn-red" type="button" data-act="restart" data-auto>바로 시작</button></div>`:'<p>방장이 다음 판을 시작하거나 대기실을 열 때까지 기다립니다.</p>'}`,'over');
@@ -1940,7 +1940,7 @@ $('#panel').addEventListener('click',e=>{
   if(a==='hidecode'){hideCode=!hideCode;store('gura-hidecode',hideCode?'1':'0');lastPanelHtml='';renderPanel();const f=$('#panel [data-act="hidecode"]');if(f)f.focus();return}
   if(a==='leave'){
     // 방장이 나가면 방이 없어지므로, 다른 사람이 있으면 한 번 확인
-    if(b.classList.contains('back')&&mode==='host'&&H&&H.online&&H.members.some(m=>!m.host&&!m.bot)&&!confirm('방장이 나가면 방이 닫힙니다. 나가시겠습니까?'))return;
+    if(b.classList.contains('back')&&mode==='host'&&H&&H.online&&H.members.some(m=>!m.host&&!m.bot)&&!confirm('방장이 떠나면 탁자가 정리됩니다. 떠나시겠습니까?'))return;
     leaveRoom();return}
   if(a==='emopad'){$('#emoPad').hidden?openEmoPad(b):closeEmoPad();return}
   if(a.startsWith('emo:')){sendEmote(a.slice(4));return}
@@ -1948,11 +1948,11 @@ $('#panel').addEventListener('click',e=>{
   if(a==='tospec'){sendAct({t:'spec'});return}
   if(a.startsWith('kicksp:')){
     const k=+a.slice(7),nm=b.dataset.name||'',sp=H&&H.specs?H.specs[k]:null;
-    if(mode==='host'&&sp&&sp.name===nm&&confirm(`${nm}님을 방에서 내보낼까요?\n내보낸 사람은 이 방에 다시 들어올 수 없습니다.`))hostKickSpec(k);
+    if(mode==='host'&&sp&&sp.name===nm&&confirm(`${nm}님을 탁자에서 내보낼까요?\n내보낸 사람은 이 탁자에 다시 앉을 수 없습니다.`))hostKickSpec(k);
     return}
   if(a.startsWith('kick:')){
     const i=+a.slice(5),nm=b.dataset.name||'';
-    if(mode==='host'&&H&&H.phase==='wait'&&H.members[i]&&!H.members[i].host&&H.members[i].name===nm&&(H.members[i].bot||confirm(`${nm}님을 방에서 내보낼까요?\n내보낸 사람은 이 방에 다시 들어올 수 없습니다.`)))hostKick(i);
+    if(mode==='host'&&H&&H.phase==='wait'&&H.members[i]&&!H.members[i].host&&H.members[i].name===nm&&(H.members[i].bot||confirm(`${nm}님을 탁자에서 내보낼까요?\n내보낸 사람은 이 탁자에 다시 앉을 수 없습니다.`)))hostKick(i);
     return}
   if(a.startsWith('first:')){
     const i=+a.slice(6);
@@ -2189,7 +2189,7 @@ $('#rulesOv').addEventListener('click',e=>{if(e.target===e.currentTarget)closeRu
 document.addEventListener('keydown',e=>{if(!$('#rulesOv').hidden){if(e.key==='Escape'){e.preventDefault();closeRules()}e.stopImmediatePropagation()}},true);   // 창이 열려 있는 동안 게임 단축키 막기
 /* 테이블 설정 메뉴 (진행 기록 버튼 왼쪽) */
 let leaveArmed=false,leaveTimer=null;
-function disarmLeave(){leaveArmed=false;clearTimeout(leaveTimer);const b=$('#mLeave');b.classList.remove('arm');b.querySelector('span').textContent='방 나가기'}
+function disarmLeave(){leaveArmed=false;clearTimeout(leaveTimer);const b=$('#mLeave');b.classList.remove('arm');b.querySelector('span').textContent='탁자 떠나기'}
 function closeMenu(){$('#menu').hidden=true;$('#btnMenu').setAttribute('aria-expanded','false');disarmLeave()}
 $('#btnMenu').addEventListener('click',e=>{
   e.stopPropagation();const m=$('#menu');
@@ -2213,7 +2213,7 @@ $('#btnGiveUp').addEventListener('click',()=>{
   disarmGiveUp();closeMenu();sendAct({t:'surrender'});
 });
 $('#btnCreate').addEventListener('click',createRoom);
-$('#btnJoinCode').addEventListener('click',()=>{const c=$('#inCode').value.trim().toLowerCase();if(/^[a-z0-9]{4}$/.test(c))joinRoom(c);else setNote('#netNote','방 코드는 영문과 숫자 4자리입니다.',true)});
+$('#btnJoinCode').addEventListener('click',()=>{const c=$('#inCode').value.trim().toLowerCase();if(/^[a-z0-9]{4}$/.test(c))joinRoom(c);else setNote('#netNote','탁자 번호는 영문과 숫자 4자리입니다.',true)});
 $('#inCode').addEventListener('keydown',e=>{if(e.key==='Enter')$('#btnJoinCode').click()});
 $('#btnRandom').addEventListener('click',randomJoin);
 
@@ -2243,7 +2243,7 @@ syncFastField();['click','keydown'].forEach(ev=>$('#segGame').addEventListener(e
 function setPubSw(v){cfg.pub=v?1:0;const b=$('#swPub');b.classList.toggle('on',!!v);b.setAttribute('aria-checked',!!v)}
 $('#swPub').addEventListener('click',()=>{setPubSw(!cfg.pub);sfx('tick')});/* 대기 시간·제한 시간 등은 대기실 방 설정에서 조절 (범위 밖이면 가까운 값으로) */
 $('#inNick').value=store('gura-nick')||'나';
-const invited=(()=>{const q=new URLSearchParams(location.search).get('room');if(q&&/^[a-z0-9]{4}$/i.test(q)){$('#inCode').value=q.toUpperCase();setNote('#netNote','초대받은 방입니다. 참가를 누르면 들어갑니다.');return true}return false})();
+const invited=(()=>{const q=new URLSearchParams(location.search).get('room');if(q&&/^[a-z0-9]{4}$/i.test(q)){$('#inCode').value=q.toUpperCase();setNote('#netNote','초대받은 탁자입니다. 참가를 누르면 앉습니다.');return true}return false})();
 
 /* 로비 Enter 흐름: 닉네임 → (초대 코드가 있으면 참가, 없으면 코드 칸), 방 이름 → 방 만들기 */
 /* 로비 닉네임: 수정 버튼 → 입력칸, Enter·저장으로 확정, Esc로 취소 */

@@ -61,7 +61,7 @@ G.roomSub=x=>`자음 ${x.maxn||14}자 · ★${x.jk}`;
 G.pubExtra=c=>({maxn:c.maxn||14});
 G.cardInfo=(c,nowN)=>{
   const total=(+c.maxn||14)*4+(+c.jokers||0),perNow=Math.floor(total/nowN),perFull=Math.floor(total/Math.max(2,+c.max));
-  return `<p class="cardinfo${perFull<5?' warn':''}">카드 ${total}장 · 지금 ${nowN}명이면 1인당 약 ${perNow}장${+c.max>nowN?` · ${+c.max}명이 다 차면 약 ${perFull}장`:''}${perFull<5?'<br>1인당 5장 미만이라 판이 너무 빨리 끝날 수 있습니다. 자음 수나 별카드를 늘리는 것을 추천합니다.':''}${+c.max>=7?'<br>7~8명 방은 제한 시간 20초, 대기 시간 2초 정도로 짧게 하면 덜 지루합니다.':''}</p>`;
+  return `<p class="cardinfo${perFull<5?' warn':''}">카드 ${total}장 · 지금 ${nowN}명이면 1인당 약 ${perNow}장${+c.max>nowN?` · ${+c.max}명이 다 차면 약 ${perFull}장`:''}${perFull<5?'<br>1인당 5장 미만이라 판이 너무 빨리 끝날 수 있습니다. 자음 수나 별카드를 늘리는 것을 추천합니다.':''}${+c.max>=7?'<br>7~8명 탁자는 제한 시간 20초, 대기 시간 2초 정도로 짧게 하면 덜 지루합니다.':''}</p>`;
 };
 G.rankTitle=()=>'';
 G.finLabel=()=>'탈출';
