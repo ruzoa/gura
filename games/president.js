@@ -1005,8 +1005,13 @@ const BG={
     try{t.src.stop(now+.2)}catch(e){}
   },
   // 11 백: 지금 곡을 그 자리에서 거꾸로(또는 다시 앞으로) 틀고 똑딱 소리를 켜고 끔
+  // 11 백 시작·끝 효과음: 시작은 테이프를 거꾸로 감는 듯 내려가는 '휘릭', 끝은 반대로 올라가는 '휘릭'
+  b11Sfx(on){
+    if(on){hiss(.32,{freq:3200,sweep:500,q:1.1,vol:.16});tone(880,.3,{type:'triangle',vol:.09,slide:220});tone(1760,.08,{type:'sine',vol:.05,at:.26})}
+    else{hiss(.3,{freq:500,sweep:3200,q:1.1,vol:.14});tone(220,.28,{type:'triangle',vol:.09,slide:880});tone(1320,.07,{type:'sine',vol:.05,at:.25})}
+  },
   setB11(on){
-    this.rv=on;if(!this.cur)return;
+    this.rv=on;try{this.b11Sfx(on)}catch(e){}if(!this.cur)return;
     const c=SND.ctx,old=this.cur,now=c.currentTime+.02,TS=.12,fe=this.fe(this.pos(now+TS),old.r);
     old.src.playbackRate.setValueAtTime(1,now);old.src.playbackRate.linearRampToValueAtTime(.55,now+TS);   // 테이프가 방향을 바꾸듯 살짝 처짐
     old.g.gain.setValueAtTime(1,now);old.g.gain.linearRampToValueAtTime(0,now+TS);old.src.stop(now+TS+.03);
