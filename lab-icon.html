@@ -77,6 +77,8 @@ input[type=range]{flex:1;min-width:0;height:34px;accent-color:var(--acc)}
   <div class="row"><label>나무·바위</label><div class="chips" id="propChips"></div></div>
   <div class="row"><label>그림자</label><div class="chips" id="shadowChips"></div></div>
   <div class="row"><label>구름 그림자</label><div class="chips" id="cloudChips"></div></div>
+  <div class="row"><label>하늘</label><div class="chips" id="skyChips"></div></div>
+  <div class="row"><label>하늘 구름</label><div class="chips" id="cloudsChips"></div></div>
   <div class="row"><label>펠트 매트</label><div class="chips" id="feltChips"></div></div>
   <div class="row"><label>안전 영역</label><div class="chips" id="safeChips"></div></div>
   <p class="note">안개 거리는 탁자 뒤로 얼마나 떨어진 곳부터 흐려질지입니다(게임은 5). 오른쪽 끝은 안개 없음입니다. 다리 길이 1, 윤곽선 1이 게임 속 탁자와 같습니다. 게임 탁자는 다리가 짧아서 위에서 보면 받침이 가려지므로, 아이콘에서는 조금 길게 하는 것을 추천합니다.<br>점선 원은 안드로이드가 아이콘을 원으로 자를 때 남는 부분입니다. 탁자가 이 안에 들어오면 잘리지 않습니다.</p>
@@ -100,7 +102,7 @@ input[type=range]{flex:1;min-width:0;height:34px;accent-color:var(--acc)}
 const $=s=>document.querySelector(s);
 if(!window.THREE){$('#err').textContent='3D 라이브러리를 불러오지 못했습니다. 새로고침해 주세요.';return}
 const KEY='gura-lab-icon';
-const DEFAULT={yaw:-24,pitch:12,zoom:1.25,lift:0,fov:30,ol:1.6,leg:2.2,fog:5,grass:'few',props:'off',shadow:'on',cloud:'off',felt:'on',safe:'on'};
+const DEFAULT={yaw:-24,pitch:12,zoom:1.25,lift:0,fov:30,ol:1.6,leg:2.2,fog:5,sky:'real',clouds:'on',grass:'few',props:'off',shadow:'on',cloud:'off',felt:'on',safe:'on'};
 let S=Object.assign({},DEFAULT);
 try{const j=JSON.parse(localStorage.getItem(KEY)||'null');if(j)S=Object.assign(S,j)}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
@@ -146,9 +148,35 @@ dl.castShadow=true;dl.shadow.mapSize.set(2048,2048);
 Object.assign(dl.shadow.camera,{left:-9,right:9,top:9,bottom:-9,near:1,far:30});dl.shadow.bias=-.0006;dl.shadow.normalBias=.02;
 scene.add(dl);
 
+/* 하늘: 위로 갈수록 짙은 파랑 → 지평선은 옅은 하늘색, 멀리 흰 구름. '게임 그대로'는 단색 하늘 */
+const GAME_SKY=0xcfe6ee,SKY_HOR=new THREE.Color(0xcde3f0),SKY_MID=new THREE.Color(0x8cbde9),SKY_TOP=new THREE.Color(0x4a8bd6);
+const skyG=new THREE.Group();scene.add(skyG);
+const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
+  uniforms:{hor:{value:SKY_HOR},mid:{value:SKY_MID},top:{value:SKY_TOP}},
+  vertexShader:'varying vec3 vD;void main(){vD=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+  fragmentShader:'uniform vec3 hor,mid,top;varying vec3 vD;void main(){float h=vD.y;vec3 c=mix(hor,mid,smoothstep(0.0,0.045,h));c=mix(c,top,smoothstep(0.03,0.4,h));gl_FragColor=vec4(c,1.0);}'});
+const skyBall=new THREE.Mesh(new THREE.SphereGeometry(500,32,16),skyMat);skyBall.renderOrder=-1;skyG.add(skyBall);
+const cloudG=new THREE.Group();skyG.add(cloudG);
+{
+  const r=gfxRng(21);
+  const cloudTex=seed=>canvasTex(512,256,(g,w,h)=>{const q=gfxRng(seed);
+    const puffs=[];for(let k=0;k<9;k++){const x=w*(.22+q()*.56),rr=h*(.14+q()*.18);puffs.push([x,Math.min(h*.74-rr,h*.62-rr*.55-q()*h*.12),rr])}   // 아래는 평평한 밑면 위로만
+    g.beginPath();for(const [x,y,rr] of puffs){g.moveTo(x+rr,y);g.arc(x,y,rr,0,7)}g.rect(w*.22,h*.6,w*.56,h*.14);
+    g.fillStyle='#ffffff';g.fill();
+    g.globalCompositeOperation='source-atop';
+    const gr=g.createLinearGradient(0,h*.35,0,h*.78);gr.addColorStop(0,'rgba(214,226,238,0)');gr.addColorStop(1,'rgba(196,212,230,1)');g.fillStyle=gr;g.fillRect(0,0,w,h);
+  });
+  const texs=[cloudTex(1),cloudTex(2),cloudTex(3),cloudTex(4)];
+  for(let k=0;k<18;k++){
+    const a=k/18*Math.PI*2+r()*.3,low=k%3!==2,el=(low?.6+r()*2.6:5+r()*12)*Math.PI/180,d=420,sc=(low?40+r()*50:70+r()*90);   // 셋 중 둘은 지평선 가까이 낮게
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:texs[k%4],fog:false,depthWrite:false,transparent:true,opacity:.92}));
+    sp.position.set(Math.sin(a)*Math.cos(el)*d,Math.sin(el)*d,Math.cos(a)*Math.cos(el)*d);sp.scale.set(sc,sc/2,1);sp.renderOrder=-1;cloudG.add(sp);
+  }
+}
+
 /* 들판: 땅 · 풀 · 꽃 · 나무 · 바위 (게임 buildEnv의 들판과 같음) */
 const env=new THREE.Group();scene.add(env);   // 땅과 그 위 물건: 다리 길이에 따라 같이 내려감
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(600,600),toon({color:0x93c266,rim:0,cloud:true}));ground.rotation.x=-Math.PI/2;ground.position.y=GY;ground.receiveShadow=true;env.add(ground);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(120,120),toon({color:0x93c266,rim:0,cloud:true}));ground.rotation.x=-Math.PI/2;ground.position.y=GY;ground.receiveShadow=true;env.add(ground);
 const grassAll=new THREE.Group(),grassFew=new THREE.Group(),props=new THREE.Group();env.add(grassAll,grassFew,props);
 {
   const r=gfxRng(5),blade=new THREE.ConeGeometry(.05,.38,3,1).translate(0,.19,0);
@@ -226,12 +254,14 @@ function aim(c,aspect,fit){
   const y=S.yaw*Math.PI/180,p=S.pitch*Math.PI/180,tgt=new THREE.Vector3(0,-(.3+1.25*S.leg)*.4+S.lift*-.4,0);
   c.fov=S.fov;c.aspect=aspect;
   c.position.set(tgt.x+Math.sin(y)*Math.cos(p)*dist,tgt.y+Math.sin(p)*dist,tgt.z+Math.cos(y)*Math.cos(p)*dist);
-  c.lookAt(tgt);c.near=Math.max(.1,dist-40);c.far=dist+200;
+  c.lookAt(tgt);c.near=Math.max(.1,dist-40);c.far=dist+700;skyG.position.copy(c.position);   // 하늘은 카메라를 감싸서 어느 방향에서도 같은 그라데이션
   // 게임처럼 탁자 바로 뒤에서부터 흐려지게: 멀리서 찍어도(망원) 탁자는 또렷함
   // 안개 거리: 카메라에서 탁자까지 거리 + 이 값부터 흐려짐. 100이면 안개 없음
   if(S.fog>=100){scene.fog.near=1e5;scene.fog.far=1e5+1}else{scene.fog.near=dist+S.fog;scene.fog.far=dist+S.fog+25}c.updateProjectionMatrix();
 }
 function apply(){
+  const real=S.sky==='real';skyG.visible=real;cloudG.visible=S.clouds==='on';
+  scene.background=real?null:new THREE.Color(GAME_SKY);scene.fog.color.set(real?SKY_HOR:GAME_SKY);
   // 다리 길이: 게임은 1 (상판 아래 받침 높이 1.25). 늘리면 받침이 길어지고 땅이 그만큼 내려감
   base.scale.y=S.leg;base.position.y=-.3-1.25*S.leg/2;env.position.y=-1.25*(S.leg-1);
   CLOUD_U.value=S.cloud==='on'?GFX_CLOUD:NO_CLOUD;
@@ -304,6 +334,8 @@ function bind(){
   chips('#propChips','props',[['on','보이기'],['off','숨기기']]);
   chips('#shadowChips','shadow',[['on','켜기'],['off','끄기']]);
   chips('#cloudChips','cloud',[['on','켜기'],['off','끄기']]);
+  chips('#skyChips','sky',[['real','진짜 하늘'],['game','게임 그대로']]);
+  chips('#cloudsChips','clouds',[['on','보이기'],['off','숨기기']]);
   chips('#feltChips','felt',[['on','보이기'],['off','숨기기']]);
   chips('#safeChips','safe',[['on','보이기'],['off','숨기기']]);
 }
