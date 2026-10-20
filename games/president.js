@@ -686,7 +686,7 @@ G.init=()=>{
    두 곡은 페이지를 열 때 워커에서 한 번 합성해 16초 루프로 반복합니다.
    혁명 곡은 평시 멜로디를 맨 뒤 음부터 거꾸로 배열하고 단조로 바꾼 곡입니다.
    혁명·반혁명이 나오면 곡이 테이프처럼 느려지다 멈추고, 듣던 소리를 0.75초 거꾸로 감은 뒤
-   새 곡을 거울 위치에서 이어 틉니다. 내 차례에는 곡이 살짝 먹먹해집니다.
+   새 곡을 거울 위치에서 이어 틉니다. 11 백 동안에는 지금 곡을 그 자리에서 거꾸로 틀고 똑딱 소리를 겹칩니다.
    대부호 방을 나가거나 다른 게임으로 바꾸면 멈추고, 공통 카페 재즈가 다시 나옵니다 (G.ownBgm). */
 function bgmSynthLib() {
   'use strict';
@@ -936,8 +936,9 @@ function bgmSynthLib() {
 }
 const SY=bgmSynthLib();
 const BG={
-  on:false,data:{},buf:{},trim:null,lp:null,cur:null,mode:'fwd',myTurn:false,busyUntil:0,kick:false,lvl:-1,
+  on:false,data:{},buf:{},trim:null,cur:null,mode:'fwd',rv:false,tick:null,tickBuf:null,busyUntil:0,kick:false,lvl:-1,
   TRIM:.32,   // 효과음보다 크지 않도록 맞춘 음량
+  TICK:.55,   // 11 백 똑딱 소리 음량 (곡 대비)
   render(){
     const got=(m,L,R,sr,length)=>{this.data[m]={L,R,sr,length}};
     const here=()=>{for(const m of ['fwd','rev'])if(!this.data[m]){const b=SY.render(m);got(m,b.L,b.R,b.sr,b.length)}};
@@ -950,37 +951,67 @@ const BG={
     }catch(e){setTimeout(here,60)}
   },
   toBuffer(b){const ab=SND.ctx.createBuffer(2,b.length,b.sr);ab.getChannelData(0).set(b.L);ab.getChannelData(1).set(b.R);return ab},
+  // 11 백용: 곡을 통째로 거꾸로 뒤집은 버전 (진짜 역재생)
+  reversed(b){const L=b.L.slice().reverse(),R=b.R.slice().reverse();return {L,R,sr:b.sr,length:b.length}},
+  // 똑딱 1초 루프: 0초 '똑'(높은 음), 0.5초 '딱'(낮은 음) — 곡의 박자(120 BPM)에 맞춤
+  makeTick(){
+    const c=SND.ctx,sr=c.sampleRate,n=sr,ab=c.createBuffer(1,n,sr),d=ab.getChannelData(0);
+    let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647*2-1;
+    for(const [t0,f,a] of [[0,2100,.5],[.5,1500,.42]]){
+      const i0=Math.round(t0*sr);
+      for(let i=0;i<Math.round(.06*sr);i++){const t=i/sr,e=Math.exp(-t*90);d[i0+i]+=(Math.sin(2*Math.PI*f*t)*.8+Math.sin(2*Math.PI*f*2.7*t)*.25)*e*a+rnd()*Math.exp(-t*600)*a*.5}
+    }
+    return ab;
+  },
   ready(){return !!(this.data.fwd&&this.data.rev&&SND.ctx&&SND.bgm)},
+  key(m,r){return m+(r?'R':'')},
   begin(v){
     const c=SND.ctx;
     if(!this.trim){
-      this.lp=c.createBiquadFilter();this.lp.type='lowpass';this.lp.frequency.value=20000;this.lp.Q.value=.7;
-      this.trim=c.createGain();this.trim.gain.value=0;this.lp.connect(this.trim);this.trim.connect(SND.bgm);
-      this.buf.fwd=this.toBuffer(this.data.fwd);this.buf.rev=this.toBuffer(this.data.rev);
+      this.trim=c.createGain();this.trim.gain.value=0;this.trim.connect(SND.bgm);
+      for(const m of ['fwd','rev']){this.buf[m]=this.toBuffer(this.data[m]);this.data[m+'R']=this.reversed(this.data[m]);this.buf[m+'R']=this.toBuffer(this.data[m+'R'])}
+      this.tickBuf=this.makeTick();
     }
-    this.mode=this.target(v);this.setTurn(this.wantTurn(v),true);this.lvl=-1;
-    this.play(this.mode,0,c.currentTime+.05,.6);
+    this.mode=this.target(v);this.rv=this.wantB11(v);this.lvl=-1;
+    this.play(this.mode,this.rv,0,c.currentTime+.05,.6);
+    if(this.rv)this.tickOn(c.currentTime+.05);
   },
-  play(m,off,when,fade){
-    const c=SND.ctx,s=c.createBufferSource(),g=c.createGain();
-    s.buffer=this.buf[m];s.loop=true;s.connect(g);g.connect(this.lp);
+  // fe: '평시 방향' 기준 위치(초). 거꾸로 트는 곡이면 실제 재생 위치는 LOOP-fe
+  play(m,r,fe,when,fade){
+    const c=SND.ctx,L=SY.LOOP,s=c.createBufferSource(),g=c.createGain(),off=(((r?L-fe:fe)%L)+L)%L;
+    s.buffer=this.buf[this.key(m,r)];s.loop=true;s.connect(g);g.connect(this.trim);
     g.gain.setValueAtTime(0,when);g.gain.linearRampToValueAtTime(1,when+fade);
-    s.start(when,off);this.cur={src:s,g,mode:m,t0:when,off};
+    s.start(when,off);this.cur={src:s,g,mode:m,r,t0:when,off};
   },
   stop(){
+    this.tickOff();
     if(!this.cur)return;const c=SND.ctx,old=this.cur,now=c.currentTime;this.cur=null;
     old.g.gain.cancelScheduledValues(now);old.g.gain.setValueAtTime(old.g.gain.value,now);old.g.gain.linearRampToValueAtTime(0,now+.6);
     try{old.src.stop(now+.65)}catch(e){}
   },
   pos(now){const c=this.cur,L=SY.LOOP;return (((c.off+Math.max(0,now-c.t0))%L)+L)%L},
+  fe(p,r){const L=SY.LOOP;return r?(((L-p)%L)+L)%L:p},
   target(v){return v&&v.st!=='wait'&&v.rev?'rev':'fwd'},
-  // 내 차례: 곡을 살짝 먹먹하게 (고음만 조금 깎아 차례인 걸 알 수 있을 정도)
-  TURN_HZ:2400,
-  wantTurn(v){if(!v||v.st!=='play'||!Array.isArray(v.ps))return false;const i=myIdx(),p=v.ps[i];return i>=0&&v.t===i&&!!p&&!p.f&&p.c>0},
-  setTurn(on,now){
-    this.myTurn=on;if(!this.lp)return;const c=SND.ctx,f=on?this.TURN_HZ:20000;this.lp.frequency.cancelScheduledValues(c.currentTime);
-    if(now)this.lp.frequency.setValueAtTime(f,c.currentTime);
-    else this.lp.frequency.setTargetAtTime(f,c.currentTime,on?.12:.18);
+  wantB11(v){return !!(v&&v.st==='play'&&v.b11)},
+  tickOn(when){
+    if(this.tick||!this.cur)return;const c=SND.ctx,s=c.createBufferSource(),g=c.createGain();
+    s.buffer=this.tickBuf;s.loop=true;s.connect(g);g.connect(this.trim);
+    g.gain.setValueAtTime(0,when);g.gain.linearRampToValueAtTime(this.TICK,when+.05);
+    s.start(when,this.pos(when)%1);this.tick={src:s,g};   // 곡의 박에 맞춰 시작
+  },
+  tickOff(){
+    if(!this.tick)return;const c=SND.ctx,t=this.tick,now=c.currentTime;this.tick=null;
+    t.g.gain.cancelScheduledValues(now);t.g.gain.setValueAtTime(t.g.gain.value,now);t.g.gain.linearRampToValueAtTime(0,now+.15);
+    try{t.src.stop(now+.2)}catch(e){}
+  },
+  // 11 백: 지금 곡을 그 자리에서 거꾸로(또는 다시 앞으로) 틀고 똑딱 소리를 켜고 끔
+  setB11(on){
+    this.rv=on;if(!this.cur)return;
+    const c=SND.ctx,old=this.cur,now=c.currentTime+.02,TS=.12,fe=this.fe(this.pos(now+TS),old.r);
+    old.src.playbackRate.setValueAtTime(1,now);old.src.playbackRate.linearRampToValueAtTime(.55,now+TS);   // 테이프가 방향을 바꾸듯 살짝 처짐
+    old.g.gain.setValueAtTime(1,now);old.g.gain.linearRampToValueAtTime(0,now+TS);old.src.stop(now+TS+.03);
+    this.play(old.mode,on,fe,now+TS-.03,.1);
+    if(on)this.tickOn(now+TS);else this.tickOff();
   },
   // 혁명·반혁명: 테이프 멈춤 → 듣던 소리를 거꾸로 감기 → 거울 위치에서 새 곡
   flip(to){
@@ -988,32 +1019,32 @@ const BG={
     old.src.playbackRate.setValueAtTime(1,now);old.src.playbackRate.linearRampToValueAtTime(.3,now+TS);
     old.g.gain.setValueAtTime(1,now);old.g.gain.linearRampToValueAtTime(0,now+TS+.03);old.src.stop(now+TS+.06);
     const p2=(p+.65*TS)%L,rw=c.createBufferSource(),rg=c.createGain();
-    rw.buffer=this.toBuffer(SY.rewind(this.data[old.mode],p2));rg.gain.value=.95;rw.connect(rg);rg.connect(this.lp);rw.start(now+TS-.02);
-    const end=p2-SY.RW_TRAVEL,off=((Math.round((((L-end)%L)+L)%L/SY.S16)*SY.S16)%L+L)%L,t1=now+TS+SY.RW_T-.06;
-    this.play(to,off,t1,.08);this.busyUntil=t1+.1;
+    rw.buffer=this.toBuffer(SY.rewind(this.data[this.key(old.mode,old.r)],p2));rg.gain.value=.95;rw.connect(rg);rg.connect(this.trim);rw.start(now+TS-.02);
+    const end=this.fe(p2-SY.RW_TRAVEL,old.r),fe=((Math.round((((L-end)%L)+L)%L/SY.S16)*SY.S16)%L+L)%L,t1=now+TS+SY.RW_T-.06;
+    this.play(to,this.rv,fe,t1,.08);this.busyUntil=t1+.1;
   },
   // 새 판 시작처럼 혁명 없이 상태만 바뀌면 조용히 겹쳐 바꿈
   fade(to){
     const c=SND.ctx,old=this.cur,now=c.currentTime+.02;
     old.g.gain.setValueAtTime(1,now);old.g.gain.linearRampToValueAtTime(0,now+1.2);old.src.stop(now+1.3);
-    this.play(to,0,now,1.2);
+    this.play(to,this.rv,0,now,1.2);
   },
   sync(v){
-    if(!this.cur)return;
-    const to=this.target(v);
-    if(to!==this.mode&&SND.ctx.currentTime>=this.busyUntil){
-      this.mode=to;
+    if(!this.cur||SND.ctx.currentTime<this.busyUntil)return;
+    const b=this.wantB11(v),to=this.target(v);
+    if(to!==this.mode){
+      this.rv=b;this.mode=to;
       if(this.kick&&SND.ctx.state==='running')this.flip(to);else this.fade(to);
-    }
+      if(b)this.tickOn(this.busyUntil>SND.ctx.currentTime?this.busyUntil:SND.ctx.currentTime);else this.tickOff();
+    }else if(b!==this.rv)this.setB11(b);
     this.kick=false;
-    const t=this.wantTurn(v);if(t!==this.myTurn)this.setTurn(t);
   },
   // 대부호 방에 있는 동안만 재생 (방을 나가거나 다른 게임이 되면 멈춤). 소리 켜기/끄기도 여기서 따라감
   watch(){
     const here=this.on&&!!V;   // 지금 화면의 게임이 대부호(enter/leave로 표시)이고 방 안일 때
     if(!here){this.stop();return}
     if(!this.cur){if(this.ready()&&SND.ctx.state==='running')this.begin(V);else return}
-    if(SND.ctx.currentTime>=this.busyUntil&&this.target(V)!==this.mode)this.sync(V);
+    if(this.target(V)!==this.mode||this.wantB11(V)!==this.rv)this.sync(V);
     const lv=SND.on?this.TRIM:0;
     if(lv!==this.lvl){this.lvl=lv;this.trim.gain.setTargetAtTime(lv,SND.ctx.currentTime,.08)}
   }
