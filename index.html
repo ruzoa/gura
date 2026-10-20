@@ -40,8 +40,8 @@
   --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --f-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
   color-scheme:only light;
-  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 }
+/* 안전 영역(노치·홈 바)은 body.fs 한 곳에서만 비움 (html에도 주면 위쪽 띠가 두 번 생김) */
 *,*::before,*::after{box-sizing:border-box}
 [hidden]{display:none!important}
 @media (prefers-color-scheme:dark){:root{color-scheme:only light}html,body{background-color:var(--wall);color:var(--ink)}}
@@ -603,7 +603,7 @@ body.kb .fan .card.cur{z-index:70!important}
   <div class="lobby">
     <div class="view" data-view="main">
       <h1>구라!</h1>
-      <p class="lead">구라! · 대부호 · 쿼리도 · 야추다이스 · 친구들과 즐기는 게임</p>
+      <p class="lead">구라! · 대부호 · 쿼리도 · 야추다이스 · 오목 · 친구들과 즐기는 게임</p>
       <div class="nickline" id="nickLine">닉네임 <b id="nickShow">나</b><button type="button" class="nickbtn" id="btnNickEdit">수정</button></div>
       <div class="nickedit" id="nickEdit" hidden>
         <input class="txt" id="inNick" maxlength="10" autocomplete="off" aria-label="닉네임">
@@ -1506,6 +1506,8 @@ const SFX={
   lift(){hiss(.32,{freq:700,sweep:2600,q:.6,vol:.1})},
   finish(){[523,659,784,1047].forEach((f,k)=>tone(f,.22,{type:'triangle',vol:.15,at:k*.09}))},
   warn(last){tone(last?1400:1000,.06,{type:'square',vol:.06})},
+  // 금지: 안 되는 곳을 눌렀을 때 글 대신 짧고 둔탁하게 (모든 게임 공통)
+  no(){tone(150,.08,{type:'triangle',vol:.16});hiss(.05,{freq:420,vol:.06})},
 };
 function sfx(name,...a){try{if(SFX[name])SFX[name](...a)}catch(e){}}
 let lastLogId=0,lastWarnSec=-1;

@@ -285,22 +285,22 @@ function soloGame(lv){
   if(!bd.includes('p0')||!bd.includes('p1')||!bd.includes('p2'))fail('yahtzee board names');
   if(bd.includes('data-c='))fail('yahtzee board clickable before roll');
   if(!view.diceHTML().includes('blank'))fail('yahtzee blank dice before roll');
-  if(!view.hintText(t).includes('굴리기'))fail('yahtzee hint before roll '+view.hintText(t));
+  if(view.hintText(t))fail('yahtzee hint before roll should be empty (button shows it) '+view.hintText(t));
   Y.engine.act(t,{t:'roll'});load(t);
   bd=view.boardHTML();
   eq((bd.match(/data-c=/g)||[]).length,13,'board shows 13 choices on my turn');
   if(!view.diceHTML().includes('class="die v'))fail('yahtzee dice faces');
   view.setCat('chance');
   if(!view.boardHTML().includes('sel'))fail('yahtzee selected box not marked');
-  if(!view.hintText(t).includes('찬스'))fail('yahtzee hint with selection '+view.hintText(t));
+  if(view.hintText(t))fail('yahtzee hint with selection should be empty (sheet shows it) '+view.hintText(t));
   // 다른 사람 화면에서는 고를 수 없음
   load(o);
   if(view.boardHTML().includes('data-c='))fail('yahtzee other player can pick');
-  if(!view.hintText(o).includes('차례'))fail('yahtzee hint other turn '+view.hintText(o));
+  if(view.hintText(o))fail('yahtzee hint other turn should be empty (turn chip shows it) '+view.hintText(o));
   // 관전
   load(-1);
   if(view.boardHTML().includes('data-c='))fail('yahtzee spectator can pick');
-  if(!view.hintText(-1).includes('관전'))fail('yahtzee spectator hint '+view.hintText(-1));
+  if(view.hintText(-1))fail('yahtzee spectator hint should be empty '+view.hintText(-1));
   // 끝난 판: 점수 요약
   H.phase='over';H.players.forEach((p,i)=>{p.rank=i+1;p.finished=true;p.hand=[]});load(0);
   const ex=view.overExtra();

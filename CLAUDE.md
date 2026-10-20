@@ -46,5 +46,9 @@
 - **화면 문구**:
   - ~니다 체로 씁니다.
   - 같은 기능은 어디서나 같은 이름으로 부릅니다 (대기 시간, 제한 시간, 별카드, 관전 등).
+  - 화면이 이미 보여 주는 것(누구 차례, 누를 수 있는 버튼, 갈 수 있는 칸, 남은 시간)은 글로 쓰지 않습니다. 사용법 설명은 게임 방법에만 적습니다.
+  - 안 되는 곳을 누르면 글 대신 공통 금지 소리 `sfx('no')`를 냅니다. 왜 안 되는지는 화면에 보여야 합니다(초록 점, 빨간 ✕, 빨간 벽 등).
+  - 안내 줄에는 꼭 필요한 것만 짧게 남깁니다(진행 단계, 판 시작 안내, 결과, 조커처럼 화면만으로 알 수 없는 규칙). 비면 자리만 남기고 숨깁니다(`:empty{visibility:hidden}` 또는 고정 높이).
+- **안전 영역(노치·홈 바)**: `body.fs` 한 곳에서만 `env(safe-area-inset-*)` 패딩을 줍니다. `html`/`:root`에 또 주면 홈 화면 앱 위쪽에 띠가 두 번 생깁니다.
 - **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`). 오목은 이 밖에 커스텀 규칙 기억(`gura-omok-custom`)과 세부 설정 펼침(`gura-omok-more`)도 저장합니다.
 - **움직임 줄이기**: 기기의 '움직임 줄이기'(`prefers-reduced-motion`) 설정을 보고 게임 움직임을 끄지 않습니다. 시작 연출, 주사위 굴리기, 말·벽 이동, 돌 놓기처럼 게임 진행을 보여 주는 움직임은 설정과 상관없이 모든 기기에서 똑같이 보여야 합니다. `matchMedia('(prefers-reduced-motion…')`로 움직임을 건너뛰는 코드를 새로 넣지 않습니다. (아직 남은 예외: `index.html`의 2D 화면용 CSS 규칙, `games/gura.js`, `games/yahtzee.js`의 2D 주사위 CSS. 손볼 때 같이 정리)

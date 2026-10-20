@@ -725,7 +725,7 @@ function bowlFill(g,n,drop){
 }
 /* 소리: 통에서 돌을 집는 소리(자르륵), 판에 놓는 소리(딱). 코드로 만든 소리 */
 function sndPick(vol,at){for(let k=0;k<4;k++)hiss(.022,{freq:2400+Math.random()*1600,q:5,vol:vol*(.55+Math.random()*.45),at:(at||0)+k*.034+Math.random()*.018})}
-function sndNo(){tone(150,.08,{type:'triangle',vol:.16});hiss(.05,{freq:420,vol:.06})}   // 안 되는 곳을 눌렀을 때 (글 대신)
+function sndNo(){sfx('no')}   // 안 되는 곳을 눌렀을 때 (글 대신)
 function sndPut(at){hiss(.03,{freq:3300,q:2.4,vol:.24,at});tone(2100,.025,{type:'triangle',vol:.07,at});tone(820,.06,{type:'sine',vol:.07,at:at+.004})}
 function om3Build(){
   if(Om3.built||Om3.fail)return Om3.built;

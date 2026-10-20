@@ -390,17 +390,17 @@ function wallLegal(w){
 function pickAt(x,y){
   if(!V||!V.q||V.st!=='play'||!QS)return;
   const me=myIdx();if(me<0)return;
-  if(!myTurnNow()){say(V.t===me?'잠시만 기다려 주세요.':'아직 내 차례가 아닙니다.');return}
+  if(!myTurnNow()){sfx('no');return}
   if(qMode==='move'){
     if(x<-.3||y<-.3||x>9.3||y>9.3)return;
     const vr=clamp(Math.floor(y),0,8),vc=clamp(Math.floor(x),0,8),[r,c]=toAbsCell(vr,vc);
-    if(!legalMoves(QS,me).some(m=>m[0]===r&&m[1]===c)){say('그 칸으로는 갈 수 없습니다. 초록 점이 있는 칸만 갈 수 있습니다.');return}
+    if(!legalMoves(QS,me).some(m=>m[0]===r&&m[1]===c)){sfx('no');return}   // 갈 수 있는 칸은 초록 점
     if(dblOn()&&pend&&pend.k===0&&pend.r===r&&pend.c===c){confirmPend();return}   // 두 번 눌러 놓기
     pend={k:0,r,c};
   }else{
     const w=wallAt(x,y);if(!w)return;
     const abs=toAbsWall(w.X,w.Y,w.vo);
-    if(!wallLegal(abs)){say(QS.wl[me]>0?'그 자리에는 벽을 놓을 수 없습니다. 벽끼리 겹치거나 길을 완전히 막으면 안 됩니다.':'남은 벽이 없습니다.');return}
+    if(!wallLegal(abs)){sfx('no');if(QS.wl[me]>0){hov={...abs,ok:false};drawGhost();Q3.dirty=true}return}   // 글 대신 금지 소리 + 그 자리에 빨간 벽
     if(dblOn()&&pend&&pend.k===1&&pend.r===abs.r&&pend.c===abs.c&&pend.o===abs.o){confirmPend();return}   // 두 번 눌러 놓기
     pend={k:1,...abs};hov=null;
   }
@@ -417,7 +417,7 @@ function confirmPend(){
 }
 function setMode(m){
   const me=myIdx();
-  if(m==='wall'&&!(me>=0&&V.q&&V.q.wl[me]>0)){say('남은 벽이 없습니다.');return}
+  if(m==='wall'&&!(me>=0&&V.q&&V.q.wl[me]>0)){sfx('no');return}   // 빈 보관함이 보임
   if(qMode===m)return;
   qMode=m;pend=null;hov=null;
   if(m==='move')Q3.sel=null;
@@ -504,26 +504,14 @@ function barHTML(q,me){
     return `<div class="qd-p${on?' on':''}${i===me?' me':''}${p.f?' out':''}" style="--pc:${PCOL[i%4]}"><i class="dot"></i><b>${esc(p.n)}${i===me?' (나)':''}</b>${p.f?`<span class="w">${p.sr===2?'시간 초과':p.sr?'항복':(+p.f)+'위'}</span>`:`<span class="w">벽 ${+q.wl[i]}</span>`}${on?'<span class="tb"><i></i></span>':''}</div>`;
   }).join('');
 }
-function hintText(me){
+function hintText(me){   // 안내·알림 원칙: 차례·할 수 있는 행동·남은 시간은 화면(고리·초록 점·버튼·빨간 선)이 보여 주므로 글은 결과만
   if(Date.now()<qMsgUntil&&qMsg)return qMsg;
   if(!V||!V.q)return '';
   if(V.st==='over')return '게임이 끝났습니다.';
-  if(introWait())return clock()-IN.t0>=IN.r?(IN.fp&&IN.fp.fixed?'선 플레이어를 알립니다…':'첫 차례를 정합니다…'):'게임을 준비하는 중…';
-  if(me<0)return V.ps[V.t]?`${V.ps[V.t].n} 차례입니다. 관전 중입니다.${lastRec()}`:'';
+  if(introWait()||me<0)return '';
   const p=V.ps[me];
-  if(p.f)return p.sr===2?'제한 시간이 지나 패배했습니다. 남은 판을 지켜봅니다.':p.sr?'항복했습니다. 남은 판을 지켜봅니다.':V.q.dn[me]?'도착했습니다! 남은 판을 지켜봅니다.':'';
-  if(V.t!==me)return V.ps[V.t]?`${V.ps[V.t].n} 차례입니다.${lastRec()}`:'';
-  if(!myTurnNow())return '내 차례입니다.';
-  {const left=(V.deadAt-clock())/1000;if(left<=10&&left>0)return `${Math.ceil(left)}초 남았습니다. 제한 시간이 지나면 패배합니다.`}
-  if(pend)return pend.k===0?`${sqName(pend.r,pend.c)}(으)로 이동: ${dblOn()?'한 번 더 누르거나 ':''}[놓기]를 누르면 확정합니다.`:`${wallName(pend.r,pend.c,pend.o)} 벽: ${dblOn()?'한 번 더 누르거나 ':''}[놓기]를 누르면 확정합니다.`;
-  if(qMode==='move')return !(V.q.wl[me]>0)?'초록 점이 있는 칸을 눌러 갈 곳을 고릅니다. 남은 벽이 없습니다.':Q3.on?'초록 점이 있는 칸을 누르거나, 내 앞 보관함의 벽을 눌러 고릅니다.':'초록 점이 있는 칸을 누르거나, [벽 세우기]로 벽을 고릅니다.';
-  if(hov)return hov.ok?`${wallName(hov.r,hov.c,hov.o)} 벽: 누르면 미리 봅니다.`:`${wallName(hov.r,hov.c,hov.o)}에는 벽을 놓을 수 없습니다.`;
-  return Q3.on?'칸 사이의 틈을 눌러 벽 자리를 고릅니다. 고른 벽을 다시 누르면 말 이동으로 돌아갑니다.':'칸 사이의 틈을 눌러 벽 자리를 고릅니다.';
-}
-/* 직전 수 한 줄 (예: ' · 직전 3. 나 e4') */
-function lastRec(){
-  const rec=V.q&&V.q.rec,L=rec&&rec[rec.length-1];
-  return L&&V.ps[L[1]]?` · 직전 ${L[0]}. ${V.ps[L[1]].n} ${L[2]}`:'';
+  if(p&&p.f)return p.sr===2?'시간 초과로 패배했습니다.':p.sr?'항복했습니다.':V.q.dn[me]?'도착했습니다!':'';
+  return '';
 }
 /* 기보 글: 2명이면 체스처럼 '1. e2 e8', 3명 이상이거나 순서가 비면 색 이름을 붙임 */
 function recordText(v){
@@ -961,10 +949,10 @@ function q3Click(e){
   const [x,y]=p,me=myIdx(),R=Q3.trayRect;
   // 내 보관함의 벽을 누르면 그 벽을 고름 (벽 모드). 고른 벽을 다시 누르면 취소
   if(R&&x>=R[0]-.2&&x<=R[2]+.2&&y>=R[1]-.2&&y<=R[3]+.2){
-    if(!myTurnNow()){say(V&&V.t===me?'잠시만 기다려 주세요.':'아직 내 차례가 아닙니다.');return}
+    if(!myTurnNow()){sfx('no');return}
     const sl=Q3.slots.get(me);let best=-1,bd=1e9;
     if(sl)sl.w.forEach((m,g)=>{if(!m)return;const d=Math.abs((g-4.5)*PT-x);if(d<bd){bd=d;best=g}});
-    if(best<0){say('남은 벽이 없습니다.');return}
+    if(best<0){sfx('no');return}
     if(qMode==='wall'&&Q3.sel===best){setMode('move');return}
     Q3.sel=best;if(qMode!=='wall')setMode('wall');else{pend=null;hov=null;sfx('tick');redraw()}
     return;
@@ -1096,6 +1084,7 @@ G.init=()=>{
 #qd .qd-row{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;width:100%;pointer-events:none;min-height:44px}
 .stage.qd3d #qd .qd-row{height:44px;min-height:0;flex:none;align-items:flex-start;padding-top:4px;overflow:visible;position:relative;z-index:1}   /* 3D: 안내 글이 길어지거나 글자가 커도 줄 높이는 그대로 (넘치면 보드 위로 살짝 겹침) → 보드·카메라가 움직이지 않음 */
 #qd .qd-hint{flex:1 1 200px;min-width:0;font-size:13px;line-height:1.3;color:#5b4129;text-align:center;min-height:17px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}   /* 안내 글이 바뀌어도 보드가 움직이지 않게 줄 높이 고정 (최대 2줄) */
+#qd .qd-hint:empty{visibility:hidden}   /* 안내가 없으면 자리만 남김 (보드가 들썩이지 않게) */
 #qd .qd-modes{display:flex;gap:4px;pointer-events:auto}
 #qd .qd-m{height:34px;padding:0 12px;border-radius:10px;border:2px solid var(--mustard-edge,#c08a17);background:#fffaf0;color:#3b2a1f;font-family:var(--f-display,inherit);font-size:15px;cursor:pointer}
 #qd .qd-m.on{background:var(--mustard,#f2b632)}

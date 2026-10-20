@@ -548,8 +548,7 @@ function record(){
 }
 function toggleHold(i){
   if(!V||!V.y||V.st!=='play'||myIdx()<0||V.t!==myIdx())return;
-  if(!V.y.r){say('먼저 주사위를 굴려야 합니다.');return}
-  if(V.y.l<=0){say('굴림을 모두 썼습니다. 기록할 칸을 골라 주세요.');return}
+  if(!V.y.r||V.y.l<=0){sfx('no');return}   // 굴리기 전·굴림을 다 쓴 뒤 (남은 굴림 점이 보임)
   if(!myTurnNow()||!d3Ready())return;
   yHold[i]=!yHold[i];
   sendAct({t:'hold',keep:yHold.slice()});   // 다른 사람 화면에서도 주사위가 고정 칸으로 옮겨 가게
@@ -558,7 +557,7 @@ function toggleHold(i){
 }
 function pickCat(id){
   if(!myTurnNow()||!d3Ready())return;
-  if(!V.y.r){say('먼저 주사위를 굴려야 합니다.');return}
+  if(!V.y.r){sfx('no');return}
   if(allowed(scoreOf(myIdx()),V.y.d).indexOf(id)<0)return;
   if(yCat===id){record();return}
   yCat=id;try{sfx('tick')}catch(e){}
@@ -1091,25 +1090,16 @@ function lastRec(){
   const L=V.y&&V.y.lm;
   return L&&V.ps[L.p]?` · 직전 ${V.ps[L.p].n} ${byId[L.c].name} ${L.pt}점`:'';
 }
-function hintText(me){
+function hintText(me){   // 안내·알림 원칙: 차례(위 칩)·남은 굴림(점)·점수(점수 종이)·남은 시간(빨간 선)은 화면이 보여 주므로 글은 꼭 필요한 것만
   if(Date.now()<yMsgUntil&&yMsg)return yMsg;
   if(!V||!V.y)return '';
-  if(introOn()&&!IN0.said)return '게임을 준비하는 중…';
-  const Y=V.y,tp=V.ps[V.t];
   if(V.st==='over')return '게임이 끝났습니다.';
-  if(me<0)return tp?`${tp.n} 차례입니다. 관전 중입니다.${lastRec()}`:'';
+  if(introOn()&&!IN0.said)return '';
+  if(me<0)return '';
   const p=V.ps[me];
-  if(p.f)return p.sr?'항복했습니다. 남은 판을 지켜봅니다.':'';
-  if(V.t!==me)return tp?`${tp.n} 차례입니다.${lastRec()}`:'';
-  if(!myTurnNow())return '내 차례입니다.';
-  if(shakingMine())return '손을 떼면 주사위를 던집니다.';
-  {const left=(V.deadAt-clock())/1000;if(left<=10&&left>0)return `${Math.ceil(left)}초 남았습니다. 제한 시간이 지나면 알아서 기록합니다.`}
-  if(!d3Ready())return '주사위가 굴러가는 중…';
-  if(!Y.r)return D3.on?'굴리기 버튼을 꾹 누르면 컵을 흔들고, 손을 떼면 던집니다.':'굴리기를 눌러 주사위를 굴립니다.';
-  const sc=scoreOf(me);
-  if(yCat){const c=byId[yCat];return `${c.name}: ${c.rule} → ${calc(yCat,Y.d,jokerOf(sc,Y.d))}점. 한 번 더 누르거나 [기록하기]를 누르면 기록합니다.`}
-  if(jokerOf(sc,Y.d))return '추가 야추입니다. 조커 규칙에 따라 기록할 수 있는 칸이 정해져 있습니다.';
-  return Y.l>0?(D3.on?'남길 주사위를 누르면 고정 칸으로 갑니다. 다시 누르면 테이블로 돌아갑니다.':'남길 주사위를 눌러 고정하고 다시 굴리거나, 점수 종이에 기록하세요.'):'굴림을 모두 썼습니다. 기록할 칸을 골라 주세요.';
+  if(p.f)return p.sr?'항복했습니다.':'';
+  if(V.t!==me||!myTurnNow()||!V.y.r)return '';
+  return jokerOf(scoreOf(me),V.y.d)?'추가 야추 · 조커 규칙':'';   // 기록할 수 있는 칸이 왜 줄었는지는 화면만으로 알 수 없음
 }
 function turnHTML(){
   const Y=V.y;
