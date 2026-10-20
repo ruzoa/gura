@@ -836,8 +836,13 @@ function bgmSynthLib() {
     FWD.forEach(function (n) {
       var t0 = n.s * S16, len = n.d * S16 * .92, f = mtof(n.m);
       mx.add(t0, len + .45, 0, .35, pluck(f, len, .22));
-      mx.add(t0 + 3 * S16, len + .45, .45, .5, pluck(f, len, .06));    // 메아리
-      mx.add(t0 + 6 * S16, len + .45, -.45, .5, pluck(f, len, .025));
+      // 메아리: 원래 음이 아직 울리는 중이거나, 그 순간 멜로디가 같은 음을 치면 넣지 않음 (같은 음이 겹쳐 두 번 치는 것처럼 들림)
+      [[3, .45, .06], [6, -.45, .025]].forEach(function (e) {
+        var es = (n.s + e[0]) % 128;
+        if (e[0] < n.d) return;
+        if (FWD.some(function (x) { return x !== n && x.m === n.m && es >= x.s && es < x.s + x.d; })) return;
+        mx.add(t0 + e[0] * S16, len + .45, e[1], .5, pluck(f, len, e[2]));
+      });
     });
     for (var b = 0; b < BARS; b++) {
       var c = CH_F[b], bt = b * BAR;
