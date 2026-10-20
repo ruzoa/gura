@@ -316,7 +316,10 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .card-sheet.clipsheet::after{content:'';position:absolute;top:20px;left:50%;width:46px;height:10px;margin-left:-23px;border-radius:5px;background:#6b7178;z-index:3}
 .clipsheet .paper{flex:1;min-height:0;overflow-y:auto;background:#fffcf5 repeating-linear-gradient(transparent 0 29px,rgba(47,111,189,.14) 29px 30px);border-radius:3px;padding:22px 16px 18px 44px;display:flex;flex-direction:column;gap:8px;box-shadow:0 2px 0 rgba(0,0,0,.15);position:relative;transform-origin:50% 0}
 .clipsheet .paper::before{content:'';position:absolute;top:0;bottom:0;left:34px;border-left:2px solid rgba(204,58,46,.25)}
-.clipsheet .paper.turn{animation:pageTurn .42s ease-out}
+.clipsheet .paper.ghost{position:absolute;top:34px;left:12px;right:12px;bottom:12px;overflow:hidden;pointer-events:none}
+.clipsheet .paper.ghost.fwd{z-index:3;animation:flipUp .45s ease-in forwards}
+.clipsheet .paper.ghost.back{z-index:0}
+.clipsheet .paper.down{z-index:2;animation:flipDown .45s ease-out}
 .clipsheet .clip-t{margin:0;font:400 28px var(--f-display);color:var(--ink)}
 .clipsheet .rs-h b,.clipsheet .stp-t b,.clipsheet .rulehead,.clipsheet .pl-o b{font-family:var(--f-display);font-weight:400}
 .clipsheet .rs-seg,.clipsheet .stp{border-bottom:0}
@@ -335,7 +338,8 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .clipsheet .stp.pdiff-row{background:none;box-shadow:none}
 .clipsheet .pdiff,.clipsheet .pl-sum b.pdiff{color:inherit}
 /* 형광펜: 글자에만 */
-.clipsheet .hl,.clipsheet .pdiff,.clipsheet .pdiff-row .stp-t>b{background:linear-gradient(transparent 42%,rgba(255,226,64,.75) 42%,rgba(255,226,64,.75) 92%,transparent 92%);border-radius:2px;padding:0 2px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.clipsheet .hl,.clipsheet .pdiff,.clipsheet .pdiff-row .stp-t>b{background:linear-gradient(transparent 42%,rgba(255,226,64,.75) 42%,rgba(255,226,64,.75) 92%,transparent 92%);box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.clipsheet .btn.hl,.clipsheet .segrow .btn.hl{background:linear-gradient(transparent 42%,rgba(255,226,64,.75) 42%,rgba(255,226,64,.75) 92%,transparent 92%) content-box}
 .clipsheet input.hl{background:linear-gradient(transparent 42%,rgba(255,226,64,.75) 42%,rgba(255,226,64,.75) 92%,transparent 92%)}
 /* 세부 설정 = 다음 쪽 (오른쪽 아래 접힌 모서리) */
 .clipsheet .pl-more{align-self:flex-end;margin-top:4px;padding:8px 12px 8px 22px;border:0;background:linear-gradient(135deg,transparent 50%,#e9dcc4 50%) right bottom/22px 22px no-repeat;font:400 15px var(--f-display);color:var(--muted)}
@@ -346,12 +350,20 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .clipsheet .paper.p2 .pl-more::before{content:'↶ 앞 장';font-size:15px}
 .clipsheet .pgno{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font:400 12px var(--f-display);color:var(--muted)}
 .clipsheet .clip-end{margin-top:auto}
+.clipsheet .stp{position:relative;padding:5px 0}
+.clipsheet .stp-t{display:block}
+.clipsheet .stp-t>b{display:inline;cursor:help}
+.clipsheet .stp-t small,.clipsheet .rs-h small,.clipsheet .pl-o small,.clipsheet .pd-note,.clipsheet .cardinfo,.clipsheet .stp-u{display:none}
+.clipsheet .stp-t.tip small{display:block;position:absolute;left:-8px;top:100%;z-index:5;width:min(250px,80%);padding:8px 10px;background:#fff59d;color:var(--ink);font-size:12.5px;line-height:1.45;box-shadow:0 4px 10px -4px rgba(0,0,0,.35);transform:rotate(-1.5deg)}
+.clipsheet .stp-v{width:2.6em;padding:4px 0;flex:none}
+.clipsheet .pl-sum{min-height:1.6em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .clipsheet .btn-red[data-act="setclose"]{flex:none;width:86px;height:86px;margin-left:auto;border-radius:50%;background:transparent;border:4px double var(--gura);color:var(--gura);box-shadow:none;font:400 22px var(--f-display);transform:rotate(-12deg)}
 .clipsheet .btn-red[data-act="setclose"].stamped{animation:stampIn .26s ease-out forwards}
 .clipsheet.ro .paper .stp-c,.clipsheet.ro .paper .segrow,.clipsheet.ro .paper .plever,.clipsheet.ro .paper [data-act^="tog:"],.clipsheet.ro .paper .linkbtn{pointer-events:none}
 .clipsheet.ro .stp-b{visibility:hidden}
 @keyframes clipIn{from{opacity:.2}to{opacity:1}}
-@keyframes pageTurn{0%{transform:perspective(900px) rotateX(-70deg);opacity:.3}100%{transform:none;opacity:1}}
+@keyframes flipUp{0%{transform:perspective(2200px) rotateX(0);filter:brightness(1);opacity:1}80%{filter:brightness(.8);opacity:1}100%{transform:perspective(2200px) rotateX(96deg);filter:brightness(.7);opacity:0}}
+@keyframes flipDown{0%{transform:perspective(2200px) rotateX(96deg);filter:brightness(.7);opacity:0}30%{opacity:1}100%{transform:perspective(2200px) rotateX(0);filter:brightness(1)}}
 @keyframes stampIn{0%{transform:scale(1.7) rotate(-12deg);opacity:.4}70%{transform:scale(.92) rotate(-12deg);opacity:1}100%{transform:scale(1) rotate(-12deg)}}
 @media (max-width:899px){.panel[data-kind="wait"] .setbtn span{display:none}.panel[data-kind="wait"] .vhead h2{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 .stage.holo .panel *{pointer-events:none}
@@ -876,7 +888,7 @@ const RESUME_MS=10*60*1000;   // 새로고침·앱 전환 뒤 이 시간 안이�
 const net={peer:null,conn:null,conns:new Set(),code:'',retry:null,savedAt:0,pub:null,pubBusy:false,pubRetryAt:0,handoff:''};
 let mode='lobby';           // lobby | host | guest | closed
 /* 첫 화면(탁자 하나) 상태. 자세한 설명은 frontBuild 위 */
-const FR={ok:false,stand:1,sa:null,ca:null,cloth:0,spread:false,warp:null,word:'',wordAt:0,wordMs:4500,shakeAt:-1e9,tw:0,rum:0,open:1,flaps:null,boardKey:'',drawn:'',applied:true,browse:false,hpos:0,sheetMin:false,lock:'',bad:false,buf:'',pub:null,leanOn:false,lean:0,keyAt:0,pop:null,holdAt:0,eye:''};
+const FR={ok:false,stand:1,sa:null,ca:null,cloth:0,spread:false,warp:null,word:'',wordAt:0,wordMs:4500,shakeAt:-1e9,tw:0,rum:0,open:1,flaps:null,boardKey:'',drawn:'',applied:true,browse:false,hpos:0,sheetMin:false,lock:'',bad:false,buf:'',pub:null,leanOn:false,lean:0,keyAt:0,pop:null,holdAt:0,eye:'',armAt:0,arm:{v:0,to:0,from:0,t0:0,ms:0}};
 let V=null, PV=null;        // 지금 화면 상태, 직전 상태
 const sel=new Set(); let pickNum=null;   // pickNum: 구라!에서 라운드를 시작할 때 고른 선언 자음
 
@@ -2000,9 +2012,10 @@ function showPanel(html,kind){
   const ae=document.activeElement,prevAct=ae&&p.contains(ae)&&ae.dataset?ae.dataset.act:null;
   const typing=ae&&ae.tagName==='INPUT'&&p.contains(ae)?{id:ae.id,v:ae.value,s:ae.selectionStart,e:ae.selectionEnd}:null;
   p.dataset.kind=kind||'';const clip=kind==='roomset'&&frTableUI(),pb=$('#panelBody');pb.classList.toggle('clipsheet',clip);if(!clip)pb.classList.remove('ro');
-  const pg=clip&&html.includes('class="pl-det"')?2:1,turn=clip&&lastPanelKind==='roomset'&&FR.page&&FR.page!==pg;if(clip)FR.page=pg;
-  pb.innerHTML=clip?`<div class="paper${pg===2?' p2':''}${turn?' turn':''}">${html}${pg===2||html.includes('class="pl-more"')?`<span class="pgno">${pg}/2</span>`:''}</div>`:html;
-  if(turn)sfx('paper');lastPanelHtml=html;$('#panelBody').classList.toggle('min',kind==='wait'&&FR.sheetMin);$('#panelBody').classList.toggle('wide',kind==='roomset');
+  const pg=clip&&html.includes('class="pl-det"')?2:1,turn=clip&&lastPanelKind==='roomset'&&FR.page&&FR.page!==pg,fwd=pg>(FR.page||1);if(clip)FR.page=pg;
+  const old=turn?pb.querySelector('.paper'):null,ghost=old?old.cloneNode(true):null,st0=old?old.scrollTop:0;
+  pb.innerHTML=clip?`<div class="paper${pg===2?' p2':''}${turn&&!fwd?' down':''}">${html}${pg===2||html.includes('class="pl-more"')?`<span class="pgno">${pg}/2</span>`:''}</div>`:html;
+  if(ghost){ghost.classList.add('ghost',fwd?'fwd':'back');ghost.classList.remove('down');pb.appendChild(ghost);ghost.scrollTop=st0;const np=pb.querySelector('.paper.down'),done=()=>ghost.remove();(fwd?ghost:np||ghost).addEventListener('animationend',done,{once:true});setTimeout(done,1500);sfx('paper')}lastPanelHtml=html;$('#panelBody').classList.toggle('min',kind==='wait'&&FR.sheetMin);$('#panelBody').classList.toggle('wide',kind==='roomset');
   if(typing&&typing.id){const el=document.getElementById(typing.id);if(el){el.value=typing.v;el.focus();try{el.setSelectionRange(typing.s,typing.e)}catch(_){}lastPanelKind=kind||'';return}}
   let target=prevAct?p.querySelector(`[data-act="${prevAct}"]:not([disabled])`):null;
   if(!target&&kind!==lastPanelKind)target=p.querySelector('[data-auto]:not([disabled])');
@@ -2086,7 +2099,7 @@ function renderPanel(){
       const body=G.settingsHTML?G.settingsHTML(c,{stepRow,common:COMMON_SET.map(d=>roomSetOf(G).find(x=>x.k===d.k))}):`<div class="rs-grid">${rows}</div>${rules?`<div class="rulehead">게임 규칙</div><div class="rs-grid tgs">${rules}</div>`:''}`;
       const modeRow=G.noFast?'':`<div class="rs-seg"><div class="rs-h"><b>게임 모드</b><small>${G.modeDesc[c.fast?1:0]}</small></div><div class="segrow" role="radiogroup" aria-label="게임 모드">${[0,1].map(v=>`<button class="btn ${(c.fast?1:0)===v?'btn-play':'btn-sub'}${clipUI&&v&&c.fast?' hl':''}" type="button" role="radio" aria-checked="${(c.fast?1:0)===v}" data-act="mode${v}">${OPT_LABEL.fast[v]}</button>`).join('')}</div></div>`;
       if(clipUI){   // 클립보드: 게임 고르기(홀로그램)·게임 방법(메뉴)·뒤로 버튼 없음. 바깥을 누르거나 Esc·도장으로 닫힘. 참가자는 읽기만
-        showPanel(`<h2 class="clip-t">${esc(G.name)}</h2>${modeRow}${body}${cardInfo}${ro?'':'<div class="row clip-end"><button class="btn btn-red" type="button" data-act="setclose" data-auto>확인</button></div>'}`,'roomset');
+        showPanel(`<h2 class="clip-t">${esc(G.name)}</h2>${modeRow}${body}${ro?'':'<div class="row clip-end"><button class="btn btn-red" type="button" data-act="setclose" data-auto>확인</button></div>'}`,'roomset');
         $('#panelBody').classList.toggle('ro',ro);
         return;
       }
@@ -2116,7 +2129,10 @@ function renderPanel(){
   hidePanel();
 }
 $('#panel').addEventListener('click',e=>{
-  if($('#panel').dataset.kind==='roomset'&&$('#panelBody').classList.contains('clipsheet')&&!e.target.closest('.card-sheet')){clipClose();return}   // 클립보드 바깥을 누르면 닫힘
+  if($('#panel').dataset.kind==='roomset'&&$('#panelBody').classList.contains('clipsheet')){
+    if(!e.target.closest('.card-sheet')){clipClose();return}   // 클립보드 바깥을 누르면 닫힘
+    const tt=e.target.closest('.stp-t');if(tt&&tt.querySelector('small')){const on=!tt.classList.contains('tip');document.querySelectorAll('.clipsheet .stp-t.tip').forEach(x=>x.classList.remove('tip'));tt.classList.toggle('tip',on);return}   // 항목 이름을 누르면 설명 포스트잇
+  }
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act;
   if(a==='sheetmin'){FR.sheetMin=!FR.sheetMin;$('#panelBody').classList.toggle('min',FR.sheetMin);sfx('tick');return}
@@ -3089,19 +3105,28 @@ function frontHoloPiece(id){
   const g=new THREE.Group(),mats=[];
   const add=(geo,mat,x=0,y=0,z=0,rx=0,ry=0,rz=0,sy=1)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.rotation.set(rx,ry,rz);m.scale.y=sy;m.renderOrder=41;g.add(m);if(!mats.includes(mat))mats.push(mat);return m};
   if(id==='gura'){const m=holoMat(0xffffff,T.back.map);add(new THREE.BoxGeometry(.4,.58,.012),m,-.09,0,0,0,0,.14);add(new THREE.BoxGeometry(.4,.58,.012),m,.1,.03,-.05,0,0,-.1)}   // 카드 두 장 (진짜 뒷면 그림)
-  else if(id==='president'){const m=holoMat(0xf2b632);add(new THREE.CylinderGeometry(.26,.24,.14,24,1,true),m);for(let k=0;k<5;k++){const a=k/5*Math.PI*2;add(new THREE.ConeGeometry(.07,.2,4),m,Math.sin(a)*.25,.16,Math.cos(a)*.25);add(new THREE.SphereGeometry(.035,8,6),m,Math.sin(a)*.25,.28,Math.cos(a)*.25)}}   // 왕관
+  else if(id==='president'){   // 카드 위에 작은 왕관
+    add(new THREE.BoxGeometry(.4,.58,.012),holoMat(0xffffff,T.back.map),0,-.06,0,0,0,-.06);
+    const m=holoMat(0xf2b632),cy=.3;add(new THREE.CylinderGeometry(.16,.15,.09,20,1,true),m,0,cy,0);
+    for(let k=0;k<5;k++){const a=k/5*Math.PI*2;add(new THREE.ConeGeometry(.045,.13,4),m,Math.sin(a)*.155,cy+.1,Math.cos(a)*.155);add(new THREE.SphereGeometry(.024,8,6),m,Math.sin(a)*.155,cy+.18,Math.cos(a)*.155)}}
   else if(id==='quoridor'){const pw=holoMat(0xd99a5a),wl=holoMat(0x8a5530);add(new THREE.CylinderGeometry(.08,.15,.3,16),pw,-.16,-.06,0);add(new THREE.SphereGeometry(.1,14,10),pw,-.16,.16,0);add(new THREE.BoxGeometry(.08,.24,.62),wl,.18,-.08,0)}   // 말과 벽
-  else if(id==='yahtzee'){const dt=canvasTex(128,128,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.fillStyle='#cc3a2e';for(const [a,b] of [[32,32],[96,32],[64,64],[32,96],[96,96]]){x.beginPath();x.arc(a,b,13,0,7);x.fill()}});add(new THREE.BoxGeometry(.36,.36,.36),holoMat(0xffffff,dt),0,0,0,.5,.6,0)}   // 주사위
+  else if(id==='yahtzee'){   // 컵에서 주사위가 비어져 나옴
+    const dt=canvasTex(128,128,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.fillStyle='#cc3a2e';for(const [a,b] of [[32,32],[96,32],[64,64],[32,96],[96,96]]){x.beginPath();x.arc(a,b,13,0,7);x.fill()}}),dm=holoMat(0xffffff,dt);
+    add(new THREE.CylinderGeometry(.2,.16,.42,24,1,true),holoMat(0x8a4a2a),-.1,-.04,0,0,0,-.5);
+    add(new THREE.BoxGeometry(.17,.17,.17),dm,.14,-.16,.06,.4,.7,.2);add(new THREE.BoxGeometry(.17,.17,.17),dm,.3,-.17,-.08,.9,.2,.5);add(new THREE.BoxGeometry(.17,.17,.17),dm,.04,.16,.02,.3,1.1,.8)}
   else if(id==='omok'){add(new THREE.SphereGeometry(.2,20,12),holoMat(0x2a2a2a),-.13,0,0,0,0,0,.45);add(new THREE.SphereGeometry(.2,20,12),holoMat(0xf6f3ea),.13,.1,-.05,0,0,0,.45)}   // 흑돌·백돌
   else add(new THREE.OctahedronGeometry(.25),holoMat(0xffffff));
   g.userData={mats};return g;
 }
+/* 탁자에서 올라오는 물건(투사기·시작 버튼)의 구멍: 카메라 조리개처럼 열리고 닫힘 */
+function frontHole(TG,x,y,z,r){
+  const hole=new THREE.Group();hole.position.set(x,y,z);TG.add(hole);
+  const hd=new THREE.Mesh(new THREE.CircleGeometry(r,40),new THREE.MeshBasicMaterial({color:0x15100c}));hd.rotation.x=-Math.PI/2;hole.add(hd);
+  const hr=new THREE.Mesh(new THREE.RingGeometry(r,r*1.12,40),new THREE.MeshBasicMaterial({color:0x9a7a4a}));hr.rotation.x=-Math.PI/2;hr.position.y=.001;hole.add(hr);
+  hole.scale.setScalar(.001);hole.visible=false;return hole;
+}
 function frontBuildHolo(TG){
-  // 투사기가 올라올 구멍: 천이 다 깔리면 카메라 조리개처럼 열림
-  const hole=new THREE.Group();hole.position.y=.0185;TG.add(hole);
-  const hd=new THREE.Mesh(new THREE.CircleGeometry(.5,40),new THREE.MeshBasicMaterial({color:0x15100c}));hd.rotation.x=-Math.PI/2;hole.add(hd);
-  const hr=new THREE.Mesh(new THREE.RingGeometry(.5,.56,40),new THREE.MeshBasicMaterial({color:0x9a7a4a}));hr.rotation.x=-Math.PI/2;hr.position.y=.001;hole.add(hr);
-  hole.scale.setScalar(.001);hole.visible=false;
+  const hole=frontHole(TG,0,.0185,0,.5);   // 천이 다 깔리면 열림
   const g=new THREE.Group();g.position.y=-.35;TG.add(g);
   const metal=toon({color:0x3a3430,rim:.25}),brass=toon({color:0xb8925a,rim:.3});
   const base=new THREE.Mesh(new THREE.CylinderGeometry(.3,.4,.16,32),metal);base.position.y=.08;base.castShadow=true;g.add(base);hull(new THREE.CylinderGeometry(.32,.43,.19,32),base,g);
@@ -3142,10 +3167,11 @@ function frontDrawClip(id){
 }
 /* 시작 버튼: 디스플레이 왼쪽 나무 띠에서 올라오는 둥근 빨간 버튼 (방장). 0.5초 누르고 있으면 시작 */
 function frontBuildStart(TG){
+  const hole=frontHole(TG,-1.2,.003,4.18,.33);
   const g=new THREE.Group();g.position.set(-1.2,-.3,4.18);TG.add(g);
   const base=new THREE.Mesh(new THREE.CylinderGeometry(.26,.3,.1,32),toon({color:0x3a3430,rim:.2}));base.position.y=.05;base.castShadow=true;g.add(base);hull(new THREE.CylinderGeometry(.28,.33,.13,32),base,g);
   const cap=new THREE.Mesh(new THREE.CylinderGeometry(.2,.21,.12,32),toon({color:0xcc3a2e,rim:.35}));cap.position.y=.15;cap.castShadow=true;g.add(cap);hull(new THREE.CylinderGeometry(.215,.225,.15,32),cap,g);
-  T.startBtn={g,cap};
+  T.startBtn={g,cap,hole};
 }
 /* 디스플레이 그리기: 바뀐 칸만 넘어감(그동안 아무 글자나 빠르게) */
 function frontSetBoard(chars,spin){
@@ -3211,12 +3237,14 @@ const _m4=window.THREE?new THREE.Matrix4():null,_fpose=window.THREE?{p:new THREE
 function frontApplyCam(){
   if(!T.seat||!T.front)return;
   const t=clock(),u=FR.stand,k=u*u*(3-2*u),jolt=t-FR.shakeAt<420?(1-(t-FR.shakeAt)/420):0,rum=FR.rum||0;
-  if(k<=0&&!jolt&&!rum){if(!FR.applied){FR.applied=true;T.cam.position.copy(T.seat.p);T.cam.quaternion.copy(T.seat.q);T.cam.projectionMatrix.copy(T.seat.m);T.cam.projectionMatrixInverse.copy(T.seat.m).invert();T.cam.updateMatrixWorld();frontFog()}return}
+  const am=FR.arm?FR.arm.v:0;
+  if(k<=0&&!jolt&&!rum&&!am){if(!FR.applied){FR.applied=true;T.cam.position.copy(T.seat.p);T.cam.quaternion.copy(T.seat.q);T.cam.projectionMatrix.copy(T.seat.m);T.cam.projectionMatrixInverse.copy(T.seat.m).invert();T.cam.updateMatrixWorld();frontFog()}return}
   FR.applied=false;
   const l=FR.lean||0,ls=l*l*(3-2*l),F=_fpose;   // 서서 봄 ↔ 숙여서 봄
   F.p.lerpVectors(T.front.p,T.lean.p,ls);F.q.copy(T.front.q).slerp(T.lean.q,ls);{const a=T.front.m.elements,b=T.lean.m.elements,e=F.m.elements;for(let i=0;i<16;i++)e[i]=a[i]+(b[i]-a[i])*ls}
   T.cam.position.lerpVectors(T.seat.p,F.p,k);
   T.cam.quaternion.copy(T.seat.q).slerp(F.q,k);
+  if(am){const a=am*am*(3-2*am);T.cam.position.z+=.9*a;T.cam.position.y+=.55*a}   // 떠나려고 의자를 뺌
   const s=jolt*.12+rum*.012;   // 눈은 조금만 흔들림 (탁자가 더 흔들림)
   if(s){T.cam.position.x+=Math.sin(t/23)*s;T.cam.position.y+=Math.cos(t/17)*s*.7}
   const a=T.seat.m.elements,b=F.m.elements,e=_m4.elements;for(let i=0;i<16;i++)e[i]=a[i]+(b[i]-a[i])*k;
@@ -3323,11 +3351,13 @@ function frontUpdate(t,dt){
   }
   // 서기 ↔ 앉기
   const want=lobby&&!FR.warp?1:0;
+  if(FR.armAt&&(t-FR.armAt>2500||!frTableUI()))FR.armAt=0;
+  frontTween(FR.arm,FR.armAt?1:0,t,FR.armAt?260:320);
   FR.stand=frontTween(FR.sa,want,t,want?900:1100);frontApplyCam();
   if(FR.warp&&T.scene.fog){const d=T.cam.position.length(),k=FR.warp.fog||0;T.scene.fog.near=d+5+(1-5)*k;T.scene.fog.far=d+22+(8-22)*k}
   {const st=$('#stage'),sit=!lobby&&FR.stand>.04;if(st.classList.contains('frsit')!==sit)st.classList.toggle('frsit',sit)}   // 앉는 동안은 창을 잠깐 숨김
   // 천
-  const cw=!lobby||FR.spread?1:0;
+  const cw=!lobby||FR.spread||(FR.dva&&FR.dva.v>.01)||(FR.hla&&FR.hla.v>.01)?1:0;   // 탁자를 정리할 때는 투사기·구멍이 다 들어간 뒤에 천을 맒
   if(FR.ca.to!==cw&&!cw&&FR.cloth>=1)sfx('clothUp');
   FR.cloth=frontTween(FR.ca,cw,t,cw?1150:900);
   frontClothPose(FR.cloth,t,lobby);
@@ -3346,7 +3376,7 @@ function frontUpdate(t,dt){
   if(FR.word&&t-FR.wordAt>FR.wordMs)FR.word='';
   let chars=[' ',' ',' ',' '],spin=false;FR.bad=false;
   const hid=FR.browse?frontHoloId():null;
-  if(FR.word){const s=FR.word;chars=s.length===2?[' ',s[0],s[1],' ']:s.padEnd(4).slice(0,4).split('')}
+  if(FR.word){const s=FR.word;chars=s.length===2?[' ',s[0],s[1],' ']:s.length===3?[' ',...s]:s.padEnd(4).slice(0,4).split('')}
   else if(FR.warp&&FR.warp.ph!=='fail'){if(FR.warp.code)chars=FR.warp.code.toUpperCase().padEnd(4).slice(0,4).split('');else spin=true}
   else if(lobby&&FR.scan)spin=true;
   else if(lobby&&FR.pub)chars=FR.pub.toUpperCase().padEnd(4).slice(0,4).split('');
@@ -3361,9 +3391,13 @@ function frontUpdate(t,dt){
   // 투사기·홀로그램, 클립보드, 시작 버튼
   frontHoloPose(t,wait);
   frontClipPose(t,wait);
-  if(T.startBtn){const S=T.startBtn,sw=wait&&host&&FR.stand<.05&&!FR.browse&&!roomSetOpen?1:0;
+  if(T.startBtn){const S=T.startBtn,want=wait&&host&&FR.stand<.05&&!FR.browse&&!roomSetOpen;
+    // 구멍이 열림 → 버튼이 올라옴 (내려갈 때는 버튼 → 구멍)
+    const hw=want||FR.sta.v>.02?1:0,hu=smooth(frontTween(FR.sha,hw,t,hw?260:220));S.hole.visible=hu>.01;S.hole.scale.setScalar(Math.max(.001,hu));
+    if(FR.sha.to===1&&FR.sha.v>=1&&!FR.btnHoleSnd){FR.btnHoleSnd=1;sfx('iris')}if(!hw)FR.btnHoleSnd=0;
+    const sw=want&&hu>.98?1:0;
     if(FR.sta.to!==sw&&sw)sfx('btnUp');
-    const su=smooth(frontTween(FR.sta,sw,t,sw?450:300));S.g.position.y=-.3+.3*su;S.g.visible=su>.01;
+    const su=smooth(frontTween(FR.sta,sw,t,sw?420:300));S.g.position.y=-.3+.3*su;S.g.visible=su>.01;
     const hp=FR.holdAt?clamp01((t-FR.holdAt)/500):0;S.cap.position.y=.15-.06*Math.min(1,hp*3);
     $('#frStart').style.setProperty('--p',hp);
     if(FR.holdAt&&hp>=1){FR.holdAt=0;if(mode==='host'&&H&&H.phase==='wait'){sfx('btnGo');hostStart()}}}
@@ -3372,15 +3406,17 @@ function frontUpdate(t,dt){
 /* 천: c 0 = 맞은편 끝에 말려 있음, 1 = 다 깔림. 말린 통이 나를 향해 굴러오며 가늘어지고, 지나간 자리에 천이 깔림 */
 function frontClothPose(c,t,lobby){
   const F=T.felt,K=T.cloth;if(!F||!K)return;
-  const e=c<=0?0:c>=1?1:c*c*(3-2*c),zf=ROLL.Z0+(ROLL.Z1-ROLL.Z0)*e;
-  const r=Math.sqrt(ROLL.R0*ROLL.R0-(ROLL.R0*ROLL.R0-ROLL.R1*ROLL.R1)*e);
-  K.plane.constant=c>=1?100:zf;
+  const e=c<=0?0:c>=1?1:c*c*(3-2*c),zf=ROLL.Z0+(ROLL.Z1-ROLL.Z0)*e,k=ROLL.R0*ROLL.R0-ROLL.R1*ROLL.R1;
+  const r=Math.sqrt(ROLL.R0*ROLL.R0-k*e);
+  K.plane.constant=c>=1?100:zf;   // 천은 통이 바닥에 닿는 자리까지만 깔림
   F.mat.visible=F.ink.visible=c>0;
   const gone=c>=.985;K.C.visible=!gone;
   if(gone)return;
+  // 통 길이 = 아직 말려 있는 천(zf부터 내 쪽 끝까지)의 가장 넓은 폭: 가운데를 지나기 전엔 지름, 지나면 그 자리의 폭
+  const RF=3.15,len=zf<=0?2*RF:2*Math.sqrt(Math.max(0,RF*RF-zf*zf));
   const bob=c<=0&&lobby?.012*Math.max(0,Math.sin(t/520)):0;   // 가만히 있을 때 살짝 들썩 (누를 수 있다는 표시)
-  K.C.position.set(0,r+bob,zf+r*.95);K.C.scale.set(1,r,r);
-  K.spin.rotation.x=(zf-ROLL.Z0)/((ROLL.R0+r)/2)+(c<=0&&lobby?.06*Math.sin(t/520):0);
+  K.C.position.set(0,r+.016+bob,zf);K.C.scale.set(Math.max(.05,len/ROLL.L),r,r);
+  K.spin.rotation.x=(ROLL.Z1-ROLL.Z0)*2*(ROLL.R0-r)/k+(c<=0&&lobby?.06*Math.sin(t/520):0);   // 굴러간 거리만큼 정확히 돎 (∫dz/r)
 }
 /* 홀로그램: idle = 지금 게임 말 하나가 투사기 위에서 천천히 돎, browse = 가운데 크게·양옆 작게 */
 function frontCanPlay(id){const g=gameOf(id);return !(g.maxHi&&V&&V.ps&&V.ps.length>g.maxHi)}
@@ -3562,6 +3598,17 @@ document.addEventListener('keydown',e=>{   // 대기실: Esc로 클립보드·�
   if(FR.pop!=null){e.preventDefault();seatPopClose();return}
   if(roomSetOpen){e.preventDefault();clipClose()}
 });
+/* 탁자 밖(풀밭·하늘)을 누르면 의자를 빼듯 살짝 일어나고 디스플레이에 '떠나기' → 2.5초 안에 한 번 더 누르면 떠남. 탁자를 누르거나 기다리면 다시 앉음 (대기실만) */
+const _ray=window.THREE?new THREE.Raycaster():null,_gp=window.THREE?new THREE.Plane(new THREE.Vector3(0,1,0),0):null;
+$('#cv').addEventListener('click',e=>{
+  if(!frTableUI()||FR.stand>.05||FR.browse||roomSetOpen||FR.pop!=null)return;
+  const r=$('#cv').getBoundingClientRect(),nx=(e.clientX-r.left)/r.width*2-1,ny=-((e.clientY-r.top)/r.height*2-1);
+  _ray.setFromCamera({x:nx,y:ny},T.cam);const hit=_ray.ray.intersectPlane(_gp,_v3);
+  const out=!hit||Math.hypot(hit.x,hit.z)>4.95,t=clock(),armed=FR.armAt&&t-FR.armAt<2500;
+  if(!out){if(armed){FR.armAt=0;FR.word='';sfx('tick')}return}
+  if(armed){FR.armAt=0;FR.word='';leaveRoom();return}
+  FR.armAt=t;frontWord('떠나기',2500);sfx('tick');
+});
 /* ===== 대기실 자리 이름표 (대기실 창 대신) =====
    사람·봇 자리 = 이름표, 빈 자리 = 점선 '+' 이름표. 누르면 작은 메뉴:
    방장 → 봇 난이도·선·내보내기 / 빈 자리: 봇 앉히기·자리 치우기,  나 → 이모티콘·관전하기,  관전 중 빈 자리 → 앉기 */
@@ -3631,7 +3678,7 @@ function frontStart(){
   if(!T.ok)return;
   FR.ok=true;frontNick();
   const v=mode==='lobby'?1:0,tw=x=>({v:x,to:x,from:x,t0:0,ms:0});
-  FR.stand=v;FR.sa=tw(v);FR.cloth=1-v;FR.ca=tw(1-v);FR.open=v;FR.oa=tw(v);FR.dva=tw(0);FR.hla=tw(0);FR.hba=tw(0);FR.cla=tw(0);FR.hra=tw(0);FR.ka=tw(v);FR.la=tw(0);FR.sta=tw(0);FR.lean=0;
+  FR.stand=v;FR.sa=tw(v);FR.cloth=1-v;FR.ca=tw(1-v);FR.open=v;FR.oa=tw(v);FR.dva=tw(0);FR.hla=tw(0);FR.hba=tw(0);FR.cla=tw(0);FR.hra=tw(0);FR.ka=tw(v);FR.la=tw(0);FR.sta=tw(0);FR.sha=tw(0);FR.arm=tw(0);FR.lean=0;
   if(mode==='lobby'&&lobbyView==='main')showView('main',false);
   const n=$('#resumeNote');if(n.textContent)$('#frNote').textContent=n.textContent;
 }
