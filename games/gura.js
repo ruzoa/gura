@@ -152,7 +152,7 @@ function doSurrender(i){
   const p=H.players[i];
   if(H.last&&H.last.p===i&&H.last.open){H.last.open=false;H.shouts=[]}   // 항복한 사람의 카드에는 구라를 외칠 수 없음
   p.hand=[];p.finished=true;p.surrendered=true;p.rank=H.rankBottom--;
-  addLog(`${p.name} 항복! ${p.rank}위`,'lie');
+  addLog(`${p.name} ${p.deserter?'탈주':'항복'}! ${p.rank}위`,'lie');
   const act=H.players.filter(x=>!x.finished);
   if(act.length<=1){checkEnd();return}
   if(H.roundNum!=null&&H.last){

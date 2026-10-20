@@ -364,7 +364,7 @@ function doSurrender(i){
   const p=H.players[i];
   leaveTrick(i);
   p.hand=[];p.finished=true;p.surrendered=true;p.rank=H.rankBottom--;
-  addLog(`${p.name} 항복! ${p.rank}위`,'lie');
+  addLog(`${p.name} ${p.deserter?'탈주':'항복'}! ${p.rank}위`,'lie');
   const act=H.players.filter(x=>!x.finished);
   if(act.length<=1){checkEnd();return}
   if(H.tk&&trickDone()){endTrick();return}

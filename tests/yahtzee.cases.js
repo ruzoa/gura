@@ -187,12 +187,13 @@ for(let rep=0;rep<30;rep++){
  const t2=H.turn;Y.engine.act(t2,{t:'roll'});NOW=H.deadline+1;engineTick();
  eq(filled(t2),1,'timeout after a roll');if(H.turn===t2)fail('yahtzee turn after timeout 2')}
 
-/* 연결이 끊긴 사람은 일정 시간 뒤 봇이 대신 둠 */
+/* 연결이 끊긴 사람: 봇이 두지 않고 기다리다(제한 시간도 멈춤) 탈주로 항복 처리 */
 {mk({},2);
- const t=H.turn,p=H.players[t];p.bot=true;p.away=true;p.awayAt=NOW;H.botActAt=NOW;
- engineTick();eq(H.y.rolled,false,'away player waits before bot acts');
- NOW+=AWAY_WAIT+1;engineTick();eq(H.y.sh,1,'bot takes over after away wait (shakes)');
- NOW=H.botActAt;engineTick();eq(H.y.rolled,true,'bot rolls after away wait')}
+ const t=H.turn,p=H.players[t];if(p.host){p.host=false;H.players[1-t].host=true}
+ p.bot=true;p.away=true;p.awayAt=NOW;H.botActAt=NOW;
+ engineTick();eq(H.y.rolled,false,'away player waits');
+ NOW+=DESERT_WAIT-1000;engineTick();eq(H.y.sh,0,'no bot while waiting (shake)');eq(H.y.rolled,false,'no bot while waiting (roll)');eq(H.turn,t,'turn kept while waiting');
+ NOW+=1001;engineTick();eq(H.phase,'over','deserter surrendered');eq(snapFor(0).ps[t].sr,3,'deserter sr')}
 
 /* 항복 */
 {mk({},3);

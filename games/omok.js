@@ -175,7 +175,7 @@ function botPick(O,seat,lv){
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 가로·세로·대각선으로 내 돌 5개를 먼저 이어 놓으면 <b>승리</b>합니다</li><li><b>진행</b> : 흑이 먼저 두고 번갈아 한 수씩 둡니다. 둔 돌은 옮기거나 물릴 수 없고, 판이 가득 차면 무승부입니다</li><li><b>시계</b> : 두 사람이 각자의 총 시간을 쓰는 체스 시계입니다. 내 차례에는 내 시간이 줄고, 한 수를 둘 때마다 추가 시간이 붙습니다. 총 시간을 다 쓰면 <b>패배</b>합니다. 연결이 끊긴 사람은 봇이 대신 둡니다</li><li><b>규칙 고르기</b> : 탁자 설정의 레버로 <b>자유</b>(금수·오프닝 없음)와 <b>렌주</b>(흑 금수 + Swap2 오프닝)를 고릅니다. 세부 설정을 바꾸면 커스텀이 됩니다</li><li><b>장목(6목 이상)</b> : <b>승리</b>(6목도 이김), <b>승리 아님</b>(두어도 되지만 이기지 못하고 게임이 계속됨), <b>흑만 금수</b>(흑이 두면 반칙, 백은 6목도 이김) 중에서 정합니다. 정확히 5목이 되는 수는 언제나 승리가 먼저입니다</li><li><b>금수</b> : 금수가 켜져 있으면 흑이 둘 수 없는 자리에 빨간 ✕가 보이고 놓을 수 없습니다. <b>3-3</b>(열린 3이 둘), <b>4-4</b>(4가 둘)이며, 열린 3이 되려면 한 칸 더 둔 자리가 금수가 아니어야 합니다. 3-4는 둘 수 있습니다</li><li><b>Swap</b> : 선플레이어가 돌 3개(흑·백·흑)를 놓으면 상대가 흑과 백 중 하나를 고르고, 백부터 둡니다</li><li><b>Swap2</b> : 돌 3개를 놓은 뒤 상대가 ① 백 선택 ② 흑 선택 ③ 돌 2개(백·흑)를 더 놓고 선택권을 넘기기 중 하나를 고릅니다. ③이면 선플레이어가 흑과 백을 고르고 백부터 둡니다. 오프닝 돌에는 금수 판정을 하지 않습니다</li><li><b>다음 판</b> : 이긴 사람이 선플레이어(오프닝이 없으면 흑)가 되고, 비기면 서로 바꿉니다. 첫 판은 탁자 설정의 선플레이어로 정합니다</li><li><b>조작</b> : 놓을 칸을 누르면 반투명 돌로 미리 보이고, <b>[놓기]</b>를 누르면 확정합니다. 설정의 <b>두 번 눌러 놓기</b>를 켜면 같은 칸을 한 번 더 눌러 바로 둡니다</li><li><b>기보</b> : 세로줄은 왼쪽부터 a~, 가로줄은 아래부터 1~입니다. 게임이 끝나면 기보를 복사할 수 있습니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 가로·세로·대각선으로 내 돌 5개를 먼저 이어 놓으면 <b>승리</b>합니다</li><li><b>진행</b> : 흑이 먼저 두고 번갈아 한 수씩 둡니다. 둔 돌은 옮기거나 물릴 수 없고, 판이 가득 차면 무승부입니다</li><li><b>시계</b> : 두 사람이 각자의 총 시간을 쓰는 체스 시계입니다. 내 차례에는 내 시간이 줄고, 한 수를 둘 때마다 추가 시간이 붙습니다. 총 시간을 다 쓰면 <b>패배</b>합니다. 연결이 끊기면 시계를 멈추고 45초 기다리며, 돌아오지 않으면 탈주로 처리합니다</li><li><b>규칙 고르기</b> : 탁자 설정의 레버로 <b>자유</b>(금수·오프닝 없음)와 <b>렌주</b>(흑 금수 + Swap2 오프닝)를 고릅니다. 세부 설정을 바꾸면 커스텀이 됩니다</li><li><b>장목(6목 이상)</b> : <b>승리</b>(6목도 이김), <b>승리 아님</b>(두어도 되지만 이기지 못하고 게임이 계속됨), <b>흑만 금수</b>(흑이 두면 반칙, 백은 6목도 이김) 중에서 정합니다. 정확히 5목이 되는 수는 언제나 승리가 먼저입니다</li><li><b>금수</b> : 금수가 켜져 있으면 흑이 둘 수 없는 자리에 빨간 ✕가 보이고 놓을 수 없습니다. <b>3-3</b>(열린 3이 둘), <b>4-4</b>(4가 둘)이며, 열린 3이 되려면 한 칸 더 둔 자리가 금수가 아니어야 합니다. 3-4는 둘 수 있습니다</li><li><b>Swap</b> : 선플레이어가 돌 3개(흑·백·흑)를 놓으면 상대가 흑과 백 중 하나를 고르고, 백부터 둡니다</li><li><b>Swap2</b> : 돌 3개를 놓은 뒤 상대가 ① 백 선택 ② 흑 선택 ③ 돌 2개(백·흑)를 더 놓고 선택권을 넘기기 중 하나를 고릅니다. ③이면 선플레이어가 흑과 백을 고르고 백부터 둡니다. 오프닝 돌에는 금수 판정을 하지 않습니다</li><li><b>다음 판</b> : 이긴 사람이 선플레이어(오프닝이 없으면 흑)가 되고, 비기면 서로 바꿉니다. 첫 판은 탁자 설정의 선플레이어로 정합니다</li><li><b>조작</b> : 놓을 칸을 누르면 반투명 돌로 미리 보이고, <b>[놓기]</b>를 누르면 확정합니다. 설정의 <b>두 번 눌러 놓기</b>를 켜면 같은 칸을 한 번 더 눌러 바로 둡니다</li><li><b>기보</b> : 세로줄은 왼쪽부터 a~, 가로줄은 아래부터 1~입니다. 게임이 끝나면 기보를 복사할 수 있습니다</li></ol>';
 G.modeDesc=['먼저 5목을 만든 사람이 이기면 끝','먼저 5목을 만든 사람이 이기면 끝'];
 
 /* 규칙 묶음: 레버로 고르는 자유 / 렌주. 세부 설정을 바꾸면 레버가 가운데(커스텀)로 옴 */
@@ -261,8 +261,8 @@ function finishGame(winSeat,why,line){
     const l=other(winSeat),pw=H.players[winSeat],pl=H.players[l];
     pw.finished=true;pw.rank=1;pw.hand=[];
     pl.finished=true;pl.rank=2;pl.hand=[];
-    if(why==='time')pl.surrendered='time';else if(why==='surrender')pl.surrendered=true;
-    addLog(why==='time'?`${pl.name} 시간 초과로 패배! ${pw.name} 승리`:why==='surrender'?`${pl.name} 항복! ${pw.name} 승리`:`${pw.name} 승리! (${CNAME[O.co[winSeat]]})`,why?'lie':'fin');
+    if(why==='time')pl.surrendered='time';else if(why==='surrender'||why==='desert')pl.surrendered=true;
+    addLog(why==='time'?`${pl.name} 시간 초과로 패배! ${pw.name} 승리`:why==='surrender'||why==='desert'?`${pl.name} ${why==='desert'?'탈주':'항복'}! ${pw.name} 승리`:`${pw.name} 승리! (${CNAME[O.co[winSeat]]})`,why?'lie':'fin');
   }else{
     for(const i of [0,1]){const p=H.players[i];p.finished=true;p.rank=1;p.hand=[]}
     addLog('무승부입니다.','sys');
@@ -316,7 +316,7 @@ function doPick(seat,v){
 }
 function doSurrender(seat){
   if(H.phase!=='play'||seat<0||seat>1||H.players[seat].finished)return;
-  finishGame(other(seat),'surrender');
+  finishGame(other(seat),H.players[seat].deserter?'desert':'surrender');
 }
 function timeout(){
   const i=H.o.mv;
@@ -408,7 +408,7 @@ function recordText(v){
   lines.push(mv.join(' '));
   if(v.st==='over'&&o.res){
     const r=o.res;
-    lines.push('결과: '+(r.w<0?'무승부':`${name(r.w)} 승리${r.why==='time'?' (상대 시간 초과)':r.why==='surrender'?' (상대 항복)':''}`));
+    lines.push('결과: '+(r.w<0?'무승부':`${name(r.w)} 승리${r.why==='time'?' (상대 시간 초과)':r.why==='surrender'?' (상대 항복)':r.why==='desert'?' (상대 탈주)':''}`));
   }
   return lines.join('\n');
 }
@@ -589,7 +589,7 @@ function hintText(){
   if(!V||!V.o||!OS)return '';
   if(V.st==='over'){
     const r=OS.res;if(!r)return '게임이 끝났습니다.';
-    return r.w<0?'무승부입니다.':`${nm(r.w)} 승리${r.why==='time'?' (시간 초과)':r.why==='surrender'?' (항복)':''}`;
+    return r.w<0?'무승부입니다.':`${nm(r.w)} 승리${r.why==='time'?' (시간 초과)':r.why==='surrender'?' (항복)':r.why==='desert'?' (탈주)':''}`;
   }
   if(introWait())return '';
   const me=myIdx(),ph=OS.ph,mine=me>=0&&V.t===me;

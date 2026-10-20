@@ -887,8 +887,10 @@ function hostAct(seat,a){
 function engineTick(){
   if(!H)return;
   const t=clock();
-  if(H.phase!=='wait'&&H.phase!=='over'&&!dealing())EG().engine.tick(t);
-  if(H&&H.phase==='play')deserterTick(t);
+  const dt=H.tickAt?Math.max(0,t-H.tickAt):0;H.tickAt=t;
+  const inGame=ph=>ph!=='wait'&&ph!=='over';   // 게임 중 (구라!의 판정 'reveal'도 포함)
+  if(inGame(H.phase))deserterTick(t,dt);
+  if(H&&inGame(H.phase)&&!dealing())EG().engine.tick(t);
   if(H&&H.phase==='wait'){   // 대기실에서 끊긴 뒤 돌아오지 않은 사람은 정리
     const before=H.members.length;
     H.members=H.members.filter(m=>!(m.away&&t>m.awayAt+30000));
@@ -896,22 +898,29 @@ function engineTick(){
   }
   if(H&&H.online&&t-lastBeat>3000)mark();
 }
-const AWAY_WAIT=20000;   // 연결이 끊기고 이만큼 지나면 봇이 대신 둠
-const DESERT_WAIT=45000;   // 끊긴 채 이만큼 이어지면 탈주로 확정 (방장은 나가면 탁자가 넘어가므로 해당 없음)
-/* 탈주: '탁자 떠나기'는 바로, 연결 끊김은 DESERT_WAIT 동안 이어졌을 때. 그 자리는 항복 처리(항복을 못 받는 때는 봇이 계속 둠)하고 이름표에 표시 */
-function desertSeat(i){
+const DESERT_WAIT=45000;   // 연결이 끊긴 채 이만큼 이어지면 탈주로 확정
+const AWAY_WAIT=DESERT_WAIT;   // 게임 파일이 씀: 끊긴 사람 자리는 이 시간 전에는 봇이 두지 않음 (기다리다 탈주로 넘어감)
+/* 탈주: '탁자 떠나기'는 바로, 연결 끊김은 DESERT_WAIT 동안 이어졌을 때. 기다리는 동안은 봇 없이 그 사람의 제한 시간을 멈춤.
+   탈주한 자리는 항복 처리하고(항복을 못 받는 동안만 봇이 둠) 이름표에 표시. 방장은 사람이 혼자일 때만(나가면 탁자를 넘길 사람이 없음) */
+const humanP=p=>!p.deserter&&(!p.bot||p.away||!!p.cid);   // 봇 자리는 cid가 없음. 끊긴 사람은 bot이어도 사람
+const soloHost=()=>!!H&&H.players.every(p=>p.host||!humanP(p));
+function desertSeat(i,why){
   const p=H&&H.players[i];
-  if(!p||p.host||p.deserter||H.phase!=='play')return;
-  p.deserter=true;p.bot=true;p.conn=null;
-  if(!p.away){p.away=true;p.awayAt=clock()-AWAY_WAIT}   // 나가기 버튼: 봇이 바로 이어받음
-  addLog(`${p.name} 탈주`,'sys');
+  if(!p||p.deserter||p.finished||H.phase==='wait'||H.phase==='over')return;   // 이미 끝난(탈출·항복) 사람은 그대로
+  if(p.host&&!soloHost())return;
+  p.deserter=true;p.dzWhy=why||'';p.dzTry=0;p.bot=true;p.conn=null;
+  if(!p.away||typeof p.awayAt!=='number'){p.away=true;p.awayAt=clock()-AWAY_WAIT}   // 항복을 못 받는 동안은 봇이 바로 이어받음
+  else p.awayAt=Math.min(p.awayAt,clock()-AWAY_WAIT);
   mark();
 }
-function deserterTick(t){
+function deserterTick(t,dt){
+  const cur=H.players[H.turn];
+  if(cur&&cur.away&&!cur.deserter&&!cur.host&&typeof H.deadline==='number'&&!dealing())H.deadline+=dt;   // 끊긴 사람 차례: 돌아오거나 탈주할 때까지 제한 시간을 멈춤
   H.players.forEach((p,i)=>{
-    if(p.host)return;
-    if(!p.deserter&&p.away&&typeof p.awayAt==='number'&&t>=p.awayAt+DESERT_WAIT)desertSeat(i);
-    if(p.deserter&&!p.finished&&!dealing()&&(p.dzTry=(p.dzTry||0)+1)<=200)hostAct(i,{t:'surrender'});   // 못 받으면(연출 중 등) 다음 틱에 다시
+    if(!p.host&&!p.deserter&&p.away&&typeof p.awayAt==='number'&&t>=p.awayAt+DESERT_WAIT)desertSeat(i);
+    if(!p.deserter||p.finished||dealing()||H.phase==='wait'||H.phase==='over')return;
+    hostAct(i,{t:'surrender'});   // 못 받는 때(연출 중, 구라! 판정 대기 등)는 다음 틱에 다시
+    if(!p.finished&&!p.dzLog){p.dzLog=1;addLog(`${p.name} 탈주`,'sys')}   // 받았으면 게임이 '탈주!'로 기록함
   });
 }
 setInterval(engineTick,100);
@@ -928,6 +937,7 @@ function snapFor(you){
   s.t=H.turn;
   if(H.dealUntil>t){s.dk=Math.round(H.dealUntil-t);s.di=H.dealId;s.dm=H.dealMs||0;if(H.dealAgain)s.dg=1;if(H.fp)s.fp=H.fp}   // 카드를 나누는 중 (남은 ms, fp: 첫 차례 룰렛의 빠른 칸 수)
   EG().engine.snap(s,you,t);   // 필드·판정 등은 게임마다 다름
+  {const c=H.players[H.turn];if(H.phase==='play'&&c&&c.away&&!c.deserter&&!c.host)s.pz=1}   // 끊긴 사람 차례: 제한 시간이 멈춰 있음
   return s;
 }
 function seatOfConn(conn){
@@ -1007,7 +1017,7 @@ function hostConn(conn){
         const pl=cid?H.players.find(x=>x.cid===cid&&!x.host):null;
         if(pl){
           const back=pl.away||pl.conn!==conn;take(pl);pl.bot=false;pl.away=false;
-          if(pl.deserter&&!pl.finished){pl.deserter=false;pl.dzTry=0}   // 항복 처리 전에 돌아오면 탈주 취소
+          if(pl.deserter&&!pl.finished&&pl.dzWhy!=='out'){pl.deserter=false;pl.dzLog=0}   // 항복 처리 전에 돌아오면 탈주 취소
           if(!m)H.members.push({name:pl.name,bot:false,conn,cid,host:false});
           if(back)addLog(`${pl.name} 다시 연결됨`,'sys');
         }else if(!m){if(!hostAddSpec(conn,nick,cid))return}
@@ -1033,8 +1043,8 @@ function hostConn(conn){
     const pl=H.players.find(x=>x.conn===conn&&!x.bot);
     if(pl&&H.phase!=='wait'){
       pl.bot=true;pl.conn=null;pl.away=true;pl.awayAt=clock();
-      if(conn.__out&&H.phase==='play')desertSeat(H.players.indexOf(pl));
-      else addLog(H.phase==='play'?`${pl.name} 연결 끊김. 20초 안에 돌아오지 않으면 봇이 대신하고, 45초가 지나면 탈주로 처리합니다.`:`${pl.name} 연결 끊김`,'sys');
+      if(conn.__out&&H.phase!=='over')desertSeat(H.players.indexOf(pl),'out');
+      else addLog(H.phase!=='over'?`${pl.name} 연결 끊김. 45초 안에 돌아오지 않으면 탈주입니다.`:`${pl.name} 연결 끊김`,'sys');
       if(H.phase==='play'&&H.players[H.turn]===pl)H.botActAt=Math.max(clock(),H.graceUntil)+800;
     }
     mark();
@@ -1101,8 +1111,10 @@ function restoreHost(sv,tries){
     const t=clock();
     for(const m of H.members){m.conn=null;if(!m.bot&&!m.host){m.away=true;m.awayAt=t}}
     for(const pl of H.players||[]){pl.conn=null;if(pl.away&&typeof pl.awayAt==='number')pl.awayAt+=d;if(!pl.bot&&!pl.host){pl.bot=true;pl.away=true;pl.awayAt=t}}
+    H.tickAt=0;
     EG().engine.restore(d);
     addLog('방장이 다시 연결했습니다.','sys');
+    if(H.phase!=='wait'&&H.phase!=='over'){const hi=H.players.findIndex(p=>p.host);if(hi>=0&&soloHost())desertSeat(hi,'out')}   // 사람이 혼자 봇과 하던 판: 기다려 줄 사람이 없으니 나갔다 오면 바로 탈주
     enterRoom();setNote('#resumeNote','');mark();
   });
   hostPeerHandlers(peer);
@@ -1340,12 +1352,12 @@ function leaveRoom(){
     setTimeout(()=>{for(const c of conns){try{c.close()}catch(e){}}try{pr&&pr.destroy()}catch(e){}},400);
   }else{
     for(const c of net.conns){try{c.close()}catch(e){}}net.conns.clear();
-    const outing=mode==='guest'&&net.conn&&net.conn.open&&V&&V.st==='play'&&myIdx()>=0;
+    const outing=mode==='guest'&&net.conn&&net.conn.open&&V&&V.st!=='wait'&&V.st!=='over'&&myIdx()>=0;
     if(outing)try{net.conn.send({t:'out'})}catch(e){}   // 게임 중에 직접 나가면 방장이 바로 탈주로 처리
     const pr=net.peer;net.peer=null;
     if(pr)outing?setTimeout(()=>{try{pr.destroy()}catch(e){}},300):(()=>{try{pr.destroy()}catch(e){}})();   // 신호가 가도록 잠깐 뒤에 닫음
   }
-  if(net.conn){const c=net.conn;if(mode==='guest'&&c.open&&V&&V.st==='play'&&myIdx()>=0)setTimeout(()=>{try{c.close()}catch(e){}},250);else{try{c.close()}catch(e){}}net.conn=null}
+  if(net.conn){const c=net.conn;if(mode==='guest'&&c.open&&V&&V.st!=='wait'&&V.st!=='over'&&myIdx()>=0)setTimeout(()=>{try{c.close()}catch(e){}},250);else{try{c.close()}catch(e){}}net.conn=null}
   if(net.retry){clearTimeout(net.retry.timer);net.retry=null}
   if(net.pub){try{net.pub.destroy()}catch(e){}net.pub=null}
   if(mode==='host')unstore('gura-host');
@@ -1542,6 +1554,8 @@ const SFX={
   warn(last){tone(last?1400:1000,.06,{type:'square',vol:.06})},
   // 금지: 안 되는 곳을 눌렀을 때 글 대신 짧고 둔탁하게 (모든 게임 공통)
   no(){tone(150,.08,{type:'triangle',vol:.16});hiss(.05,{freq:420,vol:.06})},
+  // 탈주: 누가 자리를 떴을 때 (문이 닫히듯 낮게 쓸리고 툭)
+  desert(){hiss(.16,{freq:900,sweep:300,q:.7,vol:.1});tone(196,.1,{type:'triangle',vol:.13,at:.12});tone(147,.18,{type:'triangle',vol:.11,at:.2})},
 };
 function sfx(name,...a){try{if(SFX[name])SFX[name](...a)}catch(e){}}
 let lastLogId=0,lastWarnSec=-1;
@@ -1558,7 +1572,7 @@ function cues(v,pv){
     if(cls==='fin')sfx('finish');
     else if(txt.includes('패스'))sfx('pass');
   }
-  if(v.st==='play'&&pv.ps&&v.ps.some((p,i)=>p.dz&&pv.ps[i]&&!pv.ps[i].dz))sfx('no');   // 누가 탈주하면 글 대신 짧은 소리
+  if(v.st!=='wait'&&v.st!=='over'&&pv.ps&&v.ps.some((p,i)=>p.dz&&pv.ps[i]&&!pv.ps[i].dz))sfx('desert');   // 누가 탈주하면 글 대신 짧은 소리
   if(v.st!=='wait'&&pv.st!=='wait')G.cues(v,pv);
   const me=myIdx();
   if(v.st==='play'&&me>=0&&v.t===me&&!(pv.st==='play'&&pv.t===me))setTimeout(()=>sfx('turn'),Math.max(v.gr>0?Math.min(v.gr,1500):0,v.dk?+v.dk:0));   // 카드를 나누는 중이면 다 나눈 뒤
@@ -2008,6 +2022,7 @@ $('#panel').addEventListener('click',e=>{
 
 /* 실시간 타이머, 버튼 상태 */
 function liveUI(t){
+  if(V&&V.pz)V.deadAt=t+(+V.dl||0);   // 끊긴 사람을 기다리는 동안은 남은 시간을 그대로 보여 줌
   const dim=$('#dim'),myTurn=!!(V&&V.ps&&V.st==='play'&&myIdx()>=0&&V.t===myIdx()&&!T.deal&&!dealingV());   // 카드를 나누는 동안은 어둡게 하지 않음
   if(dim.classList.contains('on')!==myTurn)dim.classList.toggle('on',myTurn);
   if(!V||!V.ps)return;
