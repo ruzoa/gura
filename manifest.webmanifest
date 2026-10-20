@@ -1,7 +1,7 @@
 {
-  "name": "구라! 카드게임",
-  "short_name": "구라!",
-  "description": "속고 속이는 막장 카드게임",
+  "name": "탁자하나 (A table)",
+  "short_name": "탁자하나",
+  "description": "그저 탁자 하나",
   "start_url": "./",
   "scope": "./",
   "id": "./",

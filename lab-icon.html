@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>테스트룸 · 아이콘 찍기</title>
+<style>
+:root{--bg:#10170f;--panel:#1a241a;--line:#2d3b2c;--fg:#e8efe4;--dim:#93a38f;--acc:#f2c14e}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,'Noto Sans KR',sans-serif}
+main{max-width:560px;margin:0 auto;padding:10px 12px calc(24px + env(safe-area-inset-bottom))}
+h1{font-size:15px;margin:2px 0 8px;color:var(--dim);font-weight:600}
+.nav{display:flex;gap:6px;margin-bottom:8px}
+.nav a{color:var(--dim);text-decoration:none;border:1px solid var(--line);border-radius:18px;padding:5px 12px;font-size:13px}
+.nav a.on{background:var(--acc);color:#1a1405;border-color:var(--acc);font-weight:700}
+/* 미리보기: 정사각형, 안전 영역(가운데 80% 원) 표시 */
+#viewWrap{position:sticky;top:0;z-index:5;background:var(--bg);padding:4px 0 8px}
+#view{position:relative;width:min(100%,360px);aspect-ratio:1;margin:0 auto;border-radius:12px;overflow:hidden;background:#cfe6ee}
+#view canvas{width:100%;height:100%;display:block}
+#safe{position:absolute;inset:10%;border-radius:50%;border:2px dashed rgba(255,255,255,.85);box-shadow:0 0 0 1px rgba(0,0,0,.25);pointer-events:none}
+#safe[hidden]{display:none}
+.minis{display:flex;justify-content:center;align-items:flex-end;gap:18px;margin-top:10px}
+.mini{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--dim)}
+.mini canvas{display:block;background:#333}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}
+.row{display:flex;align-items:center;gap:10px;margin:8px 0}
+.row>label{flex:0 0 92px;color:var(--dim);font-size:13px}
+.row>output{flex:0 0 52px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+input[type=range]{flex:1;min-width:0;height:34px;accent-color:var(--acc)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:#0f180f;color:var(--fg);border-radius:18px;padding:7px 12px;font:inherit;cursor:pointer}
+.chip.on{background:var(--acc);color:#1a1405;border-color:var(--acc);font-weight:700}
+.btns{display:flex;gap:8px;margin-top:10px}
+.btn{flex:1;border:0;border-radius:10px;padding:13px 8px;font:inherit;font-weight:700;cursor:pointer;background:#2b3a2a;color:var(--fg)}
+.btn.main{flex:2;background:var(--acc);color:#1a1405;font-size:17px}
+.btn:disabled{opacity:.5}
+#outs{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:10px}
+#outs:empty{display:none}
+.out{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim)}
+.out img{width:100%;border-radius:8px;background:#000}
+.out a{color:var(--acc);font-weight:700;text-decoration:none}
+.note{font-size:12px;color:var(--dim);margin:6px 0 0}
+#line{width:100%;margin-top:8px;background:#0b110b;color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px;font:12px/1.4 ui-monospace,Menlo,monospace;resize:none}
+#err{color:#ff8a7a;font-weight:700;text-align:center;margin:8px 0}
+#err:empty{display:none}
+</style>
+</head>
+<body>
+<main>
+<nav class="nav"><a href="lab.html">첫 차례 룰렛</a><a href="lab-icon.html" class="on">아이콘 찍기</a></nav>
+<h1>테스트룸 · 아이콘 찍기 <span style="font-weight:400">(게임 속 탁자를 들판에서 찍어 홈 화면 아이콘으로 저장합니다)</span></h1>
+
+<div id="viewWrap">
+  <div id="view"><canvas id="cv"></canvas><div id="safe"></div></div>
+  <div class="minis">
+    <div class="mini"><canvas id="mRound" width="120" height="120" style="width:60px;height:60px"></canvas>아이폰</div>
+    <div class="mini"><canvas id="mCircle" width="120" height="120" style="width:60px;height:60px"></canvas>안드로이드</div>
+    <div class="mini"><canvas id="mTiny" width="64" height="64" style="width:32px;height:32px"></canvas>작게</div>
+  </div>
+  <p id="err"></p>
+</div>
+
+<section>
+  <div class="row"><label>방향</label><input type="range" id="yaw" min="-180" max="180" step="1"><output id="yawO"></output></div>
+  <div class="row"><label>내려다보는 각</label><input type="range" id="pitch" min="0" max="80" step="1"><output id="pitchO"></output></div>
+  <div class="row"><label>크기</label><input type="range" id="zoom" min="0.5" max="2.5" step="0.01"><output id="zoomO"></output></div>
+  <div class="row"><label>위아래 위치</label><input type="range" id="lift" min="-3" max="3" step="0.05"><output id="liftO"></output></div>
+  <div class="row"><label>원근감</label><input type="range" id="fov" min="10" max="60" step="1"><output id="fovO"></output></div>
+  <div class="row"><label>다리 길이</label><input type="range" id="leg" min="1" max="4" step="0.05"><output id="legO"></output></div>
+  <div class="row"><label>윤곽선</label><input type="range" id="ol" min="0" max="4" step="0.1"><output id="olO"></output></div>
+</section>
+
+<section>
+  <div class="row"><label>풀·꽃</label><div class="chips" id="grassChips"></div></div>
+  <div class="row"><label>나무·바위</label><div class="chips" id="propChips"></div></div>
+  <div class="row"><label>그림자</label><div class="chips" id="shadowChips"></div></div>
+  <div class="row"><label>구름 그림자</label><div class="chips" id="cloudChips"></div></div>
+  <div class="row"><label>펠트 매트</label><div class="chips" id="feltChips"></div></div>
+  <div class="row"><label>안전 영역</label><div class="chips" id="safeChips"></div></div>
+  <p class="note">다리 길이 1, 윤곽선 1이 게임 속 탁자와 같습니다. 게임 탁자는 다리가 짧아서 위에서 보면 받침이 가려지므로, 아이콘에서는 조금 길게 하는 것을 추천합니다.<br>점선 원은 안드로이드가 아이콘을 원으로 자를 때 남는 부분입니다. 탁자가 이 안에 들어오면 잘리지 않습니다.</p>
+</section>
+
+<section>
+  <div class="btns" style="margin-top:0">
+    <button class="btn main" id="make">아이콘 만들기</button>
+    <button class="btn" id="copy">값 복사</button>
+  </div>
+  <div class="btns"><button class="btn" id="reset">처음 값으로</button></div>
+  <p class="note">만들면 아래에 그림이 나옵니다. 각 그림의 [저장]을 누르거나 길게 눌러 저장한 뒤 채팅에 보내 주시면 됩니다. 파일 이름은 사이트에서 쓰는 이름과 같습니다.</p>
+  <div id="outs"></div>
+  <textarea id="line" rows="2" readonly></textarea>
+</section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+if(!window.THREE){$('#err').textContent='3D 라이브러리를 불러오지 못했습니다. 새로고침해 주세요.';return}
+const KEY='gura-lab-icon';
+const DEFAULT={yaw:-24,pitch:12,zoom:1.25,lift:0,fov:30,ol:1.6,leg:2.2,grass:'few',props:'off',shadow:'on',cloud:'off',felt:'on',safe:'on'};
+let S=Object.assign({},DEFAULT);
+try{const j=JSON.parse(localStorage.getItem(KEY)||'null');if(j)S=Object.assign(S,j)}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+
+/* ===== 게임과 같은 그림 (index.html의 툰 셰이딩·탁자·들판을 그대로 옮김. 게임 쪽을 바꾸면 여기도 맞춤) ===== */
+function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.anisotropy=4;return t}
+function gfxRng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const GFX_INK=0x4a3020,GFX_U={time:{value:0}};
+function gfxRamp(){
+  const d=new Uint8Array([70,78,120,255,70,78,120,255,196,192,210,255,255,255,255,255]);
+  const t=new THREE.DataTexture(d,4,1,THREE.RGBAFormat);t.minFilter=t.magFilter=THREE.NearestFilter;t.generateMipmaps=false;t.needsUpdate=true;return t;
+}
+function gfxCloud(){
+  const t=canvasTex(512,512,(g,w,h)=>{g.fillStyle='#000';g.fillRect(0,0,w,h);const r=gfxRng(3);
+    for(let k=0;k<26;k++){const x=r()*w,y=r()*h,s=40+r()*90;
+      for(const [dx,dy] of [[0,0],[w,0],[-w,0],[0,h],[0,-h]]){const gr=g.createRadialGradient(x+dx,y+dy,0,x+dx,y+dy,s);gr.addColorStop(0,'rgba(255,255,255,.9)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(x+dx-s,y+dy-s,s*2,s*2)}}});
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;
+}
+const GFX_RAMP=gfxRamp(),GFX_CLOUD=gfxCloud(),NO_CLOUD=canvasTex(4,4,(g,w,h)=>{g.fillStyle='#000';g.fillRect(0,0,w,h)});
+const CLOUD_U={value:GFX_CLOUD};   // 구름 그림자 끄기: 검은 그림으로 바꿈
+function toon(o){
+  const m=new THREE.MeshToonMaterial({color:o.color!=null?o.color:0xffffff,map:o.map||null,gradientMap:GFX_RAMP});
+  const rim=o.rim!=null?o.rim:.16,cloud=!!o.cloud,wind=!!o.wind;
+  m.onBeforeCompile=sh=>{
+    sh.uniforms.uTime=GFX_U.time;sh.uniforms.uCloud=CLOUD_U;
+    sh.vertexShader='uniform float uTime;\nvarying vec3 vWPos;\n'+sh.vertexShader
+      .replace('#include <begin_vertex>','#include <begin_vertex>\n'+(wind?'float ph=0.0;\n#ifdef USE_INSTANCING\nph=instanceMatrix[3].x*0.7+instanceMatrix[3].z*0.45;\n#endif\nfloat bend=transformed.y*transformed.y*2.2;\ntransformed.x+=sin(uTime*1.7+ph)*0.07*bend;transformed.z+=cos(uTime*1.2+ph)*0.035*bend;\n':''))
+      .replace('#include <project_vertex>','#include <project_vertex>\nvec4 wp=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\nwp=instanceMatrix*wp;\n#endif\nvWPos=(modelMatrix*wp).xyz;\n');
+    sh.fragmentShader='uniform float uTime;uniform sampler2D uCloud;\nvarying vec3 vWPos;\n'+sh.fragmentShader
+      .replace('#include <dithering_fragment>','float rimF=1.0-clamp(dot(normalize(vViewPosition),normal),0.0,1.0);\ngl_FragColor.rgb+=vec3(1.0,0.93,0.78)*smoothstep(0.6,0.8,rimF)*'+rim.toFixed(3)+';\n'+(cloud?'float cl=texture2D(uCloud,vWPos.xz*0.022+vec2(uTime*0.006,uTime*0.0025)).r;gl_FragColor.rgb*=mix(1.0,0.8,smoothstep(0.35,0.6,cl));\n':'')+'#include <dithering_fragment>');
+  };
+  m.customProgramCacheKey=()=>'toon'+rim+cloud+wind;
+  return m;
+}
+const INK=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide});
+function hull(geo,mesh,parent){const o=new THREE.Mesh(geo,INK);o.position.copy(mesh.position);o.rotation.copy(mesh.rotation);o.scale.copy(mesh.scale);parent.add(o);return o}
+
+const GY=-1.55;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xcfe6ee);scene.fog=new THREE.Fog(0xcfe6ee,30,60);
+const hemi=new THREE.HemisphereLight(0xd8ecff,0x8d8a5c,.6);scene.add(hemi);
+const dl=new THREE.DirectionalLight(0xfff1d8,.62);dl.position.set(-5,10,4);
+dl.castShadow=true;dl.shadow.mapSize.set(2048,2048);
+Object.assign(dl.shadow.camera,{left:-9,right:9,top:9,bottom:-9,near:1,far:30});dl.shadow.bias=-.0006;dl.shadow.normalBias=.02;
+scene.add(dl);
+
+/* 들판: 땅 · 풀 · 꽃 · 나무 · 바위 (게임 buildEnv의 들판과 같음) */
+const env=new THREE.Group();scene.add(env);   // 땅과 그 위 물건: 다리 길이에 따라 같이 내려감
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(120,120),toon({color:0x93c266,rim:0,cloud:true}));ground.rotation.x=-Math.PI/2;ground.position.y=GY;ground.receiveShadow=true;env.add(ground);
+const grassAll=new THREE.Group(),grassFew=new THREE.Group(),props=new THREE.Group();env.add(grassAll,grassFew,props);
+{
+  const r=gfxRng(5),blade=new THREE.ConeGeometry(.05,.38,3,1).translate(0,.19,0);
+  for(const [col,count] of [[0x7fb555,2600],[0xa6d06e,1800]]){
+    const im=new THREE.InstancedMesh(blade,toon({color:col,rim:.1,wind:true,cloud:true}),count),M=new THREE.Object3D();
+    for(let k=0;k<count;k++){let x,z;do{const a=r()*Math.PI*2,d=5.3+Math.pow(r(),.7)*18;x=Math.sin(a)*d;z=Math.cos(a)*d}while(z>9);
+      M.position.set(x,GY,z);M.rotation.set((r()-.5)*.3,r()*6.3,(r()-.5)*.3);M.scale.setScalar(.7+r()*.9);M.updateMatrix();im.setMatrixAt(k,M.matrix)}
+    im.receiveShadow=true;grassAll.add(im);
+  }
+  const flower=new THREE.IcosahedronGeometry(.07,0);
+  for(const col of [0xfff8ea,0xf6d24a,0xf0a0a8]){
+    const im=new THREE.InstancedMesh(flower,toon({color:col,rim:0}),160),M=new THREE.Object3D();
+    for(let k=0;k<160;k++){let x,z;do{const a=r()*Math.PI*2,d=5.6+r()*14;x=Math.sin(a)*d;z=Math.cos(a)*d}while(z>8);M.position.set(x,GY+.32+r()*.12,z);M.updateMatrix();im.setMatrixAt(k,M.matrix)}
+    grassAll.add(im);
+  }
+  // 아이콘용 '적게': 탁자 둘레에만 굵은 풀 몇 포기 (작은 크기에서 지저분하지 않게)
+  const r2=gfxRng(9),tuft=new THREE.ConeGeometry(.09,.55,3,1).translate(0,.27,0);
+  const im=new THREE.InstancedMesh(tuft,toon({color:0x7fb555,rim:.1,cloud:true}),220),M=new THREE.Object3D();
+  for(let k=0;k<220;k++){const a=r2()*Math.PI*2,d=5.4+r2()*7;M.position.set(Math.sin(a)*d,GY,Math.cos(a)*d);M.rotation.set((r2()-.5)*.4,r2()*6.3,(r2()-.5)*.4);M.scale.setScalar(.8+r2()*.7);M.updateMatrix();im.setMatrixAt(k,M.matrix)}
+  im.receiveShadow=true;grassFew.add(im);
+  const trunkM=toon({color:0x7b5534}),leafA=toon({color:0x5c9a48,rim:.22,cloud:true}),leafB=toon({color:0x76ad52,rim:.22,cloud:true});
+  [[-11,-12],[-7,-17],[-2.5,-21],[4,-18],[9.5,-13],[13,-7],[-14,-5],[16,-16],[-17,-14],[1,-27],[-9,-26],[11,-24],[17,2],[-16,4]].forEach(([x,z])=>{
+    const tr=new THREE.Group();tr.position.set(x,GY,z);tr.scale.setScalar(.9+r()*.6);
+    const t=new THREE.Mesh(new THREE.CylinderGeometry(.22,.32,2,10),trunkM);t.position.y=1;tr.add(t);hull(new THREE.CylinderGeometry(.27,.37,2,10),t,tr);
+    [[0,2.7,0,1.45],[.75,2.25,.2,1.0],[-.65,2.35,-.1,1.05],[.1,3.45,0,.9]].forEach(([cx,cy,cz,cr],j)=>{
+      const c=new THREE.Mesh(new THREE.SphereGeometry(cr,20,14),j%2?leafB:leafA);c.position.set(cx,cy,cz);tr.add(c);hull(new THREE.SphereGeometry(cr*1.05,20,14),c,tr)});
+    props.add(tr);
+  });
+  const rockM=toon({color:0xb8b4a8,rim:.2});
+  [[-7.2,4.5,.6],[7.5,3.2,.45],[-9,-6,.8],[8.4,-8,.55],[6,7.4,.35]].forEach(([x,z,s])=>{
+    const m=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0),rockM);m.position.set(x,GY+s*.45,z);m.rotation.set(r(),r(),r());m.scale.y=.7;m.castShadow=m.receiveShadow=true;props.add(m);
+    hull(new THREE.DodecahedronGeometry(s*1.07,0),m,props)});
+}
+
+/* 탁자: 원목 상판 · 받침대 · 가운데 펠트 매트 (게임 init3D와 같음). 윤곽선 굵기만 고를 수 있음 */
+const woodTex=canvasTex(1024,1024,(g,w,h)=>{
+  const planks=7,ph=h/planks,r=gfxRng(11);
+  for(let p=0;p<planks;p++){
+    g.fillStyle=p%2?'#b98350':'#ad7745';g.fillRect(0,p*ph,w,ph);
+    g.fillStyle='rgba(255,236,205,.22)';g.fillRect(0,p*ph+4,w,5);
+    for(let k=0;k<5;k++){const y0=p*ph+18+r()*(ph-36),amp=3+r()*5,fr=.003+r()*.004,p0=r()*6;
+      g.strokeStyle='rgba(140,82,40,.22)';g.lineWidth=3+r()*3;g.lineCap='round';
+      const x0=r()*w*.5,x1=x0+w*(.3+r()*.5);g.beginPath();for(let x=x0;x<=x1;x+=16){const y=y0+Math.sin(x*fr+p0)*amp;x===x0?g.moveTo(x,y):g.lineTo(x,y)}g.stroke()}
+    g.fillStyle='rgba(84,46,20,.6)';g.fillRect(0,(p+1)*ph-3,w,5);
+  }
+});
+const felt=canvasTex(1024,1024,(g,w,h)=>{
+  const gr=g.createRadialGradient(w/2,h/2,80,w/2,h/2,w/2);gr.addColorStop(0,'#5fae7b');gr.addColorStop(1,'#3f8a5f');g.fillStyle=gr;g.fillRect(0,0,w,h);
+  g.strokeStyle='#f2b632';g.lineWidth=8;g.lineCap='round';g.setLineDash([26,18]);g.beginPath();g.arc(w/2,h/2,300,0,7);g.stroke();g.setLineDash([]);
+  g.strokeStyle='rgba(255,250,240,.5)';g.lineWidth=6;g.beginPath();g.arc(w/2,h/2,488,0,7);g.stroke();
+});
+const side=toon({color:0x8a5530}),top=toon({map:woodTex,rim:0}),baseM=toon({color:0x7a4a28}),fs=toon({color:0x2f6b4a}),feltTop=toon({map:felt,rim:0});
+const table=new THREE.Mesh(new THREE.CylinderGeometry(4.9,4.9,.3,72),[side,top,side]);table.position.y=-.15;table.receiveShadow=table.castShadow=true;scene.add(table);
+const base=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.7,1.25,40),baseM);base.position.y=-.92;base.castShadow=true;scene.add(base);
+const mat=new THREE.Mesh(new THREE.CylinderGeometry(3.15,3.15,.02,72),[fs,feltTop,fs]);mat.position.y=.006;mat.receiveShadow=true;scene.add(mat);
+const ink=new THREE.Mesh(new THREE.RingGeometry(3.14,3.19,96),new THREE.MeshBasicMaterial({color:GFX_INK}));ink.rotation.x=-Math.PI/2;ink.position.y=.0175;scene.add(ink);
+let hulls=[];
+function buildHulls(){
+  hulls.forEach(h=>{scene.remove(h);h.geometry.dispose()});hulls=[];
+  const k=S.ol;if(k<=0)return;   // 게임은 1
+  hulls.push(hull(new THREE.CylinderGeometry(4.9+.04*k,4.9+.04*k,.3+.06*k,72),table,scene));
+  hulls.push(hull(new THREE.CylinderGeometry(1.1+.04*k,1.7+.05*k,1.25+.02*k/S.leg,40),base,scene));   // 받침은 다리 길이만큼 늘어난 채로 복사됨
+}
+
+/* ===== 카메라: 탁자 가운데를 바라보며 방향·각도·크기를 고름 ===== */
+const cv=$('#cv');
+let R;
+try{R=new THREE.WebGLRenderer({canvas:cv,antialias:true,preserveDrawingBuffer:true})}
+catch(e){$('#err').textContent='이 기기에서는 3D 화면을 그릴 수 없습니다.';return}
+R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;
+const cam=new THREE.PerspectiveCamera(30,1,.1,200);
+function aim(c,aspect,fit){
+  // 크기 1 = 탁자(지름 약 10)와 받침이 화면 폭의 약 70%를 차지하는 거리
+  const fov=S.fov*Math.PI/180,span=14/(S.zoom*fit),dist=span/2/Math.tan(fov/2);
+  const y=S.yaw*Math.PI/180,p=S.pitch*Math.PI/180,tgt=new THREE.Vector3(0,-(.3+1.25*S.leg)*.4+S.lift*-.4,0);
+  c.fov=S.fov;c.aspect=aspect;
+  c.position.set(tgt.x+Math.sin(y)*Math.cos(p)*dist,tgt.y+Math.sin(p)*dist,tgt.z+Math.cos(y)*Math.cos(p)*dist);
+  c.lookAt(tgt);c.near=Math.max(.1,dist-40);c.far=dist+80;c.updateProjectionMatrix();
+}
+function apply(){
+  // 다리 길이: 게임은 1 (상판 아래 받침 높이 1.25). 늘리면 받침이 길어지고 땅이 그만큼 내려감
+  base.scale.y=S.leg;base.position.y=-.3-1.25*S.leg/2;env.position.y=-1.25*(S.leg-1);
+  CLOUD_U.value=S.cloud==='on'?GFX_CLOUD:NO_CLOUD;
+  grassAll.visible=S.grass==='all';grassFew.visible=S.grass==='few';props.visible=S.props==='on';
+  dl.castShadow=S.shadow==='on';mat.visible=ink.visible=S.felt==='on';
+  $('#safe').hidden=S.safe!=='on';
+  buildHulls();
+}
+function size(){
+  const w=cv.clientWidth||300;R.setPixelRatio(Math.min(2,window.devicePixelRatio||1));R.setSize(w,w,false);
+}
+function render(){aim(cam,1,1);R.render(scene,cam);minis()}
+/* 작은 미리보기: 아이폰(둥근 사각형), 안드로이드(원), 아주 작게 */
+function minis(){
+  const src=cv;
+  const draw=(id,shape)=>{const c=$(id),g=c.getContext('2d'),s=c.width;g.clearRect(0,0,s,s);g.save();g.beginPath();
+    if(shape==='circle')g.arc(s/2,s/2,s/2,0,7);else if(shape==='round'){const r=s*.225;g.moveTo(r,0);g.arcTo(s,0,s,s,r);g.arcTo(s,s,0,s,r);g.arcTo(0,s,0,0,r);g.arcTo(0,0,s,0,r)}else g.rect(0,0,s,s);
+    g.clip();g.imageSmoothingQuality='high';
+    if(shape==='circle'){const m=src.width*.1;g.drawImage(src,m,m,src.width-2*m,src.height-2*m,0,0,s,s)}   // 안드로이드는 가운데 80%만 보임
+    else g.drawImage(src,0,0,s,s);
+    g.restore()};
+  draw('#mRound','round');draw('#mCircle','circle');draw('#mTiny','round');
+}
+
+/* ===== 저장: 1024로 찍어서 크기별로 줄임 ===== */
+function shoot(px,aspect,fit){
+  const W=aspect>=1?Math.round(px*aspect):px,H=aspect>=1?px:Math.round(px/aspect);
+  R.setPixelRatio(1);R.setSize(W,H,false);const c=new THREE.PerspectiveCamera();aim(c,W/H,fit);R.render(scene,c);
+  const out=document.createElement('canvas');out.width=W;out.height=H;out.getContext('2d').drawImage(cv,0,0);
+  return out;
+}
+function down(src,w,h){const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.imageSmoothingQuality='high';
+  // 한 번에 크게 줄이면 거칠어서 절반씩 줄임
+  let cur=src;while(cur.width/2>=w){const t=document.createElement('canvas');t.width=Math.round(cur.width/2);t.height=Math.round(cur.height/2);const tg=t.getContext('2d');tg.imageSmoothingQuality='high';tg.drawImage(cur,0,0,t.width,t.height);cur=t}
+  g.drawImage(cur,0,0,w,h);return c}
+function make(){
+  const btn=$('#make');btn.disabled=true;btn.textContent='만드는 중…';
+  setTimeout(()=>{
+    try{
+      const big=shoot(2048,1,1);
+      const mask=shoot(2048,1,.8);              // 안드로이드: 원으로 잘려도 탁자가 남도록 조금 작게
+      const og=shoot(1260,1200/630,1);          // 링크 미리보기 그림 (가로로 긴 그림)
+      const files=[
+        ['icon-512.png',down(big,512,512),'아이콘 512'],
+        ['icon-192.png',down(big,192,192),'아이콘 192'],
+        ['apple-touch-icon-180.png',down(big,180,180),'아이폰 180'],
+        ['icon-maskable-512.png',down(mask,512,512),'안드로이드 512'],
+        ['og-image.png',down(og,1200,630),'링크 미리보기 1200×630'],
+      ];
+      $('#outs').innerHTML='';
+      for(const [name,c,label] of files){
+        const url=c.toDataURL('image/png');
+        const d=document.createElement('div');d.className='out';
+        d.innerHTML=`<img alt="${label}" src="${url}"><span>${label}</span><a href="${url}" download="${name}">저장 · ${name}</a>`;
+        $('#outs').appendChild(d);
+      }
+    }catch(e){$('#err').textContent='그림을 만들지 못했습니다: '+e.message}
+    size();render();btn.disabled=false;btn.textContent='아이콘 만들기';
+  },30);
+}
+
+/* ===== 조절 칸 ===== */
+const RANGES={yaw:v=>v+'°',pitch:v=>v+'°',zoom:v=>(+v).toFixed(2),lift:v=>(+v).toFixed(2),fov:v=>v+'°',leg:v=>(+v).toFixed(2),ol:v=>(+v).toFixed(1)};
+function bind(){
+  for(const k in RANGES){const el=$('#'+k),o=$('#'+k+'O');el.value=S[k];o.textContent=RANGES[k](S[k]);
+    el.oninput=()=>{S[k]=+el.value;o.textContent=RANGES[k](S[k]);save();if(k==='ol'||k==='leg')apply();render();line()}}
+  const chips=(id,key,items)=>{const box=$(id);box.innerHTML=items.map(([v,t])=>`<button class="chip${S[key]===v?' on':''}" data-v="${v}">${t}</button>`).join('');
+    box.onclick=e=>{const b=e.target.closest('button');if(!b)return;S[key]=b.dataset.v;save();bind();apply();render();line()}};
+  chips('#grassChips','grass',[['all','게임 그대로'],['few','적게'],['off','없음']]);
+  chips('#propChips','props',[['on','보이기'],['off','숨기기']]);
+  chips('#shadowChips','shadow',[['on','켜기'],['off','끄기']]);
+  chips('#cloudChips','cloud',[['on','켜기'],['off','끄기']]);
+  chips('#feltChips','felt',[['on','보이기'],['off','숨기기']]);
+  chips('#safeChips','safe',[['on','보이기'],['off','숨기기']]);
+}
+function line(){$('#line').value=JSON.stringify(S)}
+$('#make').onclick=make;
+$('#copy').onclick=async()=>{
+  try{await navigator.clipboard.writeText(JSON.stringify(S));$('#copy').textContent='복사됨'}
+  catch(e){const a=$('#line');a.removeAttribute('readonly');a.select();try{document.execCommand('copy');$('#copy').textContent='복사됨'}catch(_){$('#copy').textContent='아래 글을 복사'}a.setAttribute('readonly','')}
+  setTimeout(()=>$('#copy').textContent='값 복사',1500);
+};
+$('#reset').onclick=()=>{S=Object.assign({},DEFAULT);save();bind();apply();render();line()};
+addEventListener('resize',()=>{size();render()});
+bind();apply();size();line();
+render();
+// 글꼴·그림이 늦게 준비되는 경우를 위해 한 번 더
+setTimeout(render,300);
+})();
+</script>
+</body>
+</html>

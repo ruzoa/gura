@@ -37,11 +37,15 @@ input[type=range]{flex:1;min-width:0;height:34px;accent-color:var(--acc)}
 #line{width:100%;margin-top:8px;background:#0b110b;color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px;font:12px/1.4 ui-monospace,Menlo,monospace;resize:none}
 details{margin-top:8px;color:var(--dim);font-size:12px}
 details div{font-variant-numeric:tabular-nums;word-break:break-all;margin-top:4px}
+.nav{display:flex;gap:6px;margin-bottom:8px}
+.nav a{color:var(--dim);text-decoration:none;border:1px solid var(--line);border-radius:18px;padding:5px 12px;font-size:13px}
+.nav a.on{background:var(--acc);color:#1a1405;border-color:var(--acc);font-weight:700}
 .sw{display:inline-flex;align-items:center;gap:6px;color:var(--dim);font-size:13px}
 </style>
 </head>
 <body>
 <main>
+<nav class="nav"><a href="lab.html" class="on">첫 차례 룰렛</a><a href="lab-icon.html">아이콘 찍기</a></nav>
 <h1>테스트룸 · 첫 차례 룰렛 <span style="font-weight:400">(메인에 연결되지 않은 연습용 화면입니다)</span></h1>
 
 <div id="viewWrap">

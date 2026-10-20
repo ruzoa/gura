@@ -1,4 +1,4 @@
-/* 구라! 서비스 워커: 항상 최신 버전을 먼저 받고, 인터넷이 끊겼을 때만 저장해 둔 화면을 보여줌 */
+/* 탁자하나 서비스 워커: 항상 최신 버전을 먼저 받고, 인터넷이 끊겼을 때만 저장해 둔 화면을 보여줌 */
 const CACHE='gura-v1';
 self.addEventListener('install',e=>self.skipWaiting());
 self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
