@@ -838,6 +838,7 @@ body.kb .fan .card.cur{z-index:70!important}
 <script src="games/quoridor.js"></script>
 <script src="games/yahtzee.js"></script>
 <script src="games/omok.js"></script>
+<script src="games/blackjack.js"></script>
 <script>
 /* ================= 공통 ================= */
 const $=s=>document.querySelector(s);
@@ -853,7 +854,7 @@ const isJ=id=>id>=JOKER_BASE;
 const JOKER_C='#efbc4e';
 /* ===== 게임 목록 =====
    G = 지금 화면에 보이는 게임, EG() = 방장 엔진이 돌리는 게임 (방장 화면에서는 둘이 같음) */
-const GAME_IDS=['gura','president','quoridor','yahtzee','omok'];
+const GAME_IDS=['gura','president','quoridor','yahtzee','omok','blackjack'];
 let G=GAMES.gura;
 const EG=()=>(H&&H.cfg&&GAMES[H.cfg.game])||GAMES.gura;
 const gameOf=id=>GAMES[id]||GAMES.gura;
@@ -3133,6 +3134,10 @@ function frontHoloPiece(id){
     add(new THREE.CylinderGeometry(.2,.16,.42,24,1,true),holoMat(0x8a4a2a),-.1,-.04,0,0,0,-.5);
     add(new THREE.BoxGeometry(.17,.17,.17),dm,.14,-.16,.06,.4,.7,.2);add(new THREE.BoxGeometry(.17,.17,.17),dm,.3,-.17,-.08,.9,.2,.5);add(new THREE.BoxGeometry(.17,.17,.17),dm,.04,.16,.02,.3,1.1,.8)}
   else if(id==='omok'){add(new THREE.SphereGeometry(.2,20,12),holoMat(0x2a2a2a),-.13,0,0,0,0,0,.45);add(new THREE.SphereGeometry(.2,20,12),holoMat(0xf6f3ea),.13,.1,-.05,0,0,0,.45)}   // 흑돌·백돌
+  else if(id==='blackjack'){   // A♠ 카드 한 장과 칩 더미
+    const at=canvasTex(128,186,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.fillStyle='#34404f';x.font='600 34px "IBM Plex Mono", monospace';x.textAlign='left';x.textBaseline='top';x.fillText('A',10,8);x.font='86px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('♠',w/2,h/2+8)});
+    add(new THREE.BoxGeometry(.4,.58,.012),holoMat(0xffffff,at),-.1,.04,0,0,0,.12);
+    const cm=holoMat(0xcc3a2e),cw=holoMat(0xf6f3ea);for(let k=0;k<4;k++){add(new THREE.CylinderGeometry(.12,.12,.045,20),k%2?cw:cm,.17,-.2+k*.05,.06)}}
   else add(new THREE.OctahedronGeometry(.25),holoMat(0xffffff));
   g.userData={mats};return g;
 }
