@@ -303,6 +303,7 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 @keyframes needSeat{0%,100%{transform:none}30%{transform:translateY(-7px) scale(1.12)}60%{transform:translateY(0) scale(.97)}}
 #frStart[aria-disabled="true"]::after{display:none}
 /* 대기실 자리 이름표 (대기실 창 대신): 누르면 작은 메뉴 */
+.stage.frwait .labels{visibility:visible!important}   /* 쿼리도·야추·오목은 게임 중 이름표를 숨기지만 대기실 이름표(봇 앉히기·이모티콘)는 보여야 함 */
 .labels .wseat{pointer-events:auto;padding:0;background:none;border:0;box-shadow:none}
 .wseat button{display:flex;flex-direction:column;align-items:center;gap:0;min-width:64px;padding:5px 12px 6px;border-radius:12px;border:1.5px solid var(--line-strong);background:rgba(255,250,240,.94);box-shadow:0 3px 0 rgba(110,69,38,.25);color:var(--ink);position:relative;line-height:1.25}
 .wseat .nm{font-weight:700;font-size:13.5px}
@@ -3519,7 +3520,8 @@ function frontUpdate(t,dt){
   frontTween(FR.arm,FR.armAt?1:0,t,FR.armAt?260:320);
   FR.stand=frontTween(FR.sa,want,t,want?900:1100);frontApplyCam();
   if(FR.warp&&T.scene.fog){const d=T.cam.position.length(),k=FR.warp.fog||0;T.scene.fog.near=d+5+(1-5)*k;T.scene.fog.far=d+22+(8-22)*k}
-  {const st=$('#stage'),sit=!lobby&&FR.stand>.04;if(st.classList.contains('frsit')!==sit)st.classList.toggle('frsit',sit)}   // 앉는 동안은 창을 잠깐 숨김
+  {const st=$('#stage'),sit=!lobby&&FR.stand>.04;if(st.classList.contains('frsit')!==sit)st.classList.toggle('frsit',sit)}
+  {const st=$('#stage'),fw=frTableUI();if(st.classList.contains('frwait')!==fw)st.classList.toggle('frwait',fw)}   // 3D 대기실: 게임 CSS가 이름표를 숨겨도 대기실에서는 보이게   // 앉는 동안은 창을 잠깐 숨김
   // 천
   frontStumps(t,dt,lobby,wait);
   // 디스플레이: 첫 화면·타임머신·대기실에서 열림, 게임이 시작되면 접혀 덮개가 됨
