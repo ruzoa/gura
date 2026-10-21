@@ -113,9 +113,7 @@ body.no3d .seat.on .ring{display:block}
 .fsbtn svg{width:20px;height:20px}
 .fsbtn.fs{right:58px}
 .fsbtn.cfg{right:106px}
-.fsbtn.snd{right:154px}
 body.nofs .fsbtn.cfg{right:58px}
-body.nofs .fsbtn.snd{right:106px}
 .menu{position:absolute;top:58px;right:10px;z-index:30;width:min(240px,calc(100% - 20px));background:var(--panel);border:1.5px solid var(--line-strong);border-radius:var(--r-md);padding:10px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--sh-panel)}
 .menu-info{display:flex;flex-wrap:wrap;gap:4px}
 .menu-info:empty{display:none}
@@ -129,7 +127,7 @@ body.nofs .fsbtn.snd{right:106px}
 .menu-bg svg{width:20px;height:20px;flex:none}
 .menu-bg .seg{flex:1}
 .menu-bg .seg button{padding:5px 0;font-family:var(--f-body);font-size:13px}
-.seg.bgseg button,.seg.pubseg button,.seg.emoseg button{font-family:var(--f-body)}
+.seg.bgseg button,.seg.pubseg button,.seg.emoseg button,.seg.sndseg button{font-family:var(--f-body)}
 .menu-vol b{font-family:var(--f-num);font-size:12px;font-weight:500;color:var(--muted);width:36px;text-align:right}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .mbtn{min-width:74px;height:66px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:12px;border:1.5px solid var(--line-strong);background:var(--panel);color:var(--ink);box-shadow:0 3px 0 var(--line-strong);font-size:11.5px;font-weight:600;transition:transform .08s,box-shadow .08s}
@@ -294,6 +292,8 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .holotag{position:absolute;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:0;pointer-events:none;text-align:center;white-space:nowrap;z-index:3}
 .holotag b{font:400 27px var(--f-display);color:#fff7ea;-webkit-text-stroke:1px rgba(170,80,10,.55);paint-order:stroke fill;text-shadow:0 0 4px #ff9a3c,0 0 12px rgba(255,140,40,.9),0 2px 3px rgba(90,40,5,.5);letter-spacing:.02em}
 .holotag b.editable{pointer-events:auto;cursor:text;border-bottom:1.5px dashed rgba(255,226,184,.6)}
+.holotag span.pickable{pointer-events:auto;cursor:pointer}
+#stage.holo .holotag span.pickable{pointer-events:none}
 .holotag span{font:400 19px var(--f-display);color:#fff1dc;-webkit-text-stroke:.8px rgba(170,80,10,.5);paint-order:stroke fill;text-shadow:0 0 4px #ff9a3c,0 0 10px rgba(255,140,40,.8),0 2px 3px rgba(90,40,5,.45)}
 .holotag.bad span{color:#ffc4c4;text-shadow:0 0 6px #ff4d6d}
 .holotag input{width:9em;font:400 20px var(--f-display);text-align:center;color:var(--ink);background:rgba(255,250,240,.95);border:2px solid #ffa04a;border-radius:8px;padding:2px 6px}
@@ -357,7 +357,15 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .clipsheet .pl-more{align-self:flex-end;margin-top:4px;padding:8px 12px 8px 22px;border:0;background:linear-gradient(135deg,transparent 50%,#e9dcc4 50%) right bottom/22px 22px no-repeat;font:400 15px var(--f-display);color:var(--muted)}
 .clipsheet .pl-more>span{display:none}
 .clipsheet .paper:not(.p2) .pl-more::after{content:' ↷'}
-.clipsheet .paper.p2>*:not(.pl-more):not(.pl-det):not(.pgno){display:none}
+.clipsheet .paper.p2>*:not(.pl-more):not(.pl-det):not(.pgno):not(.clip-title):not(.clip-turn){display:none}
+.clipsheet .clip-title{font:400 26px/1.15 var(--f-display);color:var(--ink);text-align:center;margin:-6px 0 2px;padding-bottom:4px;border-bottom:2px solid rgba(59,42,31,.35)}   /* 서류 제목: 지금 게임 이름 */
+.clipsheet .clip-sub{font:400 18px var(--f-display);color:var(--muted);text-align:center;margin-top:-4px}
+.clipsheet .paper.pr .rules{font-size:14.5px;line-height:1.55;color:var(--ink);gap:8px;padding-left:20px}
+.clipsheet .paper.pr .rules b{font-weight:700}
+.clipsheet .clip-turn{align-self:flex-end;flex:none;margin-top:4px;padding:8px 26px 8px 12px;border:0;background:linear-gradient(135deg,transparent 50%,#e9dcc4 50%) right bottom/22px 22px no-repeat;font:400 15px var(--f-display);color:var(--muted);cursor:pointer}   /* 접힌 모서리를 눌러 넘김 */
+.clipsheet .clip-turn.prev{margin-top:auto;align-self:flex-start;padding:8px 12px 8px 4px;background:none}
+.clipsheet .paper.p2 .pl-more{align-self:flex-start}
+.clipsheet .paper.p2 .clip-turn{order:10;margin-top:-37px}
 .clipsheet .paper.p2 .pl-more{order:9;font-size:0}
 .clipsheet .paper.p2 .pl-more::before{content:'↶ 앞 장';font-size:15px}
 .clipsheet .pgno{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font:400 12px var(--f-display);color:var(--muted)}
@@ -707,6 +715,7 @@ body.kb .fan .card.cur{z-index:70!important}
     <button class="fsbtn cfg" id="btnMenu" type="button" aria-label="설정" title="설정" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     <div class="menu" id="menu" hidden role="menu">
       <div class="menu-info" id="menuInfo"></div>
+      <div class="menu-bg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg><span class="mv-t">소리</span><div class="seg sndseg" id="mSnd"></div></div>
       <label class="menu-vol" title="효과음"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg><span class="mv-t">효과음</span><input type="range" id="mVol" min="0" max="100" step="5" aria-label="효과음 음량"><b id="mVolV"></b></label>
       <label class="menu-vol" title="배경음악"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span class="mv-t">배경음악</span><input type="range" id="mBgm" min="0" max="100" step="5" aria-label="배경음악 음량"><b id="mBgmV"></b></label>
       <div class="menu-bg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.5"/></svg><span class="mv-t">배경</span><div class="seg bgseg" id="mBg"></div></div>
@@ -721,7 +730,6 @@ body.kb .fan .card.cur{z-index:70!important}
         <button type="button" class="mbtn" id="mLeave" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/></svg><span>탁자 떠나기</span></button>
       </div>
     </div>
-    <button class="fsbtn snd" id="btnSound" type="button" aria-label="소리 끄기" title="소리 끄기"></button>
     <button class="fsbtn fs" id="btnFs" type="button" aria-label="전체화면" title="전체화면"></button>
     <button class="fsbtn" id="btnLog" type="button" aria-label="진행 기록" title="진행 기록" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg><i class="dot" hidden></i></button>
     <div class="logpanel" id="logPanel" hidden role="dialog" aria-label="진행 기록"><h3>진행 기록</h3><ol class="log" id="log"></ol><p class="log-empty">아직 기록이 없습니다.</p></div>
@@ -802,6 +810,7 @@ body.kb .fan .card.cur{z-index:70!important}
         <label for="inBgm">배경음악 <span id="bgmV" class="volv"></span></label>
         <input type="range" id="inBgm" min="0" max="100" step="5" class="vol">
       </div>
+      <div class="field"><span class="fl">소리</span><div class="seg sndseg" id="segSnd"></div></div>
       <div class="field"><span class="fl">배경</span><div class="seg bgseg" id="segBg"></div></div>
       <div class="field"><span class="fl">이모티콘</span><div class="seg emoseg" id="segEmo"></div></div>
       <div class="field"><span class="fl">두 번 눌러 놓기</span><small>쿼리도: 같은 칸이나 벽 자리를 한 번 더 누르면 [놓기] 없이 바로 둡니다</small><div class="seg dblseg" id="segDbl"></div></div>
@@ -1798,15 +1807,15 @@ function showBubble(i,html,life,kind){
   setTimeout(()=>b.remove(),(life||2200)+500);   // 윈도우 '애니메이션 효과 끄기' 등으로 애니메이션이 안 돌 때 대비
   box.appendChild(b);
 }
-function setSoundIcon(){
-  const b=$('#btnSound');
-  b.innerHTML=SND.on
-    ?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>'
-    :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>';
-  const t=SND.on?'소리 끄기':'소리 켜기';b.setAttribute('aria-label',t);b.title=t;
+/* 소리 끄기·켜기: 설정(게임 중 메뉴·로비 설정)에서만. 스위치 원칙대로 왼쪽 끄기, 오른쪽 켜기 */
+function syncSndSeg(){document.querySelectorAll('.sndseg button').forEach(b=>{const on=(b.dataset.v==='on')===SND.on;b.setAttribute('aria-pressed',on);b.setAttribute('aria-checked',on)})}
+function setSound(on){if(on===SND.on)return;SND.on=on;store('gura-sound',on?'on':'off');syncSndSeg();if(on){audioOn();setTimeout(()=>sfx('pick'),30)}}
+function buildSndSeg(box){
+  box.setAttribute('role','radiogroup');box.setAttribute('aria-label','소리');
+  box.innerHTML='<button type="button" role="radio" data-v="off">끄기</button><button type="button" role="radio" data-v="on">켜기</button>';
+  box.addEventListener('click',e=>{const b=e.target.closest('button');if(b)setSound(b.dataset.v==='on')});
 }
-$('#btnSound').addEventListener('click',()=>{SND.on=!SND.on;store('gura-sound',SND.on?'on':'off');setSoundIcon();if(SND.on){audioOn();setTimeout(()=>sfx('pick'),30)}});
-setSoundIcon();
+buildSndSeg($('#mSnd'));buildSndSeg($('#segSnd'));syncSndSeg();
    /* ================= 카페 재즈 BGM (Swing Jazz Trio Sequencer) ================= */
 const BGM = {
   timer: null,
@@ -2026,15 +2035,15 @@ const syncLogDotSoon=()=>{if(typeof syncLogDot==='function')try{syncLogDot()}cat
 /* 상태가 갱신돼도 같은 내용이면 다시 그리지 않아서 키보드 포커스가 유지돼요.
    패널이 처음 뜰 때는 data-auto 버튼(게임 시작, 다시 하기 등)에 포커스를 줘요. */
 let lastPanelHtml='',lastPanelKind='';
-function showPanel(html,kind){
+function showPanel(html,kind,opt){
   const p=$('#panel');p.hidden=false;
   if(html===lastPanelHtml)return;
   const ae=document.activeElement,prevAct=ae&&p.contains(ae)&&ae.dataset?ae.dataset.act:null;
   const typing=ae&&ae.tagName==='INPUT'&&p.contains(ae)?{id:ae.id,v:ae.value,s:ae.selectionStart,e:ae.selectionEnd}:null;
   p.dataset.kind=kind||'';const clip=kind==='roomset'&&frTableUI(),pb=$('#panelBody');pb.classList.toggle('clipsheet',clip);if(!clip)pb.classList.remove('ro');
-  const pg=clip&&html.includes('class="pl-det"')?2:1,turn=clip&&lastPanelKind==='roomset'&&FR.page&&FR.page!==pg,fwd=pg>(FR.page||1);if(clip)FR.page=pg;
+  const pg=clip?(opt&&opt.pg)||(html.includes('class="pl-det"')?2:1):1,tot=clip?(opt&&opt.tot)||(pg===2||html.includes('class="pl-more"')?2:1):1,turn=clip&&lastPanelKind==='roomset'&&FR.page&&FR.page!==pg,fwd=pg>(FR.page||1);if(clip)FR.page=pg;
   const old=turn?pb.querySelector('.paper'):null,ghost=old?old.cloneNode(true):null,st0=old?old.scrollTop:0;
-  pb.innerHTML=clip?`<div class="paper${pg===2?' p2':''}${turn&&!fwd?' down':''}">${html}${pg===2||html.includes('class="pl-more"')?`<span class="pgno">${pg}/2</span>`:''}</div>`:html;
+  pb.innerHTML=clip?`<div class="paper${pg===2&&!(opt&&opt.rules)?' p2':''}${opt&&opt.rules?' pr':''}${turn&&!fwd?' down':''}">${html}${tot>1?`<span class="pgno">${pg}/${tot}</span>`:''}</div>`:html;
   if(ghost){ghost.classList.add('ghost',fwd?'fwd':'back');ghost.classList.remove('down');pb.appendChild(ghost);ghost.scrollTop=st0;const np=pb.querySelector('.paper.down'),done=()=>ghost.remove();(fwd?ghost:np||ghost).addEventListener('animationend',done,{once:true});setTimeout(done,1500);sfx('paper')}lastPanelHtml=html;$('#panelBody').classList.toggle('min',kind==='wait'&&FR.sheetMin);$('#panelBody').classList.toggle('wide',kind==='roomset');
   if(typing&&typing.id){const el=document.getElementById(typing.id);if(el){el.value=typing.v;el.focus();try{el.setSelectionRange(typing.s,typing.e)}catch(_){}lastPanelKind=kind||'';return}}
   let target=prevAct?p.querySelector(`[data-act="${prevAct}"]:not([disabled])`):null;
@@ -2118,8 +2127,11 @@ function renderPanel(){
       // 게임이 규칙 칸을 직접 그릴 수 있음 (G.settingsHTML: 대부호의 룰 레버). 없으면 −/+ 칸과 스위치를 차례로
       const body=G.settingsHTML?G.settingsHTML(c,{stepRow,common:COMMON_SET.map(d=>roomSetOf(G).find(x=>x.k===d.k))}):`<div class="rs-grid">${rows}</div>${rules?`<div class="rulehead">게임 규칙</div><div class="rs-grid tgs">${rules}</div>`:''}`;
       const modeRow=G.noFast?'':`<div class="rs-seg"><div class="rs-h"><b${clipUI&&c.fast?' class="hl"':''}>게임 모드</b><small>${G.modeDesc[c.fast?1:0]}</small></div><div class="segrow" role="radiogroup" aria-label="게임 모드">${[0,1].map(v=>`<button class="btn ${(c.fast?1:0)===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${(c.fast?1:0)===v}" data-act="mode${v}">${OPT_LABEL.fast[v]}</button>`).join('')}</div></div>`;
-      if(clipUI){   // 클립보드: 게임 고르기(홀로그램)·게임 방법(메뉴)·뒤로 버튼 없음. 바깥을 누르거나 Esc·도장으로 닫힘. 참가자는 읽기만
-        showPanel(`${modeRow}${body}${ro?'':`<div class="row clip-end"><button class="btn btn-red" type="button" data-act="setclose" data-n="${esc(myNick().slice(0,3))}" data-auto>방장 확인</button></div>`}`,'roomset');
+      if(clipUI){   // 클립보드: 맨 위 게임 이름, 맨 뒤 쪽은 게임 방법. 게임 고르기(홀로그램)·뒤로 버튼 없음. 바깥을 누르거나 Esc·도장으로 닫힘. 참가자는 읽기만
+        const det=body.includes('class="pl-det"'),more=det||body.includes('class="pl-more"'),tot=(more?2:1)+1,head=`<div class="clip-title">${esc(G.name)}</div>`;
+        if(FR.clipRules){showPanel(`${head}<div class="clip-sub">게임 방법</div>${G.rulesHTML||''}<button type="button" class="clip-turn prev" data-act="clipback">↶ 앞 장</button>`,'roomset',{pg:tot,tot,rules:1});$('#panelBody').classList.toggle('ro',ro);return}
+        const toRules=!more||det?`<button type="button" class="clip-turn" data-act="cliprules">게임 방법 ↷</button>`:'';
+        showPanel(`${head}${modeRow}${body}${ro?'':`<div class="row clip-end"><button class="btn btn-red" type="button" data-act="setclose" data-n="${esc(myNick().slice(0,3))}" data-auto>방장 확인</button></div>`}${toRules}`,'roomset',{pg:det?2:1,tot});
         $('#panelBody').classList.toggle('ro',ro);
         return;
       }
@@ -2179,6 +2191,7 @@ $('#panel').addEventListener('click',e=>{
     if(mode==='host'&&H&&H.phase==='wait'&&EG().firstPick&&H.cfg.pickfirst&&H.members[i]){H.firstName=H.members[i].name;sfx('tick');lastPanelHtml='';mark()}
     return}
   if(a==='setopen'){roomSetOpen=true;renderPanel();return}
+  if(a==='cliprules'||a==='clipback'){FR.clipRules=a==='cliprules';renderPanel();return}   // 클립보드 맨 뒤 쪽: 게임 방법
   if(a==='setclose'){
     if(b.closest('.clipsheet')){if(!b.classList.contains('stamped')){b.classList.add('stamped');sfx('stamp');setTimeout(clipClose,520)}return}   // 도장 쿵 → 클립보드가 탁자로
     roomSetOpen=false;renderPanel();return}
@@ -3653,7 +3666,7 @@ function frontClipPose(t,wait){
 const _cv=window.THREE?new THREE.Vector3():null,_ce=window.THREE?new THREE.Euler():null;
 function clipOpen(){
   if(!frWaitV()||roomSetOpen||FR.clipFly)return;
-  seatPopClose();sfx('paper');FR.clipFly={t0:clock(),ms:380,dir:1};
+  seatPopClose();sfx('paper');FR.clipFly={t0:clock(),ms:380,dir:1};FR.clipRules=false;
   setTimeout(()=>{if(!frWaitV())return;roomSetOpen=true;lastPanelHtml='';renderPanel()},360);
 }
 function clipClose(){
@@ -3704,7 +3717,10 @@ function frontLayout(lobby,wait,host,t){
   const side=seated&&FR.open>.98&&!!FR.eye;
   frontPut($('#frEye'),side,side?boardPt(600,56,W,Hh):null,0,40,38);
   frontPut($('#frLock'),side&&host,side&&host?boardPt(600,150,W,Hh):null,0,40,38);
-  frontPut($('#frHolo'),seated&&host&&T.holo.g.position.y>-.01,seated&&host?frontRect(T.holo.base,W,Hh):null,10,64,56);
+  // 떠 있는 게임 말을 누르면 게임 고르기 (투사기 몸통은 누르는 자리가 아님)
+  const hOk=seated&&host&&(FR.holoGlow||0)>.5;let hr=null;
+  if(hOk){const cur=Math.max(0,GAME_IDS.indexOf(V.cfg.game||'gura'));hr=frontRect(T.holo.pieces[cur],W,Hh)}
+  frontPut($('#frHolo'),hOk,hr,14,72,64);
   frontPut($('#frClip'),seated&&FR.cla.v>=1,seated?frontRect(T.clip.g,W,Hh):null,8,56,56);
   frontPut($('#frStart'),seated&&host&&T.startBtn.g.position.y>-.22,seated&&host?frontRect(T.startBtn.g,W,Hh):null,10,60,56);
   // 고르는 중: 가운데 말을 누르면 확정, 양옆 말을 누르거나 밀면 넘김
@@ -3720,7 +3736,7 @@ function frontLayout(lobby,wait,host,t){
     _v3.set(0,(FR.holoTop||1.2)+.06,0).project(T.cam);const x=(_v3.x+1)/2*W,y=(1-_v3.y)/2*Hh;
     const gid=FR.browse?frontHoloId():(V.cfg.game||'gura'),bad=FR.browse&&!frontCanPlay(gid);
     const tn=V.title||'',gn=gameOf(gid).name;
-    if(ht.dataset.k!==tn+'|'+gn+'|'+bad+'|'+host){ht.dataset.k=tn+'|'+gn+'|'+bad+'|'+host;if(!$('#holoTitleIn'))$('#holoTitle').textContent=tn;$('#holoGame').textContent=gn;ht.classList.toggle('bad',bad);$('#holoTitle').classList.toggle('editable',host)}
+    if(ht.dataset.k!==tn+'|'+gn+'|'+bad+'|'+host){ht.dataset.k=tn+'|'+gn+'|'+bad+'|'+host;if(!$('#holoTitleIn'))$('#holoTitle').textContent=tn;$('#holoGame').textContent=gn;ht.classList.toggle('bad',bad);$('#holoTitle').classList.toggle('editable',host);$('#holoGame').classList.toggle('pickable',host)}
     ht.style.left=Math.round(x)+'px';ht.style.top=Math.round(y-ht.offsetHeight)+'px';ht.style.opacity=Math.min(1,FR.holoGlow*1.2);
   }
 }
@@ -3752,6 +3768,7 @@ $('#frBoard').addEventListener('click',()=>{
 $('#frEye').addEventListener('click',()=>{hideCode=!hideCode;store('gura-hidecode',hideCode?'1':'0');lastPanelHtml='';sfx('tick');render()});   // 번호 가리기 (내 화면에서만)
 $('#frLock').addEventListener('click',()=>{if(mode==='host'&&H&&H.online&&H.phase==='wait'){H.cfg={...H.cfg,pub:H.cfg.pub?0:1};sfx('lock');mark()}else sfx('no')});
 $('#frHolo').addEventListener('click',()=>{if(mode!=='host'){sfx('no');return}frontBrowse(!FR.browse)});
+$('#holoGame').addEventListener('click',()=>{if(mode!=='host'||!frWaitV()||FR.browse)return;frontBrowse(true)});   // 게임 이름을 눌러도 게임 고르기
 $('#frClip').addEventListener('click',()=>clipOpen());
 { // 시작 버튼: 0.5초 누르고 있으면 시작 (일찍 떼면 취소). 키보드 Enter·Space는 바로 시작
   const b=$('#frStart');
@@ -3966,7 +3983,7 @@ function placeLabels(){
 }
 function stageRects(){
   const st=$('#stage').getBoundingClientRect(),out=[];
-  for(const id of ['btnLog','btnFs','btnSound','btnMenu','actions','numpick','me','ruleBadges','holoTag']){
+  for(const id of ['btnLog','btnFs','btnMenu','actions','numpick','me','ruleBadges','holoTag']){
     const el=document.getElementById(id);if(!el||el.hidden||!el.offsetWidth)continue;
     const r=el.getBoundingClientRect();out.push({l:r.left-st.left-4,r:r.right-st.left+4,t:r.top-st.top-4,b:r.bottom-st.top+4});
   }
