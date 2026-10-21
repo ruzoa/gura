@@ -11,9 +11,8 @@ const C=(r,s)=>r*4+(s||0);   // r: 0=A, 1=2, …, 9=10, 10=J, 11=Q, 12=K
  b(16,false,10,true,'hit');b(12,false,4,true,'stand');b(12,false,3,true,'hit');b(11,false,6,true,'double');b(11,false,6,false,'hit');
  b(18,true,9,true,'hit');b(18,true,7,true,'stand');b(18,true,5,true,'double');b(18,true,5,false,'stand');b(13,true,5,true,'double');b(17,false,11,true,'stand')}
 
-/* 카드 순서를 정해 두기: 엔진이 새 한 벌을 섞을 때 RIG를 씀. 뽑기는 끝에서부터(pop)라 뽑는 순서를 거꾸로 넣음 */
-const shuffle0=shuffle;let RIG=null;
-globalThis.shuffle=a=>{if(RIG&&a.length===52&&a[0]===0){const r=RIG.slice().reverse();RIG=null;const rest=a.filter(x=>!r.includes(x));return [...shuffle0(rest),...r]}return shuffle0(a)};
+/* 카드 순서를 정해 두기: 슈의 맨 끝부터 뽑으므로(pop) 뽑는 순서를 거꾸로 넣음 */
+const rig=list=>{const B=H.bj;B.shoe=[...B.shoe.filter(x=>!list.includes(x)),...list.slice().reverse()]};
 const mkB=(n,over)=>{hostNew(false,'t','t');H.cfg={...cfgFor('blackjack'),...over,game:'blackjack'};
   H.members=[];for(let i=0;i<n;i++)H.members.push({name:'p'+i,bot:false,conn:null,host:i===0,cid:i?'c'+i:''});hostStart();return H.bj};
 const runTo=(cond,ms)=>{for(let k=0;k<(ms||60000)/50&&!cond();k++){NOW+=50;engineTick()}return cond()};
@@ -21,7 +20,7 @@ const afterDealing=()=>runTo(()=>!dealing()&&H.bj.ph!=='deal',20000);
 // 1) 봇 딜러: 블랙잭 1.5배, 히트로 21이면 스탠드, 딜러 16은 받고 버스트
 {const B=mkB(2,{chips:100});
  if(B.ph!=='bet'||H.turn!==0||B.dl!==-1)fail('bj start bet phase '+B.ph+' '+H.turn);
- RIG=[C(9),C(8),C(5),C(0),C(6),C(9,1),C(3),C(12)];   // 뽑는 순서: p0 p1 딜러 p0 p1 딜러(엎음) / p1 히트 / 딜러 히트
+ rig([C(9),C(8),C(5),C(0),C(6),C(9,1),C(3),C(12)]);   // 뽑는 순서: p0 p1 딜러 p0 p1 딜러(엎음) / p1 히트 / 딜러 히트
  BJ.engine.act(1,{t:'bet',a:10});if(H.turn!==0)fail('bj first unbet turn');
  BJ.engine.act(0,{t:'bet',a:25});   // 10단위로 맞춤 → 30
  if(B.bt[0]!==30&&B.bt[0]!==20)fail('bj bet rounding '+B.bt[0]);
@@ -44,12 +43,12 @@ const afterDealing=()=>runTo(()=>!dealing()&&H.bj.ph!=='deal',20000);
  if(B.rd!==2||B.hc[0].length||B.bt[0])fail('bj next round')}
 // 2) 딜러 블랙잭(A 보임): 바로 정산, 블랙잭끼리는 무승부
 {const B=mkB(2,{chips:100});
- RIG=[C(9),C(0,1),C(0),C(9,2),C(12,1),C(12)];   // p0 10·10=20, p1 A·K=블랙잭, 딜러 A·K
+ rig([C(9),C(0,1),C(0),C(9,2),C(12,1),C(12)]);   // p0 10·10=20, p1 A·K=블랙잭, 딜러 A·K
  BJ.engine.act(0,{t:'bet',a:20});BJ.engine.act(1,{t:'bet',a:20});afterDealing();
  if(B.ph!=='settle'||B.rs[0]!==-20||B.rs[1]!==0)fail('bj dealer blackjack '+B.ph+' '+B.rs)}
 // 3) 더블: 칩이 모자라면 못 함, 하면 두 배 걸고 한 장만
 {const B=mkB(2,{chips:100});
- RIG=[C(5),C(9),C(9,1),C(4),C(8),C(7),C(8,2)];   // p0 6·5=11, p1 10·9=19, 딜러 10·8=18 / p0 더블 9
+ rig([C(5),C(9),C(9,1),C(4),C(8),C(7),C(8,2)]);   // p0 6·5=11, p1 10·9=19, 딜러 10·8=18 / p0 더블 9
  BJ.engine.act(0,{t:'bet',a:100});BJ.engine.act(1,{t:'bet',a:10});afterDealing();
  BJ.engine.act(0,{t:'double'});if(B.db[0]||B.hc[0].length!==2)fail('bj double without chips');
  B.bt[0]=40;BJ.engine.act(0,{t:'double'});
@@ -66,20 +65,20 @@ const afterDealing=()=>runTo(()=>!dealing()&&H.bj.ph!=='deal',20000);
 {const B=mkB(3,{chips:100,hdeal:1});
  if(!B.hd||B.dl!==0||B.order.join()!=='1,2'||H.turn!==1)fail('bj hd first dealer '+B.dl+' '+B.order);
  BJ.engine.act(0,{t:'bet',a:20});if(B.bt[0])fail('bj dealer cannot bet');
- RIG=[C(9),C(8),C(5),C(7),C(9,1),C(4)];   // p1 10·8=18, p2 9·10=19, 딜러 6·5=11
+ rig([C(9),C(8),C(5),C(7),C(9,1),C(4)]);   // p1 10·8=18, p2 9·10=19, 딜러 6·5=11
  BJ.engine.act(1,{t:'bet',a:30});BJ.engine.act(2,{t:'bet',a:40});
  if(snapFor(0).bj.dc[1]!==C(4)||snapFor(1).bj.dc[1]!==-1)fail('bj hd hole only for dealer');
  afterDealing();BJ.engine.act(1,{t:'stand'});BJ.engine.act(2,{t:'stand'});
  if(B.ph!=='dealer'||H.turn!==0||B.auto)fail('bj hd dealer turn');
  BJ.engine.act(0,{t:'stand'});if(B.ph!=='dealer'||B.auto)fail('bj hd must hit under 17');
- RIG=null;B.deck.push(C(6));BJ.engine.act(0,{t:'hit'});   // 11+7=18
+ B.shoe.push(C(6));BJ.engine.act(0,{t:'hit'});   // 11+7=18
  if(score(B.dc).t!==18)fail('bj hd hit '+B.dc);
  BJ.engine.act(0,{t:'stand'});runTo(()=>B.ph==='settle',10000);
  if(B.rs[1]!==0||B.rs[2]!==40||B.rs[0]!==-40||B.ch.reduce((a,b)=>a+b,0)!==300)fail('bj hd settle '+B.rs+' '+B.ch);
  runTo(()=>B.ph==='bet',10000);if(B.dl!==1||B.order.join()!=='2,0')fail('bj hd rotate '+B.dl+' '+B.order)}
 // 6) 사람 딜러 칩이 모자라면 가진 만큼 나눠 줌 (총합 그대로, 음수 없음)
 {const B=mkB(3,{chips:100,hdeal:1});B.ch=[20,200,200];
- RIG=[C(9),C(9,1),C(9,2),C(8),C(8,1),C(6)];   // p1 19, p2 19, 딜러 10·7=17
+ rig([C(9),C(9,1),C(9,2),C(8),C(8,1),C(6)]);   // p1 19, p2 19, 딜러 10·7=17
  BJ.engine.act(1,{t:'bet',a:100});BJ.engine.act(2,{t:'bet',a:50});afterDealing();
  BJ.engine.act(1,{t:'stand'});BJ.engine.act(2,{t:'stand'});BJ.engine.act(0,{t:'stand'});runTo(()=>B.ph==='settle',10000);
  if(B.ch[0]>=MIN||B.ch.some(x=>x<0)||B.ch.reduce((a,b)=>a+b,0)!==420||B.rs[1]<=B.rs[2])fail('bj hd broke dealer '+B.ch+' '+B.rs);
@@ -87,7 +86,7 @@ const afterDealing=()=>runTo(()=>!dealing()&&H.bj.ph!=='deal',20000);
  if(!H.players[0].finished||H.players[0].rank!==3)fail('bj broke player out '+H.players[0].rank)}
 // 7) 판 수를 마치면 칩 순서로 순위 (같으면 같은 순위)
 {const B=mkB(3,{chips:100,rounds:1});
- RIG=[C(9),C(9,1),C(9,2),C(9,3),C(8),C(8,1),C(8,2),C(8,3)];   // 모두 19, 딜러 10·9=19 → 모두 무승부
+ rig([C(9),C(9,1),C(9,2),C(9,3),C(8),C(8,1),C(8,2),C(8,3)]);   // 모두 19, 딜러 10·9=19 → 모두 무승부
  BJ.engine.act(0,{t:'bet',a:10});BJ.engine.act(1,{t:'bet',a:10});BJ.engine.act(2,{t:'bet',a:10});afterDealing();
  [0,1,2].forEach(i=>BJ.engine.act(i,{t:'stand'}));runTo(()=>H.phase==='over',15000);
  if(H.phase!=='over'||H.players.some(p=>p.rank!==1))fail('bj tie ranks '+H.players.map(p=>p.rank))}
@@ -98,7 +97,22 @@ const afterDealing=()=>runTo(()=>!dealing()&&H.bj.ph!=='deal',20000);
  BJ.engine.act(2,{t:'bet',a:10});if(B.ph!=='deal')fail('bj deal after surrender');
  afterDealing();if(B.ph==='turn'){const i=H.turn;BJ.engine.act(i,{t:'surrender'});if(B.st[i]!==4||H.turn===i)fail('bj surrender in turn')}
  runTo(()=>B.ph==='settle',60000);if(!B.rs)fail('bj no settle after surrender');else if(B.st[0]===4&&B.rs[0]!==-10)fail('bj surrender loses bet')}
-globalThis.shuffle=shuffle0;
+// 9) 슈: 판이 바뀌어도 섞지 않고 이어 씀, 다음 판을 나눌 만큼 남지 않을 때만 다시 섞음, 한 통 안에서 같은 카드가 두 번 나오지 않음
+{const B=mkB(2,{chips:1000,decks:1,rounds:30});
+ if(B.shoe.length!==52||B.sf!==1)fail('bj shoe start '+B.shoe.length);
+ const seen=new Set();let sf=B.sf,dup=0,shuf=0,rounds=0;
+ for(let r=0;r<14&&H.phase==='play';r++){
+   runTo(()=>B.ph==='bet',20000);
+   const left=B.shoe.length;[0,1].forEach(i=>BJ.engine.act(i,{t:'bet',a:10}));
+   if(B.sf!==sf){shuf++;sf=B.sf;seen.clear();if(left>=(B.order.length+1)*5)fail('bj reshuffled too early '+left)}
+   else if(r&&left<(B.order.length+1)*5)fail('bj should reshuffle '+left);
+   for(const id of [...B.dc,...B.hc.flat()]){if(seen.has(id))dup++;seen.add(id)}
+   afterDealing();while(B.ph==='turn')BJ.engine.act(H.turn,{t:'stand'});runTo(()=>B.ph==='settle'||H.phase==='over',20000);
+   for(const id of [...B.dc,...B.hc.flat()])seen.add(id);rounds++;
+   if(B.shoe.length+B.disc+B.dc.length+B.hc.flat().length!==52&&B.sf===sf)fail('bj shoe count '+B.shoe.length+'+'+B.disc);
+   runTo(()=>B.ph==='bet'||H.phase==='over',20000);
+ }
+ if(dup)fail('bj duplicate in one shoe '+dup);if(!shuf)fail('bj never reshuffled');if(rounds<8)fail('bj shoe rounds '+rounds)}
 
 /* 봇끼리 끝까지: 인원·칩·판 수·딜러 방식·난이도를 바꿔 가며. 칩 음수 없음, 차례는 늘 남은 사람, 사람 딜러는 칩 총합 그대로, 순위 1~n */
 function playOutB(n,over,lvs){
