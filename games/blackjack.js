@@ -468,7 +468,9 @@ G.nameTag=(p,i)=>{const B=V&&V.st!=='wait'?V.bj:null;return B&&B.hd&&B.dl===i?'<
 G.overRank=p=>{const B=V&&V.bj,why=p.sr?(p.sr===2?'시간 초과':p.sr===3?'탈주':'항복'):'';return `<span class="left">${why?why+' · ':''}칩 ${B?B.ch[p.i]:0}개</span>`};
 G.preView=()=>{
   const B=BV(),i=myIdx();if(!B)return;
-  if(!PV||!PV.bj||PV.bj.rd!==B.rd||B.ph!=='bet'||(i>=0&&B.bt[i]))pend=[];   // 새 판이거나 이미 걸었으면 비움
+  const fresh=!PV||!PV.bj||PV.bj.rd!==B.rd;
+  if(fresh||B.ph!=='bet'||(i>=0&&B.bt[i]))pend=[];   // 새 판이거나 이미 걸었으면 비움
+  if(fresh&&PV&&B.ph==='bet'&&V.st==='play')setTimeout(()=>{if(BV()&&BV().rd===B.rd)roundStart(B)},0);   // 판 번호·칩 더미 튀기 (첫 판은 카드 나누기 대신 바로)
 };
 G.postView=()=>{};
 G.logCue=txt=>{if(txt.includes('섞습니다')){sfx('riffle');setTimeout(()=>sfx('square'),700);return true}return false};
@@ -486,13 +488,22 @@ G.cues=(v,pv)=>{
   }
 };
 
-/* ---------- 탁자 배치 (월드 좌표, 나는 +z 쪽) ---------- */
+/* ---------- 탁자 배치 (월드 좌표, 나는 +z 쪽) ----------
+   기본은 딜러가 맞은편, 거는 사람은 딜러를 둘러싼 부채꼴(나는 가운데).
+   내가 사람 딜러인 판은 앞뒤를 뒤집어(FL=-1) 딜러 카드·칩·카드 통이 내 앞, 손님 부채꼴이 맞은편 (카메라는 그대로) */
 const C0={x:0,z:-2.0};                 // 부채꼴의 중심 (딜러 쪽)
 const R_HAND=2.75,R_BET=3.45,R_PILL=3.86,HALF=40*Math.PI/180,STEP=22*Math.PI/180;
-const DEALER_Z=-2.0,SHOE={x:1.9,z:-2.2},DISC={x:-1.9,z:-2.2},TRAY={x:0,z:-2.86};
+const DEALER_Z=-2.0,SHOE={x:1.9,z:-2.2},DISC={x:-1.9,z:-2.2},TRAY={x:0,z:-2.75};
 const BANK_Z=2.38,BANK_X=[-.75,-.25,.25,.75],CHIP_R=.2,CHIP_H=.052;
+const CW=.62*1.2,CH=.9*1.2;            // 카드 폭·높이 (크기 1일 때)
+const S_ME=.8,S_DL=.8,S_OT=.65;        // 카드 크기: 나·딜러·다른 사람
+let FL=1;
+const M=p=>({x:p.x,z:p.z*FL});
+/* 카드 통·버린 더미: 내가 딜러면 내 앞이라 원근으로 커지므로 안쪽으로 당김(휴대폰에서 잘리지 않게) */
+const shoeAt=p=>FL<0?{x:Math.sign(p.x)*1.4,z:-1.85}:p;
 const wrapA=a=>{while(a>Math.PI)a-=2*Math.PI;while(a<=-Math.PI)a+=2*Math.PI;return a};
-const atA=(a,r)=>({x:C0.x+Math.sin(a)*r,z:C0.z+Math.cos(a)*r});
+const atC=(a,r)=>({x:C0.x+Math.sin(a)*r,z:C0.z+Math.cos(a)*r});   // 뒤집기 전
+const atA=(a,r)=>M(atC(a,r));
 /* 자리마다 부채꼴의 각도: 나는 가운데, 다른 사람은 탁자에서 앉은 쪽(왼쪽·오른쪽) 순서대로 */
 function spotAngles(od){
   const me=myIdx(),out=new Map();
@@ -501,8 +512,7 @@ function spotAngles(od){
     out.set(me,0);
     const L=rest.filter(x=>x.v<0).sort((a,b)=>b.v-a.v),R=rest.filter(x=>x.v>0&&x.v<Math.PI-1e-6).sort((a,b)=>a.v-b.v);
     rest.filter(x=>x.v>=Math.PI-1e-6).forEach(x=>(L.length<R.length?L:R).push(x));   // 맞은편은 적은 쪽으로
-    const st=STEP_E;
-    L.forEach((x,k)=>out.set(x.i,-(k+1)*st));R.forEach((x,k)=>out.set(x.i,(k+1)*st));
+    L.forEach((x,k)=>out.set(x.i,-(k+1)*STEP_E));R.forEach((x,k)=>out.set(x.i,(k+1)*STEP_E));
   }else{
     rest.sort((a,b)=>a.v-b.v);const n=rest.length,st=Math.min(STEP,2*HALF_E/Math.max(1,n-1));
     rest.forEach((x,k)=>out.set(x.i,(k-(n-1)/2)*st));
@@ -517,32 +527,34 @@ function fitHalf(){
   for(let d=40;d>=14;d--){const a=d*Math.PI/180,p=atA(a,R_BET);v.set(1,0,p.z).project(T.cam);if(p.x+.42<=.94/Math.max(1e-6,v.x))return a}
   return 14*Math.PI/180;
 }
-let SPOTS=new Map(),spotKey='',SC={me:1,ot:.82};
+let SPOTS=new Map(),spotKey='',SC={me:S_ME,ot:S_OT};
 function layout(B){
-  const st=$('#stage'),key=B.od.join(',')+'|'+myIdx()+'|'+V.ps.length+'|'+st.clientWidth+'x'+st.clientHeight;
+  const me=myIdx();FL=B.hd&&me>=0&&B.dl===me?-1:1;
+  const st=$('#stage'),key=B.od.join(',')+'|'+me+'|'+FL+'|'+V.ps.length+'|'+st.clientWidth+'x'+st.clientHeight;
   if(key!==spotKey){
     spotKey=key;HALF_E=fitHalf();
-    const me=myIdx(),rest=B.od.filter(i=>i!==me),side=B.od.includes(me)?Math.max(1,...[-1,1].map(sg=>rest.filter(i=>{const v=wrapA(seatAngle(i));return sg<0?v<0:v>0}).length)):1;
+    const rest=B.od.filter(i=>i!==me),side=B.od.includes(me)?Math.max(1,...[-1,1].map(sg=>rest.filter(i=>{const v=wrapA(seatAngle(i));return sg<0?v<0:v>0}).length)):1;
     STEP_E=Math.min(STEP,HALF_E/Math.max(1,side));
     SPOTS=spotAngles(B.od);
-    // 카드 크기: 이웃 손과 겹치지 않을 만큼 (손 폭 ≈ 카드 폭 + 비스듬히 겹친 만큼)
-    const sp=STEP_E*R_HAND,unit=.62*(T.cardK||1.2)+.2;
-    SC.ot=Math.max(.5,Math.min(.85,sp/unit*.92));SC.me=Math.max(SC.ot,Math.min(1,(2*sp/unit*.92)-SC.ot));
+    // 카드 크기는 고정(나 0.8·다른 사람 0.65), 자리가 좁을 때만 이웃 손과 안 겹치게 줄임 (손 폭 ≈ 카드 1.45장)
+    const sp=(B.od.includes(me)?STEP_E:Math.min(STEP,2*HALF_E/Math.max(1,B.od.length-1)))*R_HAND,u=CW*1.45;
+    SC.ot=Math.min(S_OT,Math.max(.42,sp/u*.95));SC.me=Math.min(S_ME,Math.max(SC.ot,2*sp/u*.95-SC.ot));
     V3.ringsKey='';
   }
   return SPOTS;
 }
-/* 카드: 딜러는 가운데 한 줄. 사람은 베팅 칸 위에 비스듬히 겹쳐(다음 카드가 오른쪽 아래로) 모서리 숫자가 보이게, 손 폭이 좁음 */
+/* 카드 자리: 옆으로 겹쳐 왼쪽 위 숫자가 보이게(카드가 늘면 더 겹침). 딜러는 가운데 한 줄 */
 function cardPose(seat,k,n){
-  if(seat<0){const gap=n>1?Math.min(.44,1.5/(n-1)):0;return {x:(k-(n-1)/2)*gap,y:.02+k*.004,z:DEALER_Z,ry:0,s:.95}}
-  const a=SPOTS.get(seat)||0,s=seat===myIdx()?SC.me:SC.ot;
-  const c=atA(a,R_HAND),o=k-(n-1)/2,dt=o*.17*s,du=o*.2*s,ca=Math.cos(a),sa=Math.sin(a);
-  return {x:c.x+ca*dt+sa*du,y:.02+k*.004,z:c.z-sa*dt+ca*du,ry:a,s};
+  const fan=s=>n>1?CW*s*Math.min(.42,1.05/(n-1)):0;
+  if(seat<0){const g=fan(S_DL),c=M({x:(k-(n-1)/2)*g,z:DEALER_Z});return {x:c.x,y:.02+k*.004,z:c.z,ry:0,s:S_DL}}
+  const a=SPOTS.get(seat)||0,s=seat===myIdx()?SC.me:SC.ot,g=fan(s);
+  const c=atC(a,R_HAND),o=(k-(n-1)/2)*g,p=M({x:c.x+Math.cos(a)*o,z:c.z-Math.sin(a)*o});
+  return {x:p.x,y:.02+k*.004,z:p.z,ry:a*FL,s};
 }
 const betPos=i=>atA(SPOTS.get(i)||0,R_BET);
 
 /* ---------- 3D ---------- */
-const V3={lock:0,cards:new Map(),flights:[],piles:new Map(),bank:null,ringsKey:'',rings:[],root:null,shoe:null,disc:null,sf:-1,rd:-1,settled:-1,landed:new Set(),felt:null,mats:null};
+const V3={toBet:0,toBank:0,cards:new Map(),flights:[],piles:new Map(),bank:null,dstack:null,ringsKey:'',rings:[],myRing:null,betArc:null,arcQ:-1,root:null,rootFL:0,shoe:null,disc:null,sf:-1,rd:-1,settled:-1,landed:new Set(),felt:{},mats:null,bounceAt:-1e9};
 function chipMats(){
   if(V3.mats)return V3.mats;
   const geo=new THREE.CylinderGeometry(CHIP_R,CHIP_R,CHIP_H,28);
@@ -555,7 +567,7 @@ function chipMats(){
   return V3.mats={geo,list};
 }
 const chipMesh=d=>{const M=chipMats(),m=new THREE.Mesh(M.geo,M.list[DEN.indexOf(d)]);m.castShadow=true;return m};
-/* 금액 → 칩 (큰 칩부터). 내 칩 더미는 거스름돈처럼 작은 칩도 남겨 둠(누를 수 있게) */
+/* 금액 → 칩 (큰 칩부터). 칩 더미는 거스름돈처럼 작은 칩도 남겨 둠(누를 수 있게) */
 function greedy(a){const o=[];for(let k=DEN.length-1;k>=0;k--){while(a>=DEN[k]){o.push(DEN[k]);a-=DEN[k]}}return o}
 function change(a){
   const n=[0,0,0,0];let r=Math.floor(a/MIN)*MIN;
@@ -570,10 +582,10 @@ function pileGroup(amt){
   cs.forEach((d,k)=>{const m=chipMesh(d),col=k/14|0,row=k%14;m.position.set(col*.44,CHIP_H/2+row*CHIP_H,0);m.rotation.y=k*.9;g.add(m)});
   g.userData.n=cs.length;T.scene.add(g);return g;
 }
-/* 내 칩 더미: 종류별 기둥 4개 (많으면 뒤로 한 줄 더) */
-function bankGroup(amt){
+/* 종류별로 세운 칩 기둥 4개 (많으면 한 줄 더): 내 칩 더미(내 앞), 딜러 칩(딜러 뒤) */
+function stackGroup(amt,cz,back){
   const g=new THREE.Group(),n=change(amt);
-  n.forEach((c,k)=>{for(let j=0;j<Math.min(c,40);j++){const m=chipMesh(DEN[k]),col=j/12|0,row=j%12;m.position.set(BANK_X[k],CHIP_H/2+row*CHIP_H,BANK_Z+col*.44);m.rotation.y=j*.7;g.add(m)}});
+  n.forEach((c,k)=>{for(let j=0;j<Math.min(c,40);j++){const m=chipMesh(DEN[k]),col=j/12|0,row=j%12,p=M({x:BANK_X[k],z:cz+back*col*.44});m.position.set(p.x,CHIP_H/2+row*CHIP_H,p.z);m.rotation.y=j*.7;g.add(m)}});
   g.userData.n=n;T.scene.add(g);return g;
 }
 const topY=(n)=>Math.min(n,14)*CHIP_H+.02;
@@ -588,38 +600,41 @@ function setPile(i,amt,pos){
   if(P.g)P.g.position.set(pos.x,0,pos.z);
   V3.piles.set(i,P);return P;
 }
-/* 내 칩 하나가 더미 ↔ 베팅 칸으로 */
+/* 내 칩 하나가 더미 ↔ 베팅 칸으로. 떠나는 쪽은 바로 빼고, 받는 쪽은 도착하면 채움(잔상 없음) */
 function flyMine(d,toBet){
-  const me=myIdx(),bp=betPos(me),k=DEN.indexOf(d),bank={x:BANK_X[k],y:topY(Math.min(12,(V3.bank&&V3.bank.userData.n[k])||1)),z:BANK_Z};
-  const P=V3.piles.get(me),pile={x:bp.x,y:topY(P&&P.g?P.g.userData.n:0),z:bp.z};
+  const me=myIdx(),bp=betPos(me),k=DEN.indexOf(d),bn=(V3.bank&&V3.bank.userData.n[k])||0;
+  const bank={x:BANK_X[k],y:topY(Math.min(12,bn+(toBet?1:0))),z:BANK_Z};
+  const P=V3.piles.get(me),pn=P&&P.g?P.g.userData.n:0,pile={x:bp.x,y:topY(pn+(toBet?0:1)),z:bp.z};
+  if(toBet)V3.toBet+=d;else V3.toBank+=d;
   const m=chipMesh(d);T.scene.add(m);
-  V3.lock++;   // 날아가는 동안 베팅 기둥은 그대로(모두 도착하면 맞춤)
-  fly(m,toBet?bank:pile,toBet?pile:bank,230,clock(),.32,()=>{killG(m);V3.lock=Math.max(0,V3.lock-1);syncChips()});
-  syncChips(true);
+  fly(m,toBet?bank:pile,toBet?pile:bank,230,clock(),.32,()=>{killG(m);if(toBet)V3.toBet=Math.max(0,V3.toBet-d);else V3.toBank=Math.max(0,V3.toBank-d);syncChips()});
+  syncChips();
 }
 /* 칩 더미·베팅 기둥을 지금 상태에 맞춤 */
 function bankAmt(B,me){
-  let a=B.ch[me]-(B.bt[me]||0)-(B.ph==='bet'&&!B.bt[me]?betAmt():0);
+  let a=B.ch[me]-(B.bt[me]||0)-(B.ph==='bet'&&!B.bt[me]?betAmt():0)-V3.toBank;
   if(B.ph==='settle'&&B.rs&&B.od.includes(me)&&!V3.landed.has(me))a=B.ch[me]-B.rs[me]-(B.bt[me]||0);   // 정산 칩이 도착하기 전
   return Math.max(0,a);
 }
-function syncChips(bankOnly){
+function syncChips(){
   const B=BV();if(!B||!T.ok)return;
-  const me=myIdx();
-  if(me>=0&&!V.ps[me].f){
+  const me=myIdx(),meDl=B.hd&&B.dl===me;
+  if(me>=0&&!V.ps[me].f&&!meDl){
     const a=bankAmt(B,me),key=change(a).join(',');
-    if(!V3.bank||V3.bank.userData.key!==key){killG(V3.bank);V3.bank=bankGroup(a);V3.bank.userData.key=key}
+    if(!V3.bank||V3.bank.userData.key!==key){killG(V3.bank);V3.bank=stackGroup(a,BANK_Z,1);V3.bank.userData.key=key}
   }else if(V3.bank){killG(V3.bank);V3.bank=null}
-  if(bankOnly||B.ph==='settle')return;
+  // 딜러 칩: 사람 딜러면 그 사람이 가진 칩, 봇 딜러는 넉넉히
+  {const a=B.hd&&B.dl>=0?B.ch[B.dl]:2400,key=FL+':'+change(a).join(',');
+   if(!V3.dstack||V3.dstack.userData.key!==key){killG(V3.dstack);V3.dstack=stackGroup(a,TRAY.z,-1);V3.dstack.userData.key=key}}
+  if(B.ph==='settle')return;
   for(const i of B.od){
     if(!SPOTS.has(i))continue;
-    const amt=i===me&&B.ph==='bet'&&!B.bt[i]?betAmt():B.bt[i]||0;
-    if(i===me&&V3.lock)continue;
+    const amt=i===me&&B.ph==='bet'&&!B.bt[i]?Math.max(0,betAmt()-V3.toBet):B.bt[i]||0;
     const P=V3.piles.get(i);
     if(i!==me&&amt>(P?P.amt:0)&&!(P&&P.flying)){   // 다른 사람이 걸면 그 사람 자리에서 날아옴
       const bp=betPos(i),g=pileGroup(amt),sp=seatPos(i,4.3);if(P)killG(P.g);
       const NP={amt,g,pos:bp,flying:true};V3.piles.set(i,NP);
-      fly(g,{x:sp.x,y:.3,z:sp.z},{x:bp.x,y:0,z:bp.z},420,clock(),.45,()=>{NP.flying=false});
+      fly(g,{x:sp.x,y:.3,z:sp.z},{x:bp.x,y:0,z:bp.z},420,clock(),.45,()=>{NP.flying=false;V3.ringsKey=''});
       continue;
     }
     if(P&&P.flying)continue;
@@ -627,14 +642,14 @@ function syncChips(bankOnly){
   }
   for(const [i,P] of V3.piles)if(!B.od.includes(i)){killG(P.g);V3.piles.delete(i)}
 }
-/* 정산: 진 칩은 딜러 칩 받침으로, 이긴 만큼 딜러 쪽에서 오고, 그다음 모두 주인에게 */
+/* 정산: 진 칩은 딜러 칩 쪽으로, 이긴 만큼 딜러 쪽에서 오고, 그다음 모두 주인에게 */
 function settleFly(B){
-  const now=clock(),me=myIdx(),tray={x:TRAY.x,y:.2,z:TRAY.z};
+  const now=clock(),me=myIdx(),t0=M(TRAY),tray={x:t0.x,y:.25,z:t0.z};
   for(const i of B.od){
-    const P=V3.piles.get(i),x=B.rs[i]||0,a=SPOTS.get(i)||0;
+    const P=V3.piles.get(i),x=B.rs[i]||0,a=(SPOTS.get(i)||0)*FL;
     const home=i===me?{x:0,y:.3,z:BANK_Z}:(()=>{const sp=seatPos(i,4.3);return {x:sp.x,y:.3,z:sp.z}})();
-    const land=()=>{V3.landed.add(i);if(i===me){syncChips(true);renderMe()}};
-    if(!P||!P.g){if(x>0){}land();continue}
+    const land=()=>{V3.landed.add(i);if(i===me){syncChips();renderMe()}};
+    if(!P||!P.g){land();continue}
     const bp={x:P.g.position.x,y:0,z:P.g.position.z};
     if(x<0){fly(P.g,bp,tray,520,now+450,.35,()=>{killG(P.g);land()});P.g.visible=true;continue}
     if(x>0){
@@ -653,26 +668,42 @@ function frameFlights(now){
     if(k>=1){V3.flights.splice(V3.flights.indexOf(f),1);if(f.done)f.done()}
   }
 }
+/* ---------- 카드 움직임: 직접 그림 ----------
+   공통 코드의 미끄러지기는 카드를 가로축으로 뒤집어 중간에 카드가 서면서 펠트를 뚫음 →
+   날아가는 동안 위로 뜨는 곡선, 뒤집기는 카드의 긴 축으로 넘기고 뒤집히는 만큼 떠 있게 */
+const _qa=window.THREE?new THREE.Quaternion():null,_qb=window.THREE?new THREE.Quaternion():null,_ax=window.THREE?{x:new THREE.Vector3(1,0,0),y:new THREE.Vector3(0,1,0)}:null;
+function cardSet(e,to,ms,lift){
+  const T0=e.to;if(T0&&['x','y','z','ry','s','f','tl'].every(k=>Math.abs(T0[k]-to[k])<1e-4)&&!to.die)return;
+  e.to=to;if(!e.launched)return;
+  e.tw={from:{...e.cur},to,t0:clock(),ms,lift};
+}
+function cardApply(e){
+  const c=e.cur,g=e.g,ph=(1-c.f)*Math.PI;
+  g.position.set(c.x,c.y,c.z);g.scale.setScalar(c.s);
+  _qa.setFromAxisAngle(_ax.y,c.ry);_qb.setFromAxisAngle(_ax.x,-Math.PI/2+c.tl);_qa.multiply(_qb);_qb.setFromAxisAngle(_ax.y,ph);_qa.multiply(_qb);
+  g.quaternion.copy(_qa);
+}
+function cardStep(e,now){
+  const w=e.tw;if(!w)return;
+  const k=clamp01((now-w.t0)/w.ms),q=smooth(k),A=w.from,Bt=w.to,c=e.cur;
+  for(const key of ['x','z','s','tl'])c[key]=A[key]+(Bt[key]-A[key])*q;
+  c.ry=A.ry+wrapA(Bt.ry-A.ry)*q;c.f=A.f+(Bt.f-A.f)*smooth((k-.15)/.7);
+  const ph=(1-c.f)*Math.PI,guard=Math.abs(Math.sin(ph))*CW*c.s*.5+Math.abs(Math.sin(c.tl))*CH*c.s*.5+.02;
+  c.y=Math.max(A.y+(Bt.y-A.y)*q+Math.sin(k*Math.PI)*w.lift,guard);
+  cardApply(e);
+  if(k>=1){e.tw=null;if(Bt.die){killCard(e.g);V3.cards.delete(e.key)}}
+}
 /* ---------- 펠트 무늬·딜러 쪽 물건 ---------- */
 function feltTex(){
-  if(V3.felt)return V3.felt;
+  if(V3.felt[FL])return V3.felt[FL];
   const W=1024,R=3.15,k=W/(2*R);
-  return V3.felt=canvasTex(W,W,(g,w,h)=>{
+  return V3.felt[FL]=canvasTex(W,W,(g,w,h)=>{
     const gr=g.createRadialGradient(w/2,h/2,80,w/2,h/2,w/2);gr.addColorStop(0,'#5aa877');gr.addColorStop(1,'#3a8257');g.fillStyle=gr;g.fillRect(0,0,w,h);
-    // 월드 좌표(x, z)로 그림: 원통 윗면 UV는 u←z, v←x
+    // 월드 좌표(x, z)로 그림: 원통 윗면 UV는 u←z, v←x. 글자는 넣지 않고 딜러 쪽 금색 두 줄 선만
     g.setTransform(0,-k/100,k/100,0,w/2,h/2);
-    const arcText=(txt,r,size,col,span)=>{
-      g.font=`${size}px "Jua","Black Han Sans",sans-serif`;g.fillStyle=col;g.textAlign='center';g.textBaseline='middle';
-      const chars=[...txt],ws=chars.map(c=>g.measureText(c).width),tot=sum(ws)+(chars.length-1)*size*.08,ang=tot/(r*100);
-      let a=-ang/2;
-      chars.forEach((c,j)=>{const w0=ws[j]/(r*100);const am=a+w0/2,p=atA(am,r);
-        g.save();g.translate(p.x*100,p.z*100);g.rotate(-am);g.fillText(c,0,0);g.restore();a+=w0+size*.08/(r*100)});
-    };
-    const arcLine=(r,a0,a1,wd,col,dash)=>{g.strokeStyle=col;g.lineWidth=wd;g.setLineDash(dash||[]);g.beginPath();
-      for(let j=0;j<=60;j++){const a=a0+(a1-a0)*j/60,p=atA(a,r);j?g.lineTo(p.x*100,p.z*100):g.moveTo(p.x*100,p.z*100)}g.stroke();g.setLineDash([])};
-    arcText('BLACKJACK PAYS 3 TO 2',1.36,20,'#f2c14e');
-    arcText('딜러는 16 이하면 반드시 받습니다',1.63,15,'rgba(255,250,240,.85)');
-    arcLine(1.84,-.9,.9,2.2,'rgba(242,193,78,.8)');arcLine(1.9,-.9,.9,1.2,'rgba(242,193,78,.6)');
+    const arcLine=(r,a0,a1,wd,col)=>{g.strokeStyle=col;g.lineWidth=wd;g.beginPath();
+      for(let j=0;j<=60;j++){const a=a0+(a1-a0)*j/60,p=atA(a,r);j?g.lineTo(p.x*100,p.z*100):g.moveTo(p.x*100,p.z*100)}g.stroke()};
+    arcLine(1.5,-.95,.95,2.6,'rgba(242,193,78,.85)');arcLine(1.57,-.95,.95,1.3,'rgba(242,193,78,.6)');
     g.setTransform(1,0,0,1,0,0);
     g.strokeStyle='rgba(255,250,240,.5)';g.lineWidth=6;g.beginPath();g.arc(w/2,h/2,488,0,7);g.stroke();
   });
@@ -683,103 +714,132 @@ function useFelt(on){
   if(m.map!==want){m.map=want;m.needsUpdate=true}
 }
 function buildRoot(){
-  if(V3.root||!T.ok)return;
+  if(!T.ok||(V3.root&&V3.rootFL===FL))return;
+  killG(V3.root);V3.rootFL=FL;
   const root=new THREE.Group();T.scene.add(root);V3.root=root;
-  const dark=toon({color:0x3a3430,rim:.2}),wood=toon({color:0x7a4a28,rim:.15});
-  // 딜러 칩 받침: 칩 기둥이 누운 나무 상자
-  const tray=new THREE.Mesh(new THREE.BoxGeometry(1.7,.12,.42),wood);tray.position.set(TRAY.x,.06,TRAY.z);tray.castShadow=true;root.add(tray);hull(new THREE.BoxGeometry(1.73,.15,.45),tray,root);
-  const M=chipMats();
-  for(let c=0;c<6;c++){const k=[3,2,1,0,1,2][c];for(let j=0;j<7;j++){const m=new THREE.Mesh(M.geo,M.list[k]);m.rotation.z=Math.PI/2;m.position.set(TRAY.x-.68+c*.272-.15+j*CHIP_H,.2,TRAY.z);root.add(m)}}
+  const dark=toon({color:0x3a3430,rim:.2});
   // 카드 통(슈)과 버린 카드 더미
-  const mk=(pos,ry)=>{const g=new THREE.Group();g.position.set(pos.x,0,pos.z);g.rotation.y=ry;root.add(g);
+  const mk=(pos,ry)=>{const p=M(pos),g=new THREE.Group();g.position.set(p.x,0,p.z);g.rotation.y=ry;root.add(g);
     const st=new THREE.Mesh(new THREE.BoxGeometry(.62*.75*1.2,1,.9*.75*1.2),[dark,dark,T.back,dark,dark,dark]);st.castShadow=true;g.add(st);return {g,st}};
-  V3.shoe=mk(SHOE,-.35);V3.disc=mk(DISC,.35);
-  // 카드 통 받침: 낮은 판 + 뒤쪽 벽(앞은 열려 있어 남은 카드 높이가 보임)
+  V3.shoe=mk(shoeAt(SHOE),-.35*FL);V3.disc=mk(shoeAt(DISC),.35*FL);
+  // 카드 통 받침: 낮은 판 + 딜러 쪽 벽(손님 쪽은 열려 있어 남은 카드 높이가 보임)
   const hold=toon({color:0x2b2420,rim:.2}),base=new THREE.Mesh(new THREE.BoxGeometry(.66,.04,.95),hold);base.position.y=.02;V3.shoe.g.add(base);hull(new THREE.BoxGeometry(.69,.07,.98),base,V3.shoe.g);
-  const wall=new THREE.Mesh(new THREE.BoxGeometry(.66,.42,.05),hold);wall.position.set(0,.21,-.47);V3.shoe.g.add(wall);hull(new THREE.BoxGeometry(.69,.45,.08),wall,V3.shoe.g);
+  const wall=new THREE.Mesh(new THREE.BoxGeometry(.66,.42,.05),hold);wall.position.set(0,.21,-.47*FL);V3.shoe.g.add(wall);hull(new THREE.BoxGeometry(.69,.45,.08),wall,V3.shoe.g);
+  killG(V3.dstack);V3.dstack=null;
 }
 function stackH(m,frac,base){const h=Math.max(.004,frac*.34);m.scale.y=h;m.position.y=base+h/2;m.visible=frac>0}
-/* 베팅 칸 동그라미 */
+/* 베팅 칸 동그라미: 내 칸은 금색, 다른 사람은 걸기 전 점선 → 걸면 실선 */
+function ringMesh(r0,r1,col,op,dashed){
+  const g=new THREE.Group(),mat=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false});
+  const N=dashed?14:1,seg=Math.PI*2/N;
+  for(let j=0;j<N;j++){const m=new THREE.Mesh(new THREE.RingGeometry(r0,r1,dashed?8:48,1,j*seg,dashed?seg*.55:Math.PI*2),mat);m.rotation.x=-Math.PI/2;g.add(m)}
+  g.userData.mat=mat;return g;
+}
 function syncRings(B){
-  const key=[...SPOTS].map(([i,a])=>i+':'+a.toFixed(3)).join(',');
+  const me=myIdx(),bet=i=>(B.bt[i]||0)>0&&!(V3.piles.get(i)||{}).flying;
+  const key=[...SPOTS].map(([i,a])=>i+':'+a.toFixed(3)+':'+(bet(i)?1:0)).join(',')+'|'+FL;
   if(V3.ringsKey===key)return;V3.ringsKey=key;
-  V3.rings.forEach(killG);V3.rings=[];
+  V3.rings.forEach(killG);V3.rings=[];V3.myRing=null;
   for(const [i,a] of SPOTS){
-    const p=atA(a,R_BET),mine=i===myIdx();
-    const m=new THREE.Mesh(new THREE.RingGeometry(.29,mine?.335:.315,48),new THREE.MeshBasicMaterial({color:mine?0xf2c14e:0xfffaf0,transparent:true,opacity:mine?.9:.55}));
-    m.rotation.x=-Math.PI/2;m.position.set(p.x,.021,p.z);T.scene.add(m);V3.rings.push(m);
+    const p=atA(a,R_BET),mine=i===me;
+    const g=mine?ringMesh(.29,.335,0xf2c14e,.9,false):ringMesh(.29,.315,0xfffaf0,bet(i)?.6:.45,!bet(i));
+    g.position.set(p.x,.021,p.z);T.scene.add(g);V3.rings.push(g);if(mine)V3.myRing=g;
   }
+}
+/* 베팅 시간: 내 베팅 칸 둘레에 남은 시간 고리(줄어듦) + 내 칸이 숨 쉬듯 밝아짐 */
+function betTimer(now){
+  const B=BV(),on=!!(B&&V3.myRing&&myMode()==='bet'&&!busy()&&!dealingV());
+  if(V3.myRing)V3.myRing.userData.mat.opacity=on?.6+.35*Math.sin(now/180):.9;
+  if(!on){if(V3.betArc)V3.betArc.visible=false;return}
+  const frac=Math.max(0,Math.min(1,(V.deadAt-now)/((+V.cfg.turn||20)*1000))),q=Math.round(frac*200)/200;
+  if(!V3.betArc){V3.betArc=new THREE.Mesh(new THREE.RingGeometry(.37,.43,64),new THREE.MeshBasicMaterial({color:0xf2b632,side:THREE.DoubleSide,transparent:true,depthWrite:false}));V3.betArc.rotation.x=-Math.PI/2;T.scene.add(V3.betArc);V3.arcQ=-1}
+  if(q!==V3.arcQ){V3.arcQ=q;V3.betArc.geometry.dispose();V3.betArc.geometry=new THREE.RingGeometry(.37,.43,64,1,Math.PI/2,Math.max(.001,q*Math.PI*2))}
+  const p=betPos(myIdx());V3.betArc.position.set(p.x,.023,p.z);V3.betArc.visible=true;
+  V3.betArc.material.color.set(frac<.25?0xcc3a2e:0xf2b632);
 }
 function clear3D(){
   for(const e of V3.cards.values())killCard(e.g);V3.cards.clear();
   for(const f of V3.flights)killG(f.obj);V3.flights=[];
   for(const P of V3.piles.values())killG(P.g);V3.piles.clear();
-  killG(V3.bank);V3.bank=null;V3.rings.forEach(killG);V3.rings=[];V3.ringsKey='';
-  killG(V3.root);V3.root=null;V3.shoe=V3.disc=null;
-  V3.sf=-1;V3.rd=-1;V3.settled=-1;V3.landed.clear();V3.lock=0;spotKey='';
+  killG(V3.bank);V3.bank=null;killG(V3.dstack);V3.dstack=null;V3.rings.forEach(killG);V3.rings=[];V3.ringsKey='';V3.myRing=null;
+  if(V3.betArc){killG(V3.betArc);V3.betArc=null}
+  killG(V3.root);V3.root=null;V3.rootFL=0;V3.shoe=V3.disc=null;
+  V3.sf=-1;V3.rd=-1;V3.settled=-1;V3.landed.clear();V3.toBet=V3.toBank=0;spotKey='';FL=1;
   useFelt(false);
   if(elTags){elTags.innerHTML='';elTags.dataset.k=''}
 }
 function sync3(v){
   const B=v.bj;if(!B||!T.ok)return;
-  buildRoot();useFelt(true);layout(B);syncRings(B);
+  layout(B);buildRoot();useFelt(true);
   const me=myIdx(),now=clock();
-  if(V3.rd!==B.rd){for(const P of V3.piles.values())killG(P.g);V3.piles.clear();V3.landed.clear();V3.rd=B.rd;V3.lock=0}
+  if(V3.rd!==B.rd){for(const P of V3.piles.values())killG(P.g);V3.piles.clear();V3.landed.clear();V3.rd=B.rd;V3.toBet=V3.toBank=0}
+  syncRings(B);
   // 카드 통·버린 더미 높이, 다시 섞으면 버린 카드가 통으로
   stackH(V3.shoe.st,B.sh/B.tot,.04);stackH(V3.disc.st,Math.min(B.ds,B.tot)/B.tot,.0);
+  const sh=M(shoeAt(SHOE)),dc=M(shoeAt(DISC));
   if(V3.sf>=0&&V3.sf!==B.sf){
     const g=new THREE.Mesh(new THREE.BoxGeometry(.56,.2,.81),[toon({color:0x3a3430}),toon({color:0x3a3430}),T.back,toon({color:0x3a3430}),toon({color:0x3a3430}),toon({color:0x3a3430})]);T.scene.add(g);
-    fly(g,{x:DISC.x,y:.1,z:DISC.z},{x:SHOE.x,y:.15,z:SHOE.z},700,now,.8,()=>killG(g));
+    fly(g,{x:dc.x,y:.1,z:dc.z},{x:sh.x,y:.15,z:sh.z},700,now,.8,()=>killG(g));
   }
   V3.sf=B.sf;
   const want=new Map();
   const push=(seat,list)=>list.forEach((id,k)=>want.set(B.rd+':'+seat+':'+k,{seat,k,id,n:list.length}));
   B.od.forEach(i=>push(i,B.hc[i]||[]));push(-1,B.dc||[]);
-  for(const [key,e] of V3.cards){   // 지난 판 카드는 버린 더미로
-    if(want.has(key))continue;
-    V3.cards.delete(key);
-    if(!e.launched){killCard(e.g);continue}
-    const u=e.g.userData;u.p.set(DISC.x,.25,DISC.z);u.rx=Math.PI/2;u.ry=.35;u.s=.75;u.die=true;
+  for(const [key,e] of V3.cards){   // 지난 판 카드는 엎어서 버린 더미로
+    if(want.has(key)||e.dying)continue;
+    if(!e.launched){killCard(e.g);V3.cards.delete(key);continue}
+    e.dying=true;cardSet(e,{x:dc.x,y:.3,z:dc.z,ry:.35*FL,s:.55,f:0,tl:0,die:true},460,.3);
   }
   // 처음 나누기: 거는 사람 순서대로 한 장씩, 딜러, 한 바퀴 더 (엔진과 같은 순서). 다시 섞은 판은 섞은 뒤에
   const dealing=dealingV(),start=dealing?V.dealAt-(+v.dm||0)+(B.sr?SHUF_MS:0):0,nOrd=B.od.length+1;
   for(const [key,c] of want){
     let e=V3.cards.get(key);
     if(!e){
-      const g=makeCard(new THREE.Vector3(SHOE.x,.42,SHOE.z),Math.PI/2,-.35,.75);
+      const g=makeCard(new THREE.Vector3(sh.x,.4,sh.z),Math.PI/2,0,.55);g.userData.man=true;g.visible=false;
       let at=now;
       if(c.k<2&&dealing){const pos=c.seat<0?B.od.length:B.od.indexOf(c.seat);at=start+(c.k*nOrd+Math.max(0,pos))*DEAL_PER}
-      g.userData.man=true;g.visible=false;
-      e={g,id:null,at,launched:false};V3.cards.set(key,e);
+      e={key,g,id:null,at,launched:false,cur:{x:sh.x,y:.42,z:sh.z,ry:-.35*FL,s:.55,f:0,tl:0},to:null,tw:null};V3.cards.set(key,e);
     }
     if(c.id>=0&&e.id!==c.id){e.g.children[0].material=faceMat(c.id);e.id=c.id}
-    const P=cardPose(c.seat,c.k,c.n),u=e.g.userData;
-    u.p.set(P.x,P.y,P.z);u.ry=P.ry;u.s=P.s;
+    const P=cardPose(c.seat,c.k,c.n);
     const peek=c.seat<0&&c.k===1&&!B.dr&&c.id>=0;   // 사람 딜러 본인: 엎은 카드를 살짝 들어 봄
-    u.rx=c.id<0?Math.PI/2:peek?-1.05:-Math.PI/2;
-    if(peek)u.p.y+=.12;
+    cardSet(e,{x:P.x,y:P.y+(peek?.1:0),z:P.z,ry:P.ry,s:P.s,f:c.id>=0&&!peek?1:peek?1:0,tl:peek?.55:0},e.to&&e.to.f!==(c.id>=0?1:0)?380:300,e.to&&e.to.f!==(c.id>=0?1:0)?.32:.14);
   }
   if(B.ph==='settle'&&B.rs&&V3.settled!==B.rd){V3.settled=B.rd;settleFly(B)}
   syncChips();
 }
 function frame3(now){
-  for(const e of V3.cards.values())if(!e.launched&&now>=e.at){e.launched=true;e.g.visible=true;e.g.userData.man=false;sfx('flick')}
-  frameFlights(now);
+  for(const e of [...V3.cards.values()]){
+    if(!e.launched&&now>=e.at&&e.to){e.launched=true;e.g.visible=true;e.tw={from:{...e.cur},to:e.to,t0:now,ms:420,lift:.38};sfx('flick')}
+    if(e.launched)cardStep(e,now);
+  }
+  frameFlights(now);betTimer(now);
+  // 베팅이 시작되면 내 칩 더미가 한 번 통통 튐
+  if(V3.bank){const a=now-V3.bounceAt;V3.bank.position.y=a>=0&&a<520?Math.abs(Math.sin(a/520*Math.PI*2))*.09*(1-a/520):0}
 }
-G.render3D=t=>{if(ON&&V3.root){frame3(t);T.timerBg.visible=T.timerArc.visible=false}T.r.render(T.scene,T.cam)};   // 남은 시간은 이름표 테두리로 (자리 가장자리 고리는 이름표와 떨어져 있어 숨김)
+G.render3D=t=>{if(ON&&V3.root){frame3(t);T.timerBg.visible=T.timerArc.visible=false}T.r.render(T.scene,T.cam)};   // 남은 시간은 이름표 테두리와 내 베팅 칸 고리로 (자리 가장자리 고리는 숨김)
 /* 공통 코드가 다른 사람 자리에 카드 더미를 놓는데(손패 표시 1장) 블랙잭은 카드를 펠트에 펼치므로 숨김 */
 G.field3D=v=>{
   if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=false});
   if(v&&v.bj&&(v.st==='play'||v.st==='over'))sync3(v);
 };
+/* 판이 시작되면: 판 번호를 펠트 가운데에 잠깐, 내가 걸 차례면 칩 더미가 튀고 짤랑 */
+function roundStart(B){
+  const a=(T&&T.anchor)||{x:$('#stage').clientWidth/2,y:$('#stage').clientHeight/2};
+  const d=document.createElement('div');d.className='playfx';d.style.setProperty('--rc','#9a5b00');
+  d.style.left=a.x+'px';d.style.top=Math.max(46,a.y-40)+'px';d.innerHTML=`<span class="fx-n">${B.rd} / ${B.rds}판</span>`;
+  d.addEventListener('animationend',()=>d.remove());
+  const layer=$('#fx');while(layer.children.length>2)layer.firstChild.remove();layer.appendChild(d);setTimeout(()=>d.remove(),2300);
+  if(myMode()==='bet'){V3.bounceAt=clock();sfxChip(3)}
+}
 /* 칩 누르기: 내 칩 더미 → 베팅, 베팅 칸 → 돌려받기 */
 const _ray=window.THREE?new THREE.Raycaster():null,_pl=window.THREE?new THREE.Plane(new THREE.Vector3(0,1,0),-.12):null,_hit=window.THREE?new THREE.Vector3():null;
 function chipAt(e){
-  if(!ON||!T.ok||!BV()||myIdx()<0)return null;
+  if(!ON||!T.ok||!BV()||myIdx()<0||!V3.bank)return null;
   const r=$('#cv').getBoundingClientRect();if(!r.width)return null;
   _ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},T.cam);
   if(!_ray.ray.intersectPlane(_pl,_hit))return null;
-  const n=V3.bank?V3.bank.userData.n:[0,0,0,0];
+  const n=V3.bank.userData.n;
   for(let k=0;k<4;k++)if(n[k]&&Math.hypot(_hit.x-BANK_X[k],_hit.z-(BANK_Z+.1))<.27)return {d:DEN[k]};
   if(SPOTS.has(myIdx())){const b=betPos(myIdx());if(Math.hypot(_hit.x-b.x,_hit.z-b.z)<.36)return {bet:1}}
   return null;
@@ -790,7 +850,7 @@ function tagsFrame(){
   const B=BV();if(!elTags)return;
   if(!B||!T.ok||!(V.st==='play'||V.st==='over')){if(elTags.dataset.k){elTags.innerHTML='';elTags.dataset.k=''}return}
   const me=myIdx(),st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight,list=[];
-  if(B.dc.length){const dn=B.hd&&B.dl===me?'딜러 · 나':'딜러';list.push({k:'d',html:`<span class="who">${dn}</span>${totalHTML(B.dc,0,true)}`,p:{x:0,z:DEALER_Z+.66},on:B.ph==='dealer'&&V.t===B.dl})}
+  if(B.dc.length){const dn=B.hd&&B.dl===me?'딜러 · 나':'딜러';list.push({k:'d',html:`<span class="who">${dn}</span>${totalHTML(B.dc,0,true)}`,p:M({x:0,z:DEALER_Z+.66}),on:B.ph==='dealer'&&V.t===B.dl})}
   const key=list.map(x=>x.k+x.html+(x.on?1:0)).join('|');
   if(elTags.dataset.k!==key){elTags.innerHTML=list.map(x=>`<div class="bj-tag${x.on?' on':''}${x.k==='d'?' dl':''}" data-k="${x.k}">${x.html}</div>`).join('');elTags.dataset.k=key}
   const v3=new THREE.Vector3();
@@ -830,16 +890,16 @@ function seatTags(B){
     if(x.dataset.h!==h){x.innerHTML=h;x.dataset.h=h}
     const dlr=on3&&B.hd&&i===B.dl;   // 사람 딜러의 이름표는 딜러 카드 위(맞은편)
     if(on3&&(SPOTS.has(i)||dlr)){
-      const q=dlr?{x:0,z:DEALER_Z-.95}:atA(SPOTS.get(i),R_PILL);v3.set(q.x,.03,q.z).project(T.cam);
-      const w=el.offsetWidth,h=el.offsetHeight;
-      put.push({el,w,h,x:Math.max(w/2+6,Math.min(W-w/2-6,(v3.x+1)/2*W)),y:(1-v3.y)/2*Hh+h/2-10});
+      const q=dlr?M({x:0,z:DEALER_Z-.95}):atA(SPOTS.get(i),R_PILL);v3.set(q.x,.03,q.z).project(T.cam);
+      const w=el.offsetWidth,h=el.offsetHeight;   // 베팅 칸 바깥쪽(내가 딜러면 화면 위쪽)으로 붙임
+      put.push({el,w,h,x:Math.max(w/2+6,Math.min(W-w/2-6,(v3.x+1)/2*W)),y:(1-v3.y)/2*Hh+(FL>0?h/2-10:-h/2+10)});
     }
   });
-  // 좁은 화면에서 이웃 이름표가 겹치면 한 칸 아래로
+  // 좁은 화면에서 이웃 이름표가 겹치면 한 칸 비킴(탁자 바깥쪽으로)
   put.sort((a,b)=>Math.abs(a.x-W/2)-Math.abs(b.x-W/2));
   const done=[];
   for(const q of put){
-    for(let g=0;g<4&&done.some(o=>Math.abs(o.x-q.x)<(o.w+q.w)/2+4&&Math.abs(o.y-q.y)<(o.h+q.h)/2+2);g++)q.y+=q.h+3;
+    for(let g=0;g<4&&done.some(o=>Math.abs(o.x-q.x)<(o.w+q.w)/2+4&&Math.abs(o.y-q.y)<(o.h+q.h)/2+2);g++)q.y+=(q.h+3)*FL;
     done.push(q);q.el.style.left=q.x+'px';q.el.style.top=Math.max(q.h/2+6,Math.min(Hh-q.h/2-6,q.y))+'px';
   }
 }
