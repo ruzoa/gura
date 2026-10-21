@@ -368,14 +368,15 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .clipsheet .stp-t.tip small{display:block;position:absolute;left:-8px;top:100%;z-index:5;width:min(250px,80%);padding:8px 10px;background:#fff59d;color:var(--ink);font-size:12.5px;line-height:1.45;box-shadow:0 4px 10px -4px rgba(0,0,0,.35);transform:rotate(-1.5deg)}
 .clipsheet .stp-v{width:2.6em;padding:4px 0;flex:none}
 .clipsheet .pl-sum{min-height:1.6em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.clipsheet .btn-red[data-act="setclose"]{flex:none;width:86px;height:86px;margin-left:auto;border-radius:50%;background:transparent;border:4px double var(--gura);color:var(--gura);box-shadow:none;font:400 22px var(--f-display);transform:rotate(-12deg)}
-.clipsheet .btn-red[data-act="setclose"].stamped{animation:stampIn .26s ease-out forwards}
+.clipsheet .btn-red[data-act="setclose"]{flex:none;position:relative;margin-left:auto;min-height:56px;padding:0 96px 6px 4px;border:0;border-bottom:2px solid rgba(59,42,31,.55);border-radius:0;background:transparent;color:var(--ink);box-shadow:none;font:400 20px var(--f-display);display:flex;align-items:flex-end}
+.clipsheet .btn-red[data-act="setclose"]::after{content:attr(data-n);position:absolute;right:10px;bottom:4px;width:66px;height:66px;display:grid;place-items:center;border:4px double var(--gura);border-radius:50%;color:var(--gura);font:400 19px var(--f-display);line-height:1;transform:rotate(-12deg);opacity:0;pointer-events:none}
+.clipsheet .btn-red[data-act="setclose"].stamped::after{animation:stampIn .26s ease-out forwards}   /* 누르면 서명란에 이름 도장이 쿵 */
 .clipsheet.ro .paper .stp-c,.clipsheet.ro .paper .segrow,.clipsheet.ro .paper .plever,.clipsheet.ro .paper [data-act^="tog:"],.clipsheet.ro .paper .linkbtn{pointer-events:none}
 .clipsheet.ro .stp-b{visibility:hidden}
 @keyframes clipIn{from{opacity:.2}to{opacity:1}}
 @keyframes flipUp{0%{transform:perspective(2200px) rotateX(0);filter:brightness(1);opacity:1}80%{filter:brightness(.8);opacity:1}100%{transform:perspective(2200px) rotateX(96deg);filter:brightness(.7);opacity:0}}
 @keyframes flipDown{0%{transform:perspective(2200px) rotateX(96deg);filter:brightness(.7);opacity:0}30%{opacity:1}100%{transform:perspective(2200px) rotateX(0);filter:brightness(1)}}
-@keyframes stampIn{0%{transform:scale(1.7) rotate(-12deg);opacity:.4}70%{transform:scale(.92) rotate(-12deg);opacity:1}100%{transform:scale(1) rotate(-12deg)}}
+@keyframes stampIn{0%{transform:scale(1.7) rotate(-12deg);opacity:0}70%{transform:scale(.92) rotate(-12deg);opacity:1}100%{transform:scale(1) rotate(-12deg);opacity:1}}
 @media (max-width:899px){.panel[data-kind="wait"] .setbtn span{display:none}.panel[data-kind="wait"] .vhead h2{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 .stage.holo .panel *{pointer-events:none}
 .stage .panel{transition:opacity .35s}
@@ -2106,18 +2107,18 @@ function renderPanel(){
       const clipUI=frTableUI(),ro=!isHost;
       const c=V.cfg,minMax=Math.max(2,V.ps.length);
       const nowN=Math.max(2,V.ps.length),cardInfo=G.cardInfo(c,nowN);
-      const DEF={max:4,spec:4,...G.defaults},hlv=(k,v)=>clipUI&&DEF[k]!=null&&+DEF[k]!==+v;   // 정해진 값과 다르면 형광펜
+      const DEF={max:4,spec:4,...G.defaults},HL_SKIP=new Set(['max','spec','rounds','chips','turn','grace','tm','inc']),hlv=(k,v)=>clipUI&&!HL_SKIP.has(k)&&DEF[k]!=null&&+DEF[k]!==+v;   // 규칙이 정해진 값과 다르면 항목 이름에 형광펜 (인원·시간·판 수 같은 양은 칠하지 않음)
       const rules=G.ruleSet.filter(d=>!d.hidden).map(d=>{const on=!!(+c[d.k]);return `<div class="stp tg"><div class="stp-t"><b${clipUI&&+(DEF[d.k]||0)!==(on?1:0)?' class="hl"':''}>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="sw${on?' on':''}" role="switch" aria-checked="${on}" aria-label="${d.label}" data-act="tog:${d.k}"><i></i></button></div></div>`}).join('');
       const tooMany=GAME_IDS.filter(id=>GAMES[id].maxHi&&V.ps.length>GAMES[id].maxHi);   // 인원 제한이 있는 게임(쿼리도 4명)은 지금 인원이 넘으면 고를 수 없음
       const gpick=`<div class="rs-seg"><div class="rs-h"><b>게임</b><small>${esc(G.lead)}${tooMany.length?`<br>${tooMany.map(id=>`${esc(GAMES[id].name)}은(는) 최대 ${GAMES[id].maxHi}명`).join(', ')}까지 할 수 있습니다.`:''}</small></div><div class="segrow" role="radiogroup" aria-label="게임">${GAME_IDS.map(id=>`<button class="btn ${c.game===id?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${c.game===id}" data-act="game:${id}"${tooMany.includes(id)?' disabled':''}>${esc(GAMES[id].name)}</button>`).join('')}</div></div>`;
       const stepRow=d=>{const v=+(c[d.k]??cfg[d.k]),lo=d.k==='max'?minMax:d.k==='spec'?(Array.isArray(V.sv)?V.sv.length:0):d.lo;
-        return `<div class="stp"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="stp-b" data-act="dec:${d.k}" aria-label="${d.label} 줄이기"${v<=lo?' disabled':''}>−</button><input class="txt stp-v${hlv(d.k,v)?' hl':''}" id="st_${d.k}" type="number" inputmode="numeric" min="${lo}" max="${d.hi}" step="${d.step}" value="${v}" aria-label="${d.label}"><span class="stp-u">${d.unit}</span><button type="button" class="stp-b" data-act="inc:${d.k}" aria-label="${d.label} 늘리기"${v>=d.hi?' disabled':''}>+</button></div></div>`};
+        return `<div class="stp"><div class="stp-t"><b${hlv(d.k,v)?' class="hl"':''}>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="stp-b" data-act="dec:${d.k}" aria-label="${d.label} 줄이기"${v<=lo?' disabled':''}>−</button><input class="txt stp-v" id="st_${d.k}" type="number" inputmode="numeric" min="${lo}" max="${d.hi}" step="${d.step}" value="${v}" aria-label="${d.label}"><span class="stp-u">${d.unit}</span><button type="button" class="stp-b" data-act="inc:${d.k}" aria-label="${d.label} 늘리기"${v>=d.hi?' disabled':''}>+</button></div></div>`};
       const rows=roomSetOf(G).map(stepRow).join('');
       // 게임이 규칙 칸을 직접 그릴 수 있음 (G.settingsHTML: 대부호의 룰 레버). 없으면 −/+ 칸과 스위치를 차례로
       const body=G.settingsHTML?G.settingsHTML(c,{stepRow,common:COMMON_SET.map(d=>roomSetOf(G).find(x=>x.k===d.k))}):`<div class="rs-grid">${rows}</div>${rules?`<div class="rulehead">게임 규칙</div><div class="rs-grid tgs">${rules}</div>`:''}`;
-      const modeRow=G.noFast?'':`<div class="rs-seg"><div class="rs-h"><b>게임 모드</b><small>${G.modeDesc[c.fast?1:0]}</small></div><div class="segrow" role="radiogroup" aria-label="게임 모드">${[0,1].map(v=>`<button class="btn ${(c.fast?1:0)===v?'btn-play':'btn-sub'}${clipUI&&v&&c.fast?' hl':''}" type="button" role="radio" aria-checked="${(c.fast?1:0)===v}" data-act="mode${v}">${OPT_LABEL.fast[v]}</button>`).join('')}</div></div>`;
+      const modeRow=G.noFast?'':`<div class="rs-seg"><div class="rs-h"><b${clipUI&&c.fast?' class="hl"':''}>게임 모드</b><small>${G.modeDesc[c.fast?1:0]}</small></div><div class="segrow" role="radiogroup" aria-label="게임 모드">${[0,1].map(v=>`<button class="btn ${(c.fast?1:0)===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${(c.fast?1:0)===v}" data-act="mode${v}">${OPT_LABEL.fast[v]}</button>`).join('')}</div></div>`;
       if(clipUI){   // 클립보드: 게임 고르기(홀로그램)·게임 방법(메뉴)·뒤로 버튼 없음. 바깥을 누르거나 Esc·도장으로 닫힘. 참가자는 읽기만
-        showPanel(`${modeRow}${body}${ro?'':'<div class="row clip-end"><button class="btn btn-red" type="button" data-act="setclose" data-auto>확인</button></div>'}`,'roomset');
+        showPanel(`${modeRow}${body}${ro?'':`<div class="row clip-end"><button class="btn btn-red" type="button" data-act="setclose" data-n="${esc(myNick().slice(0,3))}" data-auto>방장 확인</button></div>`}`,'roomset');
         $('#panelBody').classList.toggle('ro',ro);
         return;
       }
@@ -2178,7 +2179,7 @@ $('#panel').addEventListener('click',e=>{
     return}
   if(a==='setopen'){roomSetOpen=true;renderPanel();return}
   if(a==='setclose'){
-    if(b.closest('.clipsheet')){if(!b.classList.contains('stamped')){b.classList.add('stamped');sfx('stamp');setTimeout(clipClose,320)}return}   // 도장 쿵 → 클립보드가 탁자로
+    if(b.closest('.clipsheet')){if(!b.classList.contains('stamped')){b.classList.add('stamped');sfx('stamp');setTimeout(clipClose,520)}return}   // 도장 쿵 → 클립보드가 탁자로
     roomSetOpen=false;renderPanel();return}
   if((a==='om:more'||a==='prmore')&&!H&&G.panelAct){G.panelAct(a,b);return}   // 참가자도 세부 설정 쪽은 넘겨 볼 수 있음
   if(/^(inc|dec):/.test(a)){if(e.detail!==0)return;const [op,k]=a.split(':');const d=roomSetOf(EG()).find(x=>x.k===k);if(d&&H)setRoomCfg(k,(+H.cfg[k])+(op==='inc'?d.step:-d.step));return}
@@ -3062,7 +3063,8 @@ const FR_WORD=new Set(['없음','만석','끊김']);
 const HOLO_C=0xffa04a,HOLO_LINE=0xffe2b8,HOLO_BAD=0xff4d6d;   // 주황빛 (못 하는 게임은 붉은 분홍)
 const FR_KEYS=['1','2','3','4','5','6','7','8','9','0','←','enter','search','dice'];   // 키판 두 줄: 숫자, 지우기, 엔터, 돋보기(공개 탁자 목록), 주사위(아무 탁자나)
 const FR_KEY_NAME={'←':'지우기',enter:'찾아가기',search:'공개 탁자 목록',dice:'아무 탁자나 앉기'};
-const FR_ROWS=4;   // 공개 탁자 목록 판: 한 쪽에 4줄
+const FR_ROWS=7;   // 공개 탁자 목록 판: 한 쪽에 7줄
+const PL_CW=896,PL_CH=1024,PL_Y0=26,PL_STEP=122,PL_RH=110,PL_RAIL=956;   // 목록 판 그림 크기와 줄 자리
 const DSP={W:1.5,D:.5,Th:.05,Z:3.9};   // 디스플레이: 폭, 깊이, 두께, 경첩(먼 쪽 끝) 위치
 function frontBuild(){
   const TG=T.tableG;
@@ -3138,21 +3140,21 @@ function frontBuildDisplay(TG){
 /* 공개 탁자 목록 판: 돋보기를 누르면 키판이 디스플레이 아래로 들어간 뒤, 같은 자리 틈에서 나무판이 비스듬히 올라옴.
    판에는 공개 탁자 4줄(누르면 찾아감), 아래 띠에 ◀ ▶ (쪽 넘기기) */
 function frontBuildList(TG){
-  const {Z,D}=DSP,PW=2,PL=1.03,cv=document.createElement('canvas');cv.width=1024;cv.height=528;
+  const {Z,D}=DSP,PW=1.4,PL=1.6,cv=document.createElement('canvas');cv.width=PL_CW;cv.height=PL_CH;   // 구멍 폭에 맞추고 세로로 길게
   const tex=new THREE.CanvasTexture(cv);tex.anisotropy=4;
   const g=new THREE.Group();g.position.set(0,.002,Z+D*.8);TG.add(g);
   const arm=new THREE.Group();arm.rotation.x=-.52;g.add(arm);   // 30도 뒤로 기울어 나를 봄
   const b=new THREE.Group();arm.add(b);
   const wood=toon({color:0x8a5530}),face=toon({map:tex,rim:0});   // 탁자 상판과 같은 원목
   const board=new THREE.Mesh(new THREE.BoxGeometry(PW,PL,.045),[wood,wood,wood,wood,face,wood]);board.castShadow=true;b.add(board);hull(new THREE.BoxGeometry(PW+.035,PL+.035,.075),board,b);
-  const pt=(x,y)=>[x/1024*PW-PW/2,PL/2-y/528*PL];
+  const pt=(x,y)=>[x/PL_CW*PW-PW/2,PL/2-y/PL_CH*PL];
   const hitM=new THREE.MeshBasicMaterial({visible:false}),rows=[];
-  for(let i=0;i<FR_ROWS;i++){const [x,y]=pt(512,28+i*98+45),m=new THREE.Mesh(new THREE.PlaneGeometry(PW*.94,90/528*PL),hitM);m.position.set(x,y,.02);b.add(m);rows.push(m)}
+  for(let i=0;i<FR_ROWS;i++){const [x,y]=pt(PL_CW/2,PL_Y0+i*PL_STEP+PL_RH/2),m=new THREE.Mesh(new THREE.PlaneGeometry(PW*.94,PL_RH/PL_CH*PL),hitM);m.position.set(x,y,.02);b.add(m);rows.push(m)}
   const keyM=toon({color:0xd9c7a8,rim:.2}),arrows=[];
-  for(const [dir,cx] of [[-1,190],[1,834]]){
+  for(const [dir,cx] of [[-1,150],[1,PL_CW-150]]){
     const kc=document.createElement('canvas');kc.width=128;kc.height=96;const x2=kc.getContext('2d');x2.fillStyle='#e6d6ba';x2.fillRect(0,0,128,96);x2.fillStyle='#3b2a1f';x2.beginPath();
     if(dir<0){x2.moveTo(42,48);x2.lineTo(80,24);x2.lineTo(80,72)}else{x2.moveTo(86,48);x2.lineTo(48,24);x2.lineTo(48,72)}x2.closePath();x2.fill();
-    const top=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(kc)}),[x,y]=pt(cx,474);
+    const top=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(kc)}),[x,y]=pt(cx,PL_RAIL);
     const m=new THREE.Mesh(new THREE.BoxGeometry(.28,.15,.06),[keyM,keyM,keyM,keyM,top,keyM]);m.position.set(x,y,.04);b.add(m);hull(new THREE.BoxGeometry(.3,.17,.075),m,b);
     m.userData={dir,downAt:-1e9};arrows.push(m);
   }
@@ -3171,24 +3173,24 @@ function frontDrawList(){
   const rooms=frontListRooms(),pages=Math.max(1,Math.ceil(rooms.length/FR_ROWS)),pg=Math.min(FR.lpage||0,pages-1);
   const key=(FR.lrooms==null?'?':rooms.map(r=>r.code+r.n+r.max+r.title+r.g).join(','))+'|'+pg+'|'+(FR.lrooms===false);
   if(key===P.key)return;P.key=key;
-  const g=P.cv.getContext('2d'),W=1024,Hc=528;
-  for(let p=0;p<3;p++){const y0=p*Hc/3,ph=Hc/3;   // 탁자 상판과 같은 판자 3장
+  const g=P.cv.getContext('2d'),W=PL_CW,Hc=PL_CH;
+  for(let p=0;p<5;p++){const y0=p*Hc/5,ph=Hc/5;   // 탁자 상판과 같은 판자
     g.fillStyle=p%2?'#b98350':'#ad7745';g.fillRect(0,y0,W,ph);g.fillStyle='rgba(255,236,205,.22)';g.fillRect(0,y0+4,W,5);
-    g.strokeStyle='rgba(140,82,40,.22)';g.lineWidth=4;g.lineCap='round';for(let k=0;k<3;k++){const yy=y0+30+k*50;g.beginPath();for(let x=40+k*90;x<W-60;x+=16){const y=yy+Math.sin(x*.006+k+p)*4;x===40+k*90?g.moveTo(x,y):g.lineTo(x,y)}g.stroke()}
+    g.strokeStyle='rgba(140,82,40,.22)';g.lineWidth=4;g.lineCap='round';for(let k=0;k<3;k++){const yy=y0+40+k*60;g.beginPath();for(let x=40+k*90;x<W-60;x+=16){const y=yy+Math.sin(x*.006+k+p)*4;x===40+k*90?g.moveTo(x,y):g.lineTo(x,y)}g.stroke()}
     g.fillStyle='rgba(84,46,20,.6)';g.fillRect(0,y0+ph-3,W,5)}
-  const msg=t=>{g.fillStyle='#4a3020';g.font='48px "Jua","Black Han Sans",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(t,W/2,214)};
+  const msg=t=>{g.fillStyle='#4a3020';g.font='48px "Jua","Black Han Sans",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(t,W/2,PL_RAIL/2-40)};
   if(FR.lrooms==null)msg('찾는 중…');
   else if(FR.lrooms===false)msg('연결할 수 없습니다');
   else if(!rooms.length)msg('공개 탁자가 없습니다');
   else rooms.slice(pg*FR_ROWS,pg*FR_ROWS+FR_ROWS).forEach((r,i)=>{
-    const y=28+i*98;g.fillStyle='#fbf3e4';rr(g,32,y,W-64,90,18);g.fill();
-    g.fillStyle='#cc3a2e';rr(g,48,y+16,128,58,14);g.fill();
-    g.fillStyle='#fffaf0';g.font='34px "Jua","Black Han Sans",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(gameOf(r.g).short||gameOf(r.g).name,112,y+47);
-    g.fillStyle='#3b2a1f';g.font='42px "Jua","Black Han Sans",sans-serif';g.textAlign='left';
-    let tt=r.title||'공개 탁자';while(tt.length>1&&g.measureText(tt).width>560)tt=tt.slice(0,-1);if(tt!==(r.title||'공개 탁자'))tt+='…';g.fillText(tt,200,y+48);
-    g.font='600 38px "IBM Plex Mono",monospace';g.textAlign='right';g.fillStyle='#6b4a32';g.fillText(r.n+'/'+r.max,W-60,y+48);
+    const y=PL_Y0+i*PL_STEP,cy=y+PL_RH/2+2;g.fillStyle='#fbf3e4';rr(g,28,y,W-56,PL_RH,20);g.fill();
+    g.fillStyle='#cc3a2e';rr(g,46,y+22,150,PL_RH-44,16);g.fill();
+    g.fillStyle='#fffaf0';g.font='40px "Jua","Black Han Sans",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(gameOf(r.g).short||gameOf(r.g).name,121,cy);
+    g.fillStyle='#3b2a1f';g.font='48px "Jua","Black Han Sans",sans-serif';g.textAlign='left';
+    let tt=r.title||'공개 탁자';while(tt.length>1&&g.measureText(tt).width>W-400)tt=tt.slice(0,-1);if(tt!==(r.title||'공개 탁자'))tt+='…';g.fillText(tt,220,cy);
+    g.font='600 42px "IBM Plex Mono",monospace';g.textAlign='right';g.fillStyle='#6b4a32';g.fillText(r.n+'/'+r.max,W-52,cy);
   });
-  if(pages>1)for(let k=0;k<pages&&k<9;k++){g.fillStyle=k===pg?'#3b2a1f':'rgba(59,42,31,.3)';g.beginPath();g.arc(W/2+(k-(Math.min(pages,9)-1)/2)*30,476,9,0,7);g.fill()}
+  if(pages>1)for(let k=0;k<pages&&k<9;k++){g.fillStyle=k===pg?'#3b2a1f':'rgba(59,42,31,.3)';g.beginPath();g.arc(W/2+(k-(Math.min(pages,9)-1)/2)*30,PL_RAIL,10,0,7);g.fill()}
   P.tex.needsUpdate=true;
 }
 function frontList(on){
