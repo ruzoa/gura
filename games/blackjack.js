@@ -46,6 +46,7 @@ G.roomSet=[
   {k:'chips',label:'시작 칩',unit:'개',lo:50,hi:1000,step:50,desc:'모두 같은 수의 칩으로 시작합니다'},
   {k:'rounds',label:'판 수',unit:'판',lo:1,hi:30,step:1,desc:'이 판 수를 마치면 칩이 가장 많은 사람이 이깁니다'},
   {k:'turn',label:'제한 시간',unit:'초',lo:5,hi:60,step:5,desc:'시간이 지나면 베팅은 최소 칩, 차례는 스탠드'}];
+G.minN=c=>+c.hdeal?2:1;   // 봇 딜러면 혼자서도 시작 (사람 딜러는 2명부터). 공통 코드가 이 인원부터 시작 버튼을 올림
 G.ruleSet=[{k:'hdeal',label:'사람 딜러',off:'봇 딜러',desc:'켜면 참가자가 돌아가며 딜러를 맡고, 끄면 봇 딜러가 맡습니다'}];
 G.cfgChips=c=>`<span class="chip">시작 칩 <b>${+c.chips}개</b></span><span class="chip"><b>${+c.rounds}판</b></span><span class="chip"><b>${+c.hdeal?'사람 딜러':'봇 딜러'}</b></span><span class="chip">제한 시간 <b>${+c.turn}초</b></span>`;
 G.cfgSum=c=>`시작 칩 ${+c.chips}개 · ${+c.rounds}판 · ${+c.hdeal?'사람 딜러':'봇 딜러'} · 제한 시간 ${+c.turn}초`;

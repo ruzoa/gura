@@ -126,3 +126,8 @@ function playOutB(n,over,lvs){
   return ticks;
 }
 globalThis.playOutB=playOutB;
+// 혼자(봇 딜러)도 시작해서 끝까지 감, 사람 딜러는 혼자 시작하지 않음 (공통 코드가 봇을 자동으로 넣지 않음)
+{mkB(1,{rounds:3});if(!H.bj||H.players.length!==1)fail('bj solo start');
+ if(!runTo(()=>H.phase==='over',600000))fail('bj solo finish');
+ hostNew(false,'t','t');H.cfg={...cfgFor('blackjack'),hdeal:1,game:'blackjack'};H.members=[{name:'p0',bot:false,conn:null,host:true}];hostStart();
+ if(H.phase!=='wait'||H.members.length!==1)fail('bj human dealer needs 2')}
