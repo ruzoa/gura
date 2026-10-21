@@ -3084,7 +3084,7 @@ function frontBuildStumps(){
 function frontStumps(t,dt,lobby,wait){
   if(!T.stumps)return;
   let angs=[];
-  if(lobby||!V||!V.ps)angs=[FR.sit||FR.stand<.5?0:-.8];   // 첫 화면: 의자 하나. 서 있을 때는 잘 보이는 왼쪽 앞, 앉으면 내 자리로
+  if(lobby||!V||!V.ps)angs=[0];   // 첫 화면: 내가 앉을 자리에 의자 하나
   else if(wait){const wN=Math.max(+(V.cfg&&V.cfg.max)||0,V.ps.length),me=myIdx(),wB=me>=0?me:0;for(let k=0;k<wN;k++)angs.push(((k-wB+wN)%wN+(me<0?.5:0))*Math.PI*2/wN)}
   else angs=V.ps.map((_,i)=>seatAngle(i));
   const f=1-Math.exp(-Math.max(0,dt)*7);
@@ -3138,13 +3138,13 @@ function frontBuildDisplay(TG){
 /* 공개 탁자 목록 판: 돋보기를 누르면 키판이 디스플레이 아래로 들어간 뒤, 같은 자리 틈에서 나무판이 비스듬히 올라옴.
    판에는 공개 탁자 4줄(누르면 찾아감), 아래 띠에 ◀ ▶ (쪽 넘기기) */
 function frontBuildList(TG){
-  const {Z,D}=DSP,PW=1.4,PL=.72,cv=document.createElement('canvas');cv.width=1024;cv.height=528;
+  const {Z,D}=DSP,PW=2,PL=1.03,cv=document.createElement('canvas');cv.width=1024;cv.height=528;
   const tex=new THREE.CanvasTexture(cv);tex.anisotropy=4;
   const g=new THREE.Group();g.position.set(0,.002,Z+D*.8);TG.add(g);
   const arm=new THREE.Group();arm.rotation.x=-.52;g.add(arm);   // 30도 뒤로 기울어 나를 봄
   const b=new THREE.Group();arm.add(b);
-  const wood=toon({color:0x8a5a34}),face=new THREE.MeshBasicMaterial({map:tex});
-  const board=new THREE.Mesh(new THREE.BoxGeometry(PW,PL,.035),[wood,wood,wood,wood,face,wood]);board.castShadow=true;b.add(board);hull(new THREE.BoxGeometry(PW+.03,PL+.03,.06),board,b);
+  const wood=toon({color:0x8a5530}),face=toon({map:tex,rim:0});   // 탁자 상판과 같은 원목
+  const board=new THREE.Mesh(new THREE.BoxGeometry(PW,PL,.045),[wood,wood,wood,wood,face,wood]);board.castShadow=true;b.add(board);hull(new THREE.BoxGeometry(PW+.035,PL+.035,.075),board,b);
   const pt=(x,y)=>[x/1024*PW-PW/2,PL/2-y/528*PL];
   const hitM=new THREE.MeshBasicMaterial({visible:false}),rows=[];
   for(let i=0;i<FR_ROWS;i++){const [x,y]=pt(512,28+i*98+45),m=new THREE.Mesh(new THREE.PlaneGeometry(PW*.94,90/528*PL),hitM);m.position.set(x,y,.02);b.add(m);rows.push(m)}
@@ -3153,10 +3153,14 @@ function frontBuildList(TG){
     const kc=document.createElement('canvas');kc.width=128;kc.height=96;const x2=kc.getContext('2d');x2.fillStyle='#e6d6ba';x2.fillRect(0,0,128,96);x2.fillStyle='#3b2a1f';x2.beginPath();
     if(dir<0){x2.moveTo(42,48);x2.lineTo(80,24);x2.lineTo(80,72)}else{x2.moveTo(86,48);x2.lineTo(48,24);x2.lineTo(48,72)}x2.closePath();x2.fill();
     const top=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(kc)}),[x,y]=pt(cx,474);
-    const m=new THREE.Mesh(new THREE.BoxGeometry(.2,.11,.05),[keyM,keyM,keyM,keyM,top,keyM]);m.position.set(x,y,.03);b.add(m);hull(new THREE.BoxGeometry(.215,.125,.065),m,b);
+    const m=new THREE.Mesh(new THREE.BoxGeometry(.28,.15,.06),[keyM,keyM,keyM,keyM,top,keyM]);m.position.set(x,y,.04);b.add(m);hull(new THREE.BoxGeometry(.3,.17,.075),m,b);
     m.userData={dir,downAt:-1e9};arrows.push(m);
   }
-  T.plist={g,b,cv,tex,rows,arrows,L:PL,key:''};
+  // 판이 오르내릴 때 탁자 윗면 아래쪽은 잘라서 안 보이게 + 판이 나오는 틈
+  const clipY=[new THREE.Plane(new THREE.Vector3(0,1,0),-.001)];
+  b.traverse(o=>{if(o.material&&o.material!==hitM)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{m.clippingPlanes=clipY})});
+  const slit=new THREE.Mesh(new THREE.PlaneGeometry(PW+.06,.07),new THREE.MeshBasicMaterial({color:0x15100c}));slit.rotation.x=-Math.PI/2;slit.position.y=.0005;g.add(slit);
+  T.plist={g,b,cv,tex,rows,arrows,L:PL,W:PW,tilt:.52,key:''};
   const fr=$('#front');
   rows.forEach((m,i)=>{const bt=document.createElement('button');bt.type='button';bt.className='fr-hot off fr-key';bt.id='frR'+i;bt.addEventListener('click',()=>frontListPick(i));fr.insertBefore(bt,$('#frFoot'))});
   arrows.forEach((m,i)=>{const bt=document.createElement('button');bt.type='button';bt.className='fr-hot off fr-key';bt.id='frL'+i;bt.setAttribute('aria-label',i?'다음 쪽':'이전 쪽');bt.addEventListener('click',()=>frontListPage(m.userData.dir));fr.insertBefore(bt,$('#frFoot'))});
@@ -3168,9 +3172,10 @@ function frontDrawList(){
   const key=(FR.lrooms==null?'?':rooms.map(r=>r.code+r.n+r.max+r.title+r.g).join(','))+'|'+pg+'|'+(FR.lrooms===false);
   if(key===P.key)return;P.key=key;
   const g=P.cv.getContext('2d'),W=1024,Hc=528;
-  g.fillStyle='#b98852';g.fillRect(0,0,W,Hc);
-  g.strokeStyle='rgba(90,55,28,.18)';g.lineWidth=3;for(let y=12;y<Hc;y+=26){g.beginPath();g.moveTo(0,y);g.bezierCurveTo(300,y+8,700,y-8,W,y+3);g.stroke()}   // 나뭇결
-  g.fillStyle='rgba(70,42,20,.22)';g.fillRect(0,428,W,4);
+  for(let p=0;p<3;p++){const y0=p*Hc/3,ph=Hc/3;   // 탁자 상판과 같은 판자 3장
+    g.fillStyle=p%2?'#b98350':'#ad7745';g.fillRect(0,y0,W,ph);g.fillStyle='rgba(255,236,205,.22)';g.fillRect(0,y0+4,W,5);
+    g.strokeStyle='rgba(140,82,40,.22)';g.lineWidth=4;g.lineCap='round';for(let k=0;k<3;k++){const yy=y0+30+k*50;g.beginPath();for(let x=40+k*90;x<W-60;x+=16){const y=yy+Math.sin(x*.006+k+p)*4;x===40+k*90?g.moveTo(x,y):g.lineTo(x,y)}g.stroke()}
+    g.fillStyle='rgba(84,46,20,.6)';g.fillRect(0,y0+ph-3,W,5)}
   const msg=t=>{g.fillStyle='#4a3020';g.font='48px "Jua","Black Han Sans",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(t,W/2,214)};
   if(FR.lrooms==null)msg('찾는 중…');
   else if(FR.lrooms===false)msg('연결할 수 없습니다');
@@ -3350,6 +3355,10 @@ function frontPoses(w,h){
   {const tg=new THREE.Vector3(0,.2,DSP.Z+.1),R2=.82,EL2=50*Math.PI/180,tv=Math.tan(20*Math.PI/180),d2=Math.max(4.4,R2/(tv*a));   // 몸을 숙여 디스플레이·키판을 봄
    _fc.fov=40;_fc.position.set(0,tg.y+d2*Math.sin(EL2),tg.z+d2*Math.cos(EL2));_fc.lookAt(tg);_fc.updateMatrixWorld();_fc.updateProjectionMatrix();
    T.lean={p:_fc.position.clone(),q:_fc.quaternion.clone(),m:_fc.projectionMatrix.clone()}}
+  if(T.plist){const P=T.plist,c=new THREE.Vector3(0,.002+P.L/2*Math.cos(P.tilt),DSP.Z+DSP.D*.8-P.L/2*Math.sin(P.tilt)),n=new THREE.Vector3(0,Math.sin(P.tilt),Math.cos(P.tilt));   // 목록 판을 정면에서 확대
+   const tv=Math.tan(20*Math.PI/180),d=Math.max(P.L*.8/tv,P.W*.6/(tv*a));
+   _fc.fov=40;_fc.position.copy(c).addScaledVector(n,d);_fc.lookAt(c);_fc.updateMatrixWorld();_fc.updateProjectionMatrix();
+   T.plCam={p:_fc.position.clone(),q:_fc.quaternion.clone(),m:_fc.projectionMatrix.clone()}}
   FR.applied=false;frontApplyCam();
 }
 const _m4=window.THREE?new THREE.Matrix4():null,_fpose=window.THREE?{p:new THREE.Vector3(),q:new THREE.Quaternion(),m:new THREE.Matrix4()}:null;
@@ -3364,10 +3373,13 @@ function frontApplyCam(){
   F.p.lerpVectors(T.seat.p,T.front.p,k);F.q.copy(T.seat.q).slerp(T.front.q,k);{const a=T.seat.m.elements,b=T.front.m.elements,e=F.m.elements;for(let i=0;i<16;i++)e[i]=a[i]+(b[i]-a[i])*k}
   T.cam.position.lerpVectors(F.p,T.lean.p,ls);
   T.cam.quaternion.copy(F.q).slerp(T.lean.q,ls);
+  const pz=FR.pla&&T.plCam?smooth(FR.pla.v)*ls:0;   // 목록 판이 올라오면 판으로 확대
+  if(pz>0){T.cam.position.lerp(T.plCam.p,pz);T.cam.quaternion.slerp(T.plCam.q,pz)}
   if(am){const a=am*am*(3-2*am);T.cam.position.z+=.9*a;T.cam.position.y+=.55*a}   // 떠나려고 의자를 뺌
   const s=jolt*.12+rum*.012;   // 눈은 조금만 흔들림 (탁자가 더 흔들림)
   if(s){T.cam.position.x+=Math.sin(t/23)*s;T.cam.position.y+=Math.cos(t/17)*s*.7}
   const a=F.m.elements,b=T.lean.m.elements,e=_m4.elements;for(let i=0;i<16;i++)e[i]=a[i]+(b[i]-a[i])*ls;
+  if(pz>0){const c2=T.plCam.m.elements;for(let i=0;i<16;i++)e[i]+=(c2[i]-e[i])*pz}
   T.cam.projectionMatrix.copy(_m4);T.cam.projectionMatrixInverse.copy(_m4).invert();T.cam.updateMatrixWorld();frontFog();
 }
 function frontFog(){if(T.scene&&T.scene.fog){const d=T.cam.position.length();T.scene.fog.near=d+5;T.scene.fog.far=d+22}}
@@ -3412,15 +3424,14 @@ function frontCreate(){
   if(!FR.ok||mode!=='lobby'||FR.warp||FR.spread||net.peer)return;
   FR.word='';FR.spread=true;FR.setAt=clock();sfx('btnGo');createRoom();
 }
-/* 키판: 숫자 4자리를 누르면 바로 찾아감. ← 지우기, 엔터 = 찾아가기, 돋보기 = 공개 탁자 목록 판, 주사위 = 아무 탁자나 */
+/* 키판: 숫자 4자리를 넣고 엔터면 찾아감. ← 지우기, 엔터 = 찾아가기, 돋보기 = 공개 탁자 목록 판, 주사위 = 아무 탁자나 */
 function frontKey(k){
   if(!FR.ok||mode!=='lobby'||FR.warp||FR.spread||net.peer)return;
   const t=clock();FR.keyAt=t;FR.leanOn=true;FR.word='';FR.sit=true;
   const m=T.keypad.keys.find(x=>x.userData.k===k);if(m)m.userData.downAt=t;
   sfx(k==='dice'?'dice':'key');
   if(/^[0-9a-z]$/i.test(k)){
-    FR.pub=null;if(FR.buf.length<4)FR.buf+=k.toLowerCase();
-    if(FR.buf.length===4){const c=FR.buf;setTimeout(()=>{if(FR.buf===c&&mode==='lobby'&&!net.peer&&!FR.warp){FR.buf='';joinRoom(c)}},420)}
+    FR.pub=null;if(FR.buf.length<4)FR.buf+=k.toLowerCase();else sfx('no');   // 엔터를 눌러야 찾아감
     return;
   }
   if(k==='←'){if(FR.pub)FR.pub=null;else FR.buf=FR.buf.slice(0,-1);return}
@@ -3488,7 +3499,8 @@ function frontUpdate(t,dt){
     for(const m of T.keypad.keys){const d=t-m.userData.downAt;m.position.y=d<140?-.028:0;m.rotation.set(0,m.userData.k==='dice'&&d<420?Math.sin(d/30)*.5*(1-d/420):0,0)}}
   if(T.plist){const P=T.plist,pv=frontTween(FR.pla,FR.list&&FR.ka.v<=.01?1:0,t,FR.list?520:380),pu=smooth(pv);
     if(FR.pla.to===1&&pv>0&&!FR.listUp){FR.listUp=1;sfx('btnUp')}if(FR.pla.to===0)FR.listUp=0;
-    P.b.position.y=P.L/2-(P.L+.1)*(1-pu);P.g.visible=pv>.01;if(pv>.01)frontDrawList();
+    P.b.position.y=P.L/2-(P.L+.1)*(1-pu);P.g.visible=pv>.01;
+if(pv>.01)frontDrawList();
     for(const m of P.arrows){const d=t-m.userData.downAt;m.position.z=d<140?.012:.03}}
   if(FR.leanOn&&(!lobby||!FR.sit||FR.warp||FR.spread||(t-FR.keyAt>20000&&!FR.buf&&!FR.pub&&!FR.list)))FR.leanOn=false;
   if(!lobby){FR.buf='';FR.pub=null}
@@ -3586,8 +3598,6 @@ function frontClipPose(t,wait){
   const cv0=frontTween(FR.cla,wait&&FR.dva.v>.6?1:0,t,wait?650:380),cu=cv0;   // 투사기가 올라온 뒤 하늘에서 떨어짐
   if(FR.cla.to===1&&cv0>=1&&!FR.clipLand){FR.clipLand=1;sfx('paper')}if(FR.cla.to===0)FR.clipLand=0;
   if(wait)frontDrawClip(V.cfg.game||'gura');
-  if(V&&V.cfg){const{pub,game,...rest}=V.cfg,ck=JSON.stringify(rest);if(FR.cfgKey&&ck!==FR.cfgKey&&game===FR.cfgGame&&wait&&!roomSetOpen)FR.flutter=t;FR.cfgKey=ck;FR.cfgGame=game}   // 클립보드에 적힌 규칙이 바뀌면 종이가 펄럭 (공개 여부·게임을 바꿀 때는 아님)
-  const fl=t-(FR.flutter||-1e9);C.paper.rotation.y=fl<700?Math.sin(fl/45)*.12*(1-fl/700):0;
   const f=FR.clipFly;let fu=0;
   if(f){const x=clamp01((t-f.t0)/f.ms);fu=f.dir>0?smooth(x):1-smooth(x);if(x>=1&&f.dir<0)FR.clipFly=null}
   else if(roomSetOpen&&wait)fu=1;
