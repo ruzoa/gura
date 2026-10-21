@@ -332,7 +332,6 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .clipsheet .paper.ghost.fwd{z-index:3;animation:flipUp .45s ease-in forwards}
 .clipsheet .paper.ghost.back{z-index:0}
 .clipsheet .paper.down{z-index:2;animation:flipDown .45s ease-out}
-.clipsheet .clip-t{margin:0;font:400 28px var(--f-display);color:var(--ink)}
 .clipsheet .rs-h b,.clipsheet .stp-t b,.clipsheet .rulehead,.clipsheet .pl-o b{font-family:var(--f-display);font-weight:400}
 .clipsheet .rs-seg,.clipsheet .stp{border-bottom:0}
 .clipsheet .rs-grid{grid-template-columns:1fr}
@@ -1588,7 +1587,7 @@ $('#emoPad').addEventListener('click',e=>{
   e.stopPropagation();
   const b=e.target.closest('[data-emo]');if(b)sendEmote(b.dataset.emo);
 });
-document.addEventListener('click',e=>{if(!$('#emoPad').hidden&&!e.target.closest('#emoPad')&&!e.target.closest('#btnEmo')&&!e.target.closest('.emo-open'))closeEmoPad()});
+document.addEventListener('click',e=>{if(!$('#emoPad').hidden&&!e.target.closest('#emoPad')&&!e.target.closest('#btnEmo')&&!e.target.closest('.emo-open')&&!e.target.closest('.wemo'))closeEmoPad()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#emoPad').hidden)closeEmoPad()});
 /* 이름표 옆 스피커: 그 사람 이모티콘 보기/끄기 */
 const SPK_ON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
@@ -1769,8 +1768,9 @@ function showBubble(i,html,life,kind){
   const st=$('#stage'),sr=st.getBoundingClientRect(),W=sr.width,Hh=sr.height;
   // 대기실 명단, 결과 화면 순위표가 떠 있으면 그 사람 줄에 붙임 (결과 화면에서는 내 정보 칸·자리 이름표가 가려지거나 숨어 있음)
   const overRow=!spc&&V&&V.st==='over'&&!$('#panel').hidden?document.querySelector(`#panel .ranks li[data-i="${i}"]`):null;
-  const inWait=V&&V.st==='wait'||!!overRow;
-  const el=overRow||(spc?document.querySelector(V&&V.st==='wait'?`#panel .specs [data-s="${i.slice(1)}"]`:`#specBar [data-s="${i.slice(1)}"]`):inWait?document.querySelector(`#panel .slots li[data-i="${i}"]`):i===myIdx()?$('#me'):document.querySelector(`#labels .seat[data-i="${i}"]`));
+  const tw=!overRow&&V&&V.st==='wait'&&frTableUI();   // 3D 대기실: 탁자 위 2D 이름표에 붙임
+  const inWait=!tw&&(V&&V.st==='wait'||!!overRow);
+  const el=tw?(spc?document.querySelector(`#specBar [data-s="${i.slice(1)}"]`):document.querySelector(`#labels .wseat[data-w="${i}"]`)):overRow||(spc?document.querySelector(V&&V.st==='wait'?`#panel .specs [data-s="${i.slice(1)}"]`:`#specBar [data-s="${i.slice(1)}"]`):inWait?document.querySelector(`#panel .slots li[data-i="${i}"]`):i===myIdx()?$('#me'):document.querySelector(`#labels .seat[data-i="${i}"]`));
   if(!el)return;
   const r0=el.getBoundingClientRect(),r=inWait&&!spc?{left:r0.right-70,top:r0.top,width:60,height:r0.height,right:r0.right,bottom:r0.bottom}:r0,lx=r.left-sr.left+r.width/2,ly=r.top-sr.top+r.height/2;
   // 이름표에서 테이블 가운데 쪽으로 풍선을 띄움
@@ -2117,7 +2117,7 @@ function renderPanel(){
       const body=G.settingsHTML?G.settingsHTML(c,{stepRow,common:COMMON_SET.map(d=>roomSetOf(G).find(x=>x.k===d.k))}):`<div class="rs-grid">${rows}</div>${rules?`<div class="rulehead">게임 규칙</div><div class="rs-grid tgs">${rules}</div>`:''}`;
       const modeRow=G.noFast?'':`<div class="rs-seg"><div class="rs-h"><b>게임 모드</b><small>${G.modeDesc[c.fast?1:0]}</small></div><div class="segrow" role="radiogroup" aria-label="게임 모드">${[0,1].map(v=>`<button class="btn ${(c.fast?1:0)===v?'btn-play':'btn-sub'}${clipUI&&v&&c.fast?' hl':''}" type="button" role="radio" aria-checked="${(c.fast?1:0)===v}" data-act="mode${v}">${OPT_LABEL.fast[v]}</button>`).join('')}</div></div>`;
       if(clipUI){   // 클립보드: 게임 고르기(홀로그램)·게임 방법(메뉴)·뒤로 버튼 없음. 바깥을 누르거나 Esc·도장으로 닫힘. 참가자는 읽기만
-        showPanel(`<h2 class="clip-t">${esc(G.name)}</h2>${modeRow}${body}${ro?'':'<div class="row clip-end"><button class="btn btn-red" type="button" data-act="setclose" data-auto>확인</button></div>'}`,'roomset');
+        showPanel(`${modeRow}${body}${ro?'':'<div class="row clip-end"><button class="btn btn-red" type="button" data-act="setclose" data-auto>확인</button></div>'}`,'roomset');
         $('#panelBody').classList.toggle('ro',ro);
         return;
       }
@@ -3201,9 +3201,7 @@ function frontDrawClip(id){
   const C=T.clip;if(!C||C.key===id)return;C.key=id;
   const g=C.cv.getContext('2d'),W=C.cv.width,Hc=C.cv.height;
   g.fillStyle='#fffcf5';g.fillRect(0,0,W,Hc);
-  g.fillStyle='#cc3a2e';g.textAlign='center';g.textBaseline='middle';g.font='44px "Jua", "Black Han Sans", sans-serif';g.fillText(gameOf(id).name,W/2,56);
-  g.strokeStyle='rgba(59,42,31,.25)';g.lineWidth=3;for(let y=110;y<Hc-20;y+=30){g.beginPath();g.moveTo(26,y);g.lineTo(W-26-(y%60?40:0),y);g.stroke()}
-  g.fillStyle='#f2b632';g.fillRect(26,96,60,6);
+  g.strokeStyle='rgba(59,42,31,.25)';g.lineWidth=3;for(let y=50;y<Hc-20;y+=30){g.beginPath();g.moveTo(26,y);g.lineTo(W-26-(y%60?40:0),y);g.stroke()}
   C.tex.needsUpdate=true;
 }
 /* 시작 버튼: 디스플레이 왼쪽 나무 띠에서 올라오는 둥근 빨간 버튼 (방장). 0.5초 누르고 있으면 시작 */
@@ -3404,7 +3402,7 @@ function frontUpdate(t,dt){
   const ow=(lobby&&FR.sit)||!!FR.warp||wait?1:0;
   if(FR.oa.to!==ow)sfx('lid');
   FR.open=frontTween(FR.oa,ow,t,ow?520:420);
-  if(T.board){const o=smooth(FR.open);T.board.g.rotation.x=-o*2.05;T.board.hole.visible=o>.02;T.board.screen.visible=o>.02;T.board.g.visible=!(lobby&&!FR.sit&&!FR.warp&&FR.open<=0)}   // 첫 화면(서서 볼 때)은 탁자만: 덮개도 안 보임
+  if(T.board){const o=smooth(FR.open);T.board.g.rotation.x=-o*2.05;T.board.hole.visible=o>.02;T.board.screen.visible=o>.02;T.board.g.visible=o>.001}   // 닫히면 덮개도 안 보임(탁자 위는 깔끔하게)   // 첫 화면(서서 볼 때)은 탁자만: 덮개도 안 보임
   // 키판: 첫 화면에서 디스플레이가 열리면 올라옴. 누르면 그 키가 쑥 들어감 (주사위 키는 구르듯 흔들림)
   if(T.keypad){const ku=smooth(frontTween(FR.ka,lobby&&FR.sit&&!FR.spread&&FR.stand<.3?1:0,t,lobby?420:300));T.keypad.g.position.y=-.09+.12*ku;T.keypad.g.visible=ku>.01;
     for(const m of T.keypad.keys){const d=t-m.userData.downAt;m.position.y=d<140?-.028:0;m.rotation.set(0,m.userData.k==='dice'&&d<420?Math.sin(d/30)*.5*(1-d/420):0,0)}}
@@ -3429,14 +3427,14 @@ function frontUpdate(t,dt){
   // 투사기·홀로그램, 클립보드, 시작 버튼
   frontHoloPose(t,wait);
   frontClipPose(t,wait);
-  if(T.startBtn){const S=T.startBtn,want=wait&&host&&FR.stand<.05&&!FR.browse&&!roomSetOpen;
+  if(T.startBtn){const S=T.startBtn,can=mode==='host'&&canStart(),want=wait&&host&&can&&FR.stand<.05&&!FR.browse&&!roomSetOpen;   // 시작할 수 있을 때만 구멍이 열리고 올라옴. 아니면 아무 흔적 없음
     // 구멍이 열림 → 버튼이 올라옴 (내려갈 때는 버튼 → 구멍)
     const hw=want||FR.sta.v>.02?1:0,hu=smooth(frontTween(FR.sha,hw,t,hw?260:220));S.hole.visible=hu>.01;S.hole.scale.setScalar(Math.max(.001,hu));
     if(FR.sha.to===1&&FR.sha.v>=1&&!FR.btnHoleSnd){FR.btnHoleSnd=1;sfx('iris')}if(!hw)FR.btnHoleSnd=0;
-    const can=mode==='host'&&canStart(),sw=want&&hu>.98?(can?1:.4):0;   // .4 = 탁자 높이에 박혀 있음(꺼짐)
+    const sw=want&&hu>.98?1:0;
     if(FR.sta.to!==sw&&sw===1)sfx('btnUp');
     const su=frontTween(FR.sta,sw,t,420);S.g.position.y=-.3+.3*smooth(su);S.g.visible=su>.01;
-    S.cap.material.color.copy(S.cap.userData.off).lerp(S.cap.userData.on,clamp01((su-.4)/.6));
+    
     const hp=FR.holdAt?clamp01((t-FR.holdAt)/500):0;S.cap.position.y=.15-.06*Math.min(1,hp*3);
     $('#frStart').style.setProperty('--p',hp);$('#frStart').setAttribute('aria-disabled',String(!can));
     if(FR.holdAt&&hp>=1){FR.holdAt=0;if(mode==='host'&&H&&H.phase==='wait'){if(canStart()){sfx('btnGo');hostStart()}else frontNeedSeats()}}}
