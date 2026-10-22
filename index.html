@@ -3511,15 +3511,18 @@ function frontBuildList(TG){
   const refT=canvasTex(128,128,(x,w,h)=>{x.fillStyle='#c9a46a';x.fillRect(0,0,w,h);x.strokeStyle='#5a3a1c';x.fillStyle='#5a3a1c';x.lineWidth=13;x.lineCap='round';x.beginPath();x.arc(64,66,32,-Math.PI*.35,Math.PI*1.25);x.stroke();
     const a=-Math.PI*.35,ex=64+32*Math.cos(a),ey=66+32*Math.sin(a);x.beginPath();x.moveTo(ex+20,ey-6);x.lineTo(ex-6,ey-22);x.lineTo(ex-2,ey+14);x.closePath();x.fill()});
   const refM=toon({color:0xb8925a,rim:.3}),rf=new THREE.Group();rf.position.set(-PW/2-.11,PL/2-.2,.04);b.add(rf);   // 왼쪽 옆 위 (레버는 오른쪽)
+  const xT=canvasTex(128,128,(x,w,h)=>{x.fillStyle='#c9a46a';x.fillRect(0,0,w,h);x.strokeStyle='#5a3a1c';x.lineWidth=16;x.lineCap='round';x.beginPath();x.moveTo(38,38);x.lineTo(90,90);x.moveTo(90,38);x.lineTo(38,90);x.stroke()});
+  const lx=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.05,24),[brass,toon({map:xT,rim:.2}),brass]);lx.rotation.x=Math.PI/2;lx.position.set(PW/2+.1,PL/2-.2,.04);b.add(lx);hull(new THREE.CylinderGeometry(.088,.088,.06,24),lx,b).rotation.x=Math.PI/2;   // 닫기: 오른쪽 옆 위
   const rfm=new THREE.Mesh(new THREE.CylinderGeometry(.085,.085,.05,24),[refM,toon({map:refT,rim:.2}),refM]);rfm.rotation.x=Math.PI/2;rf.add(rfm);hull(new THREE.CylinderGeometry(.1,.1,.06,24),rfm,rf).rotation.x=Math.PI/2;
   // 판이 오르내릴 때 탁자 윗면 아래쪽은 잘라서 안 보이게 + 판이 나오는 틈
   const clipY=[new THREE.Plane(new THREE.Vector3(0,1,0),-.001)];
   b.traverse(o=>{if(o.material&&o.material!==hitM)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{m.clippingPlanes=clipY})});
-  const slit=new THREE.Mesh(new THREE.PlaneGeometry(PW+.36,.12),new THREE.MeshBasicMaterial({color:0x15100c}));slit.rotation.x=-Math.PI/2;slit.position.y=.0005;g.add(slit);
-  T.plist={g,b,cv,tex,rows,ref:{g:rf,m:refM,at:-1e9,ang:0},lever:{g:lv,rod,knob,at:-1e9,dir:1},L:PL,W:PW,tilt:.08,key:'',flaps:[...Array(FR_ROWS)].map(()=>({to:['','',''],cur:['','',''],until:0,next:0,mid:0})),pick:-1,pickAt:0,drawn:''};
+  const slit=new THREE.Mesh(new THREE.PlaneGeometry(PW+.16,.22),new THREE.MeshBasicMaterial({color:0x15100c}));slit.rotation.x=-Math.PI/2;slit.position.y=.0005;g.add(slit);
+  T.plist={g,b,cv,tex,rows,xk:lx,ref:{g:rf,m:refM,at:-1e9,ang:0},lever:{g:lv,rod,knob,at:-1e9,dir:1},L:PL,W:PW,tilt:.08,key:'',flaps:[...Array(FR_ROWS)].map(()=>({to:['','',''],cur:['','',''],until:0,next:0,mid:0})),pick:-1,pickAt:0,drawn:''};
   const fr=$('#front');
   rows.forEach((m,i)=>{const bt=document.createElement('button');bt.type='button';bt.className='fr-hot off fr-key';bt.id='frR'+i;bt.addEventListener('click',()=>frontListPick(i));fr.insertBefore(bt,$('#frFoot'))});
   {const bt=document.createElement('button');bt.type='button';bt.className='fr-hot off fr-key';bt.id='frRef';bt.setAttribute('aria-label','새로고침');bt.title='새로고침';fr.insertBefore(bt,$('#frFoot'));bt.addEventListener('click',()=>frontListRefresh(true))}
+  {const bt=document.createElement('button');bt.type='button';bt.className='fr-hot off fr-key';bt.id='frLx';bt.setAttribute('aria-label','닫기');bt.title='닫기';fr.insertBefore(bt,$('#frFoot'));bt.addEventListener('click',()=>frontList(false))}
   { // 레버: 누르면 다음 쪽, 위로 밀면 이전 쪽
     const bt=document.createElement('button');bt.type='button';bt.className='fr-hot off fr-key';bt.id='frLever';bt.setAttribute('aria-label','다음 쪽 (위로 밀면 이전 쪽)');fr.insertBefore(bt,$('#frFoot'));
     let sy=null;bt.addEventListener('pointerdown',e=>{sy=e.clientY;try{bt.setPointerCapture(e.pointerId)}catch(_){}});
@@ -3622,12 +3625,12 @@ function frontBuildRules(TG){
   const PH=L+.06,px=W/2+.075;
   for(const sx of [-1,1]){const post=new THREE.Mesh(new THREE.BoxGeometry(.1,PH,.15),dark);post.position.set(sx*px,PH/2,0);post.castShadow=true;r.add(post);hull(new THREE.BoxGeometry(.13,PH+.03,.18),post,r);
     const cap=new THREE.Mesh(new THREE.BoxGeometry(.15,.05,.2),wood);cap.position.set(sx*px,PH+.025,0);r.add(cap);hull(new THREE.BoxGeometry(.18,.08,.23),cap,r)}
-  // 닫기: 왼쪽 기둥 위 놋쇠 단추 (✕를 새김)
+  // 닫기: 오른쪽 기둥 위 놋쇠 단추 (✕를 새김), 레버는 그 아래
   const xt=canvasTex(128,128,(x,w,h)=>{x.fillStyle='#c9a46a';x.fillRect(0,0,w,h);x.strokeStyle='#5a3a1c';x.lineWidth=16;x.lineCap='round';x.beginPath();x.moveTo(38,38);x.lineTo(90,90);x.moveTo(90,38);x.lineTo(38,90);x.stroke()});
-  const xk=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.05,24),[brass,toon({map:xt,rim:.2}),brass]);xk.rotation.x=Math.PI/2;xk.position.set(-px,PH-.13,.1);r.add(xk);hull(new THREE.CylinderGeometry(.088,.088,.06,24),xk,r).rotation.x=Math.PI/2;
+  const xk=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.05,24),[brass,toon({map:xt,rim:.2}),brass]);xk.rotation.x=Math.PI/2;xk.position.set(px,PH-.13,.1);r.add(xk);hull(new THREE.CylinderGeometry(.088,.088,.06,24),xk,r).rotation.x=Math.PI/2;
   // 쪽 표시: 왼쪽 기둥 앞면 놋쇠 못 (위에서 아래로)
   const pegOn=toon({color:0xf2d08a,rim:.4}),pegOff=toon({color:0x6e4a2c,rim:.2}),pegs=[];
-  for(let k=0;k<12;k++){const m=new THREE.Mesh(new THREE.SphereGeometry(.026,10,8),pegOff);m.position.set(-px,PH-.34-k*.1,.08);m.visible=false;r.add(m);pegs.push(m)}
+  for(let k=0;k<12;k++){const m=new THREE.Mesh(new THREE.SphereGeometry(.026,10,8),pegOff);m.position.set(-px,PH-.14-k*.1,.08);m.visible=false;r.add(m);pegs.push(m)}
   // 다음 판자: 오른쪽 기둥의 레버 (공개 탁자 목록 판과 같은 모양)
   const lv=new THREE.Group();lv.position.set(px+.055,L*.55,0);r.add(lv);
   const hub=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.06,20),brass);hub.rotation.z=Math.PI/2;lv.add(hub);
@@ -3640,7 +3643,7 @@ function frontBuildRules(TG){
   const pOut=hull(new THREE.BoxGeometry(W+.03,1,.11),plank,r);
   const clipY=[new THREE.Plane(new THREE.Vector3(0,1,0),-.001)];   // 탁자 윗면 아래는 안 보임
   r.traverse(o=>{if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{m.clippingPlanes=clipY})});
-  const slit=new THREE.Mesh(new THREE.PlaneGeometry(W+.5,.13),new THREE.MeshBasicMaterial({color:0x15100c}));slit.rotation.x=-Math.PI/2;slit.position.y=.0006;g.add(slit);
+  const slit=new THREE.Mesh(new THREE.PlaneGeometry(2*(W/2+.165)+.08,.3),new THREE.MeshBasicMaterial({color:0x15100c}));slit.rotation.x=-Math.PI/2;slit.position.y=.0006;g.add(slit);
   const hitM=new THREE.MeshBasicMaterial({visible:false});
   const win=new THREE.Mesh(new THREE.PlaneGeometry(W,L),hitM);win.position.set(0,L/2,.05);r.add(win);
   T.rb={g,r,cv,tex,plank,pOut,xk,pegs,pegOn,pegOff,win,lever:{g:lv,rod,at:-1e9,dir:1},key:''};
@@ -4165,7 +4168,7 @@ function frontUpdate(t,dt){
     if(FR.pla.to===1&&pv>0&&!FR.listUp){FR.listUp=1;sfx('btnUp')}if(FR.pla.to===0)FR.listUp=0;
     P.b.position.y=P.L/2-(P.L+.1)*(1-pu);P.g.visible=pv>.01;
 if(pv>.01)frontDrawList(t);
-    {const Rf=P.ref,d=t-Rf.at,spin=FR.scan||d<600;const TW=Math.PI*2;if(spin)Rf.ang+=Math.max(0,dt)*(d<600?10.5:5);else{const tg=Math.ceil(Rf.ang/TW-1e-6)*TW;Rf.ang=Math.min(tg,Rf.ang+Math.max(0,dt)*5)}Rf.g.rotation.z=-Rf.ang;   // 돎 (멈추면 처음 자리까지 마저 돌고 섬)
+    {const Rf=P.ref,d=t-Rf.at,spin=FR.scan||d<600;const TW=Math.PI*2;if(spin)Rf.ang+=Math.max(0,dt)*(d<600?10.5:5);else{const tg=Math.ceil(Rf.ang/TW-1e-6)*TW;Rf.ang=Math.min(tg,Rf.ang+Math.max(0,dt)*5)}Rf.g.rotation.z=Rf.ang;   // 화살표 방향(시계 반대)으로 돎, 멈추면 처음 자리까지 마저 돌고 섬
       const empty=!FR.scan&&(FR.lrooms===false||(Array.isArray(FR.lrooms)&&!frontListRooms().length)),p=empty?.5+.5*Math.sin(t/260):0;Rf.m.color.setRGB(.72+.28*p,.57+.33*p,.35+.2*p)}   // 없음·끊김이면 숨 쉬듯 빛남
     if(FR.list&&pv>=.98&&!FR.scan&&Date.now()-roomScanAt>15000&&Date.now()-(FR.autoAt||0)>15000){FR.autoAt=Date.now();frontListRefresh(false)}
     {const L=P.lever,d=t-L.at,k=d<0||d>520?0:d<160?d/160:1-smooth((d-160)/360);L.rod.rotation.x=-.5+(L.dir>0?.95:-.55)*k}}   // 레버: 당겼다가 되돌아옴
@@ -4331,6 +4334,7 @@ function frontLayout(lobby,wait,host,t){
   T.plist.rows.forEach((m,i)=>{const r=lr[(FR.lpage||0)*FR_ROWS+i],b=$('#frR'+i);frontPut(b,lUp&&!!r,lUp&&r?frontRect(m,W,Hh):null,0,40,30);if(r&&b.dataset.c!==r.code){b.dataset.c=r.code;b.setAttribute('aria-label',`${r.title} · ${gameOf(r.g).name} · ${r.n}/${r.max}`)}});
   frontPut($('#frLever'),lUp,lUp?frontRect(T.plist.lever.g,W,Hh):null,10,56,64);
   frontPut($('#frRef'),lUp,lUp?frontRect(T.plist.ref.g,W,Hh):null,10,48,48);
+  frontPut($('#frLx'),lUp,lUp?frontRect(T.plist.xk,W,Hh):null,10,48,48);
   const dOn=((front&&FR.lean>.9&&!FR.list&&FR.pla.v<=0&&FR.kmode==='num')||seated)&&FR.open>.98;
   frontPut($('#frBoard'),dOn,dOn?frontRect(T.board.screen,W,Hh):null,6);
   // 눈(위)·자물쇠(아래): 디스플레이 오른쪽 끝 칸
