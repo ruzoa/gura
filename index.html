@@ -1658,6 +1658,17 @@ function hiss(dur,o={}){
   g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(o.vol||.25,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
   s.connect(fl);fl.connect(g);g.connect(o.bus==='bgm'?SND.bgm:SND.fx);s.start(t);s.stop(t+dur+.03);
 }
+/* 차오르는 소리(우우우웅): ms 동안 음이 올라가며 커지고 떨림이 빨라짐. 돌려준 함수를 부르면 바로 꺼짐 (상치우기 꾹 누르기) */
+function hum(ms){
+  const c=SND.ctx;if(!c||!SND.on||c.state!=='running')return ()=>{};
+  const t=c.currentTime,d=ms/1000,o1=c.createOscillator(),o2=c.createOscillator(),lp=c.createBiquadFilter(),g=c.createGain(),trem=c.createGain(),lfo=c.createOscillator(),lg=c.createGain();
+  o1.type='sawtooth';o2.type='sine';o1.frequency.setValueAtTime(70,t);o1.frequency.exponentialRampToValueAtTime(230,t+d);o2.frequency.setValueAtTime(140,t);o2.frequency.exponentialRampToValueAtTime(460,t+d);
+  lp.type='lowpass';lp.Q.value=6;lp.frequency.setValueAtTime(260,t);lp.frequency.exponentialRampToValueAtTime(1900,t+d);
+  lfo.frequency.setValueAtTime(5,t);lfo.frequency.linearRampToValueAtTime(15,t+d);lg.gain.value=.45;lfo.connect(lg);lg.connect(trem.gain);trem.gain.value=.55;   // 우-우-우-웅: 떨림이 점점 빨라짐
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.11,t+d);
+  o1.connect(lp);o2.connect(lp);lp.connect(trem);trem.connect(g);g.connect(SND.fx);[o1,o2,lfo].forEach(o=>o.start(t));
+  let done=false;return ()=>{if(done)return;done=true;const n=c.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(Math.max(.0001,g.gain.value),n);g.gain.exponentialRampToValueAtTime(.0001,n+.12);[o1,o2,lfo].forEach(o=>o.stop(n+.15))};
+}
 const SFX={
   special(){tone(392,.1,{type:'square',vol:.08});tone(523,.1,{type:'square',vol:.08,at:.09});tone(784,.3,{type:'square',vol:.1,at:.18})},   // 대부호 혁명·8 끊기 등
   tick(){tone(1250,.03,{type:'square',vol:.035})},
@@ -1716,6 +1727,7 @@ const SFX={
   iris(){hiss(.28,{freq:900,sweep:2400,q:1.2,vol:.06});tone(240,.2,{type:'triangle',vol:.06,slide:360})},   // 구멍 열림
   btnUp(){tone(180,.18,{type:'triangle',vol:.1,slide:320});hiss(.12,{freq:600,q:.8,vol:.05})},
   btnGo(){tone(110,.08,{type:'square',vol:.1});[523,784].forEach((f,k)=>tone(f,.16,{type:'triangle',vol:.12,at:.06+k*.08}))},
+  tableClear(){hiss(.5,{freq:3000,sweep:260,q:.7,vol:.16});tone(80,.3,{type:'triangle',vol:.22,slide:50,at:.05});[2093,2637,1760,2349,1976].forEach((f,k)=>tone(f,.07,{type:'triangle',vol:.05,at:.12+k*.045}));hiss(.12,{freq:4200,q:2,vol:.06,at:.14})},   // 상치우기: 휙 쓸어내림 + 쿵 + 그릇 달그락
   stamp(){tone(90,.12,{type:'triangle',vol:.2});hiss(.08,{freq:700,q:.8,vol:.14})},   // 도장 쿵
   holoOn(){tone(330,.5,{vol:.07,slide:990,attack:.05});tone(1320,.4,{vol:.03,at:.25,attack:.1})},
   holoOff(){tone(880,.35,{vol:.05,slide:220})},
@@ -3242,8 +3254,8 @@ function frontWaitKey(k){
 const CLEAR_MS=1000;
 function frontClearHold(){
   const b=$('#frH'+FR_HOST.indexOf('clear'));if(!b)return;
-  b.addEventListener('pointerdown',e=>{if(!frontWaitCan('clear')){sfx('no');return}FR.clearHold=clock();sfx('key');frontWord('치우기',CLEAR_MS+400);try{b.setPointerCapture(e.pointerId)}catch(_){}});
-  const stop=()=>{if(FR.clearHold&&clock()-FR.clearHold<CLEAR_MS){FR.word=''}FR.clearHold=0};
+  b.addEventListener('pointerdown',e=>{if(!frontWaitCan('clear')){sfx('no');return}FR.clearHold=clock();sfx('key');if(FR.humStop)FR.humStop();FR.humStop=hum(CLEAR_MS);frontWord('치우기',CLEAR_MS+400);try{b.setPointerCapture(e.pointerId)}catch(_){}});
+  const stop=()=>{if(FR.clearHold&&clock()-FR.clearHold<CLEAR_MS){FR.word=''}FR.clearHold=0;if(FR.humStop){FR.humStop();FR.humStop=null}};
   b.addEventListener('pointerup',stop);b.addEventListener('pointercancel',stop);b.addEventListener('lostpointercapture',stop);
   b.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&frontWaitCan('clear')){e.preventDefault();hostClear()}});
 }
@@ -3253,13 +3265,13 @@ function hostClear(){
   for(const c of net.conns){try{c.send({t:'cleared'})}catch(e){}}
   const conns=[...net.conns];net.conns.clear();setTimeout(()=>{for(const c of conns){try{c.close()}catch(e){}}},300);
   H.members=H.members.filter(m=>m.host);H.specs=[];   // 다음 방장에게 넘기지 않음
-  sfx('btnGo');leaveRoom();FR.sit=true;FR.kmode='menu';
+  sfx('tableClear');leaveRoom();FR.sit=true;FR.kmode='menu';
 }
 function guestCleared(){
   if(mode!=='guest')return;
   unstore('gura-guest');
   if(!FR.ok){mode='closed';if(net.retry){clearTimeout(net.retry.timer);net.retry=null}showPanel('<h2>상을 치웠습니다</h2><p>방장이 탁자를 정리했습니다.</p><div class="row"><button class="btn btn-play" type="button" data-act="leave" data-auto>로비로</button></div>','gone');return}
-  leaveRoom();FR.sit=true;FR.kmode='menu';FR.clearAt=clock();sfx('warpFail');
+  leaveRoom();FR.sit=true;FR.kmode='menu';FR.clearAt=clock();sfx('tableClear');
 }
 /* 공개 탁자 목록 판 = 플립 안내판: 돋보기를 누르면 키판이 디스플레이 아래로 들어간 뒤, 같은 틈에서 원목 틀의 안내판이 서서 올라옴.
    틀 안에 플립 줄 7개(게임·탁자 이름·인원 칸, 디스플레이와 같은 짙은 칸에 크림 글씨). 내용이 바뀌면 줄마다 차례로 촤라락 넘어감.
@@ -3618,7 +3630,7 @@ function frontGo(){   // 디스플레이를 누름 / Enter
 function padPose(P,want,t,ms){
   const v=frontTween(P.a,want?1:0,t,ms),s=smooth(clamp01(v/.6)),r=smooth(clamp01((v-.6)/.4));
   P.g.position.z=DSP.Z-.45+(.45+DSP.D/2)*s;P.g.position.y=-.012+.047*r;P.g.visible=v>.01;
-  for(const m of P.keys){const d=t-m.userData.downAt;m.position.y=d<160?-.03:0}
+  for(const m of P.keys){const d=t-m.userData.downAt,nd=t-(m.userData.nudge||-1e9);m.position.y=d<160?-.03:nd<700?.05*Math.abs(Math.sin(nd/700*Math.PI*2)):0}
 }
 function frontTween(a,to,t,ms){
   if(a.to!==to){a.from=a.v;a.to=to;a.t0=t;a.ms=ms*Math.abs(to-a.v)}
@@ -3677,12 +3689,12 @@ function frontUpdate(t,dt){
   if(T.hostPad){   // 대기실 자판: 방장·참가자·관전자 중 하나만. 바뀔 때는 앞 자판이 다 들어간 뒤 나옴
     const me=wait?myIdx():-1,sitd=wait&&FR.stand<.05&&FR.open>.98&&!FR.warp,pads=[[T.hostPad,host],[T.guestPad,!host&&me>=0],[T.sitPad,!host&&me<0&&!!(V&&V.spec)]];
     pads.forEach(([P,mine])=>padPose(P,sitd&&mine&&pads.every(([Q])=>Q===P||Q.a.v<=.01),t,wait?620:380));
-    if(FR.clearHold&&(!wait||!host))FR.clearHold=0;
+    if(FR.clearHold&&(!wait||!host)){FR.clearHold=0;if(FR.humStop){FR.humStop();FR.humStop=null}}
     const hp=FR.clearHold?clamp01((t-FR.clearHold)/CLEAR_MS):0;FR.clearP=FR.clearHold?hp:Math.max(0,(FR.clearP||0)-dt*3);   // 떼면 천천히 원래 색으로
     for(const P of [T.hostPad,T.guestPad,T.sitPad])if(P.g.visible)P.keys.forEach(m=>{const k=m.userData.k,ok=frontWaitCan(k);
       if(k==='clear'){const p=FR.clearP;m.material[2].color.setRGB(1,1-.62*p,1-.68*p);m.material[0].color.setRGB(.85+.15*p,.78-.45*p,.66-.4*p);if(FR.clearHold)m.position.y=-.03*Math.min(1,hp*4)}   // 꾹 누르면 점점 빨갛게
       else m.material[2].color.setScalar(ok?1:.55)});   // 못 누르는 키는 어둡게
-    if(FR.clearHold&&hp>=1){FR.clearHold=0;FR.clearP=0;FR.word='';setTimeout(hostClear,0)}   // 그리는 도중에 탁자를 닫지 않게 다음 차례에
+    if(FR.clearHold&&hp>=1){FR.clearHold=0;FR.clearP=0;FR.word='';if(FR.humStop){FR.humStop();FR.humStop=null}setTimeout(hostClear,0)}   // 그리는 도중에 탁자를 닫지 않게 다음 차례에
   }
   if(T.power){const P=T.power,want=FR.open>.98&&FR.stand<.05&&((lobby&&FR.sit&&!FR.warp&&!FR.spread&&!net.peer)||wait)?1:0;   // 구멍이 열림 → 버튼이 올라옴 (내려갈 때는 버튼 → 구멍)
     const hw=want||P.a.v>.02?1:0,hu=smooth(frontTween(P.h,hw,t,hw?240:200));P.hole.visible=hu>.01;P.hole.scale.setScalar(Math.max(.001,hu));
@@ -3887,6 +3899,7 @@ function frontLayout(lobby,wait,host,t){
 /* 꺼진 시작 버튼을 누름: 금지 소리 + 빈 자리 이름표가 통통 튀며 "사람이 더 필요함"을 보여 줌 */
 function frontNeedSeats(){
   sfx('no');document.querySelectorAll('#labels .wseat.empty').forEach(el=>{el.classList.remove('need');void el.offsetWidth;el.classList.add('need')});
+  if(mode==='host'&&T.hostPad)T.hostPad.keys.forEach(m=>{if(m.userData.k==='bot')m.userData.nudge=clock()});   // 방장은 빈 자리 이름표가 없으니 봇 추가 키가 통통 튐
 }
 function frontNick(){$('#frNickV').textContent=myNick()}
 $('#frTable').addEventListener('click',()=>{if(mode!=='lobby'||FR.warp||net.peer)return;FR.sit=true;sfx('tick')});
@@ -4028,7 +4041,7 @@ function waitSeatsHTML(){
     const p=ps[k];
     if(p){const sub=p.hs?'방장':p.b?`봇 · ${BOT_LV[p.lv??1]}`:p.aw?'연결 끊김':'';
       h+=`<div class="seat wseat${k===me?' mine':''}${p.b?' bot lv'+(p.lv??1):''}" data-w="${k}"><button type="button" data-seat="s${k}" aria-label="${esc(p.n)}${k===me?' (나)':''}">${k===fi?'<i class="fsel">선</i>':''}<span class="nm">${G.nameTag?G.nameTag(p,k):''}${esc(p.n)}</span>${sub?`<small>${esc(sub)}</small>`:''}</button>${k===me?'<button type="button" class="wemo" aria-label="이모티콘" title="이모티콘">😊</button>':''}</div>`}
-    else h+=`<div class="seat wseat empty" data-w="${k}"><button type="button" data-seat="e${k}" aria-label="빈 자리"${!isHost&&!(me<0&&V.spec)?' tabindex="-1"':''}>+</button></div>`;
+    else if(!isHost)h+=`<div class="seat wseat empty" data-w="${k}"><button type="button" data-seat="e${k}" aria-label="빈 자리"${!isHost&&!(me<0&&V.spec)?' tabindex="-1"':''}>+</button></div>`;
   }
   return h;
 }
