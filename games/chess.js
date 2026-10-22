@@ -638,6 +638,8 @@ function redraw(){msgUntil=0;drawAll();G.buttons();Ch3.dirty=true;ch3Marks()}
 function sndLift(vol){tone(1250,.03,{type:'triangle',vol:vol*.5});hiss(.02,{freq:3800,q:3,vol:vol*.4})}
 function sndNo(){sfx('no')}
 function sndPut(at,cap){hiss(.035,{freq:2100,q:2,vol:.22,at});tone(520,.07,{type:'triangle',vol:.12,at});tone(190,.09,{type:'sine',vol:.1,at:at+.004});if(cap){hiss(.05,{freq:4200,q:4,vol:.14,at:at+.03});tone(880,.04,{type:'triangle',vol:.06,at:at+.03})}}
+/* 시작 연출에서 기물이 서는 소리: k 0 폰 … 5 킹 (계급이 오를수록 낮고 묵직, 킹은 쿵) */
+function sndLand(k){const f=1.35-k*.12;hiss(.03,{freq:2600*f,q:2,vol:.13+k*.02});tone(560*f,.06+k*.012,{type:'triangle',vol:.09+k*.012});tone(200*f,.08+k*.02,{type:'sine',vol:.07+k*.02,at:.004});if(k===5){tone(95,.22,{type:'sine',vol:.2,at:.01});hiss(.12,{freq:420,vol:.12})}}
 function sndCheck(at){tone(660,.09,{type:'triangle',vol:.1,at});tone(990,.14,{type:'triangle',vol:.09,at:at+.09})}
 
 /* ----- 기물 그림 (2D 판·프로모션 단추·잡은 기물에 같이 씀): 0~1 칸 안의 SVG ----- */
@@ -837,6 +839,7 @@ function pieceMesh(t,col,ghost){
   return g;
 }
 /* 나이트는 내 화면에서 옆모양이 보이게 왼쪽을 보고, 상대 쪽으로 조금 돌림 (도면의 나이트처럼) */
+function placeRotFor(g,fl){if(g.userData.t===NN){const away=(g.userData.col===0)!==!!fl;g.rotation.y=away?Math.PI-.44:Math.PI+.44}}
 function placeRot(g){if(g.userData.t===NN){const away=(g.userData.col===0)!==!!Ch3.flipT;g.rotation.y=away?Math.PI-.44:Math.PI+.44}}   // 화면 왼쪽을 보며 상대 쪽으로 조금
 function ch3Build(){
   if(Ch3.built||Ch3.fail)return Ch3.built;
@@ -863,6 +866,7 @@ function ch3Build(){
       const d=new THREE.Mesh(new THREE.CircleGeometry(S*.15,20),dotM);d.rotation.x=-Math.PI/2;d.position.y=TOP+.008;d.visible=false;d.renderOrder=4;root.add(d);Ch3.dots.push(d);
       const r=new THREE.Mesh(new THREE.RingGeometry(S*.42,S*.5,32),ringM);r.rotation.x=-Math.PI/2;r.position.y=TOP+.008;r.visible=false;r.renderOrder=4;root.add(r);Ch3.rings.push(r);
     }
+    Ch3.pg=new THREE.Group();root.add(Ch3.pg);   // 기물(판 위·잡은 것): 바로 시작에서 색이 바뀌면 이 묶음만 돌림
     Ch3.ghost=new THREE.Group();Ch3.ghost.visible=false;root.add(Ch3.ghost);
     Ch3.cam=new THREE.PerspectiveCamera(34,1,.1,100);
     T.scene.add(root);Ch3.root=root;Ch3.built=true;
@@ -875,11 +879,34 @@ function graveXZ(k,i){
   if(Ch3.layout==='h')return [sg*(BW+.32+(i%2)*.36),sg*(HB-.2-Math.floor(i/2)*.42)];
   return [sg*(HB-.22-(i%8)*.5)*-1,sg*(BW+.32+Math.floor(i/8)*.4)];
 }
+/* 바로 시작: 판은 그대로 두고 지금 기물(판 위·잡힌 것)을 처음 자리로 모음. 같은 종류·색 중 가까운 것부터 짝을 지어
+   계급 순서(시작 연출과 같은 박자)로 미끄러져 돌아감. 색이 바뀌어 판을 돌려 봐야 하면 먼저 기물 묶음이 반 바퀴 돎(판 무늬는 그대로, 좌표 글자만 중간에 바뀜) */
+const GLIDE=420,SPIN=520;
+function regather(fl,p){
+  const spin=Ch3.flipT!==fl,pool=[...Ch3.pcs.values(),...Ch3.grave[0],...Ch3.grave[1]];
+  if(spin){for(const g of pool){g.position.x=-g.position.x;g.position.z=-g.position.z;placeRotFor(g,fl)}Ch3.pg.rotation.y=Math.PI;IN.spin=1}
+  Ch3.flipT=fl;Ch3.pcs.clear();Ch3.grave=[[],[]];Ch3.anim=[];
+  const used=new Set();
+  for(let sq=0;sq<128;sq++){
+    if(sq&0x88){sq+=7;continue}
+    const v=p.b[sq];if(!v)continue;
+    const [x,z]=sqW(sq);let best=null,bd=1e9;
+    for(const g of pool){if(used.has(g)||g.userData.t!==(v&7)||g.userData.col!==(v>>3))continue;const d=Math.hypot(g.position.x-x,g.position.z-z);if(d<bd){bd=d;best=g}}
+    if(!best){best=pieceMesh(v&7,v>>3);placeRot(best);best.position.set(x,TOP+1.1,z);best.visible=false;Ch3.pg.add(best)}
+    used.add(best);Ch3.pcs.set(sq,best);
+    const [a]=pieceAt(v&7,sq),g=best,s0=g.scale.x,y0=g.userData.grave?0:g.visible?g.position.y:TOP+1.1;
+    g.userData.grave=0;
+    Ch3.anim.push({obj:g,t0:IN.t0+a,dur:GLIDE,x0:g.position.x,z0:g.position.z,x1:x,z1:z,lift:Math.hypot(g.position.x-x,g.position.z-z)>.05?.35:0,s0,s1:S*.95,y0,y1:TOP,show:1});
+  }
+  for(const g of pool)if(!used.has(g))Ch3.pg.remove(g);
+  Ch3.mvN=0;Ch3.fen=V.c.fen;Ch3.dirty=true;
+}
 /* 기물 자리를 상태에 맞춤: 마지막 수는 미끄러지듯(나이트는 뛰어오름), 잡힌 기물은 판 옆으로 */
 function ch3Sync(){
   if(!Ch3.on||!V||!V.c||!CS)return;
   const fl=flipped(),c=V.c,p=CS.p;
-  if(Ch3.flipT!==fl){Ch3.flipT=fl;drawBoardTex(fl);for(const g of Ch3.pcs.values())Ch3.root.remove(g);Ch3.pcs.clear();for(const k of [0,1]){for(const g of Ch3.grave[k])Ch3.root.remove(g);Ch3.grave[k]=[]}Ch3.mvN=-1}
+  if(IN.again&&!IN.gathered&&c.mv.length===0&&Ch3.flipT!==null){IN.gathered=true;regather(fl,p)}
+  if(Ch3.flipT!==fl){Ch3.flipT=fl;drawBoardTex(fl);for(const g of Ch3.pcs.values())Ch3.pg.remove(g);Ch3.pcs.clear();for(const k of [0,1]){for(const g of Ch3.grave[k])Ch3.pg.remove(g);Ch3.grave[k]=[]}Ch3.mvN=-1}
   const n=c.mv.length,step=Ch3.mvN>=0&&n===Ch3.mvN+1&&c.lm&&!IN.on3d;
   const now=clock(),me=myIdx()<0?0:myIdx();
   let capMesh=null;
@@ -901,28 +928,28 @@ function ch3Sync(){
   for(const [sq,g] of Ch3.pcs){const v=want.get(sq);if(!v||(g.userData.t!==(v&7))||(g.userData.col!==(v>>3))){
     const busy=Ch3.anim.some(a=>a.obj===g);
     if(v&&busy&&g.userData.col===(v>>3)){const a=Ch3.anim.find(a=>a.obj===g);a.swap=v}   // 프로모션: 도착하면 바꿈
-    else{Ch3.root.remove(g);Ch3.pcs.delete(sq)}}}
+    else{Ch3.pg.remove(g);Ch3.pcs.delete(sq)}}}
   for(const [sq,v] of want){
     if(Ch3.pcs.has(sq))continue;
-    const g=pieceMesh(v&7,v>>3);placeRot(g);const [x,z]=sqW(sq);g.position.set(x,TOP,z);Ch3.root.add(g);Ch3.pcs.set(sq,g);
+    const g=pieceMesh(v&7,v>>3);placeRot(g);const [x,z]=sqW(sq);g.position.set(x,TOP,z);Ch3.pg.add(g);Ch3.pcs.set(sq,g);
   }
   for(const g of Ch3.pcs.values())if(!Ch3.anim.some(a=>a.obj===g)){const sq=[...Ch3.pcs].find(e=>e[1]===g)[0],[x,z]=sqW(sq);g.position.set(x,TOP,z)}
   // 잡은 기물: 자리 순서(내가 잡은 것 k0, 상대가 잡은 것 k1)
   for(const k of [0,1]){
     const seat=k?1-me:me,list=(c.cp[seat]||[]).slice(),gs=Ch3.grave[k],col=c.co[seat]^1;
-    while(gs.length>list.length)Ch3.root.remove(gs.pop());
+    while(gs.length>list.length)Ch3.pg.remove(gs.pop());
     for(let i=0;i<list.length;i++){
       let g=gs[i];
-      if(g&&g.userData.t!==list[i]){Ch3.root.remove(g);g=null}
+      if(g&&g.userData.t!==list[i]){Ch3.pg.remove(g);g=null}
       const [x,z]=graveXZ(k,i);
       if(!g){
         if(capMesh&&i===list.length-1&&capMesh.userData.col===col&&capMesh.userData.t===list[i]){g=capMesh;capMesh=null;Ch3.anim.push({obj:g,t0:now+120,dur:420,x0:g.position.x,z0:g.position.z,x1:x,z1:z,lift:.6,s0:g.scale.x,s1:S*.95*GS})}
-        else{g=pieceMesh(list[i],col);placeRot(g);g.scale.setScalar(S*.95*GS);g.position.set(x,0,z);Ch3.root.add(g)}
+        else{g=pieceMesh(list[i],col);placeRot(g);g.scale.setScalar(S*.95*GS);g.position.set(x,0,z);Ch3.pg.add(g)}
         gs[i]=g;g.userData.grave=1;
       }else if(!Ch3.anim.some(a=>a.obj===g))g.position.set(x,0,z);
     }
   }
-  if(capMesh)Ch3.root.remove(capMesh);
+  if(capMesh)Ch3.pg.remove(capMesh);
   Ch3.mvN=n;Ch3.fen=c.fen;
   ch3Marks();Ch3.dirty=true;
 }
@@ -990,11 +1017,12 @@ function ch3Step(now){
     const e=ease(Math.min(1,k)),o=a.obj;busy=true;
     o.position.x=a.x0+(a.x1-a.x0)*e;o.position.z=a.z0+(a.z1-a.z0)*e;
     const base=o.userData.grave?0:TOP;
-    o.position.y=base+Math.sin(Math.PI*Math.min(1,k))*(a.lift||0);
+    if(a.show)o.visible=true;
+    o.position.y=(a.y0!=null?a.y0+(a.y1-a.y0)*e:base)+Math.sin(Math.PI*Math.min(1,k))*(a.lift||0);
     if(a.s1!=null){const s=a.s0+(a.s1-a.s0)*e;o.scale.setScalar(s)}
     if(k>=1){
-      o.position.set(a.x1,base,a.z1);
-      if(a.swap){const sq=[...Ch3.pcs].find(e=>e[1]===o);if(sq){Ch3.root.remove(o);const g=pieceMesh(a.swap&7,a.swap>>3);placeRot(g);g.position.copy(o.position);Ch3.root.add(g);Ch3.pcs.set(sq[0],g)}}
+      o.position.set(a.x1,a.y1!=null?a.y1:base,a.z1);
+      if(a.swap){const sq=[...Ch3.pcs].find(e=>e[1]===o);if(sq){Ch3.pg.remove(o);const g=pieceMesh(a.swap&7,a.swap>>3);placeRot(g);g.position.copy(o.position);Ch3.pg.add(g);Ch3.pcs.set(sq[0],g)}}
       return false;
     }
     return true;
@@ -1028,19 +1056,24 @@ function ch3Render(t){
 /* ---------- 시작 연출 (게임이 시작되면 한 번: 방장이 그동안 시간·봇을 멈춤, 길이 G.introMs) ----------
    0~1.1초    로비 카메라 → 체스 카메라. 0.65초부터 위쪽 이름 칸이 들어옴
    0.1~0.5초  판이 위에서 툭 내려앉음
-   0.55~1.75초 기물이 줄마다 차례로 떨어져 섬 (백 1·2번 줄, 흑 8·7번 줄을 번갈아)
-   1.9초      '○○님이 백으로 먼저 시작합니다' 안내, 2.4초에 끝
-   다시 하기(이미 체스 화면)는 판은 그대로 두고 기물만 떨어짐 */
-const INTRO={cam:1100,ui:650,board:[100,400],rows:[550,300,330],say:1900};
-G.introMs=2400;
+   0.55초~    기물이 계급 순서로 서로 섬 (백·흑 같은 박자): 폰(a→h 물결) → 나이트 → 비숍 → 룩 → 퀸 → 킹(혼자 마지막, 더 높이서 무겁게)
+   킹이 서면 '○○님이 백으로 먼저 시작합니다' 안내, 3.5초에 끝
+   다시 하기(결과 화면에서 바로 시작)는 판을 다시 차리지 않음: 판 위·옆의 기물이 같은 계급 순서로 처음 자리로 미끄러져 돌아감(regather),
+   색이 바뀌어 판을 돌려 봐야 하면 먼저 기물이 반 바퀴 돎 */
+const INTRO={cam:1100,ui:650,board:[100,400],pawn:[550,70,300],at:{2:1400,3:1700,4:2000,5:2350,6:2800},dur:330,kDur:420,say:3100};
+G.introMs=3500;
 const IN={on:false,on3d:false,t0:0,fromLobby:true,said:false,snd:{}};
 const introOn=()=>IN.on&&clock()<IN.t0+G.introMs;
 const introWait=()=>introOn()&&!IN.said;
 const dropY=(x,h)=>x>=1?0:x<.68?h*(1-(x/.68)*(x/.68)):h*.1*Math.sin(Math.PI*(x-.68)/.32);
-const rowOrder=r=>[0,7,1,6].indexOf(r);   // 떨어지는 순서: 1번 줄, 8번 줄, 2번 줄, 7번 줄
-G.intro=t0=>{
+/* 기물 하나가 떨어지기 시작하는 시각과 길이 (폰은 화면 왼쪽부터 물결) */
+function pieceAt(t,sq){
+  if(t===PW){const f=Ch3.flipT?7-(sq&7):sq&7;return [INTRO.pawn[0]+f*INTRO.pawn[1],INTRO.pawn[2]]}
+  return [INTRO.at[t]||INTRO.at[2],t===KK?INTRO.kDur:INTRO.dur];
+}
+G.intro=(t0,o)=>{
   if(!V||!V.c||!V.ps)return;
-  IN.on=true;IN.t0=t0;IN.said=false;IN.snd={};IN.fromLobby=!Ch3.on;IN.on3d=true;
+  IN.on=true;IN.t0=t0;IN.said=false;IN.snd={};IN.fromLobby=!Ch3.on;IN.on3d=true;IN.again=!!(o&&o.again)&&Ch3.on;IN.gathered=false;IN.spin=0;IN.texDone=false;
   $('#stage').classList.add('ch-intro');if(elCh&&IN.fromLobby)elCh.classList.add('intro');
   lastBar='';Ch3.dirty=true;
 };
@@ -1049,9 +1082,14 @@ function introStep(now,force){
   const e=now-IN.t0,done=force||e>=G.introMs,fl=IN.fromLobby;
   if(done)IN.on3d=false;
   {const x=done||!fl?1:(e-INTRO.board[0])/INTRO.board[1];Ch3.boardG.visible=x>0;Ch3.boardG.position.y=dropY(Math.max(0,x),1.6)}
+  if(IN.again){   // 바로 시작: 기물은 regather의 움직임이 옮김. 색이 바뀌었으면 기물 묶음만 반 바퀴 (좌표 글자는 중간에 바뀜)
+    if(IN.spin){const k=done?1:ease(e/SPIN);Ch3.pg.rotation.y=Math.PI*(1-k);if(k>=.5&&!IN.texDone){IN.texDone=true;drawBoardTex(Ch3.flipT)}}
+    if(done){Ch3.pg.rotation.y=0;for(const g of Ch3.pcs.values())g.visible=true}
+    return true;
+  }
   for(const [sq,g] of Ch3.pcs){
-    const o=rowOrder(sq>>4);const x=done||o<0?1:(e-INTRO.rows[0]-o*INTRO.rows[1])/INTRO.rows[2]+((sq&7)*.04);
-    g.visible=x>0;g.position.y=TOP+dropY(Math.max(0,Math.min(1,x)),1.1);
+    const [a,d]=pieceAt(g.userData.t,sq),x=done?1:(e-a)/d;
+    g.visible=x>0;g.position.y=TOP+dropY(Math.max(0,Math.min(1,x)),g.userData.t===KK?1.6:1.1);
   }
   return true;
 }
@@ -1066,9 +1104,12 @@ function introTick(){
   if(e>=INTRO.ui&&elCh&&elCh.classList.contains('intro'))elCh.classList.remove('intro');
   if(IN.on3d&&Ch3.on){
     if(IN.fromLobby&&e>=INTRO.board[0]+INTRO.board[1]*.68)once('thud',()=>{tone(120,.13,{type:'triangle',vol:.2});hiss(.09,{freq:650,vol:.12})});
-    for(let o=0;o<4;o++)if(e>=INTRO.rows[0]+o*INTRO.rows[1]+INTRO.rows[2]*.68)once('r'+o,()=>{for(let k=0;k<4;k++)sndPut(k*.035)});
+    const land=d=>IN.again?GLIDE:d*.68;   // 떨어지면 닿는 순간, 미끄러져 돌아오면 도착하는 순간
+    if(IN.again&&IN.spin&&e>=60)once('spin',()=>{hiss(.45,{freq:900,sweep:2400,q:.8,vol:.07})});
+    for(let f=0;f<8;f++)if(e>=INTRO.pawn[0]+f*INTRO.pawn[1]+land(INTRO.pawn[2]))once('p'+f,()=>sndLand(0));   // 폰: 톡톡톡
+    for(const t of [2,3,4,5,6])if(e>=INTRO.at[t]+land(t===KK?INTRO.kDur:INTRO.dur))once('t'+t,()=>sndLand(t-1));   // 계급이 오를수록 낮고 묵직하게
   }
-  if(e>=INTRO.say&&!IN.said){
+  if(e>=(IN.again?INTRO.at[6]+GLIDE+40:INTRO.say)&&!IN.said){
     IN.said=true;$('#stage').classList.remove('ch-intro');if(elCh)elCh.classList.remove('intro');
     const w=V&&V.c?seatW():-1,p=w>=0&&V.ps[w];
     if(p)say(w===myIdx()?'내가 백으로 먼저 시작합니다.':`${p.n}님이 백으로 먼저 시작합니다.`);
