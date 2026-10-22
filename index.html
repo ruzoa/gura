@@ -1750,8 +1750,6 @@ const SFX={
   btnUp(){tone(180,.18,{type:'triangle',vol:.1,slide:320});hiss(.12,{freq:600,q:.8,vol:.05})},
   btnGo(){tone(110,.08,{type:'square',vol:.1});[523,784].forEach((f,k)=>tone(f,.16,{type:'triangle',vol:.12,at:.06+k*.08}))},
   rcPrint(n=1){for(let k=0;k<Math.min(n,3);k++){hiss(.2,{freq:3600,q:4,vol:.045,at:k*.22});for(let i=0;i<5;i++)tone(2600+((i*37)%5)*120,.012,{type:'square',vol:.018,at:k*.22+i*.035})}},   // 영수증 '지직'
-  rcPull(){hiss(.32,{freq:900,sweep:4200,q:.9,vol:.09})},   // 뽑혀 나옴
-  rcIn(){hiss(.26,{freq:3800,sweep:700,q:.9,vol:.07})},   // 빨려 들어감
   tableClear(){hiss(.5,{freq:3000,sweep:260,q:.7,vol:.16});tone(80,.3,{type:'triangle',vol:.22,slide:50,at:.05});[2093,2637,1760,2349,1976].forEach((f,k)=>tone(f,.07,{type:'triangle',vol:.05,at:.12+k*.045}));hiss(.12,{freq:4200,q:2,vol:.06,at:.14})},   // 상치우기: 휙 쓸어내림 + 쿵 + 그릇 달그락
   stamp(){tone(90,.12,{type:'triangle',vol:.2});hiss(.08,{freq:700,q:.8,vol:.14})},   // 도장 쿵
   holoOn(){tone(330,.5,{vol:.07,slide:990,attack:.05});tone(1320,.4,{vol:.03,at:.25,attack:.1})},
@@ -3292,7 +3290,7 @@ function guestCleared(){
    게임 중 탁자에 일자 틈이 열리고, 기록이 생길 때마다 '지직' 하며 한 줄씩 찍혀 화면 위쪽(맞은편)으로 밀려 나감.
    최신 줄은 늘 틈 바로 옆. 처음엔 보통 영수증처럼 나오다가 RC_MAX줄이 넘으면 위쪽에 들어가는 틈이 열려 오래된 줄을 삼킴.
    누르거나 위로 끌면 들어가는 틈에서 종이가 뽑혀 나와 눈앞으로 날아오고 2D 영수증(전체 기록)으로 펼쳐짐. 게임이 끝나면 2D 맨 아래 '가져가기'(복사) */
-const RC={LH:.15,PW:.82,MAX:5,SEG:24,RPX:48,CW:420};   // 줄 높이, 종이 폭, 평평하게 보이는 줄 수(머리글 포함), 띠 마디, 캔버스 줄 높이·폭
+const RC={LH:.15,PW:.82,MAX:5,SEG:32,RPX:48,CW:420};   // 줄 높이, 종이 폭, 평평하게 보이는 줄 수(머리글 포함), 띠 마디, 캔버스 줄 높이·폭
 const RC_AT={_:{x:2.55,z:3.15,tall:{sx:.86,sy:.6}},
   blackjack:{x:2.55,z:3.15,tall:{sx:.86,sy:.74}},
   quoridor:{sx:.79,sy:.8,tall:{sx:.86,sy:.17}},
@@ -3311,7 +3309,7 @@ function rcptBuild(TG){
   const slot=w=>{const g=new THREE.Group();const lip=new THREE.Mesh(new THREE.PlaneGeometry(w+.1,.075),new THREE.MeshBasicMaterial({color:0x8a6a42}));lip.rotation.x=-Math.PI/2;g.add(lip);
     const hole=new THREE.Mesh(new THREE.PlaneGeometry(w+.04,.03),new THREE.MeshBasicMaterial({color:0x120c08}));hole.rotation.x=-Math.PI/2;hole.position.y=.0005;g.add(hole);g.position.y=.0035;g.visible=false;TG.add(g);return g};
   if(!T.r._rcWrap){const r0=T.r.render.bind(T.r);T.r.render=(sc,cam)=>{T.lastCam=cam;r0(sc,cam)};T.r._rcWrap=1}   // 마지막으로 그린 카메라 (쿼리도·오목·야추는 자기 카메라)
-  T.rc={cv,tex,geo,mat,paper,cpO,cpI,out:slot(RC.PW),inn:slot(RC.PW),rows:[],seen:0,waitTop:0,feedAt:-1e9,oa:{v:0,to:0,from:0,t0:0,ms:0},ia:{v:0,to:0,from:0,t0:0,ms:0},pull:0,pa:{v:0,to:0,from:0,t0:0,ms:0},drag:null,open:false,key:''};
+  T.rc={cv,tex,geo,mat,paper,cpO,cpI,out:slot(RC.PW),inn:slot(RC.PW),rows:[],seen:0,waitTop:0,feedAt:-1e9,oa:{v:0,to:0,from:0,t0:0,ms:0},ia:{v:0,to:0,from:0,t0:0,ms:0},open:false,key:''};
   rcptHot();
 }
 function rcptAt(){const g=(V&&V.cfg&&V.cfg.game)||'gura',a=RC_AT[g]||RC_AT._,st=$('#stage'),tall=st.clientHeight>st.clientWidth*1.15;return tall&&a.tall?a.tall:a}
@@ -3352,23 +3350,21 @@ function rcptUpdate(t){
   R.out.visible=ov>.01;R.out.scale.set(Math.max(.001,smooth(ov)),1,1);R.out.position.set(x0,rcY(x0,z0)-.0025,z0);R.out.rotation.y=ry;
   R.inn.visible=iv>.01;R.inn.scale.set(Math.max(.001,smooth(iv)),1,1);R.inn.position.set(x0+D.x*reach,rcY(x0+D.x*reach,z0+D.z*reach)-.0025,z0+D.z*reach);R.inn.rotation.y=ry;
   const rows=Math.min(R.rows.length,RC.MAX+1),fp=smooth(clamp01((t-R.feedAt)/260)),feed=RC.LH*(1-fp);
-  const pv=R.open?1:R.drag?R.drag.u:frontTween(R.pa,0,t,320);R.pull=pv;
-  R.paper.visible=on&&ov>.6&&rows>0&&!(R.open&&R.shown);
+  R.paper.visible=on&&ov>.6&&rows>0;
   if(!R.paper.visible){$('#rcHot').classList.add('off');return}
   // 자르는 면 (월드): 나오는 틈 앞쪽만, 들어가는 틈 뒤쪽은 숨김
   const TG=T.tableG;_v3.set(x0,0,z0);TG.localToWorld(_v3);R.cpO.normal.set(D.x,0,D.z);R.cpO.constant=-(D.x*_v3.x+D.z*_v3.z);
   _v3.set(x0+D.x*reach,0,z0+D.z*reach);TG.localToWorld(_v3);R.cpI.normal.set(-D.x,0,-D.z);R.cpI.constant=full?(D.x*_v3.x+D.z*_v3.z):99;
-  R.mat.clippingPlanes=pv>.02?[]:[R.cpO,R.cpI];
-  // 종이 띠: 평평한 자리 ↔ 눈앞(뽑아 볼 때). 들어가는 쪽(위)부터 들림
-  const LEN=rows*RC.LH,pos=R.geo.attributes.position,N=RC.SEG+1;
-  let F=null;if(pv>0){F=rcptFace(LEN,cam)}
-  for(let i=0;i<N;i++){const s=i/RC.SEG,w=pv>0?smooth(clamp01(pv*1.7-(1-s)*.7)):0,arc=Math.sin(w*Math.PI)*.35,al=s*LEN-feed;
-    for(let j=0;j<2;j++){const u=j-.5;let px=x0+Rr.x*u*RC.PW+D.x*al,pz=z0+Rr.z*u*RC.PW+D.z*al,py=rcY(px,pz);
-      if(w>0){_v3.copy(F.c).addScaledVector(F.r,u*F.w).addScaledVector(F.u,(s-.5)*F.h);TG.worldToLocal(_v3);px+=(_v3.x-px)*w;py+=(_v3.y-py)*w+arc;pz+=(_v3.z-pz)*w}
+  // 종이 띠는 평평하지 않게: 틈에서 살짝 비스듬히 올라왔다 눕고, 끝은 말려 올라감. 들어가는 틈이 생기면 두 틈 사이에서 둥글게 휨. 폭 방향으로도 조금 비틀림
+  const LEN=rows*RC.LH,pos=R.geo.attributes.position,N=RC.SEG+1,fb=full?smooth(iv):0;
+  if(R.uvRows!==rows){R.uvRows=rows;const uv=R.geo.attributes.uv;for(let i=0;i<N;i++)for(let j=0;j<2;j++)uv.setY(i*2+j,i/RC.SEG*rows/(RC.MAX+1));uv.needsUpdate=true}   // 그림의 아래쪽 rows줄만 종이에 (줄이 눌려 보이지 않게)
+  for(let i=0;i<N;i++){const s=i/RC.SEG,al=s*LEN-feed,a=clamp01(al/reach),rise=.03*smooth(clamp01(al/.2));
+    const lift=(1-fb)*(rise+.2*Math.pow(clamp01((al-LEN*.4)/(LEN*.6||1)),2.4))+fb*(.07*Math.sin(Math.PI*a));   // 보통 영수증: 끝이 말려 올라감 / 들어가는 틈: 둥근 아치
+    for(let j=0;j<2;j++){const u=j-.5;const px=x0+Rr.x*u*RC.PW+D.x*al,pz=z0+Rr.z*u*RC.PW+D.z*al,py=rcY(px,pz)+Math.max(0,al>0?lift:0)+u*.012*Math.sin(Math.PI*Math.min(1,s*1.3));
       pos.setXYZ(i*2+j,px,py,pz)}}
   pos.needsUpdate=true;R.geo.computeBoundingBox();R.geo.computeBoundingSphere();
-  // 누르는 자리: 평평한 종이
-  const st=$('#stage');frontPut($('#rcHot'),!R.open&&pv<.05&&!roomSetOpen,rcRect(R.paper,cam,st.clientWidth,st.clientHeight),6,56,48);
+  // 누르는 자리: 종이
+  const st=$('#stage');frontPut($('#rcHot'),!R.open&&!roomSetOpen,rcRect(R.paper,cam,st.clientWidth,st.clientHeight),6,56,48);
 }
 const _rcD=window.THREE?new THREE.Vector3():null,_rcR=window.THREE?new THREE.Vector3():null;
 const rcY=(x,z)=>x*x+z*z<3.18*3.18?.0195:.006;   // 펠트(반지름 3.15, 윗면 .016) 위면 그만큼 높게
@@ -3378,11 +3374,11 @@ function rcRect(obj,cam,W,Hh){   // frontRect와 같지만 실제로 그린 카�
     const x=(_v3.x+1)/2*W,y=(1-_v3.y)/2*Hh;l=Math.min(l,x);r=Math.max(r,x);tp=Math.min(tp,y);b=Math.max(b,y)}
   return {l,r,t:tp,b};
 }
-function rcptFace(LEN,cam){   // 눈앞 자리: 화면 가운데, 폭은 2D 영수증과 비슷하게
-  const st=$('#stage'),W=st.clientWidth||1,px=Math.min(W-32,300),e0=cam.projectionMatrix.elements[0],w=.6,D=w*e0*W/2/px;
-  const dir=new THREE.Vector3(0,0,.5).unproject(cam).sub(cam.position).normalize();
-  const h=Math.min(w*LEN/RC.PW,1.1);
-  return {c:cam.position.clone().addScaledVector(dir,D),r:new THREE.Vector3(1,0,0).applyQuaternion(cam.quaternion),u:new THREE.Vector3(0,1,0).applyQuaternion(cam.quaternion),w,h};
+function rcptOpen(){   // 누르면 3D 영수증은 그대로 두고 2D 영수증(전체 기록)을 펼침
+  const R=T.rc;if(!R||R.open)return;R.open=true;sfx('paper');rcptFill();$('#rcOv').hidden=false;
+}
+function rcptClose(quiet){
+  const R=T.rc;if(!R||!R.open)return;R.open=false;$('#rcOv').hidden=true;if(!quiet)sfx('paper');
 }
 function rcptFill(){
   const R=T.rc,rows=R.rows;$('#rcHead').textContent=rows[0]?rows[0][0]:'';
@@ -3390,23 +3386,10 @@ function rcptFill(){
   $('#rcTake').hidden=!(V&&V.st==='over');
   const b=$('#rc2d');b.scrollTop=b.scrollHeight;
 }
-function rcptOpen(){   // 들어가는 틈에서 뽑혀 나와 눈앞으로 → 2D
-  const R=T.rc;if(!R||R.open)return;R.open=true;R.shown=false;R.drag=null;sfx('rcPull');
-  const u0=R.pull||0;R.pa={v:u0,to:u0,from:u0,t0:0,ms:0};
-  const t0=clock(),go=()=>{if(!R.open)return;const u=u0+(1-u0)*smooth(clamp01((clock()-t0)/380));R.drag={u};if(u<1)requestAnimationFrame(go);else{R.drag=null;R.shown=true;rcptFill();$('#rcOv').hidden=false}};go();
-}
-function rcptClose(quiet){
-  const R=T.rc;if(!R||!R.open)return;R.open=false;R.shown=false;$('#rcOv').hidden=true;R.pa={v:1,to:1,from:1,t0:0,ms:0};frontTween(R.pa,0,clock(),360);if(!quiet)sfx('rcIn');
-}
+
 function rcptHot(){
-  const b=$('#rcHot');let sy=0,moved=false;
-  b.addEventListener('pointerdown',e=>{const R=T.rc;if(!R||R.open)return;sy=e.clientY;moved=false;R.drag={u:0};try{b.setPointerCapture(e.pointerId)}catch(_){}});
-  b.addEventListener('pointermove',e=>{const R=T.rc;if(!R||!R.drag||R.open)return;const d=sy-e.clientY;if(Math.abs(d)>8)moved=true;R.drag.u=clamp01(d/220)});   // 위로 끌면 따라 뽑혀 나옴
-  const up=()=>{const R=T.rc;if(!R||!R.drag||R.open)return;const u=R.drag.u;
-    if(!moved||u>.35){R.pull=u;rcptOpen();return}   // 누르기 또는 충분히 끌면 뽑아 봄
-    R.drag=null;R.pa={v:u,to:u,from:u,t0:0,ms:0};frontTween(R.pa,0,clock(),300);sfx('rcIn')};   // 덜 끌고 놓으면 다시 빨려 들어감
-  b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);
-  b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();rcptOpen()}});
+  const b=$('#rcHot');
+  b.addEventListener('click',()=>rcptOpen());
   $('#rcOv').addEventListener('click',e=>{if(!e.target.closest('.rc2d'))rcptClose()});
   $('#rcTake').addEventListener('click',()=>{const txt=rcptText(),ok=()=>{$('#rcTake').textContent='✂ 가져갔습니다';sfx('pick');setTimeout(()=>{$('#rcTake').textContent='✂ 가져가기'},1600)};
     if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(ok,()=>sfx('no'));else sfx('no')});
