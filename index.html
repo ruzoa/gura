@@ -3296,8 +3296,8 @@ const RC={LH:.15,PW:.82,MAX:5,SEG:24,RPX:48,CW:420};   // 줄 높이, 종이 폭
 const RC_AT={_:{x:2.55,z:3.15,tall:{sx:.86,sy:.6}},
   blackjack:{x:2.55,z:3.15,tall:{sx:.86,sy:.74}},
   quoridor:{sx:.79,sy:.8,tall:{sx:.86,sy:.17}},
-  omok:{sx:.8,sy:.8,tall:{sx:.82,sy:.29}},
-  yahtzee:{sx:.82,sy:.55,tall:{sx:.2,sy:.3}}};   // 게임별 틈 자리: 탁자 좌표 {x,z} 또는 화면 비율 {sx,sy}(그 화면 점 아래 탁자 위, 화면 밖으로 안 나감). tall = 세로로 긴 화면
+  omok:{sx:.88,sy:.45,tall:{sx:.86,sy:.26}},
+  yahtzee:{sx:.1,sy:.78,tall:{sx:.2,sy:.3}}};   // 게임별 틈 자리: 탁자 좌표 {x,z} 또는 화면 비율 {sx,sy}(그 화면 점 아래 탁자 위, 화면 밖으로 안 나감). tall = 세로로 긴 화면
 const _rcRay=window.THREE?new THREE.Raycaster():null,_rcPl=window.THREE?new THREE.Plane(new THREE.Vector3(0,1,0),0):null,_rcHit=window.THREE?new THREE.Vector3():null;
 function rcptBuild(TG){
   const cv=document.createElement('canvas');cv.width=RC.CW;cv.height=RC.RPX*(RC.MAX+1);
@@ -3349,8 +3349,8 @@ function rcptUpdate(t){
   const ov=frontTween(R.oa,on?1:0,t,on?380:300),iv=frontTween(R.ia,on&&full?1:0,t,420);
   if(R.ia.to===1&&iv>0&&!R.innSnd){R.innSnd=1;sfx('iris')}if(R.ia.to===0)R.innSnd=0;
   const ry=Math.atan2(-Rr.z,Rr.x),reach=RC.MAX*RC.LH+.02;
-  R.out.visible=ov>.01;R.out.scale.set(Math.max(.001,smooth(ov)),1,1);R.out.position.set(x0,.0035,z0);R.out.rotation.y=ry;
-  R.inn.visible=iv>.01;R.inn.scale.set(Math.max(.001,smooth(iv)),1,1);R.inn.position.set(x0+D.x*reach,.0035,z0+D.z*reach);R.inn.rotation.y=ry;
+  R.out.visible=ov>.01;R.out.scale.set(Math.max(.001,smooth(ov)),1,1);R.out.position.set(x0,rcY(x0,z0)-.0025,z0);R.out.rotation.y=ry;
+  R.inn.visible=iv>.01;R.inn.scale.set(Math.max(.001,smooth(iv)),1,1);R.inn.position.set(x0+D.x*reach,rcY(x0+D.x*reach,z0+D.z*reach)-.0025,z0+D.z*reach);R.inn.rotation.y=ry;
   const rows=Math.min(R.rows.length,RC.MAX+1),fp=smooth(clamp01((t-R.feedAt)/260)),feed=RC.LH*(1-fp);
   const pv=R.open?1:R.drag?R.drag.u:frontTween(R.pa,0,t,320);R.pull=pv;
   R.paper.visible=on&&ov>.6&&rows>0&&!(R.open&&R.shown);
@@ -3363,7 +3363,7 @@ function rcptUpdate(t){
   const LEN=rows*RC.LH,pos=R.geo.attributes.position,N=RC.SEG+1;
   let F=null;if(pv>0){F=rcptFace(LEN,cam)}
   for(let i=0;i<N;i++){const s=i/RC.SEG,w=pv>0?smooth(clamp01(pv*1.7-(1-s)*.7)):0,arc=Math.sin(w*Math.PI)*.35,al=s*LEN-feed;
-    for(let j=0;j<2;j++){const u=j-.5;let px=x0+Rr.x*u*RC.PW+D.x*al,py=.006,pz=z0+Rr.z*u*RC.PW+D.z*al;
+    for(let j=0;j<2;j++){const u=j-.5;let px=x0+Rr.x*u*RC.PW+D.x*al,pz=z0+Rr.z*u*RC.PW+D.z*al,py=rcY(px,pz);
       if(w>0){_v3.copy(F.c).addScaledVector(F.r,u*F.w).addScaledVector(F.u,(s-.5)*F.h);TG.worldToLocal(_v3);px+=(_v3.x-px)*w;py+=(_v3.y-py)*w+arc;pz+=(_v3.z-pz)*w}
       pos.setXYZ(i*2+j,px,py,pz)}}
   pos.needsUpdate=true;R.geo.computeBoundingBox();R.geo.computeBoundingSphere();
@@ -3371,6 +3371,7 @@ function rcptUpdate(t){
   const st=$('#stage');frontPut($('#rcHot'),!R.open&&pv<.05&&!roomSetOpen,rcRect(R.paper,cam,st.clientWidth,st.clientHeight),6,56,48);
 }
 const _rcD=window.THREE?new THREE.Vector3():null,_rcR=window.THREE?new THREE.Vector3():null;
+const rcY=(x,z)=>x*x+z*z<3.18*3.18?.0195:.006;   // 펠트(반지름 3.15, 윗면 .016) 위면 그만큼 높게
 function rcRect(obj,cam,W,Hh){   // frontRect와 같지만 실제로 그린 카메라로
   _b3.setFromObject(obj);const box=_b3;let l=1e9,r=-1e9,tp=1e9,b=-1e9;
   for(let i=0;i<8;i++){_v3.set(i&1?box.max.x:box.min.x,i&2?box.max.y:box.min.y,i&4?box.max.z:box.min.z).project(cam);
