@@ -219,8 +219,13 @@ function endOf(p,repN){
   return '';
 }
 
-/* ---------- 봇 (임시: 알파-베타 탐색 + 기물 값·자리 점수. 강한 봇은 따로 만듦) ---------- */
+/* ---------- 봇 ----------
+   탐색: 반복 심화 + PVS 알파-베타 + 기억표(TT) + 널 무브 + 늦은 수 줄이기(LMR) + 역 퓨틸리티 + 킬러·히스토리 순서 + 잡는 수 끝까지(정리 탐색, 델타 가지치기).
+   평가: 기물 값·자리 점수를 중반·끝판으로 나눠 섞음(남은 기물로 단계), 폰 구조(겹침·고립·통과 폰), 비숍 쌍, 열린 줄의 룩, 기물 움직임, 킹 앞 폰 방패.
+   시간으로 끊음(쉬움 0.15초 얕게 + 흔들림, 보통 0.6초 + 작은 흔들림, 어려움 1.8초 최선). 보통·어려움은 처음 몇 수를 정석 목록에서 고름.
+   방장 화면이 멈추지 않게 브라우저에서는 Web Worker(같은 파일 games/chess.js를 일꾼으로 띄움)가 생각하고, 없으면(테스트·옛 브라우저) 바로 계산 */
 const VAL=[0,100,320,330,500,900,0];
+const MGV=[0,82,337,365,477,1025,0],EGV=[0,94,281,297,512,936,0],PHW=[0,0,1,1,2,4,0];
 /* 자리 점수 (백 기준, 위가 8번 줄). 흑은 위아래를 뒤집어 씀 */
 const PST=[[],
  [0,0,0,0,0,0,0,0, 50,50,50,50,50,50,50,50, 10,10,20,30,30,20,10,10, 5,5,10,25,25,10,5,5, 0,0,0,20,20,0,0,0, 5,-5,-10,0,0,-10,-5,5, 5,10,10,-20,-20,10,10,5, 0,0,0,0,0,0,0,0],
@@ -230,45 +235,83 @@ const PST=[[],
  [-20,-10,-10,-5,-5,-10,-10,-20, -10,0,0,0,0,0,0,-10, -10,0,5,5,5,5,0,-10, -5,0,5,5,5,5,0,-5, 0,0,5,5,5,5,0,-5, -10,5,5,5,5,5,0,-10, -10,0,5,0,0,0,0,-10, -20,-10,-10,-5,-5,-10,-10,-20],
  [-30,-40,-40,-50,-50,-40,-40,-30, -30,-40,-40,-50,-50,-40,-40,-30, -30,-40,-40,-50,-50,-40,-40,-30, -30,-40,-40,-50,-50,-40,-40,-30, -20,-30,-30,-40,-40,-30,-30,-20, -10,-20,-20,-20,-20,-20,-20,-10, 20,20,0,0,0,0,20,20, 20,30,10,0,0,10,30,20]];
 const KEND=[-50,-40,-30,-20,-20,-30,-40,-50, -30,-20,-10,0,0,-10,-20,-30, -30,-10,20,30,30,20,-10,-30, -30,-10,30,40,40,30,-10,-30, -30,-10,30,40,40,30,-10,-30, -30,-10,20,30,30,20,-10,-30, -30,-30,0,0,0,0,-30,-30, -50,-30,-30,-30,-30,-30,-30,-50];
+const PEND=[0,0,0,0,0,0,0,0, 80,80,80,80,80,80,80,80, 50,50,50,50,50,50,50,50, 30,30,30,30,30,30,30,30, 15,15,15,15,15,15,15,15, 5,5,5,5,5,5,5,5, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0];
+const PASSED=[0,5,10,18,32,55,90,0];   // 통과 폰: 앞으로 나간 줄 수만큼 (끝판에 두 배)
 const pstIdx=(sq,col)=>col?(sq>>4)*8+(sq&7):(7-(sq>>4))*8+(sq&7);
 /* 국면 점수 (지금 둘 차례인 쪽 기준) */
 function evalPos(p){
-  const b=p.b;let s=0,mat=0;
-  for(let sq=0;sq<128;sq++){if(sq&0x88){sq+=7;continue}const v=b[sq];if(v&&(v&7)!==KK&&(v&7)!==PW)mat+=VAL[v&7]}
-  const end=mat<=1600;
+  const b=p.b;let mg=0,eg=0,ph=0;
+  const pf=[new Int8Array(8),new Int8Array(8)],pmin=[new Int8Array(8).fill(9),new Int8Array(8).fill(9)],pmax=[new Int8Array(8).fill(-1),new Int8Array(8).fill(-1)],bish=[0,0];
   for(let sq=0;sq<128;sq++){
     if(sq&0x88){sq+=7;continue}
     const v=b[sq];if(!v)continue;
-    const t=v&7,col=v>>3,i=pstIdx(sq,col);
-    const x=VAL[t]+(t===KK&&end?KEND[i]:PST[t][i]);
-    s+=col?-x:x;
+    const t=v&7,col=v>>3,s=col?-1:1,i=pstIdx(sq,col);
+    ph+=PHW[t];
+    let m=MGV[t]+PST[t][i],e=EGV[t]+(t===KK?KEND[i]:t===PW?PEND[i]:PST[t][i]*.5);
+    if(t===PW){const f=sq&7,r=sq>>4;pf[col][f]++;if(r<pmin[col][f])pmin[col][f]=r;if(r>pmax[col][f])pmax[col][f]=r}
+    else if(t===BB)bish[col]++;
+    if(t>=NN&&t<=QQ){   // 움직일 수 있는 칸 수
+      let mob=0;
+      if(t===NN){for(let k=0;k<8;k++){const x=sq+N_D[k];if(!(x&0x88)&&(!b[x]||(b[x]>>3)!==col))mob++}m+=(mob-4)*4;e+=(mob-4)*4}
+      else{const D=t===BB?B_D:t===RR?R_D:K_D,nd=t===QQ?8:4;for(let k=0;k<nd;k++){const d=D[k];let x=sq+d;while(!(x&0x88)){if(b[x]){if((b[x]>>3)!==col)mob++;break}mob++;x+=d}}
+        const w=t===BB?[5,5]:t===RR?[2,4]:[1,2],c=t===BB?7:t===RR?7:14;m+=(mob-c)*w[0];e+=(mob-c)*w[1]}
+    }
+    mg+=s*m;eg+=s*e;
   }
-  return p.side?-s:s;
+  // 폰 구조, 열린 줄의 룩, 킹 앞 폰 방패
+  for(const col of [0,1]){
+    const s=col?-1:1,o=col^1;
+    for(let f=0;f<8;f++){
+      const n=pf[col][f];if(!n)continue;
+      if(n>1){mg-=s*12*(n-1);eg-=s*20*(n-1)}
+      if(!(f>0&&pf[col][f-1])&&!(f<7&&pf[col][f+1])){mg-=s*12*n;eg-=s*15*n}
+      // 통과 폰: 앞쪽(같은 줄·옆 줄)에 상대 폰이 없음
+      const r=col?pmin[col][f]:pmax[col][f];let free=true;
+      for(let ff=Math.max(0,f-1);ff<=Math.min(7,f+1)&&free;ff++){if(!pf[o][ff])continue;if(col?pmin[o][ff]<r:pmax[o][ff]>r)free=false}
+      if(free){const adv=col?7-r:r;mg+=s*PASSED[adv]*.5;eg+=s*PASSED[adv]*1.6}
+    }
+    if(bish[col]>=2){mg+=s*30;eg+=s*50}
+    for(let sq=0;sq<128;sq++){if(sq&0x88){sq+=7;continue}if(b[sq]===(RR|(col<<3))){const f=sq&7;if(!pf[col][f]){mg+=s*(pf[o][f]?10:22);eg+=s*(pf[o][f]?5:12)}}}
+    const k=p.k[col],kf=k&7,kr=k>>4,fw=col?-16:16;
+    if((col?kr===7:kr===0)&&(kf<=2||kf>=5)){   // 캐슬링한 킹: 앞 두 줄의 폰 방패
+      let miss=0;for(let df=-1;df<=1;df++){const f=kf+df;if(f<0||f>7)continue;const a=k+df+fw,a2=a+fw,pw=PW|(col<<3);if(b[a]!==pw&&b[a2]!==pw)miss++}
+      mg-=s*miss*16;
+    }
+  }
+  const P=Math.min(24,ph),sc=(mg*P+eg*(24-P))/24;
+  return Math.round((p.side?-sc:sc)+10);   // +10: 둘 차례인 쪽의 이점
 }
-const MATE=30000;
-const TTN=1<<16,TT={h:new Int32Array(TTN),d:new Int8Array(TTN),v:new Int32Array(TTN),f:new Int8Array(TTN),m:new Int32Array(TTN)};
-/* 탐색: 반복 심화 + 알파-베타 + 잡는 수 끝까지(정리 탐색). 노드 수로 끊음 (방장 화면이 멈추지 않게) */
-function search(p,opt){
-  const maxD=opt.depth||6,budget=opt.nodes||40000,hist=opt.hist||{};
-  let nodes=0,stop=false;const killers=[];
-  const path=[];
-  const order=(ms,ply,tm)=>{
-    const sc=ms.map(m=>{
-      if(m===tm)return 1e6;
+const MATE=30000,INF=MATE*2;
+const repKey0=p=>(p.h1>>>0).toString(36)+'.'+(p.h2>>>0).toString(36);   // 앙파상이 없는 국면이면 repKey와 같은 값 (지난 기보의 반복도 알아봄)
+let TT=null;
+function ttInit(bits){const n=1<<bits;TT={n,h:new Int32Array(n),d:new Int8Array(n),v:new Int32Array(n),f:new Int8Array(n),m:new Int32Array(n)}}
+const HIST=new Int32Array(128*128);
+/* 생각하기: o.ms 시간, o.depth 최대 깊이, o.noise(센티폰) 안의 수 중 무작위, o.hist 지난 국면(반복 피하기). 돌려줌 {m, v, d, nodes} */
+function think(p,o){
+  if(!TT)ttInit(typeof window==='undefined'?20:18);
+  const t0=Date.now(),ms=o.ms||500,maxD=o.depth||64,hist=o.hist||{},noise=o.noise||0;
+  let nodes=0,stop=false;const killers=[],path=[];
+  HIST.fill(0);
+  const tick=()=>{if((++nodes&2047)===0&&Date.now()-t0>ms)stop=true};
+  function order(ms_,ply,tm){
+    const sc=new Array(ms_.length),k=killers[ply];
+    for(let i=0;i<ms_.length;i++){const m=ms_[i];
+      if(m===tm){sc[i]=1e9;continue}
       const v=p.b[mTo(m)];let s=0;
-      if(v)s=10000+VAL[v&7]*10-VAL[p.b[mFrom(m)]&7];
-      else if(mFl(m)&2)s=10000+1000;
-      if(mPro(m))s+=8000+VAL[mPro(m)];
-      if(killers[ply]&&killers[ply].includes(m))s+=5000;
-      return s;
-    });
-    const idx=ms.map((_,i)=>i).sort((a,b)=>sc[b]-sc[a]);return idx.map(i=>ms[i]);
-  };
+      if(v)s=1e6+VAL[v&7]*10-VAL[p.b[mFrom(m)]&7];else if(mFl(m)&2)s=1e6+990;
+      if(mPro(m))s+=9e5+VAL[mPro(m)];
+      if(!s){if(k&&(k[0]===m||k[1]===m))s=8e5-(k[0]===m?0:1);else s=HIST[(m&127)*128+((m>>7)&127)]}
+      sc[i]=s}
+    const idx=ms_.map((_,i)=>i).sort((a,b)=>sc[b]-sc[a]);return idx.map(i=>ms_[i]);
+  }
   function qs(alpha,beta,ply){
-    nodes++;
+    tick();
     const st=evalPos(p);if(st>=beta)return st;if(st>alpha)alpha=st;
-    const ms=order(gen(p,[],true),ply,0),us=p.side;
-    for(const m of ms){
+    if(ply>40)return st;
+    const ms_=order(gen(p,[],true),ply,0),us=p.side;
+    for(const m of ms_){
+      const cv=p.b[mTo(m)];
+      if(!mPro(m)&&st+(cv?VAL[cv&7]:100)+200<alpha)continue;   // 델타: 잡아도 못 따라잡음
       make(p,m);if(attacked(p,p.k[us],us^1)){unmake(p);continue}
       const v=-qs(-beta,-alpha,ply+1);unmake(p);
       if(v>=beta)return v;if(v>alpha)alpha=v;
@@ -276,72 +319,131 @@ function search(p,opt){
     return alpha;
   }
   function ab(d,alpha,beta,ply,nullOk){
-    if((++nodes&1023)===0&&nodes>budget)stop=true;
-    if(stop)return 0;
-    const key=repKey0(p);
-    if(ply&&(path.includes(key)||hist[key]>=1))return 0;   // 반복은 무승부로 봄
-    if(ply&&p.half>=100)return 0;
+    tick();if(stop)return 0;
+    const pv=beta-alpha>1;
+    if(ply){const key=repKey0(p);if(path.includes(key)||hist[key])return 0;if(p.half>=100)return 0;
+      // 메이트 거리로 창 좁히기
+      alpha=Math.max(alpha,-MATE+ply);beta=Math.min(beta,MATE-ply-1);if(alpha>=beta)return alpha}
     const chk=inCheck(p);if(chk)d++;
     if(d<=0)return qs(alpha,beta,ply);
-    const ti=p.h1&(TTN-1);let tm=0;
-    if(TT.h[ti]===p.h2){tm=TT.m[ti];if(ply&&TT.d[ti]>=d){const v=TT.v[ti],f=TT.f[ti];if(f===0||(f===1&&v>=beta)||(f===2&&v<=alpha))return v}}
-    // 널 무브: 차례를 넘겨도 beta 이상이면 가지치기 (체크 중·끝내기 근처는 안 함)
-    if(nullOk&&!chk&&d>=3&&ply&&evalPos(p)>=beta){
+    const ti=p.h1&(TT.n-1);let tm=0;
+    if(TT.h[ti]===p.h2){tm=TT.m[ti];if(ply&&TT.d[ti]>=d&&!pv){let v=TT.v[ti];if(v>MATE-1000)v-=ply;else if(v<-MATE+1000)v+=ply;const f=TT.f[ti];if(f===0||(f===1&&v>=beta)||(f===2&&v<=alpha))return v}}
+    const se=chk?-INF:evalPos(p);
+    if(!pv&&!chk&&d<=3&&se-110*d>=beta&&Math.abs(beta)<MATE-1000)return se;   // 역 퓨틸리티
+    if(nullOk&&!pv&&!chk&&d>=3&&ply&&se>=beta){
       let big=0;for(let sq=0;sq<128;sq++){if(sq&0x88){sq+=7;continue}const v=p.b[sq];if(v&&(v>>3)===p.side&&(v&7)>PW&&(v&7)<KK){big=1;break}}
-      if(big){makeNull(p);const v=-ab(d-3,-beta,-beta+1,ply+1,false);unmakeNull(p);if(stop)return 0;if(v>=beta)return beta}
+      if(big){const R=d>6?3:2;makeNull(p);const v=-ab(d-1-R,-beta,-beta+1,ply+1,false);unmakeNull(p);if(stop)return 0;if(v>=beta)return beta}
     }
-    path.push(key);
-    const ms=order(gen(p,[],false),ply,tm),us=p.side,a0=alpha;let best=-MATE*2,bm=0,n=0;
-    for(const m of ms){
+    path.push(repKey0(p));
+    const ms_=order(gen(p,[],false),ply,tm),us=p.side,a0=alpha;let best=-INF,bm=0,n=0;
+    for(const m of ms_){
+      const cap=p.b[mTo(m)]||(mFl(m)&2)||mPro(m);
       make(p,m);if(attacked(p,p.k[us],us^1)){unmake(p);continue}
       n++;
+      const gc=inCheck(p);
       let v;
-      if(n>1){v=-ab(d-1,-alpha-1,-alpha,ply+1,true);if(v>alpha&&v<beta)v=-ab(d-1,-beta,-alpha,ply+1,true)}
-      else v=-ab(d-1,-beta,-alpha,ply+1,true);
+      if(n===1)v=-ab(d-1,-beta,-alpha,ply+1,true);
+      else{
+        let r=0;if(d>=3&&n>3&&!cap&&!chk&&!gc){r=1+(n>8?1:0)+(d>6&&n>14?1:0);if(pv)r=Math.max(0,r-1)}
+        v=-ab(d-1-r,-alpha-1,-alpha,ply+1,true);
+        if(v>alpha&&r)v=-ab(d-1,-alpha-1,-alpha,ply+1,true);
+        if(v>alpha&&v<beta)v=-ab(d-1,-beta,-alpha,ply+1,true);
+      }
       unmake(p);
       if(stop){path.pop();return 0}
       if(v>best){best=v;bm=m}
       if(v>alpha)alpha=v;
-      if(alpha>=beta){if(!p.b[mTo(m)]){(killers[ply]||(killers[ply]=[])).unshift(m);killers[ply].length=Math.min(2,killers[ply].length)}break}
+      if(alpha>=beta){if(!cap){const k=killers[ply]||(killers[ply]=[0,0]);if(k[0]!==m){k[1]=k[0];k[0]=m}HIST[(m&127)*128+((m>>7)&127)]+=d*d}break}
     }
     path.pop();
     if(!n)return chk?-MATE+ply:0;
-    TT.h[ti]=p.h2;TT.d[ti]=d;TT.v[ti]=best;TT.m[ti]=bm;TT.f[ti]=best>=beta?1:best<=a0?2:0;
+    let sv=best;if(sv>MATE-1000)sv+=ply;else if(sv<-MATE+1000)sv-=ply;
+    TT.h[ti]=p.h2;TT.d[ti]=d;TT.v[ti]=sv;TT.m[ti]=bm;TT.f[ti]=best>=beta?1:best<=a0?2:0;
     return best;
   }
-  const root=legal(p);if(!root.length)return {m:0,v:0};
-  let bestM=root[0],bestV=0;
+  const root=legal(p);if(!root.length)return {m:0,v:0,d:0,nodes:0};
+  if(root.length===1)return {m:root[0],v:0,d:0,nodes:0};
+  let bestM=root[0],bestV=0,doneD=0,scored=[];
   for(let d=1;d<=maxD&&!stop;d++){
-    let alpha=-MATE*2,cur=0,cv=-MATE*2;
-    const ms=order(root,0,bestM);
-    const scored=[];
-    for(const m of ms){
+    const ms_=order(root,0,bestM),sc=[];let alpha=-INF,cur=0,cv=-INF;
+    for(const m of ms_){
       make(p,m);
-      const v=-ab(d-1,-MATE*2,-alpha+(opt.noise?opt.noise:0),1,true);
+      let v;
+      if(noise||!sc.length)v=-ab(d-1,-INF,-(alpha-noise),1,true);
+      else{v=-ab(d-1,-alpha-1,-alpha,1,true);if(v>alpha&&!stop)v=-ab(d-1,-INF,-alpha,1,true)}
       unmake(p);
       if(stop)break;
-      scored.push([m,v]);
+      sc.push([m,v]);
       if(v>cv){cv=v;cur=m}
       if(v>alpha)alpha=v;
     }
-    if(!stop||(cur&&d===1)){bestM=cur;bestV=cv;if(opt.noise&&scored.length&&Math.abs(cv)<MATE-100){const ok=scored.filter(x=>x[1]>cv-opt.noise);const x=ok[Math.random()*ok.length|0];bestM=x[0];bestV=x[1]}}
+    if(stop&&!noise&&sc.length&&sc[0][0]===bestM&&cv>bestV){bestM=cur;bestV=cv}   // 끊겨도 이번 깊이에서 더 좋은 수를 찾았으면 씀
+    if(stop)break;
+    bestM=cur;bestV=cv;doneD=d;scored=sc;
     if(Math.abs(bestV)>MATE-100)break;
+    if(Date.now()-t0>ms*.55)break;   // 다음 깊이를 끝내지 못할 것 같으면 그만
   }
-  return {m:bestM,v:bestV,nodes};
+  if(noise&&scored.length&&Math.abs(bestV)<MATE-1000){const top=Math.max(...scored.map(x=>x[1])),ok=scored.filter(x=>x[1]>top-noise);const x=ok[Math.random()*ok.length|0];if(x)return {m:x[0],v:x[1],d:doneD,nodes}}
+  return {m:bestM,v:bestV,d:doneD,nodes};
 }
-const repKey0=p=>(p.h1>>>0).toString(36)+'.'+(p.h2>>>0).toString(36);   // 앙파상이 없는 국면이면 repKey와 같은 값 (지난 기보의 반복도 알아봄)
-/* 봇의 한 수: lv 0 쉬움(얕게 + 흔들림), 1 보통, 2 어려움 */
-function botPick(p,lv,hist){
-  const ls=legal(p);if(!ls.length)return 0;
-  if(lv===0&&Math.random()<.12)return ls[Math.random()*ls.length|0];
-  const o=lv===0?{depth:2,nodes:4000,noise:70}:lv===1?{depth:4,nodes:20000,noise:12}:{depth:8,nodes:90000,noise:0};
-  const h={};for(const k in hist||{})h[k]=1;
-  return search(p,{...o,hist:h}).m||ls[0];
+/* 정석: 첫 몇 수 (보통·어려움이 지금 기보와 맞는 줄에서 무작위로 다음 수를 고름) */
+const BOOK=[
+ 'e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 g8f6 e1g1 f8e7 f1e1 b7b5 a4b3 d7d6',
+ 'e2e4 e7e5 g1f3 b8c6 f1c4 f8c5 c2c3 g8f6 d2d3 d7d6 e1g1 e8g8',
+ 'e2e4 e7e5 g1f3 b8c6 d2d4 e5d4 f3d4 g8f6 d4c6 b7c6',
+ 'e2e4 e7e5 g1f3 g8f6 f3e5 d7d6 e5f3 f6e4 d2d4 d6d5 f1d3',
+ 'e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 c1e3 e7e5',
+ 'e2e4 c7c5 g1f3 b8c6 d2d4 c5d4 f3d4 g8f6 b1c3 e7e5 d4b5 d7d6',
+ 'e2e4 c7c5 g1f3 e7e6 d2d4 c5d4 f3d4 b8c6 b1c3 d8c7',
+ 'e2e4 e7e6 d2d4 d7d5 b1c3 g8f6 c1g5 f8e7 e4e5 f6d7',
+ 'e2e4 e7e6 d2d4 d7d5 e4e5 c7c5 c2c3 b8c6 g1f3 d8b6',
+ 'e2e4 c7c6 d2d4 d7d5 b1c3 d5e4 c3e4 c8f5 e4g3 f5g6 h2h4 h7h6',
+ 'e2e4 d7d5 e4d5 d8d5 b1c3 d5a5 d2d4 g8f6 g1f3 c8f5',
+ 'd2d4 d7d5 c2c4 e7e6 b1c3 g8f6 c1g5 f8e7 e2e3 e8g8 g1f3',
+ 'd2d4 d7d5 c2c4 c7c6 g1f3 g8f6 b1c3 d5c4 a2a4 c8f5',
+ 'd2d4 d7d5 c2c4 d5c4 g1f3 g8f6 e2e3 e7e6 f1c4 c7c5',
+ 'd2d4 g8f6 c2c4 e7e6 g1f3 d7d5 b1c3 f8e7 c1f4 e8g8',
+ 'd2d4 g8f6 c2c4 e7e6 b1c3 f8b4 e2e3 e8g8 f1d3 d7d5',
+ 'd2d4 g8f6 c2c4 g7g6 b1c3 f8g7 e2e4 d7d6 g1f3 e8g8 f1e2 e7e5',
+ 'd2d4 d7d5 g1f3 g8f6 c1f4 e7e6 e2e3 c7c5 c2c3 b8c6',
+ 'c2c4 e7e5 b1c3 g8f6 g1f3 b8c6 g2g3 d7d5 c4d5 f6d5',
+ 'g1f3 d7d5 g2g3 g8f6 f1g2 e7e6 e1g1 f8e7 d2d3 e8g8'].map(l=>l.split(' '));
+function bookMove(p,mv){
+  if(mv.length>=12)return 0;
+  const opts=[];
+  for(const L of BOOK){if(L.length<=mv.length)continue;let ok=true;for(let i=0;i<mv.length;i++)if(L[i]!==mv[i]){ok=false;break}if(ok)opts.push(L[mv.length])}
+  if(!opts.length)return 0;
+  return fromUci(p,opts[Math.random()*opts.length|0]);
+}
+/* 난이도: 0 쉬움(얕게, 흔들림 큼, 가끔 엉뚱한 수), 1 보통, 2 어려움 */
+let BOTSCALE=1;   // 테스트에서 생각 시간을 줄임
+const LV=[{ms:150,depth:2,noise:110,wild:.15},{ms:600,depth:5,noise:28,wild:0,book:1},{ms:1800,depth:64,noise:0,wild:0,book:1}];
+function botPick(p,lv,hist,mv){
+  const L=LV[lv]||LV[1],ls=legal(p);if(!ls.length)return 0;
+  if(L.book&&mv){const b=bookMove(p,mv);if(b)return b}
+  if(L.wild&&Math.random()<L.wild){   // 쉬움: 가끔 얕게 본 수 중 아무거나 (그래도 바로 기물을 버리지는 않게)
+    const r=think(p,{ms:60*BOTSCALE,depth:1,hist:hist||{}});const sc=ls.map(m=>{make(p,m);const v=-evalPos(p);unmake(p);return [m,v]}).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    return (sc[Math.random()*sc.length|0]||[r.m])[0];
+  }
+  return think(p,{ms:L.ms*BOTSCALE,depth:L.depth,noise:L.noise,hist:hist||{}}).m||ls[0];
 }
 /* 봇이 무승부 제안을 받을까: 지고 있거나, 오래 둔 비슷한 판 */
 function botTakesDraw(p,lv,ply){
-  const v=search(p,{depth:lv===2?4:2,nodes:8000}).v;
+  const v=think(p,{ms:120*BOTSCALE,depth:lv===2?6:3}).v;
   return v<=-150||(Math.abs(v)<=30&&ply>=60);
+}
+/* 일꾼(Web Worker): 같은 파일을 일꾼으로 띄워 생각을 맡김. 요청 {id, mv(기보), lv} → 답 {id, u} */
+const IS_WORKER=typeof window==='undefined'&&typeof self!=='undefined'&&typeof importScripts==='function';
+if(IS_WORKER){
+  self.onmessage=e=>{const d=e.data||{};try{const r=replay(d.mv||[]);const hist={};for(const k in r.reps)hist[k]=1;delete hist[repKey(r.p)];const m=botPick(r.p,d.lv|0,hist,d.mv||[]);self.postMessage({id:d.id,u:m?toUci(m):''})}catch(err){self.postMessage({id:d.id,u:'',err:String(err)})}};
+}
+const BOTW={w:null,fail:false,id:0,pend:null};
+function botWorker(){
+  if(BOTW.w||BOTW.fail)return BOTW.w;
+  try{if(typeof Worker==='undefined'||typeof document==='undefined'){BOTW.fail=true;return null}
+    const src=(document.querySelector('script[src*="games/chess.js"]')||{}).src||'games/chess.js';
+    BOTW.w=new Worker(src);BOTW.w.onmessage=e=>botReply(e.data);BOTW.w.onerror=()=>{BOTW.fail=true;BOTW.w=null;BOTW.pend=null}}catch(e){BOTW.fail=true;BOTW.w=null}
+  return BOTW.w;
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
@@ -390,7 +492,7 @@ function setMover(to,inc){
   if(inc&&from!==to&&cur&&!cur.bot)C.rem[from]+=C.R.inc*1000;
   C.mv_=to;H.turn=to;C.since=t;
   const nx=H.players[to];C.mvBot=nx&&nx.bot?1:0;
-  H.botActAt=nx&&nx.bot?t+rand(500,1300):0;
+  H.botActAt=nx&&nx.bot?t+(botLv(nx)===2?rand(250,600):rand(500,1300)):0;   // 어려움은 생각하는 시간이 길어서 앞 기다림을 줄임
   mark();
 }
 /* 기물이 킹 말고 나이트나 비숍 하나뿐이면 혼자서는 체크메이트를 할 수 없음 (시간 초과 무승부 판정) */
@@ -457,12 +559,22 @@ function timeout(){
   if(cantMate(p,C.co[other(i)]))finishGame(-1,'tdead');
   else finishGame(other(i),'time');
 }
+/* 봇 차례: 일꾼이 있으면 기보를 보내고 답을 기다림(그동안 방장 화면은 그대로 움직임), 없으면 바로 계산 */
 function botTurn(i){
-  const C=H.c,p=hostPos(),lv=botLv(H.players[i]);
-  const m=botPick(p,lv,HC.reps);
+  const C=H.c,lv=botLv(H.players[i]),w=botWorker();
+  if(w){const id=++BOTW.id;BOTW.pend={id,n:C.mv.length,seat:i,c:C,at:clock()};H.botActAt=0;try{w.postMessage({id,mv:C.mv.slice(),lv});return}catch(e){BOTW.pend=null;BOTW.fail=true;BOTW.w=null}}
+  const p=hostPos(),m=botPick(p,lv,HC.reps,C.mv);
   if(!m||!doMove(i,toUci(m)))finishGame(-1,'stale');
 }
-G._test={fromFEN,toFEN,legal,perft,make,unmake,san,fromUci,toUci,replay,endOf,deadDraw,repKey,inCheck,attacked,evalPos,search,botPick,cantMate,doMove,doDraw,doSurrender,timeout,pickWhite,START,sqStr,strSq,mFrom,mTo,mPro,recordText:v=>recordText(v)};
+/* 일꾼의 답: 그사이 판이 바뀌었거나(다른 수·새 판·방장이 바뀜) 사람이 돌아왔으면 버림 */
+function botReply(d){
+  const P=BOTW.pend;if(!P||!d||d.id!==P.id)return;BOTW.pend=null;
+  if(typeof H==='undefined'||!H||H.c!==P.c||H.phase!=='play'||H.c.mv.length!==P.n||H.c.mv_!==P.seat)return;
+  const pl=H.players[P.seat];if(!pl||!pl.bot)return;
+  if(d.u&&doMove(P.seat,d.u))return;
+  const p=hostPos(),m=botPick(p,0,HC.reps,H.c.mv);if(m)doMove(P.seat,toUci(m));else finishGame(-1,'stale');
+}
+G._test={fromFEN,toFEN,legal,perft,make,unmake,san,fromUci,toUci,replay,endOf,deadDraw,repKey,inCheck,attacked,evalPos,think,botPick,bookMove,setBotScale:f=>{BOTSCALE=f},cantMate,doMove,doDraw,doSurrender,timeout,pickWhite,START,sqStr,strSq,mFrom,mTo,mPro,recordText:v=>recordText(v)};
 G.engine={
   start(){
     const again=H.phase==='over',R={tm:Math.max(1,+H.cfg.tm||3),inc:Math.max(0,+H.cfg.inc||0)};
@@ -503,6 +615,8 @@ G.engine={
     if(p.bot&&!awayHuman(p)){
       if(!C.mvBot){C.rem[C.mv_]=Math.max(0,C.rem[C.mv_]-Math.max(0,t-C.since));C.mvBot=1}
       C.since=t;
+      if(BOTW.pend&&(BOTW.pend.c!==C||BOTW.pend.n!==C.mv.length||t-BOTW.pend.at>15000)){BOTW.pend=null;if(!H.botActAt)H.botActAt=t+200}   // 답이 안 오거나 쓸모없어짐
+      if(!H.botActAt&&!BOTW.pend)H.botActAt=t+300;   // 방장이 바뀌는 등으로 예약이 사라졌으면 다시
       if(H.botActAt&&t>=H.botActAt&&!(p.away&&t<p.awayAt+AWAY_WAIT))botTurn(C.mv_);
       return;
     }
@@ -1353,5 +1467,5 @@ G.init=()=>{
 };
 G._ch3={Ch3,IN,introEnd,sqW,get CS(){return CS},tapSq,myMoves,movesFrom,get sel(){return sel},get pend(){return pend},get flash(){return flash}};   // 화면 검사용
 
-(window.GAMES=window.GAMES||{}).chess=G;
+if(!IS_WORKER)(window.GAMES=window.GAMES||{}).chess=G;
 })();

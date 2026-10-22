@@ -1,6 +1,7 @@
 /* 체스 테스트 (tests/engine.test.js가 이 파일을 불러서 { } 블록 안에서 돌림)
    앞에서 정해져 있는 것: CH(=GAMES.chess), fail(), hostNew·hostStart·engineTick·snapFor 등 공통 엔진 */
 const T=CH._test;
+T.setBotScale(.04);   // 봇 생각 시간을 줄여 테스트를 빠르게
 const eq=(a,b,m)=>{if(a!==b)fail('chess '+m+': '+a+' != '+b)};
 
 /* 수 생성: perft (알려진 국면에서 깊이별 수의 개수가 정답과 같은지) */
