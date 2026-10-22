@@ -773,15 +773,33 @@ function drawBoardTex(fl){
   Ch3.boardTex.needsUpdate=true;
 }
 /* ----- 기물: 돌림 모양(받침·몸통·머리) + 장식(룩 성벽, 비숍 홈, 퀸 왕관 구슬, 킹 십자, 나이트 말머리) ----- */
-const BASEP=[[0,0],[.39,0],[.39,.05],[.35,.08],[.36,.11],[.31,.14],[.26,.16]];
+/* 비율 (실물 스탠턴 기준, 칸 = 1): 키는 킹 1.6을 1로 퀸 .9 · 비숍 .78 · 나이트 .72 · 룩 .62 · 폰 .52, 받침 반지름은 킹 .35 … 폰 .26.
+   몸통은 곡선(캣멀-롬)으로 가늘게 들어가고, 칼라(목 위 원반)와 받침 턱은 얇고 모서리가 섬 */
+const BR0={1:.26,2:.31,3:.31,4:.3,5:.34,6:.35};
+const baseP=r=>[[0,0],[r,0],[r,.04],[r*.94,.055],[r*.94,.075],[r*.85,.095],[r*.85,.11],[r*.72,.15]];
+/* 곡선: 지난 점에서 시작해 cs 점들을 부드럽게 지나감 */
+function curve(from,cs,n){
+  const P=[from,...cs],o=[];
+  for(let i=0;i<P.length-1;i++){
+    const p0=P[Math.max(0,i-1)],p1=P[i],p2=P[i+1],p3=P[Math.min(P.length-1,i+2)];
+    for(let k=1;k<=n;k++){const t=k/n,t2=t*t,t3=t2*t;o.push([0,1].map(j=>.5*((2*p1[j])+(-p0[j]+p2[j])*t+(2*p0[j]-5*p1[j]+4*p2[j]-p3[j])*t2+(-p0[j]+3*p1[j]-3*p2[j]+p3[j])*t3)))}
+  }
+  return o;
+}
+/* 마디: 배열이면 곧은 점들, {c:[…]}면 곡선 */
+function prof(segs){const o=[];for(const sg of segs){if(Array.isArray(sg))o.push(...sg);else o.push(...curve(o[o.length-1],sg.c,sg.n||6))}return o.map(([x,y])=>[Math.max(0,x),y])}
 const arcP=(cy,r,a0,a1,n)=>{const o=[];for(let i=0;i<=n;i++){const a=a0+(a1-a0)*i/n;o.push([Math.max(0,r*Math.cos(a)),cy+r*Math.sin(a)])}return o};
-const PROF={
-  1:[...BASEP,[.2,.2],[.15,.3],[.12,.42],[.19,.45],[.19,.49],[.11,.51],...arcP(.63,.15,-Math.acos(.11/.15),Math.PI/2,10)],
-  4:[...BASEP,[.24,.2],[.22,.3],[.21,.55],[.24,.6],[.3,.64],[.3,.78],[.24,.78],[.24,.74],[0,.74]],
-  3:[...BASEP,[.22,.2],[.15,.35],[.1,.55],[.19,.6],[.19,.64],[.11,.66],[.15,.71],[.18,.78],[.17,.85],[.12,.93],[.05,.98],[0,.99]],
-  5:[...BASEP,[.23,.2],[.16,.35],[.12,.6],[.21,.66],[.21,.7],[.13,.72],[.15,.8],[.21,.92],[.25,.97],[.17,.97],[.12,1.01],[.06,1.04],[0,1.05]],
-  6:[...BASEP,[.24,.2],[.17,.35],[.13,.62],[.22,.68],[.22,.72],[.14,.74],[.16,.84],[.23,.97],[.23,1.01],[.13,1.05],[0,1.07]],
-  2:[...BASEP,[.27,.2],[.27,.24],[0,.24]]};
+let PROF=null;
+function profs(){
+  if(PROF)return PROF;
+  return PROF={
+    1:prof([baseP(.26),{c:[[.15,.22],[.11,.34],[.085,.45]]},[[.15,.465],[.15,.495],[.08,.51]],arcP(.65,.14,-.96,Math.PI/2,12)]),
+    4:prof([baseP(.3),{c:[[.21,.3],[.19,.52],[.2,.66]]},[[.27,.69],[.27,.72],[.21,.735]],{c:[[.235,.8],[.27,.88]]},[[.27,.9],[.19,.9],[.19,.86],[0,.86]]]),
+    3:prof([baseP(.31),{c:[[.17,.3],[.11,.55],[.085,.7]]},[[.17,.72],[.17,.755],[.1,.77],[.13,.785],[.13,.8],[.08,.81]],{c:[[.14,.87],[.165,.96],[.145,1.05],[.095,1.12],[.035,1.165],[0,1.175]]}]),
+    5:prof([baseP(.34),{c:[[.19,.32],[.13,.62],[.1,.86]]},[[.2,.88],[.2,.915],[.12,.93],[.15,.945],[.15,.96],[.12,.97]],{c:[[.15,1.06],[.21,1.17],[.255,1.24]]},[[.2,1.245]],{c:[[.15,1.27],[.09,1.3],[0,1.31]]}]),
+    6:prof([baseP(.35),{c:[[.2,.33],[.14,.66],[.11,.92]]},[[.21,.94],[.21,.975],[.13,.99],[.16,1.005],[.16,1.02],[.13,1.03]],{c:[[.16,1.12],[.215,1.22],[.23,1.28]]},[[.23,1.3],[.15,1.31]],{c:[[.1,1.355],[0,1.37]]}]),
+    2:prof([baseP(.31),[[.24,.165],[.24,.2],[0,.2]]])};
+}
 /* 나이트 말머리 옆모양 (오른쪽을 봄): 가슴 → 목 → 턱 → 둥근 코 → 이마 → 귀 → 갈기 */
 function knightShape(){
   const sh=new THREE.Shape(),X=x=>x-.06;
@@ -798,21 +816,30 @@ function knightShape(){
   sh.quadraticCurveTo(X(-.35),.38,X(-.3),.22);
   return sh;
 }
+/* 나이트 머리: 옆모양을 돌출하고 키를 맞춘 뒤, 코 쪽과 귀 쪽으로 갈수록 얇게 깎음 (off: 먹선용으로 조금 크게) */
+const kTaper=(x,y)=>(1-.4*Math.min(1,Math.max(0,(x+.05)/.45)))*(1-.3*Math.min(1,Math.max(0,(y-.85)/.35)));
+function knightGeo(off){
+  const g=new THREE.ExtrudeGeometry(knightShape(),{depth:.32,bevelEnabled:true,bevelThickness:.06+off,bevelSize:.045+off,bevelSegments:3,curveSegments:8});
+  g.translate(0,0,-.16);g.scale(1,1.12,1);g.translate(0,-.04,0);
+  const P=g.attributes.position;for(let i=0;i<P.count;i++)P.setZ(i,P.getZ(i)*kTaper(P.getX(i),P.getY(i)));
+  g.computeVertexNormals();return g;
+}
 const GEO={};
 function geoOf(t){
   if(GEO[t])return GEO[t];
-  const lat=new THREE.LatheGeometry(PROF[t].map(([x,y])=>new THREE.Vector2(x,y)),32);
-  const ink=new THREE.LatheGeometry(PROF[t].map(([x,y],i)=>new THREE.Vector2(x?x+.022:0,Math.max(0,y+(i>PROF[t].length-3?.02:0)-(i<2?.004:0)))),32);
-  const ex=[];   // 장식: [모양, x, y, z, 돌림y, 돌림z]
+  const pr=profs()[t],off=BR0[t]*.065,top=pr[pr.length-1][1];
+  const lat=new THREE.LatheGeometry(pr.map(([x,y])=>new THREE.Vector2(x,y)),36);
+  const ink=new THREE.LatheGeometry(pr.map(([x,y])=>new THREE.Vector2(x?x+off:0,y>=top-.001?y+off:y<.001?y-.004:y)),36);   // 먹선: 기물 크기에 비례한 두께
+  const ex=[];   // 장식: [모양, x, y, z, 돌림y, 돌림z, 표시]
   if(t===RR){   // 성벽: 둥근 테를 다섯 토막으로 (토막 사이가 홈)
-    for(let k=0;k<5;k++){const a0=k/5*Math.PI*2+.2,a1=a0+Math.PI*2/5-.42,sh=new THREE.Shape();sh.absarc(0,0,.3,a0,a1,false);sh.absarc(0,0,.19,a1,a0,true);
-      const g=new THREE.ExtrudeGeometry(sh,{depth:.12,bevelEnabled:false,curveSegments:8});g.rotateX(-Math.PI/2);ex.push([g,0,.74,0,0,0])}}
-  if(t===QQ){for(let k=0;k<9;k++){const a=k/9*Math.PI*2;ex.push([new THREE.SphereGeometry(.045,10,8),Math.sin(a)*.24,1.0,Math.cos(a)*.24,0,0])}ex.push([new THREE.SphereGeometry(.07,14,10),0,1.11,0,0,0])}
-  if(t===KK){ex.push([new THREE.BoxGeometry(.09,.32,.09),0,1.2,0,0,0]);ex.push([new THREE.BoxGeometry(.26,.09,.09),0,1.24,0,0,0])}
-  if(t===BB)ex.push([new THREE.SphereGeometry(.055,12,8),0,1.03,0,0,0]);
-  if(t===NN){const g=new THREE.ExtrudeGeometry(knightShape(),{depth:.3,bevelEnabled:true,bevelThickness:.06,bevelSize:.045,bevelSegments:3,curveSegments:6});g.translate(0,0,-.15);ex.push([g,0,0,0,0,0]);
-    for(const z of [-.2,.2]){ex.push([new THREE.SphereGeometry(.035,8,6),.2,.8,z,0,0,'eye'])}}
-  return GEO[t]={lat,ink,ex};
+    for(let k=0;k<5;k++){const a0=k/5*Math.PI*2+.2,a1=a0+Math.PI*2/5-.46,sh=new THREE.Shape();sh.absarc(0,0,.27,a0,a1,false);sh.absarc(0,0,.19,a1,a0,true);
+      const g=new THREE.ExtrudeGeometry(sh,{depth:.1,bevelEnabled:false,curveSegments:8});g.rotateX(-Math.PI/2);ex.push([g,0,.9,0,0,0])}}
+  if(t===QQ){for(let k=0;k<9;k++){const a=k/9*Math.PI*2;ex.push([new THREE.SphereGeometry(.038,10,8),Math.sin(a)*.25,1.255,Math.cos(a)*.25,0,0])}ex.push([new THREE.SphereGeometry(.06,14,10),0,1.36,0,0,0])}
+  if(t===KK){ex.push([new THREE.BoxGeometry(.075,.27,.075),0,1.48,0,0,0]);ex.push([new THREE.BoxGeometry(.21,.07,.075),0,1.52,0,0,0])}
+  if(t===BB)ex.push([new THREE.SphereGeometry(.045,12,8),0,1.2,0,0,0]);
+  if(t===NN){ex.push([knightGeo(0),0,0,0,0,0,'head']);
+    const ez=(.16+.06)*kTaper(.2,.856)-.005;for(const z of [-ez,ez])ex.push([new THREE.SphereGeometry(.03,8,6),.2,.856,z,0,0,'eye'])}
+  return GEO[t]={lat,ink,ex,kInk:t===NN?knightGeo(.022):null};
 }
 const MAT={};
 function matOf(col,ghost){
@@ -831,9 +858,9 @@ function pieceMesh(t,col,ghost){
   for(const [geo,x,y,z,ry,rz,tag] of G3.ex){
     if(tag==='eye'){if(!ghost){const e=new THREE.Mesh(geo,SLIT());e.position.set(x,y,z);g.add(e)}continue}
     const e=new THREE.Mesh(geo,m);e.position.set(x,y,z);e.rotation.y=ry;e.rotation.z=rz;e.castShadow=!ghost;g.add(e);parts.push(e);
-    if(!ghost){const o=new THREE.Mesh(geo,INK());o.position.copy(e.position);o.rotation.copy(e.rotation);o.scale.setScalar(1.25);if(t===NN){o.scale.set(1.06,1.025,1.16);o.position.y=-.012}else if(t===RR){o.scale.set(1.1,1.12,1.1);o.position.y=e.position.y-.006}g.add(o)}
+    if(!ghost){const o=new THREE.Mesh(tag==='head'?G3.kInk:geo,INK());o.position.copy(e.position);o.rotation.copy(e.rotation);if(t===RR){o.scale.set(1.08,1.15,1.08);o.position.y=e.position.y-.006}else if(tag!=='head')o.scale.setScalar(1.3);g.add(o)}
   }
-  if(t===BB){const sl=new THREE.Mesh(new THREE.BoxGeometry(.035,.2,.42),ghost?m:SLIT());sl.position.set(.02,.86,0);sl.rotation.z=.75;g.add(sl)}
+  if(t===BB){const sl=new THREE.Mesh(new THREE.BoxGeometry(.03,.17,.36),ghost?m:SLIT());sl.position.set(.03,1.0,0);sl.rotation.z=.7;g.add(sl)}
   g.scale.setScalar(S*.95);
   g.userData={t,col,parts};
   return g;
@@ -992,7 +1019,7 @@ function ch3Layout(t){
   const narrow=W<700,fy=top+2,fh=(narrow?Hh-80:Hh-58)-fy,fw=W-12;
   const pts=lay=>{const o=[];const E=BW,ty=.72;
     for(const x of [-E,E])for(const z of [-E,E])o.push([x,0,z],[x,TOP,z]);
-    for(const x of [-HB+S/2,HB-S/2])o.push([x,TOP+ty*S*1.3,-HB+S/2],[x,TOP+ty*S*1.3,HB-S/2]);
+    for(const x of [-HB+S/2,HB-S/2])o.push([x,TOP+1.6*S*.95,-HB+S/2],[x,TOP+1.6*S*.95,HB-S/2]);
     Ch3.layout=lay;for(const k of [0,1])for(const i of lay==='h'?[0,1,14,15]:[0,7,8,15]){const [x,z]=graveXZ(k,i);o.push([x+.2,0,z+.2],[x-.2,.75*S*GS,z-.2])}
     return o};
   const cam=Ch3.cam;cam.aspect=W/Hh;cam.clearViewOffset();cam.updateProjectionMatrix();
