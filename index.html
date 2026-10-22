@@ -295,6 +295,20 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .holotag span.pickable{pointer-events:auto;cursor:pointer}
 #stage.holo .holotag span.pickable{pointer-events:none}
 .holotag span{font:400 19px var(--f-display);color:#fff1dc;-webkit-text-stroke:.8px rgba(170,80,10,.5);paint-order:stroke fill;text-shadow:0 0 4px #ff9a3c,0 0 10px rgba(255,140,40,.8),0 2px 3px rgba(90,40,5,.45)}
+.rc-hot{z-index:6;touch-action:none}
+body.rc3d #btnLog,body.rc3d #logPanel{display:none}   /* 3D가 있으면 진행 기록은 영수증으로 */
+body.rc3d .fsbtn.fs{right:10px}body.rc3d .fsbtn.cfg{right:58px}body.rc3d.nofs .fsbtn.cfg{right:10px}
+.rcov{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(40,28,18,.18)}
+.rc2d{position:relative;width:min(300px,100%);max-height:100%;overflow-y:auto;overscroll-behavior:contain;background:#fbfaf4;color:#2c2620;padding:18px 18px 22px;font:500 14px/1.55 ui-monospace,'D2Coding','Nanum Gothic Coding',monospace;box-shadow:0 10px 30px -10px rgba(0,0,0,.45);
+  -webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/12px 100%,conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) 50%/12px 100%;-webkit-mask-composite:source-in;mask-composite:intersect;
+  animation:rcIn .28s ease-out}   /* 감열지 영수증: 위아래 톱니 */
+@keyframes rcIn{from{transform:translateY(24px) scale(.96);opacity:0}}
+.rc-head{text-align:center;font-weight:700;padding-bottom:8px;margin-bottom:6px;border-bottom:2px dashed rgba(44,38,32,.45)}
+.rc-lines{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.rc-lines li{word-break:keep-all}
+.rc-lines li.lg-gura,.rc-lines li.lg-fin{font-weight:800}
+.rc-lines li.lg-sys{opacity:.6}
+.rc-take{display:block;width:100%;margin-top:14px;padding:10px 0 4px;border:0;border-top:2px dashed rgba(44,38,32,.45);background:none;font:inherit;font-weight:700;color:#2c2620;cursor:pointer}
 .holocnt{position:absolute;transform:translateX(-50%);pointer-events:none;z-index:3;font:400 15px var(--f-display);color:#fff1dc;-webkit-text-stroke:.6px rgba(170,80,10,.5);paint-order:stroke fill;text-shadow:0 0 4px #ff9a3c,0 0 8px rgba(255,140,40,.7);white-space:nowrap}   /* 게임 말 아래 인원 */
 .holotag.bad span{color:#ffc4c4;text-shadow:0 0 6px #ff4d6d}
 .holotag input{width:9em;font:400 20px var(--f-display);text-align:center;color:var(--ink);background:rgba(255,250,240,.95);border:2px solid #ffa04a;border-radius:8px;padding:2px 6px}
@@ -737,6 +751,8 @@ body.kb .fan .card.cur{z-index:70!important}
     </div>
     <button class="fsbtn fs" id="btnFs" type="button" aria-label="전체화면" title="전체화면"></button>
     <button class="fsbtn" id="btnLog" type="button" aria-label="진행 기록" title="진행 기록" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg><i class="dot" hidden></i></button>
+    <button type="button" class="fr-hot off rc-hot" id="rcHot" aria-label="영수증 보기" title="영수증"></button>
+    <div class="rcov" id="rcOv" hidden role="dialog" aria-label="영수증"><div class="rc2d" id="rc2d"><div class="rc-head" id="rcHead"></div><ol class="rc-lines" id="rcLines"></ol><button type="button" class="rc-take" id="rcTake" hidden>✂ 가져가기</button></div></div>
     <div class="logpanel" id="logPanel" hidden role="dialog" aria-label="진행 기록"><h3>진행 기록</h3><ol class="log" id="log"></ol><p class="log-empty">아직 기록이 없습니다.</p></div>
     <div class="verdict" id="verdict" hidden></div>
     <div class="field2d" id="field2d" hidden aria-live="polite"></div>
@@ -1733,6 +1749,9 @@ const SFX={
   iris(){hiss(.28,{freq:900,sweep:2400,q:1.2,vol:.06});tone(240,.2,{type:'triangle',vol:.06,slide:360})},   // 구멍 열림
   btnUp(){tone(180,.18,{type:'triangle',vol:.1,slide:320});hiss(.12,{freq:600,q:.8,vol:.05})},
   btnGo(){tone(110,.08,{type:'square',vol:.1});[523,784].forEach((f,k)=>tone(f,.16,{type:'triangle',vol:.12,at:.06+k*.08}))},
+  rcPrint(n=1){for(let k=0;k<Math.min(n,3);k++){hiss(.2,{freq:3600,q:4,vol:.045,at:k*.22});for(let i=0;i<5;i++)tone(2600+((i*37)%5)*120,.012,{type:'square',vol:.018,at:k*.22+i*.035})}},   // 영수증 '지직'
+  rcPull(){hiss(.32,{freq:900,sweep:4200,q:.9,vol:.09})},   // 뽑혀 나옴
+  rcIn(){hiss(.26,{freq:3800,sweep:700,q:.9,vol:.07})},   // 빨려 들어감
   tableClear(){hiss(.5,{freq:3000,sweep:260,q:.7,vol:.16});tone(80,.3,{type:'triangle',vol:.22,slide:50,at:.05});[2093,2637,1760,2349,1976].forEach((f,k)=>tone(f,.07,{type:'triangle',vol:.05,at:.12+k*.045}));hiss(.12,{freq:4200,q:2,vol:.06,at:.14})},   // 상치우기: 휙 쓸어내림 + 쿵 + 그릇 달그락
   stamp(){tone(90,.12,{type:'triangle',vol:.2});hiss(.08,{freq:700,q:.8,vol:.14})},   // 도장 쿵
   holoOn(){tone(330,.5,{vol:.07,slide:990,attack:.05});tone(1320,.4,{vol:.03,at:.25,attack:.1})},
@@ -3100,7 +3119,7 @@ const PL_CW=832,PL_CH=1024,PL_Y0=52,PL_STEP=122,PL_RH=108,PL_RAIL=966;   // 목�
 const DSP={W:1.5,D:.5,Th:.05,Z:3.9};   // 디스플레이: 폭, 깊이, 두께, 경첩(먼 쪽 끝) 위치
 function frontBuild(){
   const TG=T.tableG;
-  frontBuildStumps();frontBuildDisplay(TG);frontBuildHolo(TG);frontBuildClip(TG);frontBuildStart(TG);
+  frontBuildStumps();frontBuildDisplay(TG);frontBuildHolo(TG);frontBuildClip(TG);frontBuildStart(TG);rcptBuild(TG);
   FR.flaps=[0,1,2,3].map(()=>({ch:' ',to:' ',until:0,next:0}));
   frontDrawBoard(true);
 }
@@ -3268,6 +3287,129 @@ function guestCleared(){
   FR.clearing=1;FR.collapseAt=clock();sfx('tableClear');
   document.querySelectorAll('#labels .wseat').forEach((el,i)=>{el.style.animationDelay=(i*60)+'ms';el.classList.add('drop')});
   setTimeout(()=>{FR.clearing=0;if(mode!=='guest')return;leaveRoom();FR.sit=true;FR.kmode='menu';FR.clearAt=clock();sfx('warpFail')},CLEAR_SUCK+150);
+}
+/* ===== 영수증 프린터 (진행 기록) =====
+   게임 중 탁자에 일자 틈이 열리고, 기록이 생길 때마다 '지직' 하며 한 줄씩 찍혀 화면 위쪽(맞은편)으로 밀려 나감.
+   최신 줄은 늘 틈 바로 옆. 처음엔 보통 영수증처럼 나오다가 RC_MAX줄이 넘으면 위쪽에 들어가는 틈이 열려 오래된 줄을 삼킴.
+   누르거나 위로 끌면 들어가는 틈에서 종이가 뽑혀 나와 눈앞으로 날아오고 2D 영수증(전체 기록)으로 펼쳐짐. 게임이 끝나면 2D 맨 아래 '가져가기'(복사) */
+const RC={LH:.15,PW:.82,MAX:5,SEG:24,RPX:48,CW:420};   // 줄 높이, 종이 폭, 평평하게 보이는 줄 수(머리글 포함), 띠 마디, 캔버스 줄 높이·폭
+const RC_AT={_:{x:2.55,z:3.15,tall:{sx:.86,sy:.6}},
+  blackjack:{x:2.55,z:3.15,tall:{sx:.86,sy:.74}},
+  quoridor:{sx:.79,sy:.8,tall:{sx:.86,sy:.17}},
+  omok:{sx:.8,sy:.8,tall:{sx:.82,sy:.29}},
+  yahtzee:{sx:.82,sy:.55,tall:{sx:.2,sy:.3}}};   // 게임별 틈 자리: 탁자 좌표 {x,z} 또는 화면 비율 {sx,sy}(그 화면 점 아래 탁자 위, 화면 밖으로 안 나감). tall = 세로로 긴 화면
+const _rcRay=window.THREE?new THREE.Raycaster():null,_rcPl=window.THREE?new THREE.Plane(new THREE.Vector3(0,1,0),0):null,_rcHit=window.THREE?new THREE.Vector3():null;
+function rcptBuild(TG){
+  const cv=document.createElement('canvas');cv.width=RC.CW;cv.height=RC.RPX*(RC.MAX+1);
+  const tex=new THREE.CanvasTexture(cv);tex.anisotropy=8;
+  const N=RC.SEG+1,pos=new Float32Array(N*2*3),uv=new Float32Array(N*2*2),idx=[];
+  for(let i=0;i<N;i++){for(let j=0;j<2;j++){const k=i*2+j;uv[k*2]=j;uv[k*2+1]=i/RC.SEG}if(i<RC.SEG){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2)}}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));geo.setIndex(idx);
+  const cpO=new THREE.Plane(new THREE.Vector3(0,0,-1),0),cpI=new THREE.Plane(new THREE.Vector3(0,0,1),0);
+  const mat=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide,clippingPlanes:[cpO,cpI]});
+  const paper=new THREE.Mesh(geo,mat);paper.frustumCulled=false;paper.renderOrder=2;TG.add(paper);paper.visible=false;
+  const slot=w=>{const g=new THREE.Group();const lip=new THREE.Mesh(new THREE.PlaneGeometry(w+.1,.075),new THREE.MeshBasicMaterial({color:0x8a6a42}));lip.rotation.x=-Math.PI/2;g.add(lip);
+    const hole=new THREE.Mesh(new THREE.PlaneGeometry(w+.04,.03),new THREE.MeshBasicMaterial({color:0x120c08}));hole.rotation.x=-Math.PI/2;hole.position.y=.0005;g.add(hole);g.position.y=.0035;g.visible=false;TG.add(g);return g};
+  if(!T.r._rcWrap){const r0=T.r.render.bind(T.r);T.r.render=(sc,cam)=>{T.lastCam=cam;r0(sc,cam)};T.r._rcWrap=1}   // 마지막으로 그린 카메라 (쿼리도·오목·야추는 자기 카메라)
+  T.rc={cv,tex,geo,mat,paper,cpO,cpI,out:slot(RC.PW),inn:slot(RC.PW),rows:[],seen:0,waitTop:0,feedAt:-1e9,oa:{v:0,to:0,from:0,t0:0,ms:0},ia:{v:0,to:0,from:0,t0:0,ms:0},pull:0,pa:{v:0,to:0,from:0,t0:0,ms:0},drag:null,open:false,key:''};
+  rcptHot();
+}
+function rcptAt(){const g=(V&&V.cfg&&V.cfg.game)||'gura',a=RC_AT[g]||RC_AT._,st=$('#stage'),tall=st.clientHeight>st.clientWidth*1.15;return tall&&a.tall?a.tall:a}
+function rcptText(){const R=T.rc;return R.rows.map(r=>r[0]).join('\n')}
+function rcptDraw(){   // 캔버스: 아래가 최신 줄. 평평하게 보일 줄 + 들어가는 줄 하나
+  const R=T.rc,c=R.cv.getContext('2d'),n=RC.MAX+1,rows=R.rows.slice(-n),W=RC.CW,Hc=R.cv.height;
+  c.fillStyle='#fbfaf4';c.fillRect(0,0,W,Hc);
+  rows.forEach((r,k)=>{const y=Hc-(rows.length-k)*RC.RPX;
+    if(r[1]==='head'){c.fillStyle='#2c2620';c.font='700 24px ui-monospace,monospace';c.textAlign='center';c.fillText(r[0],W/2,y+RC.RPX*.62);c.strokeStyle='rgba(44,38,32,.5)';c.setLineDash([8,6]);c.lineWidth=2;c.beginPath();c.moveTo(14,y+RC.RPX-4);c.lineTo(W-14,y+RC.RPX-4);c.stroke();c.setLineDash([]);return}
+    c.fillStyle=r[1]==='sys'?'rgba(44,38,32,.55)':'#2c2620';c.font=`${r[1]==='gura'||r[1]==='fin'?800:500} 22px ui-monospace,monospace`;c.textAlign='left';
+    let tx=r[0];while(c.measureText(tx).width>W-28&&tx.length>2)tx=tx.slice(0,-2)+'…';c.fillText(tx,14,y+RC.RPX*.64)});
+  R.tex.needsUpdate=true;
+}
+function rcptSync(){   // 기록이 새로 생기면 줄을 더하고 찍음. 새 게임이 시작되면 영수증을 새로
+  const R=T.rc,lg=V&&Array.isArray(V.lg)?V.lg:[],top=lg.length?Math.max(...lg.map(l=>+l[2]||0)):0,live=V&&V.st&&V.st!=='wait';
+  if(!live){R.waitTop=top;if(R.rows.length){R.rows=[];R.seen=top}return}
+  if(!R.rows.length){R.rows=[[`탁자 ${shownCode(V.code)} · ${gameOf((V.cfg&&V.cfg.game)||'gura').name}`,'head']];R.seen=Math.min(R.seen||0,R.waitTop||0);if(top<R.seen)R.seen=0;rcptDraw()}
+  const fresh=lg.filter(l=>(+l[2]||0)>R.seen).sort((a,b)=>(+a[2])-(+b[2]));
+  if(!fresh.length)return;
+  R.seen=Math.max(R.seen,top);
+  for(const l of fresh)R.rows.push([String(l[0]),l[1]||'']);
+  R.feedAt=clock();rcptDraw();if(R.open)rcptFill();
+  if(R.oa.v>.9)sfx('rcPrint',fresh.length);
+}
+function rcptUpdate(t){
+  const R=T.rc;if(!R)return;
+  const on=!!(T.ok&&V&&V.code&&V.st&&V.st!=='wait'&&(mode==='host'||mode==='guest'))&&!(G.no3D&&!G.render3D)&&!/\b(qd2d|om2d)\b/.test($('#stage').className);
+  document.body.classList.toggle('rc3d',!!T.ok);
+  if(on)rcptSync();else if(R.rows.length&&!(V&&V.st&&V.st!=='wait')){R.rows=[];if(R.open)rcptClose(true)}
+  const A=rcptAt(),full=R.rows.length>RC.MAX,cam=T.lastCam||T.cam;let x0=A.x,z0=A.z;
+  if(A.sx!=null){_rcRay.setFromCamera({x:A.sx*2-1,y:-(A.sy*2-1)},cam);if(_rcRay.ray.intersectPlane(_rcPl,_rcHit)){T.tableG.worldToLocal(_rcHit);R.at=R.at||_rcHit.clone();R.at.lerp(_rcHit,.2)}if(R.at){x0=R.at.x;z0=R.at.z}else{x0=0;z0=3}}   // 화면 기준 자리 (카메라가 움직이면 부드럽게 따라감)
+  // 종이가 나가는 방향 = 화면 위쪽을 탁자 위에 눕힌 방향(d), 글자 오른쪽 = r
+  const d=_rcD.set(0,1,0).applyQuaternion(cam.quaternion);d.y=0;if(d.lengthSq()<1e-4)d.set(0,0,-1);d.normalize();const r=_rcR.set(-d.z,0,d.x);
+  if(!R.dir)R.dir=d.clone();else R.dir.lerp(d,.25).normalize();const D=R.dir,Rr=_rcR.set(-D.z,0,D.x);
+  const ov=frontTween(R.oa,on?1:0,t,on?380:300),iv=frontTween(R.ia,on&&full?1:0,t,420);
+  if(R.ia.to===1&&iv>0&&!R.innSnd){R.innSnd=1;sfx('iris')}if(R.ia.to===0)R.innSnd=0;
+  const ry=Math.atan2(-Rr.z,Rr.x),reach=RC.MAX*RC.LH+.02;
+  R.out.visible=ov>.01;R.out.scale.set(Math.max(.001,smooth(ov)),1,1);R.out.position.set(x0,.0035,z0);R.out.rotation.y=ry;
+  R.inn.visible=iv>.01;R.inn.scale.set(Math.max(.001,smooth(iv)),1,1);R.inn.position.set(x0+D.x*reach,.0035,z0+D.z*reach);R.inn.rotation.y=ry;
+  const rows=Math.min(R.rows.length,RC.MAX+1),fp=smooth(clamp01((t-R.feedAt)/260)),feed=RC.LH*(1-fp);
+  const pv=R.open?1:R.drag?R.drag.u:frontTween(R.pa,0,t,320);R.pull=pv;
+  R.paper.visible=on&&ov>.6&&rows>0&&!(R.open&&R.shown);
+  if(!R.paper.visible){$('#rcHot').classList.add('off');return}
+  // 자르는 면 (월드): 나오는 틈 앞쪽만, 들어가는 틈 뒤쪽은 숨김
+  const TG=T.tableG;_v3.set(x0,0,z0);TG.localToWorld(_v3);R.cpO.normal.set(D.x,0,D.z);R.cpO.constant=-(D.x*_v3.x+D.z*_v3.z);
+  _v3.set(x0+D.x*reach,0,z0+D.z*reach);TG.localToWorld(_v3);R.cpI.normal.set(-D.x,0,-D.z);R.cpI.constant=full?(D.x*_v3.x+D.z*_v3.z):99;
+  R.mat.clippingPlanes=pv>.02?[]:[R.cpO,R.cpI];
+  // 종이 띠: 평평한 자리 ↔ 눈앞(뽑아 볼 때). 들어가는 쪽(위)부터 들림
+  const LEN=rows*RC.LH,pos=R.geo.attributes.position,N=RC.SEG+1;
+  let F=null;if(pv>0){F=rcptFace(LEN,cam)}
+  for(let i=0;i<N;i++){const s=i/RC.SEG,w=pv>0?smooth(clamp01(pv*1.7-(1-s)*.7)):0,arc=Math.sin(w*Math.PI)*.35,al=s*LEN-feed;
+    for(let j=0;j<2;j++){const u=j-.5;let px=x0+Rr.x*u*RC.PW+D.x*al,py=.006,pz=z0+Rr.z*u*RC.PW+D.z*al;
+      if(w>0){_v3.copy(F.c).addScaledVector(F.r,u*F.w).addScaledVector(F.u,(s-.5)*F.h);TG.worldToLocal(_v3);px+=(_v3.x-px)*w;py+=(_v3.y-py)*w+arc;pz+=(_v3.z-pz)*w}
+      pos.setXYZ(i*2+j,px,py,pz)}}
+  pos.needsUpdate=true;R.geo.computeBoundingBox();R.geo.computeBoundingSphere();
+  // 누르는 자리: 평평한 종이
+  const st=$('#stage');frontPut($('#rcHot'),!R.open&&pv<.05&&!roomSetOpen,rcRect(R.paper,cam,st.clientWidth,st.clientHeight),6,56,48);
+}
+const _rcD=window.THREE?new THREE.Vector3():null,_rcR=window.THREE?new THREE.Vector3():null;
+function rcRect(obj,cam,W,Hh){   // frontRect와 같지만 실제로 그린 카메라로
+  _b3.setFromObject(obj);const box=_b3;let l=1e9,r=-1e9,tp=1e9,b=-1e9;
+  for(let i=0;i<8;i++){_v3.set(i&1?box.max.x:box.min.x,i&2?box.max.y:box.min.y,i&4?box.max.z:box.min.z).project(cam);
+    const x=(_v3.x+1)/2*W,y=(1-_v3.y)/2*Hh;l=Math.min(l,x);r=Math.max(r,x);tp=Math.min(tp,y);b=Math.max(b,y)}
+  return {l,r,t:tp,b};
+}
+function rcptFace(LEN,cam){   // 눈앞 자리: 화면 가운데, 폭은 2D 영수증과 비슷하게
+  const st=$('#stage'),W=st.clientWidth||1,px=Math.min(W-32,300),e0=cam.projectionMatrix.elements[0],w=.6,D=w*e0*W/2/px;
+  const dir=new THREE.Vector3(0,0,.5).unproject(cam).sub(cam.position).normalize();
+  const h=Math.min(w*LEN/RC.PW,1.1);
+  return {c:cam.position.clone().addScaledVector(dir,D),r:new THREE.Vector3(1,0,0).applyQuaternion(cam.quaternion),u:new THREE.Vector3(0,1,0).applyQuaternion(cam.quaternion),w,h};
+}
+function rcptFill(){
+  const R=T.rc,rows=R.rows;$('#rcHead').textContent=rows[0]?rows[0][0]:'';
+  $('#rcLines').innerHTML=rows.slice(1).map(r=>`<li class="${r[1]?'lg-'+esc(r[1]):''}">${esc(r[0])}</li>`).join('');
+  $('#rcTake').hidden=!(V&&V.st==='over');
+  const b=$('#rc2d');b.scrollTop=b.scrollHeight;
+}
+function rcptOpen(){   // 들어가는 틈에서 뽑혀 나와 눈앞으로 → 2D
+  const R=T.rc;if(!R||R.open)return;R.open=true;R.shown=false;R.drag=null;sfx('rcPull');
+  const u0=R.pull||0;R.pa={v:u0,to:u0,from:u0,t0:0,ms:0};
+  const t0=clock(),go=()=>{if(!R.open)return;const u=u0+(1-u0)*smooth(clamp01((clock()-t0)/380));R.drag={u};if(u<1)requestAnimationFrame(go);else{R.drag=null;R.shown=true;rcptFill();$('#rcOv').hidden=false}};go();
+}
+function rcptClose(quiet){
+  const R=T.rc;if(!R||!R.open)return;R.open=false;R.shown=false;$('#rcOv').hidden=true;R.pa={v:1,to:1,from:1,t0:0,ms:0};frontTween(R.pa,0,clock(),360);if(!quiet)sfx('rcIn');
+}
+function rcptHot(){
+  const b=$('#rcHot');let sy=0,moved=false;
+  b.addEventListener('pointerdown',e=>{const R=T.rc;if(!R||R.open)return;sy=e.clientY;moved=false;R.drag={u:0};try{b.setPointerCapture(e.pointerId)}catch(_){}});
+  b.addEventListener('pointermove',e=>{const R=T.rc;if(!R||!R.drag||R.open)return;const d=sy-e.clientY;if(Math.abs(d)>8)moved=true;R.drag.u=clamp01(d/220)});   // 위로 끌면 따라 뽑혀 나옴
+  const up=()=>{const R=T.rc;if(!R||!R.drag||R.open)return;const u=R.drag.u;
+    if(!moved||u>.35){R.pull=u;rcptOpen();return}   // 누르기 또는 충분히 끌면 뽑아 봄
+    R.drag=null;R.pa={v:u,to:u,from:u,t0:0,ms:0};frontTween(R.pa,0,clock(),300);sfx('rcIn')};   // 덜 끌고 놓으면 다시 빨려 들어감
+  b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);
+  b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();rcptOpen()}});
+  $('#rcOv').addEventListener('click',e=>{if(!e.target.closest('.rc2d'))rcptClose()});
+  $('#rcTake').addEventListener('click',()=>{const txt=rcptText(),ok=()=>{$('#rcTake').textContent='✂ 가져갔습니다';sfx('pick');setTimeout(()=>{$('#rcTake').textContent='✂ 가져가기'},1600)};
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(ok,()=>sfx('no'));else sfx('no')});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&T.rc&&T.rc.open){e.preventDefault();e.stopImmediatePropagation();rcptClose()}},true);
 }
 /* 공개 탁자 목록 판 = 플립 안내판: 돋보기를 누르면 키판이 디스플레이 아래로 들어간 뒤, 같은 틈에서 원목 틀의 안내판이 서서 올라옴.
    틀 안에 플립 줄 7개(게임·탁자 이름·인원 칸, 디스플레이와 같은 짙은 칸에 크림 글씨). 내용이 바뀌면 줄마다 차례로 촤라락 넘어감.
@@ -4064,7 +4206,7 @@ function frame(){
   const t=clock(),dt=Math.min(.05,(t-lastFrame)/1000);lastFrame=t;
   if(T.ok){
     GFX_U.time.value=t/1000+FR.tw;   // 타임머신 중에는 구름·바람이 빨라짐
-    frontUpdate(t,dt);
+    frontUpdate(t,dt);rcptUpdate(t);
     if(T.bubbles.length)updBubbles(t);
     const k=1-Math.exp(-dt*7);
     dealUpdate(t);
