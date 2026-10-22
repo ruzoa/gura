@@ -295,6 +295,7 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .holotag span.pickable{pointer-events:auto;cursor:pointer}
 #stage.holo .holotag span.pickable{pointer-events:none}
 .holotag span{font:400 19px var(--f-display);color:#fff1dc;-webkit-text-stroke:.8px rgba(170,80,10,.5);paint-order:stroke fill;text-shadow:0 0 4px #ff9a3c,0 0 10px rgba(255,140,40,.8),0 2px 3px rgba(90,40,5,.45)}
+.holocnt{position:absolute;transform:translateX(-50%);pointer-events:none;z-index:3;font:400 15px var(--f-display);color:#fff1dc;-webkit-text-stroke:.6px rgba(170,80,10,.5);paint-order:stroke fill;text-shadow:0 0 4px #ff9a3c,0 0 8px rgba(255,140,40,.7);white-space:nowrap}   /* 게임 말 아래 인원 */
 .holotag.bad span{color:#ffc4c4;text-shadow:0 0 6px #ff4d6d}
 .holotag input{width:9em;font:400 20px var(--f-display);text-align:center;color:var(--ink);background:rgba(255,250,240,.95);border:2px solid #ffa04a;border-radius:8px;padding:2px 6px}
 .wseat .wemo{position:absolute;top:-12px;right:-14px;width:30px;height:30px;min-width:0;padding:0;border-radius:50%;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;background:var(--paper);border:1.5px solid var(--line-strong);box-shadow:0 2px 0 rgba(110,69,38,.25)}
@@ -312,7 +313,9 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .wseat small{font-size:11px;color:var(--muted)}
 .wseat.mine button{border-color:var(--mustard);box-shadow:0 0 0 2px var(--mustard),0 3px 0 rgba(110,69,38,.25)}
 .wseat.bot.lv0 small{color:#2c7d47}.wseat.bot.lv2 small{color:var(--gura)}
-.wseat.empty button{min-width:52px;height:40px;justify-content:center;font:400 24px var(--f-display);color:var(--muted);background:rgba(255,250,240,.55);border-style:dashed;box-shadow:none}
+.wseat.empty button{min-width:52px;height:40px;justify-content:center;color:var(--muted);background:rgba(255,250,240,.35);border-style:dashed;box-shadow:none;pointer-events:none;opacity:.85}
+.wseat.empty button svg{width:24px;height:24px}
+.wseat.empty.sitok button{pointer-events:auto}
 .wseat .fsel{position:absolute;top:-9px;left:-9px;width:22px;height:22px;border-radius:50%;background:var(--gura);color:#fff;font:400 12px/22px var(--f-display);font-style:normal}
 .seatpop{position:absolute;z-index:12;display:flex;flex-direction:column;gap:4px;padding:6px;border-radius:12px;background:var(--paper);border:1.5px solid var(--line-strong);box-shadow:0 8px 20px -8px rgba(59,42,31,.5);pointer-events:auto;min-width:120px}
 .seatpop>button{padding:8px 12px;border-radius:8px;border:0;background:var(--well);font-weight:600;text-align:left}
@@ -689,6 +692,7 @@ body.kb .fan .card.cur{z-index:70!important}
       <div class="fr-pad off" id="frPad" aria-hidden="true"></div>
       <button type="button" class="fr-hot off" id="frTable" aria-label="탁자에 앉기" title="앉기"></button>
       <div class="holotag" id="holoTag" hidden><b id="holoTitle"></b><span id="holoGame"></span></div>
+      <div class="holocnt" id="holoCnt" hidden></div>
       <button type="button" class="fr-hot off" id="frKeys" aria-label="키판" title="키판"></button>
       <button type="button" class="fr-hot off" id="frBoard" aria-label="참여하기 · 탁자 번호" title="참여하기"></button>
       <button type="button" class="fr-hot off" id="frEye" aria-label="탁자 번호 가리기·보이기" title="번호 가리기"></button>
@@ -3168,7 +3172,7 @@ function frontBuildDisplay(TG){
   T.hostPad=frontBuildPad(TG,FR_HOST,{w:.32,d:.3,gap:.36,id:'frH',on:frontWaitKey});
   T.guestPad=frontBuildPad(TG,['spec'],{w:.58,d:.38,gap:.66,id:'frG',on:frontWaitKey});
   T.sitPad=frontBuildPad(TG,['sit'],{w:.58,d:.38,gap:.66,id:'frS',on:frontWaitKey});
-  frontBuildPower(TG);frontClearHold();
+  frontClearHold();
   const fr=$('#front');FR_KEYS.forEach((k,i)=>{const b=document.createElement('button');b.type='button';b.className='fr-hot off fr-key';b.id='frK'+i;b.setAttribute('aria-label',FR_KEY_NAME[k]||k);b.addEventListener('click',()=>frontKey(k));fr.insertBefore(b,$('#frFoot'))});
   frontBuildList(TG);
 }
@@ -3204,25 +3208,6 @@ function padIcon(g,k){   // 192×128 칸에 그림
   else if(k==='bot'){L(8,96,14,96,32);g.beginPath();g.arc(96,12,7,0,7);g.fill();g.lineWidth=9;rr(g,58,34,76,64,16);g.stroke();
     g.beginPath();g.arc(80,62,8,0,7);g.arc(112,62,8,0,7);g.fill();L(7,82,84,110,84);L(8,52,58,52,74);L(8,140,58,140,74)}
   else if(k==='spec'){g.lineWidth=9;g.beginPath();g.arc(68,72,24,0,7);g.stroke();g.beginPath();g.arc(124,72,24,0,7);g.stroke();L(9,88,58,104,58);L(9,56,50,64,30);L(9,136,50,128,30)}
-}
-/* 전원 버튼: 디스플레이 오른쪽 나무 띠. 디스플레이가 열리면 구멍이 열리고 올라옴. 누르면 디스플레이를 닫고 일어섬(대기실은 두 번: '떠나기') */
-function frontBuildPower(TG){
-  const x=1.0,z=4.2,hole=frontHole(TG,x,.003,z,.17);
-  const g=new THREE.Group();g.position.set(x,-.2,z);TG.add(g);
-  const base=new THREE.Mesh(new THREE.CylinderGeometry(.13,.15,.08,28),toon({color:0x3a3430,rim:.2}));base.position.y=.04;base.castShadow=true;g.add(base);hull(new THREE.CylinderGeometry(.145,.165,.1,28),base,g);
-  const kc=document.createElement('canvas');kc.width=kc.height=96;const c=kc.getContext('2d');c.fillStyle='#fbf3e4';c.fillRect(0,0,96,96);
-  c.strokeStyle='#3b2a1f';c.lineWidth=9;c.lineCap='round';c.beginPath();c.arc(50,48,24,Math.PI+.75,Math.PI-.75);c.stroke();c.beginPath();c.moveTo(16,48);c.lineTo(46,48);c.stroke();   // ⏻ (원기둥 윗면은 그림이 90도 돌아가 보여서 왼쪽으로 그림)
-  const side=toon({color:0xd9c7a8,rim:.25}),top=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(kc)});
-  const cap=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,.07,28),[side,top,side]);cap.position.y=.1;cap.castShadow=true;g.add(cap);hull(new THREE.CylinderGeometry(.11,.11,.085,28),cap,g);
-  T.power={g,cap,hole,a:{v:0,to:0,from:0,t0:0,ms:0},h:{v:0,to:0,from:0,t0:0,ms:0},downAt:-1e9};
-  const b=document.createElement('button');b.type='button';b.className='fr-hot off fr-key';b.id='frPower';b.setAttribute('aria-label','디스플레이 닫기 · 일어서기');b.title='일어서기';b.addEventListener('click',frontPower);$('#front').insertBefore(b,$('#frFoot'));
-}
-function frontPower(){
-  if(!FR.ok)return;const t=clock();if(T.power)T.power.downAt=t;
-  if(mode==='lobby'){if(!FR.sit||FR.warp||FR.spread||net.peer)return;sfx('key');FR.sit=false;FR.leanOn=false;FR.list=false;return}   // 첫 화면: 바로 일어섬
-  if(!frTableUI())return;
-  if(FR.armAt&&t-FR.armAt<2500){FR.armAt=0;FR.word='';sfx('key');leaveRoom();return}   // 대기실: 두 번 눌러야 떠남 (방장이면 다음 사람에게 넘김)
-  FR.armAt=t;frontWord('떠나기',2500);sfx('tick');
 }
 /* 대기실 자판 */
 function frontWaitCan(k){
@@ -3448,6 +3433,8 @@ function frontBuildHolo(TG){
   const dust=new THREE.Points(pg,new THREE.PointsMaterial({map:gc,color:HOLO_LINE,size:.06,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));g.add(dust);   // 빛 속 먼지 알갱이
   const car=new THREE.Group();g.add(car);
   const pieces=GAME_IDS.map(id=>{const p=frontHoloPiece(id);p.userData.id=id;car.add(p);return p});
+  {const nc=document.createElement('canvas');nc.width=nc.height=128;const c=nc.getContext('2d');c.strokeStyle='#ff3b4e';c.lineWidth=13;c.beginPath();c.arc(64,64,50,0,7);c.stroke();c.beginPath();c.moveTo(29,99);c.lineTo(99,29);c.stroke();   // 금지 표시 🚫
+   const nt=new THREE.CanvasTexture(nc);pieces.forEach(p=>{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:nt,transparent:true,depthTest:false,opacity:0}));sp.scale.setScalar(.62);sp.renderOrder=5;p.add(sp);p.userData.no=sp})}
   T.holo={g,base,lens,beam,car,pieces,glow,dust,hole};
 }
 /* 클립보드: 디스플레이 오른쪽. 종이에는 지금 게임 이름과 줄. 누르면 눈앞으로 날아와 2D 클립보드로 바뀜 */
@@ -3707,10 +3694,6 @@ function frontUpdate(t,dt){
       else m.material[2].color.setScalar(ok?1:.55)});   // 못 누르는 키는 어둡게
     if(FR.clearHold&&hp>=1){FR.clearHold=0;FR.word='';if(FR.humStop){FR.humStop();FR.humStop=null}setTimeout(frontClearGo,0)}   // 그리는 도중에 탁자를 닫지 않게 다음 차례에
   }
-  if(T.power){const P=T.power,want=FR.open>.98&&FR.stand<.05&&((lobby&&FR.sit&&!FR.warp&&!FR.spread&&!net.peer)||wait)?1:0;   // 구멍이 열림 → 버튼이 올라옴 (내려갈 때는 버튼 → 구멍)
-    const hw=want||P.a.v>.02?1:0,hu=smooth(frontTween(P.h,hw,t,hw?240:200));P.hole.visible=hu>.01;P.hole.scale.setScalar(Math.max(.001,hu));
-    const su=smooth(frontTween(P.a,want&&hu>.98?1:0,t,360));P.g.position.y=-.2+.2*su;P.g.visible=su>.01;
-    P.cap.position.y=.1-(t-P.downAt<160?.035:0);P.top=su>.9}
   {const c=t-(FR.clearAt||-1e9),G2=T.tableG;if(!FR.warp&&G2){if(c<650){const r=1-c/650;G2.position.set(r*.05*Math.sin(t/17),0,r*.04*Math.sin(t/23+1));G2.rotation.set(0,0,r*.012*Math.sin(t/13));FR.clearShook=1}else if(FR.clearShook){FR.clearShook=0;G2.position.set(0,0,0);G2.rotation.set(0,0,0)}}}   // 상을 치움: 탁자가 짧게 흔들림
   if(T.keypad){const kv=frontTween(FR.ka,kbase&&FR.kmode==='num'&&!FR.list&&FR.pla.v<=.01&&FR.ma.v<=.01?1:0,t,lobby?720:400),ks=smooth(clamp01(kv/.6)),kr=smooth(clamp01((kv-.6)/.4));
     T.keypad.g.position.z=DSP.Z-.45+(.45+DSP.D/2)*ks;T.keypad.g.position.y=-.012+.042*kr;T.keypad.g.visible=kv>.01;
@@ -3805,6 +3788,7 @@ function frontHoloPose(t,wait){
     p.position.set(x*cs,(y+.04*Math.sin(t/500+k))*cs+.3*col+(cp&&!col?(Math.random()-.5)*.04*cp:0),z*cs);p.scale.setScalar(Math.max(.001,s*cs));p.rotation.y=t/1600+k;p.visible=o>.02;
     const bad=br>.5&&!frontCanPlay(GAME_IDS[k]),jit=bad?(Math.random()<.15?.45:1):1;
     p.userData.mats.forEach(m=>{m.uniforms.uA.value=o*jit;m.uniforms.uR.value.setHex(bad?HOLO_BAD:HOLO_C)});
+    {const no=p.userData.no;if(no){const nv=bad?Math.min(1,o*1.6):0;no.material.opacity=nv;no.visible=nv>.02;no.position.y=.25}}   // 못 하는 게임(인원 초과): 빨간 금지 표시
   });
   Hh.lens.material.color.setHex(on?HOLO_C:0x6a4a2a);
 }
@@ -3872,7 +3856,6 @@ function frontLayout(lobby,wait,host,t){
   const leaned=front&&FR.lean>.9,kpUp=T.keypad&&T.keypad.g.position.y>.02;
   // 숙이기 전: 디스플레이와 키판을 한 덩어리로 누르면 숙여서 봄
   for(const P of [T.hostPad,T.guestPad,T.sitPad]){const on=seated&&P.g.position.y>.025;P.keys.forEach((m,i)=>frontPut($('#'+P.id+i),on,on?frontRect(m,W,Hh):null,2,44,44))}
-  {const on=(front||seated)&&T.power.top&&FR.lean<.1;frontPut($('#frPower'),on,on?frontRect(T.power.g,W,Hh):null,8,44,44)}
   const mUp=front&&T.menuPad.g.position.y>.025&&FR.open>.98&&FR.kmode==='menu';
   T.menuPad.keys.forEach((m,i)=>frontPut($('#frM'+i),mUp,mUp?frontRect(m,W,Hh):null,4,60,48));
   let kr=null;if(front&&FR.lean<.1&&kpUp&&FR.open>.98&&FR.kmode==='num'){const a1=frontRect(T.keypad.g,W,Hh),a2=frontRect(T.board.screen,W,Hh);kr={l:Math.min(a1.l,a2.l),r:Math.max(a1.r,a2.r),t:Math.min(a1.t,a2.t),b:Math.max(a1.b,a2.b)}}
@@ -3910,6 +3893,9 @@ function frontLayout(lobby,wait,host,t){
     if(ht.dataset.k!==tn+'|'+gn+'|'+bad+'|'+host){ht.dataset.k=tn+'|'+gn+'|'+bad+'|'+host;if(!$('#holoTitleIn'))$('#holoTitle').textContent=tn;$('#holoGame').textContent=gn;ht.classList.toggle('bad',bad);$('#holoTitle').classList.toggle('editable',host);$('#holoGame').classList.toggle('pickable',host)}
     ht.style.left=Math.round(x)+'px';ht.style.top=Math.round(y-ht.offsetHeight)+'px';ht.style.opacity=Math.min(1,FR.holoGlow*1.2)*(FR.collapseAt?0:1);
   }
+  {const hc=$('#holoCnt'),on=hOn&&!FR.browse;if(hc.hidden===on)hc.hidden=!on;   // 게임 말 아래 인원 (고르는 중에는 숨김)
+    if(on){const n=(V.ps||[]).length,mx=Math.max(+V.cfg.max||0,n),tx=`${n}/${mx}명`;if(hc.textContent!==tx)hc.textContent=tx;
+      _v3.set(0,.36,0);T.holo.g.localToWorld(_v3);_v3.project(T.cam);hc.style.left=Math.round((_v3.x+1)/2*W)+'px';hc.style.top=Math.round((1-_v3.y)/2*Hh)+'px';hc.style.opacity=Math.min(1,FR.holoGlow*1.2)*(FR.collapseAt?0:1)}}
 }
 /* 꺼진 시작 버튼을 누름: 금지 소리 + 빈 자리 이름표가 통통 튀며 "사람이 더 필요함"을 보여 줌 */
 function frontNeedSeats(){
@@ -4046,6 +4032,7 @@ $('#specBar').addEventListener('click',e=>{   // 대기실: 방장이 관전자 
   const b=e.target.closest('.sb-n[data-s]');if(!b||mode!=='host'||!H||H.phase!=='wait')return;
   const k=+b.dataset.s,sp=(H.specs||[])[k];if(sp&&confirm(`${sp.name}님을 탁자에서 내보낼까요?\n내보낸 사람은 이 탁자에 다시 앉을 수 없습니다.`))hostKickSpec(k);
 });
+const CHAIR_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2.6 2.4" aria-hidden="true"><rect x="7" y="3" width="10" height="7" rx="1.5"/><path d="M9 10v2.5M15 10v2.5M4.5 13h15M6 13.5 5 21M18 13.5 19 21"/></svg>';
 function waitSeatsHTML(){
   const me=myIdx(),max=+V.cfg.max,ps=V.ps||[],isHost=mode==='host';
   const pickF=!!(G.firstPick&&+V.cfg.pickfirst);
@@ -4055,7 +4042,7 @@ function waitSeatsHTML(){
     const p=ps[k];
     if(p){const sub=p.hs?'방장':p.b?`봇 · ${BOT_LV[p.lv??1]}`:p.aw?'연결 끊김':'';
       h+=`<div class="seat wseat${k===me?' mine':''}${p.b?' bot lv'+(p.lv??1):''}" data-w="${k}"><button type="button" data-seat="s${k}" aria-label="${esc(p.n)}${k===me?' (나)':''}">${k===fi?'<i class="fsel">선</i>':''}<span class="nm">${G.nameTag?G.nameTag(p,k):''}${esc(p.n)}</span>${sub?`<small>${esc(sub)}</small>`:''}</button>${k===me?'<button type="button" class="wemo" aria-label="이모티콘" title="이모티콘">😊</button>':''}</div>`}
-    else if(!isHost)h+=`<div class="seat wseat empty" data-w="${k}"><button type="button" data-seat="e${k}" aria-label="빈 자리"${!isHost&&!(me<0&&V.spec)?' tabindex="-1"':''}>+</button></div>`;
+    else h+=`<div class="seat wseat empty${me<0&&V.spec?' sitok':''}" data-w="${k}"><button type="button" data-seat="e${k}" aria-label="빈 자리"${me<0&&V.spec?'':' tabindex="-1"'}>${CHAIR_SVG}</button></div>`;   // 빈 자리: 빈 의자 점선 그림 (관전자만 눌러서 앉음)
   }
   return h;
 }
