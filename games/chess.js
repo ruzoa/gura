@@ -798,32 +798,39 @@ function profs(){
     3:prof([baseP(.31),{c:[[.17,.3],[.11,.55],[.085,.7]]},[[.17,.72],[.17,.755],[.1,.77],[.13,.785],[.13,.8],[.08,.81]],{c:[[.14,.87],[.165,.96],[.145,1.05],[.095,1.12],[.035,1.165],[0,1.175]]}]),
     5:prof([baseP(.34),{c:[[.19,.32],[.13,.62],[.1,.86]]},[[.2,.88],[.2,.915],[.12,.93],[.15,.945],[.15,.96],[.12,.97]],{c:[[.15,1.06],[.21,1.17],[.255,1.24]]},[[.2,1.245]],{c:[[.15,1.27],[.09,1.3],[0,1.31]]}]),
     6:prof([baseP(.35),{c:[[.2,.33],[.14,.66],[.11,.92]]},[[.21,.94],[.21,.975],[.13,.99],[.16,1.005],[.16,1.02],[.13,1.03]],{c:[[.16,1.12],[.215,1.22],[.23,1.28]]},[[.23,1.3],[.15,1.31]],{c:[[.1,1.355],[0,1.37]]}]),
-    2:prof([baseP(.31),[[.24,.165],[.24,.2],[0,.2]]])};
+    2:prof([baseP(.31),[[.24,.165],[.24,.19],[.27,.2],[.27,.225],[.2,.235],[0,.235]]])};
 }
-/* 나이트 말머리 옆모양 (오른쪽을 봄): 가슴 → 목 → 턱 → 둥근 코 → 이마 → 귀 → 갈기 */
+/* 나이트 말머리 옆모양 (오른쪽을 봄): 가슴 → 목 → 턱 밑 → 입 → 둥근 코 → 이마 → 귀 → 갈기 */
+const KX=x=>x-.06,KY=y=>.22+(y-.22)*1.04;   // 받침 가운데로 옮기고 키를 맞춤
 function knightShape(){
-  const sh=new THREE.Shape(),X=x=>x-.06;
-  sh.moveTo(X(-.3),.22);sh.lineTo(X(.3),.22);
-  sh.quadraticCurveTo(X(.31),.36,X(.15),.46);
-  sh.quadraticCurveTo(X(.12),.52,X(.23),.57);
-  sh.lineTo(X(.41),.65);
-  sh.quadraticCurveTo(X(.5),.69,X(.48),.77);
-  sh.quadraticCurveTo(X(.46),.83,X(.35),.85);
-  sh.quadraticCurveTo(X(.23),.88,X(.16),.96);
-  sh.lineTo(X(.14),1.07);sh.lineTo(X(.05),1.0);
-  sh.quadraticCurveTo(X(-.06),1.01,X(-.15),.92);
-  sh.quadraticCurveTo(X(-.31),.78,X(-.33),.56);
-  sh.quadraticCurveTo(X(-.35),.38,X(-.3),.22);
+  const sh=new THREE.Shape(),M=(x,y)=>sh.moveTo(KX(x),KY(y)),L=(x,y)=>sh.lineTo(KX(x),KY(y)),Q=(cx,cy,x,y)=>sh.quadraticCurveTo(KX(cx),KY(cy),KX(x),KY(y));
+  M(-.24,.22);L(.24,.22);
+  Q(.26,.34,.1,.44);Q(.04,.5,.13,.56);   // 가슴, 목 앞
+  L(.3,.62);Q(.36,.6,.38,.64);           // 턱 밑, 턱
+  L(.36,.685);L(.44,.7);                 // 입
+  Q(.49,.74,.45,.79);Q(.42,.85,.33,.86); // 코끝, 콧등
+  Q(.24,.89,.17,.98);                    // 이마
+  L(.15,1.12);L(.08,1.06);L(.03,1.04);   // 귀
+  Q(-.08,1.04,-.16,.96);Q(-.3,.82,-.3,.62);Q(-.3,.38,-.24,.22);   // 갈기 쪽 목 뒤
   return sh;
 }
-/* 나이트 머리: 옆모양을 돌출하고 키를 맞춘 뒤, 코 쪽과 귀 쪽으로 갈수록 얇게 깎음 (off: 먹선용으로 조금 크게) */
-const kTaper=(x,y)=>(1-.4*Math.min(1,Math.max(0,(x+.05)/.45)))*(1-.3*Math.min(1,Math.max(0,(y-.85)/.35)));
-function knightGeo(off){
-  const g=new THREE.ExtrudeGeometry(knightShape(),{depth:.32,bevelEnabled:true,bevelThickness:.06+off,bevelSize:.045+off,bevelSegments:3,curveSegments:8});
-  g.translate(0,0,-.16);g.scale(1,1.12,1);g.translate(0,-.04,0);
+/* 갈기: 목 뒤를 따라 톱니처럼 솟은 얇은 띠 */
+function maneShape(){
+  const sh=new THREE.Shape(),o=[[.03,1.09],[-.06,1.07],[-.1,1.03],[-.17,1.01],[-.2,.95],[-.28,.91],[-.29,.84],[-.36,.78],[-.35,.7],[-.4,.62],[-.37,.54],[-.4,.45],[-.33,.42]],
+    i=[[-.25,.45],[-.27,.6],[-.25,.76],[-.17,.9],[-.07,.98],[.02,1.01]];
+  [...o,...i].forEach(([x,y],k)=>k?sh.lineTo(KX(x),KY(y)):sh.moveTo(KX(x),KY(y)));sh.closePath();return sh;
+}
+/* 돌출한 뒤 코 쪽과 귀 쪽으로 갈수록 얇게. 모서리는 넓은 둥근 턱(bevel)으로 베개처럼 둥글게 (off: 먹선용으로 조금 크게) */
+const kTaper=(x,y)=>(1-.38*Math.min(1,Math.max(0,(x+.05)/.45)))*(1-.28*Math.min(1,Math.max(0,(y-.9)/.3)));
+function kExtrude(sh,depth,bt,bs,off){
+  const g=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:true,bevelThickness:bt+off,bevelSize:bs+off,bevelSegments:5,curveSegments:10});
+  g.translate(0,0,-depth/2);
   const P=g.attributes.position;for(let i=0;i<P.count;i++)P.setZ(i,P.getZ(i)*kTaper(P.getX(i),P.getY(i)));
   g.computeVertexNormals();return g;
 }
+const knightGeo=off=>kExtrude(knightShape(),.14,.1,.055,off);
+const maneGeo=off=>kExtrude(maneShape(),.04,.03,.02,off);
+const kSide=(x,y)=>(.07+.1)*kTaper(KX(x),KY(y));   // 머리 옆면까지의 거리 (눈·입 자리)
 const GEO={};
 function geoOf(t){
   if(GEO[t])return GEO[t];
@@ -837,9 +844,13 @@ function geoOf(t){
   if(t===QQ){for(let k=0;k<9;k++){const a=k/9*Math.PI*2;ex.push([new THREE.SphereGeometry(.038,10,8),Math.sin(a)*.25,1.255,Math.cos(a)*.25,0,0])}ex.push([new THREE.SphereGeometry(.06,14,10),0,1.36,0,0,0])}
   if(t===KK){ex.push([new THREE.BoxGeometry(.075,.27,.075),0,1.48,0,0,0]);ex.push([new THREE.BoxGeometry(.21,.07,.075),0,1.52,0,0,0])}
   if(t===BB)ex.push([new THREE.SphereGeometry(.045,12,8),0,1.2,0,0,0]);
-  if(t===NN){ex.push([knightGeo(0),0,0,0,0,0,'head']);
-    const ez=(.16+.06)*kTaper(.2,.856)-.005;for(const z of [-ez,ez])ex.push([new THREE.SphereGeometry(.03,8,6),.2,.856,z,0,0,'eye'])}
-  return GEO[t]={lat,ink,ex,kInk:t===NN?knightGeo(.022):null};
+  if(t===NN){ex.push([knightGeo(0),0,0,0,0,0,'head']);ex.push([maneGeo(0),0,0,0,0,0,'mane']);
+    for(const sg of [-1,1]){
+      ex.push([new THREE.SphereGeometry(.032,10,8),KX(.12),KY(.92),sg*(kSide(.12,.92)-.004),0,0,'eye']);   // 눈
+      ex.push([new THREE.SphereGeometry(.018,8,6),KX(.42),KY(.8),sg*(kSide(.42,.8)-.006),0,0,'eye']);   // 콧구멍
+      ex.push([new THREE.BoxGeometry(.11,.016,.02),KX(.38),KY(.69),sg*(kSide(.38,.69)-.004),0,-.12,'eye']);   // 입 선
+    }}
+  return GEO[t]={lat,ink,ex,kInk:t===NN?knightGeo(.022):null,mInk:t===NN?maneGeo(.02):null};
 }
 const MAT={};
 function matOf(col,ghost){
@@ -856,9 +867,9 @@ function pieceMesh(t,col,ghost){
   if(!ghost){g.add(new THREE.Mesh(G3.ink,INK()))}
   const parts=[body];
   for(const [geo,x,y,z,ry,rz,tag] of G3.ex){
-    if(tag==='eye'){if(!ghost){const e=new THREE.Mesh(geo,SLIT());e.position.set(x,y,z);g.add(e)}continue}
+    if(tag==='eye'){if(!ghost){const e=new THREE.Mesh(geo,SLIT());e.position.set(x,y,z);e.rotation.z=rz;g.add(e)}continue}
     const e=new THREE.Mesh(geo,m);e.position.set(x,y,z);e.rotation.y=ry;e.rotation.z=rz;e.castShadow=!ghost;g.add(e);parts.push(e);
-    if(!ghost){const o=new THREE.Mesh(tag==='head'?G3.kInk:geo,INK());o.position.copy(e.position);o.rotation.copy(e.rotation);if(t===RR){o.scale.set(1.08,1.15,1.08);o.position.y=e.position.y-.006}else if(tag!=='head')o.scale.setScalar(1.3);g.add(o)}
+    if(!ghost){const o=new THREE.Mesh(tag==='head'?G3.kInk:tag==='mane'?G3.mInk:geo,INK());o.position.copy(e.position);o.rotation.copy(e.rotation);if(t===RR){o.scale.set(1.08,1.15,1.08);o.position.y=e.position.y-.006}else if(tag!=='head'&&tag!=='mane')o.scale.setScalar(1.3);g.add(o)}
   }
   if(t===BB){const sl=new THREE.Mesh(new THREE.BoxGeometry(.03,.17,.36),ghost?m:SLIT());sl.position.set(.03,1.0,0);sl.rotation.z=.7;g.add(sl)}
   g.scale.setScalar(S*.95);
