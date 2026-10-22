@@ -3291,21 +3291,15 @@ function guestCleared(){
    최신 줄은 늘 틈 바로 옆. 처음엔 보통 영수증처럼 나오다가 RC_MAX줄이 넘으면 위쪽에 들어가는 틈이 열려 오래된 줄을 삼킴.
    누르거나 위로 끌면 들어가는 틈에서 종이가 뽑혀 나와 눈앞으로 날아오고 2D 영수증(전체 기록)으로 펼쳐짐. 게임이 끝나면 2D 맨 아래 '가져가기'(복사) */
 const RC={LH:.15,PW:.82,MAX:5,SEG:48,RPX:48,CW:420};   // 줄 높이, 종이 폭, 들어가는 틈까지 보이는 줄 수(머리글 포함), 띠 마디, 캔버스 줄 높이·폭
-/* 종이 모양 (모든 게임 같음): 틈에서 90도로 서서 나와 제 무게로 뒤(화면 위쪽)로 휘어 탁자에 누움.
-   세운 곡선은 3차 베지어 (0,0)→(0,RC_BZ.h)…(RC_BZ.w-RC_BZ.k,0)→(RC_BZ.w,0): 처음은 수직, 끝은 탁자에 닿으며 수평. 그 뒤는 바닥에 붙어 누움.
-   틈 아래·들어가는 틈 아래는 탁자 속(탁자 윗면에 가려 안 보임) */
-const RC_BZ={h:.5,w:.3,k:.24};
-const RC_PATH=(()=>{const P=[[0,0]],n=60;let L=0;const L_=[0];for(let i=1;i<=n;i++){const t=i/n,a=(1-t)**3,b=3*(1-t)**2*t,c=3*(1-t)*t*t,d=t**3;
-  const x=c*(RC_BZ.w-RC_BZ.k)+d*RC_BZ.w,y=b*RC_BZ.h;const q=P[i-1];L+=Math.hypot(x-q[0],y-q[1]);P.push([x,y]);L_.push(L)}return {P,L_,len:L}})();
-function rcCurve(al,xIn){   // 종이 길이 al(틈에서부터) → [앞으로 간 거리, 높이]
+/* 종이 모양 (모든 게임 같음): 감열지는 빳빳해서 꺾이지 않음. 틈에서 90도로 서서 나와 같은 굽기(반지름 RC_R)로 둥글게 뒤로 넘어감.
+   RC.MAX줄이 나오면 반원이 되어 끝이 탁자에 닿는 자리 = 들어가는 틈(RC_XIN). 그 뒤 줄은 들어가는 틈으로 내려가 탁자 속으로 (틈 아래는 탁자 윗면에 가려 안 보임) */
+const RC_R=RC.MAX*RC.LH/Math.PI,RC_XIN=2*RC_R;
+function rcCurve(al){   // 종이 길이 al(틈에서부터) → [앞으로 간 거리, 높이]
   if(al<=0)return [0,al];   // 아직 틈 속
-  const C=RC_PATH;let x,y;
-  if(al<C.len){let k=1;while(k<C.L_.length-1&&C.L_[k]<al)k++;const f=(al-C.L_[k-1])/(C.L_[k]-C.L_[k-1]||1);x=C.P[k-1][0]+(C.P[k][0]-C.P[k-1][0])*f;y=C.P[k-1][1]+(C.P[k][1]-C.P[k-1][1])*f}
-  else{x=RC_BZ.w+(al-C.len);y=0}
-  if(xIn!=null&&x>xIn){y=-(x-xIn);x=xIn}   // 들어가는 틈으로 빨려 내려감
-  return [x,y];
+  const th=al/RC_R;
+  if(th<=Math.PI)return [RC_R*(1-Math.cos(th)),RC_R*Math.sin(th)];
+  return [RC_XIN,-(al-Math.PI*RC_R)];   // 들어가는 틈으로 내려감
 }
-const RC_XIN=RC_BZ.w+Math.max(.15,RC.MAX*RC.LH-RC_PATH.len)+.01;   // 들어가는 틈 자리 (나오는 틈에서 앞으로)
 /* 틈 자리 후보: 내 쪽(화면 아래)을 0도로 탁자 둘레 나무 띠 위 각도. 카메라가 멈춘 뒤 화면 안에 다 보이고 2D 화면(손패·버튼·점수 종이)에 안 가리는 첫 자리를 탁자 좌표로 정해 고정 */
 const RC_CAND={_:{a:[50,-50,90,-90,128,-128,150,-150,180],r:[4.3,3.7,3.1,2.5]},   // a: 각도 순서, r: 반지름 순서 (세로 휴대폰은 둘레가 화면 밖이라 안쪽까지)
   quoridor:{a:[50,-50,90,-90,145,-145,128,-128,180,165,-165],r:[4.3,3.9,3.5]},   // 판·벽 보관함 위에는 놓지 않음
@@ -3377,10 +3371,10 @@ function rcptUpdate(t){
   R.paper.visible=R.ink.visible=on&&ov>.6&&rows>0;
   if(!R.paper.visible){$('#rcHot').classList.add('off');return}
   // 종이 띠: 틈에서 90도로 서서 나와 뒤로 휘어 누움. 출력할 때 한 줄만큼 밀려 나옴(feed)
-  const LEN=rows*RC.LH,pos=R.geo.attributes.position,N=RC.SEG+1,xIn=iv>.5?RC_XIN:null;
+  const LEN=rows*RC.LH,pos=R.geo.attributes.position,N=RC.SEG+1;
   if(R.uvRows!==rows){R.uvRows=rows;const uv=R.geo.attributes.uv;for(let i=0;i<N;i++)for(let j=0;j<2;j++)uv.setY(i*2+j,i/RC.SEG*rows/(RC.MAX+1));uv.needsUpdate=true}   // 그림의 아래쪽 rows줄만 종이에
   const ip=R.ink.geometry.attributes.position,OW=RC.PW+.03,OT=.004;
-  for(let i=0;i<N;i++){const al=i/RC.SEG*LEN-feed,[fx,fy]=rcCurve(al,xIn),[gx,gy]=rcCurve(al+.004,xIn);let tx=gx-fx,ty=gy-fy;const tl=Math.hypot(tx,ty)||1;tx/=tl;ty/=tl;const nx=-ty,ny=tx;   // 종이 면의 법선(바닥이면 위쪽)
+  for(let i=0;i<N;i++){const al=i/RC.SEG*LEN-feed,[fx,fy]=rcCurve(al),[gx,gy]=rcCurve(al+.004);let tx=gx-fx,ty=gy-fy;const tl=Math.hypot(tx,ty)||1;tx/=tl;ty/=tl;const nx=-ty,ny=tx;   // 종이 면의 법선(바닥이면 위쪽)
     const ex=fx,ey=fy;
     for(let j=0;j<2;j++){const u=j-.5,px=x0+Rr.x*u*RC.PW+D.x*fx,pz=z0+Rr.z*u*RC.PW+D.z*fx;pos.setXYZ(i*2+j,px,y0+.002+fy,pz);
       ip.setXYZ(i*2+j,x0+Rr.x*u*OW+D.x*(ex-nx*OT),y0+.002+ey-ny*OT,z0+Rr.z*u*OW+D.z*(ex-nx*OT))}}
@@ -3398,7 +3392,7 @@ function rcSpotAt(ang,cam,R0=4.3){
 }
 function rcSpotOk(S,cam,W,Hh){
   const D=S.d,Rr=new THREE.Vector3(-D.z,0,D.x),pts=[];
-  for(const [f,h] of [[0,0],[0,RC_BZ.h*.45],[RC_XIN,0],[RC_XIN*.5,0]])for(const u of [-.5,.5])pts.push([S.x+Rr.x*u*RC.PW+D.x*f,h,S.z+Rr.z*u*RC.PW+D.z*f]);
+  for(const [f,h] of [[0,0],[RC_R*.3,RC_R*.75],[RC_R,RC_R],[RC_XIN,0]])for(const u of [-.5,.5])pts.push([S.x+Rr.x*u*RC.PW+D.x*f,h,S.z+Rr.z*u*RC.PW+D.z*f]);
   for(const [x,,z] of pts)if(x*x+z*z>4.85*4.85)return false;   // 탁자 밖
   const sr=$('#stage').getBoundingClientRect(),hot=$('#rcHot'),pe=hot.style.pointerEvents;hot.style.pointerEvents='none';
   let ok=true;
