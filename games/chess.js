@@ -831,7 +831,7 @@ function kExtrude(sh,depth,bt,bs,off){
 const knightGeo=off=>kExtrude(knightShape(),.14,.1,.055,off);
 const maneGeo=off=>kExtrude(maneShape(),.04,.03,.02,off);
 const kSide=(x,y)=>(.07+.1)*kTaper(KX(x),KY(y));   // 머리 옆면까지의 거리 (눈·입 자리)
-const KNS=[.8,.85,.8];   // 나이트 머리 크기 (가로·키·두께)
+const KNS=[.8,1,.68];   // 나이트 머리 크기 (가로·키·두께): 키는 실물 비율(킹의 .72), 가로·두께만 줄여 날렵하게
 const GEO={};
 function geoOf(t){
   if(GEO[t])return GEO[t];
