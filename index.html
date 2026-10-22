@@ -3433,8 +3433,12 @@ function frontBuildHolo(TG){
   const dust=new THREE.Points(pg,new THREE.PointsMaterial({map:gc,color:HOLO_LINE,size:.06,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));g.add(dust);   // 빛 속 먼지 알갱이
   const car=new THREE.Group();g.add(car);
   const pieces=GAME_IDS.map(id=>{const p=frontHoloPiece(id);p.userData.id=id;car.add(p);return p});
-  {const nc=document.createElement('canvas');nc.width=nc.height=128;const c=nc.getContext('2d');c.strokeStyle='#ff3b4e';c.lineWidth=13;c.beginPath();c.arc(64,64,50,0,7);c.stroke();c.beginPath();c.moveTo(29,99);c.lineTo(99,29);c.stroke();   // 금지 표시 🚫
-   const nt=new THREE.CanvasTexture(nc);pieces.forEach(p=>{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:nt,transparent:true,depthTest:false,opacity:0}));sp.scale.setScalar(.62);sp.renderOrder=5;p.add(sp);p.userData.no=sp})}
+  {const nc=document.createElement('canvas');nc.width=nc.height=128;const c=nc.getContext('2d');   // 금지 표시: 홀로그램처럼 빛나는 반투명 선 + 가로 줄무늬
+   const ring=()=>{c.beginPath();c.arc(64,64,46,0,7);c.moveTo(32,96);c.lineTo(96,32)};c.lineCap='round';
+   c.shadowColor='#ff4d6d';c.shadowBlur=14;c.strokeStyle='rgba(255,77,109,.75)';c.lineWidth=12;ring();c.stroke();
+   c.shadowBlur=0;c.strokeStyle='rgba(255,170,185,.95)';c.lineWidth=4;ring();c.stroke();
+   c.globalCompositeOperation='destination-out';c.fillStyle='rgba(0,0,0,.45)';for(let y=0;y<128;y+=5)c.fillRect(0,y,128,2);
+   const nt=new THREE.CanvasTexture(nc);pieces.forEach(p=>{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:nt,transparent:true,depthTest:false,depthWrite:false,opacity:0}));sp.scale.setScalar(.62);sp.renderOrder=5;p.add(sp);p.userData.no=sp})}
   T.holo={g,base,lens,beam,car,pieces,glow,dust,hole};
 }
 /* 클립보드: 디스플레이 오른쪽. 종이에는 지금 게임 이름과 줄. 누르면 눈앞으로 날아와 2D 클립보드로 바뀜 */
@@ -3788,7 +3792,7 @@ function frontHoloPose(t,wait){
     p.position.set(x*cs,(y+.04*Math.sin(t/500+k))*cs+.3*col+(cp&&!col?(Math.random()-.5)*.04*cp:0),z*cs);p.scale.setScalar(Math.max(.001,s*cs));p.rotation.y=t/1600+k;p.visible=o>.02;
     const bad=br>.5&&!frontCanPlay(GAME_IDS[k]),jit=bad?(Math.random()<.15?.45:1):1;
     p.userData.mats.forEach(m=>{m.uniforms.uA.value=o*jit;m.uniforms.uR.value.setHex(bad?HOLO_BAD:HOLO_C)});
-    {const no=p.userData.no;if(no){const nv=bad?Math.min(1,o*1.6):0;no.material.opacity=nv;no.visible=nv>.02;no.position.y=.25}}   // 못 하는 게임(인원 초과): 빨간 금지 표시
+    {const no=p.userData.no;if(no){const nv=bad?Math.min(.8,o*1.2)*jit:0;no.material.opacity=nv;no.visible=nv>.02;no.position.y=.25}}   // 못 하는 게임(인원 초과): 빨간 금지 표시
   });
   Hh.lens.material.color.setHex(on?HOLO_C:0x6a4a2a);
 }
