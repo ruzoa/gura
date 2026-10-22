@@ -304,6 +304,8 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 #frStart[aria-disabled="true"]::after{display:none}
 /* 대기실 자리 이름표 (대기실 창 대신): 누르면 작은 메뉴 */
 .stage.frwait .labels{visibility:visible!important}   /* 쿼리도·야추·오목은 게임 중 이름표를 숨기지만 대기실 이름표(봇 앉히기·이모티콘)는 보여야 함 */
+.labels .wseat.drop{animation:seatDrop .42s ease-in forwards;pointer-events:none}   /* 상을 치움: 이름표가 툭 떨어짐 */
+@keyframes seatDrop{40%{translate:0 -6px;rotate:-4deg}100%{translate:0 46px;rotate:10deg;opacity:0}}
 .labels .wseat{pointer-events:auto;padding:0;background:none;border:0;box-shadow:none}
 .wseat button{display:flex;flex-direction:column;align-items:center;gap:0;min-width:64px;padding:5px 12px 6px;border-radius:12px;border:1.5px solid var(--line-strong);background:rgba(255,250,240,.94);box-shadow:0 3px 0 rgba(110,69,38,.25);color:var(--ink);position:relative;line-height:1.25}
 .wseat .nm{font-weight:700;font-size:13.5px}
@@ -1665,7 +1667,7 @@ function hum(ms){
   o1.type='sawtooth';o2.type='sine';o1.frequency.setValueAtTime(70,t);o1.frequency.exponentialRampToValueAtTime(230,t+d);o2.frequency.setValueAtTime(140,t);o2.frequency.exponentialRampToValueAtTime(460,t+d);
   lp.type='lowpass';lp.Q.value=6;lp.frequency.setValueAtTime(260,t);lp.frequency.exponentialRampToValueAtTime(1900,t+d);
   lfo.frequency.setValueAtTime(5,t);lfo.frequency.linearRampToValueAtTime(15,t+d);lg.gain.value=.45;lfo.connect(lg);lg.connect(trem.gain);trem.gain.value=.55;   // 우-우-우-웅: 떨림이 점점 빨라짐
-  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.11,t+d);
+  g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(.05,t+.03);g.gain.linearRampToValueAtTime(.12,t+d);   // 누르자마자 들리고 점점 커짐
   o1.connect(lp);o2.connect(lp);lp.connect(trem);trem.connect(g);g.connect(SND.fx);[o1,o2,lfo].forEach(o=>o.start(t));
   let done=false;return ()=>{if(done)return;done=true;const n=c.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(Math.max(.0001,g.gain.value),n);g.gain.exponentialRampToValueAtTime(.0001,n+.12);[o1,o2,lfo].forEach(o=>o.stop(n+.15))};
 }
@@ -3235,7 +3237,7 @@ function frontWaitCan(k){
   return false;
 }
 function frontWaitKey(k){
-  if(!frTableUI())return;
+  if(!frTableUI()||FR.clearing)return;
   const t=clock(),P=k==='spec'?T.guestPad:k==='sit'?T.sitPad:T.hostPad,m=P.keys.find(x=>x.userData.k===k);if(m)m.userData.downAt=t;
   if(k==='clear')return;   // 꾹 누르기로만 (frontClearHold)
   if(!frontWaitCan(k)){sfx('no');return}
@@ -3254,10 +3256,16 @@ function frontWaitKey(k){
 const CLEAR_MS=1000;
 function frontClearHold(){
   const b=$('#frH'+FR_HOST.indexOf('clear'));if(!b)return;
-  b.addEventListener('pointerdown',e=>{if(!frontWaitCan('clear')){sfx('no');return}FR.clearHold=clock();sfx('key');if(FR.humStop)FR.humStop();FR.humStop=hum(CLEAR_MS);frontWord('치우기',CLEAR_MS+400);try{b.setPointerCapture(e.pointerId)}catch(_){}});
+  b.addEventListener('pointerdown',e=>{if(FR.clearing)return;if(!frontWaitCan('clear')){sfx('no');return}FR.clearHold=clock();sfx('key');if(FR.humStop)FR.humStop();FR.humStop=hum(CLEAR_MS);frontWord('치우기',CLEAR_MS+400);try{b.setPointerCapture(e.pointerId)}catch(_){}});
   const stop=()=>{if(FR.clearHold&&clock()-FR.clearHold<CLEAR_MS){FR.word=''}FR.clearHold=0;if(FR.humStop){FR.humStop();FR.humStop=null}};
   b.addEventListener('pointerup',stop);b.addEventListener('pointercancel',stop);b.addEventListener('lostpointercapture',stop);
-  b.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&frontWaitCan('clear')){e.preventDefault();hostClear()}});
+  b.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&frontWaitCan('clear')){e.preventDefault();frontClearGo()}});
+}
+/* 상치우기 연출: 홀로그램이 한 점으로 빨려 들어가고(FR.collapseAt, CLEAR_SUCK ms) 그 뒤에 탁자를 닫음 */
+const CLEAR_SUCK=450;
+function frontClearGo(){
+  if(FR.clearing||mode!=='host')return;FR.clearing=1;FR.clearP=1;FR.collapseAt=clock();sfx('tableClear');
+  setTimeout(()=>{FR.clearing=0;FR.clearP=0;hostClear()},CLEAR_SUCK);
 }
 /* 상치우기: 모두 내보내고 탁자를 정리. 방장은 앉은 채 첫 자판으로, 참가자는 상이 짧게 흔들리며 첫 자판으로 */
 function hostClear(){
@@ -3265,13 +3273,16 @@ function hostClear(){
   for(const c of net.conns){try{c.send({t:'cleared'})}catch(e){}}
   const conns=[...net.conns];net.conns.clear();setTimeout(()=>{for(const c of conns){try{c.close()}catch(e){}}},300);
   H.members=H.members.filter(m=>m.host);H.specs=[];   // 다음 방장에게 넘기지 않음
-  sfx('tableClear');leaveRoom();FR.sit=true;FR.kmode='menu';
+  leaveRoom();FR.sit=true;FR.kmode='menu';
 }
 function guestCleared(){
   if(mode!=='guest')return;
   unstore('gura-guest');
   if(!FR.ok){mode='closed';if(net.retry){clearTimeout(net.retry.timer);net.retry=null}showPanel('<h2>상을 치웠습니다</h2><p>방장이 탁자를 정리했습니다.</p><div class="row"><button class="btn btn-play" type="button" data-act="leave" data-auto>로비로</button></div>','gone');return}
-  leaveRoom();FR.sit=true;FR.kmode='menu';FR.clearAt=clock();sfx('tableClear');
+  // 참가자: 홀로그램이 빨려 들어가고 이름표가 툭툭 떨어진 뒤, 탁자가 짧게 흔들리며 첫 자판으로
+  FR.clearing=1;FR.collapseAt=clock();sfx('tableClear');
+  document.querySelectorAll('#labels .wseat').forEach((el,i)=>{el.style.animationDelay=(i*60)+'ms';el.classList.add('drop')});
+  setTimeout(()=>{FR.clearing=0;if(mode!=='guest')return;leaveRoom();FR.sit=true;FR.kmode='menu';FR.clearAt=clock();sfx('warpFail')},CLEAR_SUCK+150);
 }
 /* 공개 탁자 목록 판 = 플립 안내판: 돋보기를 누르면 키판이 디스플레이 아래로 들어간 뒤, 같은 틈에서 원목 틀의 안내판이 서서 올라옴.
    틀 안에 플립 줄 7개(게임·탁자 이름·인원 칸, 디스플레이와 같은 짙은 칸에 크림 글씨). 내용이 바뀌면 줄마다 차례로 촤라락 넘어감.
@@ -3630,7 +3641,7 @@ function frontGo(){   // 디스플레이를 누름 / Enter
 function padPose(P,want,t,ms){
   const v=frontTween(P.a,want?1:0,t,ms),s=smooth(clamp01(v/.6)),r=smooth(clamp01((v-.6)/.4));
   P.g.position.z=DSP.Z-.45+(.45+DSP.D/2)*s;P.g.position.y=-.012+.047*r;P.g.visible=v>.01;
-  for(const m of P.keys){const d=t-m.userData.downAt,nd=t-(m.userData.nudge||-1e9);m.position.y=d<160?-.03:nd<700?.05*Math.abs(Math.sin(nd/700*Math.PI*2)):0}
+  for(const m of P.keys){const d=t-m.userData.downAt;m.position.y=d<160?-.03:0}
 }
 function frontTween(a,to,t,ms){
   if(a.to!==to){a.from=a.v;a.to=to;a.t0=t;a.ms=ms*Math.abs(to-a.v)}
@@ -3694,7 +3705,7 @@ function frontUpdate(t,dt){
     for(const P of [T.hostPad,T.guestPad,T.sitPad])if(P.g.visible)P.keys.forEach(m=>{const k=m.userData.k,ok=frontWaitCan(k);
       if(k==='clear'){const p=FR.clearP;m.material[2].color.setRGB(1,1-.62*p,1-.68*p);m.material[0].color.setRGB(.85+.15*p,.78-.45*p,.66-.4*p);if(FR.clearHold)m.position.y=-.03*Math.min(1,hp*4)}   // 꾹 누르면 점점 빨갛게
       else m.material[2].color.setScalar(ok?1:.55)});   // 못 누르는 키는 어둡게
-    if(FR.clearHold&&hp>=1){FR.clearHold=0;FR.clearP=0;FR.word='';if(FR.humStop){FR.humStop();FR.humStop=null}setTimeout(hostClear,0)}   // 그리는 도중에 탁자를 닫지 않게 다음 차례에
+    if(FR.clearHold&&hp>=1){FR.clearHold=0;FR.word='';if(FR.humStop){FR.humStop();FR.humStop=null}setTimeout(frontClearGo,0)}   // 그리는 도중에 탁자를 닫지 않게 다음 차례에
   }
   if(T.power){const P=T.power,want=FR.open>.98&&FR.stand<.05&&((lobby&&FR.sit&&!FR.warp&&!FR.spread&&!net.peer)||wait)?1:0;   // 구멍이 열림 → 버튼이 올라옴 (내려갈 때는 버튼 → 구멍)
     const hw=want||P.a.v>.02?1:0,hu=smooth(frontTween(P.h,hw,t,hw?240:200));P.hole.visible=hu>.01;P.hole.scale.setScalar(Math.max(.001,hu));
@@ -3730,6 +3741,7 @@ if(pv>.01)frontDrawList(t);
   const key=chars.join('')+(spin?'*':'')+FR.lock+FR.eye+(FR.bad?'!':'');
   if(key!==FR.boardKey){FR.boardKey=key;frontSetBoard(chars,spin)}
   frontDrawBoard(false);
+  if(T.board){const cp=FR.clearHold?FR.clearP||0:0,bl=cp>0&&Math.floor((2*cp+7*cp*cp)*2)%2===1;T.board.screen.material.color.setScalar(bl?.3:1)}   // 상치우기를 누르는 동안 디스플레이가 점점 빨리 깜빡임
   // 투사기·홀로그램, 클립보드, 시작 버튼
   frontHoloPose(t,wait);
   frontClipPose(t,wait);
@@ -3773,9 +3785,12 @@ function frontHoloPose(t,wait){
   Hh.hole.visible=hu>.01;Hh.hole.scale.setScalar(Math.max(.001,hu));
   const up=smooth(frontTween(FR.dva,wait&&hu>.98?1:0,t,wait?700:450)),br=smooth(frontTween(FR.hba,FR.browse?1:0,t,FR.browse?550:400));
   Hh.g.position.y=-.35+.356*up;Hh.g.visible=up>.01;
-  const on=up>.6,glow=on?(up-.6)/.4:0,flick=.85+.15*Math.sin(t/37)*Math.sin(t/91);
+  const cp=FR.clearP||0,col=FR.collapseAt?smooth(clamp01((t-FR.collapseAt)/CLEAR_SUCK)):0;   // 상치우기: 누르는 정도(지직거림) · 빨려 들어감
+  if(FR.collapseAt&&!wait&&FR.dva.v<.02)FR.collapseAt=0;
+  const zz=cp>0&&!col?(Math.random()<.12+.35*cp?.15+.5*Math.random():1-.45*cp):1,cs=1-col;
+  const on=up>.6,glow=(on?(up-.6)/.4:0)*zz*(col?Math.max(.0,1-col*.6):1),flick=.85+.15*Math.sin(t/37)*Math.sin(t/91);
   Hh.beam.visible=Hh.car.visible=Hh.dust.visible=on;
-  const bh=.85+.45*br;Hh.beam.scale.set(.5+.45*br,bh,.5+.45*br);Hh.beam.position.y=.27+bh/2;Hh.beam.material.uniforms.uA.value=(.55+.3*br)*glow*flick;
+  const bh=(.85+.45*br)*Math.max(.02,cs);Hh.beam.scale.set((.5+.45*br)*Math.max(.02,cs),bh,(.5+.45*br)*Math.max(.02,cs));Hh.beam.position.y=.27+bh/2;Hh.beam.material.uniforms.uA.value=(.55+.3*br)*glow*flick;
   FR.holoTop=Hh.g.position.y+.27+bh;FR.holoGlow=glow;
   Hh.glow.material.opacity=(.35+.2*br)*glow;Hh.glow.scale.setScalar(.8+.5*br);Hh.glow.position.y=-.32+.35;
   {const a=Hh.dust.geometry.attributes.position,N=a.count;for(let i=0;i<N;i++){const f=((t/2800+i/N*1.618)%1),r=(.06+.3*f)*(.4+.6*((i*.37)%1)),an=i*2.4+t/2600;a.setXYZ(i,Math.sin(an)*r,.3+f*bh*1.05,Math.cos(an)*r)}a.needsUpdate=true;Hh.dust.material.opacity=.7*glow}
@@ -3787,7 +3802,7 @@ function frontHoloPose(t,wait){
     const isCur=k===cur,ix=0,iy=.85,iz=0,is=isCur?.95:0,io=isCur?1:0;
     const rx=d*.95,ry=cy+.06*Math.min(1,ad),rz=.25*(1-Math.min(1,ad)),rs=Math.max(0,ad<=1?1.2-.65*ad:.55*(1-(ad-1)/.6)),ro=Math.max(0,ad<=1?1-.5*ad:.5*(1-(ad-1)/.6));
     const x=ix+(rx-ix)*br,y=iy+(ry-iy)*br,z=iz+(rz-iz)*br,s=is+(rs-is)*br,o=(io+(ro-io)*br)*glow*(.92+.08*flick);
-    p.position.set(x,y+.04*Math.sin(t/500+k),z);p.scale.setScalar(Math.max(.001,s));p.rotation.y=t/1600+k;p.visible=o>.02;
+    p.position.set(x*cs,(y+.04*Math.sin(t/500+k))*cs+.3*col+(cp&&!col?(Math.random()-.5)*.04*cp:0),z*cs);p.scale.setScalar(Math.max(.001,s*cs));p.rotation.y=t/1600+k;p.visible=o>.02;
     const bad=br>.5&&!frontCanPlay(GAME_IDS[k]),jit=bad?(Math.random()<.15?.45:1):1;
     p.userData.mats.forEach(m=>{m.uniforms.uA.value=o*jit;m.uniforms.uR.value.setHex(bad?HOLO_BAD:HOLO_C)});
   });
@@ -3893,13 +3908,12 @@ function frontLayout(lobby,wait,host,t){
     const gid=FR.browse?frontHoloId():(V.cfg.game||'gura'),bad=FR.browse&&!frontCanPlay(gid);
     const tn=V.title||'',gn=gameOf(gid).name;
     if(ht.dataset.k!==tn+'|'+gn+'|'+bad+'|'+host){ht.dataset.k=tn+'|'+gn+'|'+bad+'|'+host;if(!$('#holoTitleIn'))$('#holoTitle').textContent=tn;$('#holoGame').textContent=gn;ht.classList.toggle('bad',bad);$('#holoTitle').classList.toggle('editable',host);$('#holoGame').classList.toggle('pickable',host)}
-    ht.style.left=Math.round(x)+'px';ht.style.top=Math.round(y-ht.offsetHeight)+'px';ht.style.opacity=Math.min(1,FR.holoGlow*1.2);
+    ht.style.left=Math.round(x)+'px';ht.style.top=Math.round(y-ht.offsetHeight)+'px';ht.style.opacity=Math.min(1,FR.holoGlow*1.2)*(FR.collapseAt?0:1);
   }
 }
 /* 꺼진 시작 버튼을 누름: 금지 소리 + 빈 자리 이름표가 통통 튀며 "사람이 더 필요함"을 보여 줌 */
 function frontNeedSeats(){
   sfx('no');document.querySelectorAll('#labels .wseat.empty').forEach(el=>{el.classList.remove('need');void el.offsetWidth;el.classList.add('need')});
-  if(mode==='host'&&T.hostPad)T.hostPad.keys.forEach(m=>{if(m.userData.k==='bot')m.userData.nudge=clock()});   // 방장은 빈 자리 이름표가 없으니 봇 추가 키가 통통 튐
 }
 function frontNick(){$('#frNickV').textContent=myNick()}
 $('#frTable').addEventListener('click',()=>{if(mode!=='lobby'||FR.warp||net.peer)return;FR.sit=true;sfx('tick')});
