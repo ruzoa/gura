@@ -831,6 +831,7 @@ function kExtrude(sh,depth,bt,bs,off){
 const knightGeo=off=>kExtrude(knightShape(),.14,.1,.055,off);
 const maneGeo=off=>kExtrude(maneShape(),.04,.03,.02,off);
 const kSide=(x,y)=>(.07+.1)*kTaper(KX(x),KY(y));   // 머리 옆면까지의 거리 (눈·입 자리)
+const KNS=[.8,.85,.8];   // 나이트 머리 크기 (가로·키·두께)
 const GEO={};
 function geoOf(t){
   if(GEO[t])return GEO[t];
@@ -866,10 +867,12 @@ function pieceMesh(t,col,ghost){
   const body=new THREE.Mesh(G3.lat,m);body.castShadow=!ghost;body.receiveShadow=!ghost;g.add(body);
   if(!ghost){g.add(new THREE.Mesh(G3.ink,INK()))}
   const parts=[body];
+  // 나이트 머리는 받침 위(칼라 높이)를 기준으로 작게: 다른 기물과 크기를 맞춤
+  let hg=g;if(t===NN){hg=new THREE.Group();const y0=.235,K=KNS;hg.scale.set(K[0],K[1],K[2]);hg.position.y=y0-y0*K[1];g.add(hg)}
   for(const [geo,x,y,z,ry,rz,tag] of G3.ex){
-    if(tag==='eye'){if(!ghost){const e=new THREE.Mesh(geo,SLIT());e.position.set(x,y,z);e.rotation.z=rz;g.add(e)}continue}
-    const e=new THREE.Mesh(geo,m);e.position.set(x,y,z);e.rotation.y=ry;e.rotation.z=rz;e.castShadow=!ghost;g.add(e);parts.push(e);
-    if(!ghost){const o=new THREE.Mesh(tag==='head'?G3.kInk:tag==='mane'?G3.mInk:geo,INK());o.position.copy(e.position);o.rotation.copy(e.rotation);if(t===RR){o.scale.set(1.08,1.15,1.08);o.position.y=e.position.y-.006}else if(tag!=='head'&&tag!=='mane')o.scale.setScalar(1.3);g.add(o)}
+    if(tag==='eye'){if(!ghost){const e=new THREE.Mesh(geo,SLIT());e.position.set(x,y,z);e.rotation.z=rz;hg.add(e)}continue}
+    const e=new THREE.Mesh(geo,m);e.position.set(x,y,z);e.rotation.y=ry;e.rotation.z=rz;e.castShadow=!ghost;hg.add(e);parts.push(e);
+    if(!ghost){const o=new THREE.Mesh(tag==='head'?G3.kInk:tag==='mane'?G3.mInk:geo,INK());o.position.copy(e.position);o.rotation.copy(e.rotation);if(t===RR){o.scale.set(1.08,1.15,1.08);o.position.y=e.position.y-.006}else if(tag!=='head'&&tag!=='mane')o.scale.setScalar(1.3);hg.add(o)}
   }
   if(t===BB){const sl=new THREE.Mesh(new THREE.BoxGeometry(.03,.17,.36),ghost?m:SLIT());sl.position.set(.03,1.0,0);sl.rotation.z=.7;g.add(sl)}
   g.scale.setScalar(S*.95);
