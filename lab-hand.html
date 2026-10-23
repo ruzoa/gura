@@ -189,18 +189,23 @@ function poseHand(p,fl){
   set(fs.index,O(lerpA([10,14,8],[-6,-3,0],p),[6,8,6]),o1(lerp(1,8,p),14),o1(lerp(-4,8,p),0));
   set(fs.ring,O(lerpA([12,16,10],[-4,-2,0],p),[8,10,8]),o1(lerp(-1,-7,p),-5),o1(lerp(-4,8,p),0));
   set(fs.pinky,O(lerpA([14,18,12],[-3,-1,0],p),[10,12,10]),o1(lerp(-3,-14,p),-12),o1(lerp(-4,8,p),0));   // 검지·약지·소지: 처음엔 살짝 굽었다가 당길수록 뻣뻣하게 펴져(끝까지 당기면 살짝 젖혀짐) 위로 들리고 벌어짐
-  // 중지: 말려서 엄지에 걸림. 당길수록 더 꽉, 튕기면 쭉
+  // 중지: 둘째 관절(손톱 쪽에서 두 번째)이 90도로 꺾이고, 뿌리에서 엄지 쪽으로 틀어 손끝이 엄지를 향함. 당길수록 뿌리·끝마디가 더 꽉, 튕기면 쭉
   const pc=S.pitch,straight=[pc*.6+18,pc*.3+10,pc*.1+6];
-  const mid=lerpA(lerpA([62,78,46],[62+40*sq,78+30*sq,46+30*sq],p),straight,fl);
-  set(fs.middle,O(mid,[6,8,6]),0,0);
+  const mid=lerpA(lerpA([50,90,22],[50+20*sq,90,22+25*sq],p),straight,fl);
+  set(fs.middle,O(mid,[6,8,6]),lerp(14,0,Math.max(fl,o)),0);
   // 엄지: 중지 손톱 바로 앞을 받침. 두 마디 길이를 거리에 맞춰 조금 굽은 채로 (손가락처럼 살짝만 굽음)
   inner.updateMatrixWorld(true);
   const tip=inner.worldToLocal(fs.middle.tip.getWorldPosition(new THREE.Vector3()));
   // 엄지 길이는 고정(늘이지 않음). 뿌리는 편 손에선 손목 가까이, 딱밤에선 손바닥 쪽으로 접혀 앞으로 나옴 (엄지 손허리뼈가 접히는 것 대신)
   // 실제 딱밤(영상): 엄지는 거의 곧게 앞으로 뻗고, 말린 중지 끝이 엄지 끝마디 살에 걸림 → 엄지는 그 자리를 지나 제 길이만큼 뻗음
-  const Th=HS.thumb,LT=Th.TL[0]+Th.TL[1],B=Th.baseOpen.clone().lerp(Th.baseFlick,1-o);
-  if(fl<=0)HS.C=tip.clone().add(new THREE.Vector3(.008,-.042,HZ*.01));
+  // 엄지가 중지를 받침: 받치는 자리 C = 중지 끝이 향한 쪽으로 두 손가락 굵기만큼. 엄지 끝마디 살(길이의 72%)이 C에 오도록
+  // 엄지 뿌리를 C에서 거꾸로 정하고(엄지와 큰마름뼈 사이가 접힘) 손허리뼈 살이 따라감
+  const Th=HS.thumb,LT=Th.TL[0]+Th.TL[1];
+  if(fl<=0){const j=fs.middle.joints[2],L=fs.middle.lens[2],q=j.localToWorld(new THREE.Vector3(L*.75,0,0)),n=j.localToWorld(new THREE.Vector3(L*.75,1,0)).sub(q).normalize();
+    inner.worldToLocal(q);const nl=inner.worldToLocal(n.add(inner.localToWorld(new THREE.Vector3()))).normalize();   // 중지 손톱 쪽(끝마디 윗면)
+    HS.C=q.add(nl.multiplyScalar(.052*S.fat))}   // 엄지 끝마디 살이 중지 손톱을 앞에서 받침
   if(!HS.C)HS.C=tip.clone();
+  const uB=Th.baseFlick.clone().sub(HS.C).normalize().add(new THREE.Vector3(-.9,0,0)).normalize(),BF=HS.C.clone().add(uB.multiplyScalar(LT*.72)),B=Th.baseOpen.clone().lerp(BF,1-o);   // 엄지는 손 방향(앞)으로 더 눕게: 뿌리가 손바닥 아래로 접혀 내려옴
   const uF=HS.C.clone().sub(B).normalize(),uO=new THREE.Vector3(.78,-.1,HZ*.62).normalize();   // 딱밤: 중지 끝 쪽 / 편 손: 손등 옆 앞으로
   const T=B.clone().add(uF.lerp(uO,o).normalize().multiplyScalar(LT*.96));
   {const m=Th.mc,dv=B.clone().sub(Th.cmc);m.position.copy(Th.cmc);m.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),dv.clone().normalize());m.userData.cyl.scale.x=dv.length()}
