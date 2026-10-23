@@ -180,8 +180,12 @@ function buildHand(){
    const cm=addPart(mc,cg,'skin');cm.userData.len=1;addPart(mc,new THREE.SphereGeometry(rc,22,14),'skin');mc.userData.cyl=cm}
   // 엄지 두덩(손허리뼈를 덮는 살)과 물갈퀴(엄지·검지 사이 살): 손허리뼈가 손가락처럼 따로 보이지 않고 손바닥으로 보이게. 매 프레임 두 점 사이에 늘여 둠
   const blob=()=>{const g=new THREE.Group();inner.add(g);addPart(g,new THREE.SphereGeometry(1,26,16),'skin');return g};
-  const thn=blob(),web=blob();
-  HS={fs,thumb:{mc,cmc:new THREE.Vector3(-.15,-.045,HZ*.055),wr:new THREE.Vector3(-.226,-.004,HZ*.06),LM,t1,t2,s1,s2,TL,r2:r[2],thn,web,iRoot:fs.index.root.position.clone()},tgt:null};   // CMC: 큰마름뼈 자리(손목 주름 바로 앞, 엄지 쪽·손바닥 쪽)
+  const thn=blob();mc.visible=false;   // 예전 손허리뼈 원기둥은 안 씀(두덩 살이 대신)
+  // 물갈퀴 살막: 위·아래 두 겹 + 옆면. 점 위치는 매 프레임 poseHand가 채움
+  const webG=new THREE.BufferGeometry();webG.setAttribute('position',new THREE.BufferAttribute(new Float32Array(14*3),3));
+  {const idx=[],N=6;for(let i=0;i<N;i++){const a=1+i,b=1+(i+1)%N;idx.push(0,a,b, 7,7+b,7+a, a,7+a,7+b, a,7+b,b)}webG.setIndex(idx)}
+  const webM=addPart(inner,webG,'skin');webM.frustumCulled=false;webM.material=webM.material.clone();webM.material.side=THREE.DoubleSide;
+  HS={fs,thumb:{mc,cmc:new THREE.Vector3(-.15,-.045,HZ*.055),wr:new THREE.Vector3(-.226,-.004,HZ*.06),LM,t1,t2,s1,s2,TL,r2:r[2],thn,webG,webM,iRoot:fs.index.root.position.clone()},tgt:null};   // CMC: 큰마름뼈 자리(손목 주름 바로 앞, 엄지 쪽·손바닥 쪽)
 }
 const D2R=Math.PI/180,lerp=(a,b,t)=>a+(b-a)*t,lerpA=(a,b,t)=>a.map((v,k)=>lerp(v,b[k],t));
 /* 자세: p 당긴 힘(0 느슨 → 1 뻣뻣·꽉), fl 튕김(0 → 1 중지가 쭉) */
@@ -212,21 +216,35 @@ function poseHand(p,fl){
   const ik=(A,P,l1,l2,hint)=>{const v=P.clone().sub(A),d=Math.min(v.length(),(l1+l2)*.999),u=v.normalize(),a=(l1*l1-l2*l2+d*d)/(2*d),h=Math.sqrt(Math.max(0,l1*l1-a*a));
     const w=hint.clone().sub(u.clone().multiplyScalar(hint.dot(u))).normalize();return A.clone().add(u.clone().multiplyScalar(a)).add(w.multiplyScalar(h))};
   const DORS=new THREE.Vector3(0,.55,HZ*.83).normalize();   // 엄지 손등 쪽(손톱 쪽): 엄지는 손가락들과 90도 돌아 있어 바깥·위
-  const CMC=Th.cmc,IPF=50*D2R,LD=L2*.8,LP=Math.sqrt(L1*L1+LD*LD+2*L1*LD*Math.cos(IPF));   // MCP→끝마디 살 거리 (IP가 50도 굽었을 때)
-  // 딱밤(영상): 엄지 끝마디가 IP에서 꺾여 끝마디 살로 중지 손톱을 누름. 손허리뼈는 손바닥 쪽으로 접혀 엄지가 중지 앞에 옴
-  const MF=ik(CMC,HS.C,Th.LM,LP,DORS),EF=ik(MF,HS.C,L1,LD,DORS),TF=EF.clone().add(HS.C.clone().sub(EF).normalize().multiplyScalar(L2));
-  // 편 손: 손허리뼈는 손등 옆으로 벌어지고(엄지와 검지 사이가 벌어짐) 엄지는 옆 앞으로
-  const MO=CMC.clone().add(new THREE.Vector3(.55,.18,HZ*.82).normalize().multiplyScalar(Th.LM)),TO=MO.clone().add(new THREE.Vector3(.78,-.06,HZ*.62).normalize().multiplyScalar(LT*.97));
-  const B=MF.lerp(MO,o),T=TF.lerp(TO,o),EO=ik(MO,TO,L1,L2,DORS);
-  {const m=Th.mc,dv=B.clone().sub(Th.wr);m.position.copy(Th.wr);   // 엄지 뿌리 살: 손목 모서리 → MCP (뼈 CMC보다 뒤에서 시작해 손목부터 선이 이어짐)
-  m.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),dv.clone().normalize());m.userData.cyl.scale.x=dv.length()}
-  // 두덩: 손목 모서리→MCP, 물갈퀴: MCP→검지 뿌리 (얇게)
+  // 엄지 사슬을 각도로 만듦: CMC → 손허리뼈(LM) → MCP(a도 굽음) → 첫마디 → IP(b도 굽음) → 끝마디. 굽는 쪽은 늘 손바닥 쪽(-Y), 손톱은 +Y
+  // (두 번 따로 IK를 풀면 MCP·IP가 서로 반대로 꺾여 Z자가 될 수 있어서, 한 평면 안의 각도로만 굽힘)
+  const CMC=Th.cmc,LD=L2*.8;
+  const chain=(a,b)=>{const ca=Math.cos(a),sa=Math.sin(a),cb=Math.cos(a+b),sb=Math.sin(a+b);
+    const M=[Th.LM,0],E=[M[0]+L1*ca,-L1*sa];return {M,E,P:[E[0]+LD*cb,E[1]-LD*sb],T:[E[0]+L2*cb,E[1]-L2*sb]}};
+  const place=(c,X,Y)=>{const f=q=>CMC.clone().add(X.clone().multiplyScalar(q[0])).add(Y.clone().multiplyScalar(q[1]));return {B:f(c.M),E:f(c.E),T:f(c.T),Y}};
+  // 딱밤: IP 50도로 끝마디 살이 중지 손톱(C)을 누르게. CMC→C 거리에 맞는 MCP 각도를 찾고, 그 모양을 통째로 돌려 C에 맞춤
+  let F;{const IPB=50*D2R,v=HS.C.clone().sub(CMC),d=v.length(),u=v.normalize();let best=0,be=1e9;
+    for(let a=0;a<=70;a+=1){const c=chain(a*D2R,IPB),e=Math.abs(Math.hypot(c.P[0],c.P[1])-d);if(e<be){be=e;best=a}}
+    const c=chain(best*D2R,IPB),ph=Math.atan2(c.P[1],c.P[0]),w=DORS.clone().sub(u.clone().multiplyScalar(DORS.dot(u))).normalize();
+    const X=u.clone().multiplyScalar(Math.cos(ph)).sub(w.clone().multiplyScalar(Math.sin(ph))),Y=u.clone().multiplyScalar(Math.sin(ph)).add(w.clone().multiplyScalar(Math.cos(ph)));
+    F=place(c,X,Y)}
+  // 편 손: 손허리뼈는 손등 옆 앞으로 벌어지고 MCP·IP는 살짝만 굽음
+  let Op;{const X=new THREE.Vector3(.55,.18,HZ*.82).normalize(),Y=DORS.clone().sub(X.clone().multiplyScalar(DORS.dot(X))).normalize();Op=place(chain(8*D2R,8*D2R),X,Y)}
+  const B=F.B.lerp(Op.B,o),E=F.E.lerp(Op.E,o),T=F.T.lerp(Op.T,o),TY=F.Y.clone().lerp(Op.Y,o).normalize(),k=1;
+  // 두덩(손허리뼈를 덮는 살): 손목 모서리 쪽에서 MCP 조금 앞까지 납작하게
   const span=(g,A,P,ry,rz)=>{const dv=P.clone().sub(A),L=dv.length();g.position.copy(A).add(P).multiplyScalar(.5);g.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),dv.normalize());g.scale.set(L*.5,ry,rz)};
-  span(Th.thn,Th.wr.clone().lerp(B,.12),B,.04*S.fat,.044*S.fat);
-  span(Th.web,B.clone().lerp(Th.iRoot,.08),Th.iRoot.clone().add(new THREE.Vector3(-.02,-.006,0)),.017*S.fat,.026*S.fat);
-  const k=1,E=EF.lerp(EO,o);
+  {const dn=new THREE.Vector3(0,-.02,HZ*-.012);span(Th.thn,Th.wr.clone().lerp(B,.3).add(dn),B.clone().lerp(Th.wr,.06).add(dn),.026*S.fat,.028*S.fat)}   // 손바닥 쪽으로 조금 내려 손등 위로 혹처럼 솟지 않게
+  // 물갈퀴: 검지 뿌리 옆 ~ 엄지 첫마디 40% 사이의 얇은 살막(가장자리는 손바닥 쪽으로 오목)
+  Th.webM.visible=o>.02;   // 물갈퀴는 엄지를 벌렸을 때만 (딱밤에선 엄지가 손바닥 앞으로 와서 막이 기둥처럼 보였음)
+  if(o>.02){const W=Th.webG,I0=Th.iRoot.clone().add(new THREE.Vector3(-.008,-.006,HZ*.016)),P1=B.clone().lerp(E,.42*o),P4=new THREE.Vector3(-.075,-.012,HZ*.06),Q=I0.clone().add(P1).add(B).add(P4).multiplyScalar(.25);
+    const M1=I0.clone().lerp(P1,.33).lerp(Q,.28),M2=I0.clone().lerp(P1,.66).lerp(Q,.28),pts=[I0,M1,M2,P1,B,P4];
+    const n=new THREE.Vector3().crossVectors(P1.clone().sub(I0),P4.clone().sub(I0)).normalize();if(n.y<0)n.negate();const t=.01*S.fat;
+    const pos=W.attributes.position;const put=(i,v)=>pos.setXYZ(i,v.x,v.y,v.z);
+    put(0,Q.clone().addScaledVector(n,t));put(7,Q.clone().addScaledVector(n,-t));
+    pts.forEach((q,i)=>{put(1+i,q.clone().addScaledVector(n,t));put(8+i,q.clone().addScaledVector(n,-t))});
+    pos.needsUpdate=true;W.computeVertexNormals();W.computeBoundingSphere()}
   // 마디를 향하게 돌리되 손톱(+Y)이 엄지 손등 쪽을 보게
-  const aim=(g,from,to)=>{const x=to.clone().sub(from).normalize(),y=DORS.clone().sub(x.clone().multiplyScalar(DORS.dot(x))).normalize(),z=new THREE.Vector3().crossVectors(x,y);
+  const aim=(g,from,to)=>{const x=to.clone().sub(from).normalize(),y=TY.clone().sub(x.clone().multiplyScalar(TY.dot(x))).normalize(),z=new THREE.Vector3().crossVectors(x,y);
     g.position.copy(from);g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x,y,z))};
   aim(Th.t1,B,E);aim(Th.t2,E,T);Th.s1.scale.x=k;Th.s2.scale.x=k;
 }
