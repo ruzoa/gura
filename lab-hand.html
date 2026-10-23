@@ -192,11 +192,12 @@ function poseHand(p,fl){
   // 엄지: 중지 손톱 바로 앞을 받침. 두 마디 길이를 거리에 맞춰 조금 굽은 채로 (손가락처럼 살짝만 굽음)
   inner.updateMatrixWorld(true);
   const tip=inner.worldToLocal(fs.middle.tip.getWorldPosition(new THREE.Vector3()));
-  if(fl<=0)HS.tgt=tip.clone().add(new THREE.Vector3(.016,-.022,0));
+  // 실제 딱밤(영상): 엄지는 거의 곧게 앞으로 뻗고, 말린 중지 끝이 엄지 끝마디 살(길이의 70% 자리)에 걸림 → 엄지 끝은 중지보다 더 앞으로 나감
+  if(fl<=0){const C=tip.clone().add(new THREE.Vector3(.008,-.042,HZ*.01)),Bb=HS.thumb.base;HS.tgt=Bb.clone().add(C.sub(Bb).multiplyScalar(1/.7))}
   if(!HS.tgt)HS.tgt=tip.clone();
   const B0=HS.thumb.base,openT=B0.clone().add(new THREE.Vector3(.78,-.1,HZ*.62).normalize().multiplyScalar(.2));   // 편 엄지 끝: 손등 옆 앞으로
   const Th=HS.thumb,T=o>0?HS.tgt.clone().lerp(openT,o):HS.tgt,B=Th.base,v=T.clone().sub(B),d=Math.max(.06,v.length()),u=v.clone().normalize();
-  const k=d/(.94*(Th.TL[0]+Th.TL[1])),L1=Th.TL[0]*k,L2=Th.TL[1]*k;   // 거리에 맞춘 길이 (곧게 펴면 거리의 1/0.94)
+  const k=d/(.97*(Th.TL[0]+Th.TL[1])),L1=Th.TL[0]*k,L2=Th.TL[1]*k;   // 거리에 맞춘 길이 (곧게 펴면 거리의 1/0.94)
   const a=(L1*L1-L2*L2+d*d)/(2*d),h=Math.sqrt(Math.max(0,L1*L1-a*a));
   const hint=new THREE.Vector3(0,-.4,HZ).normalize(),w=hint.sub(u.clone().multiplyScalar(hint.dot(u))).normalize();   // 마디는 손바닥 바깥·아래로 살짝
   const E=B.clone().add(u.clone().multiplyScalar(a)).add(w.multiplyScalar(h));
