@@ -151,16 +151,16 @@ function buildHand(){
   // 손등: 손 모양 윤곽 (x 앞, y 옆: 엄지 쪽이 +, 마지막에 HZ로 오른손 방향). 손바닥 길이 ≈ 중지 길이
   const sh=new THREE.Shape(),Y=v=>v*HZ*-1*1.12;   // 1.12: 손등 폭 (실제 손 사진에 맞춤)   // 모양 y → 월드 -z 방향을 맞춤 (rotateX 뒤 z=y)
   // 그림처럼: 손목 쪽이 좁고 손가락 뿌리 쪽이 넓은 사다리꼴, 손가락 뿌리 줄은 검지 쪽이 앞으로, 검지와 엄지 사이는 오목하게 파임
-  sh.moveTo(-.235,Y(-.068));sh.quadraticCurveTo(-.13,Y(-.071),-.026,Y(-.0695));sh.quadraticCurveTo(-.002,Y(-.068),.0,Y(-.04));   // 소지 쪽: 손목→소지 뿌리까지 곧게 (소지 바깥선과 한 줄)
+  sh.moveTo(-.235,Y(-.06));sh.quadraticCurveTo(-.13,Y(-.071),-.026,Y(-.0695));sh.quadraticCurveTo(-.002,Y(-.068),.0,Y(-.04));   // 소지 쪽: 손목→소지 뿌리까지 곧게 (소지 바깥선과 한 줄)
   sh.quadraticCurveTo(.014,Y(.0),.01,Y(.05));sh.quadraticCurveTo(.006,Y(.074),-.025,Y(.0778));   // 검지 쪽: 바깥면이 검지 바깥면(뿌리 z .08 + 굵기)과 같은 줄
-  sh.quadraticCurveTo(-.09,Y(.08),-.14,Y(.1));sh.quadraticCurveTo(-.205,Y(.12),-.235,Y(.062));sh.closePath();
+  sh.quadraticCurveTo(-.09,Y(.08),-.14,Y(.1));sh.quadraticCurveTo(-.19,Y(.082),-.235,Y(.06));sh.closePath();   // 엄지 쪽: 엄지 뿌리 → 손목까지 혹 없이 곧게 (손목 굵기와 같은 폭)
   const ex=(b)=>{const g=new THREE.ExtrudeGeometry(sh,{depth:.026,bevelEnabled:true,bevelThickness:.02+b,bevelSize:.02+b,bevelSegments:5,curveSegments:20});g.rotateX(-Math.PI/2);g.translate(0,-.013,0);return g};
   addPart(inner,ex(0),'skin');
   // 엄지 뿌리 살(손바닥 쪽 도톰한 곳): 손등 엄지 쪽 아래
   {const tg=b=>{const g=new THREE.SphereGeometry(1,22,14);g.scale(.075+b,.032+b,.042+b);g.rotateY(HZ*-.35);g.translate(-.16,-.028,HZ*.088);return g};
    addPart(inner,tg(0),'skin')}
   // 손목: 짧게, 끝은 흐리게
-  {const wg=b=>{const g=new THREE.CylinderGeometry(.072+b,.08+b,.22,24,1,true);g.rotateZ(Math.PI/2);g.scale(1,.66,1);g.translate(-.085,0,0);return g};
+  {const wg=b=>{const g=new THREE.CylinderGeometry(.086+b,.09+b,.22,24,1,true);g.rotateZ(Math.PI/2);g.scale(1,.66,1);g.translate(-.085,0,0);return g};
    addPart(wristG,wg(0),'wrist')}
   // 손가락: 뿌리는 손등 앞 가장자리에 붙여서 (검지가 엄지 쪽)
   const fs={
@@ -174,7 +174,11 @@ function buildHand(){
   const s1=new THREE.Group(),s2=new THREE.Group();t1.add(s1);t2.add(s2);
   addPart(s1,capGeo(TL[0],r[0],r[1]),'skin');
   addPart(s2,capGeo(TL[1],r[1],r[2]),'skin');nailLine(s2,TL[1],r[2]);
-  HS={fs,thumb:{baseOpen:new THREE.Vector3(-.168,-.03,HZ*.09),baseFlick:new THREE.Vector3(-.115,-.036,HZ*.085),t1,t2,s1,s2,TL,r2:r[2]},tgt:null};
+  // 엄지 손허리뼈: 손목 엄지 쪽 모서리(CMC)에서 엄지 뿌리까지 이어 주는 살 → 손목부터 엄지까지 바깥선이 한 줄로. 엄지 뿌리가 움직이면 따라 접힘
+  const mc=new THREE.Group();inner.add(mc);
+  {const rc=.03*F,cg=new THREE.CylinderGeometry(r[0],rc,1,22,1,true);cg.rotateZ(-Math.PI/2);cg.translate(.5,0,0);
+   const cm=addPart(mc,cg,'skin');cm.userData.len=1;addPart(mc,new THREE.SphereGeometry(rc,22,14),'skin');mc.userData.cyl=cm}
+  HS={fs,thumb:{mc,cmc:new THREE.Vector3(-.226,-.004,HZ*.06),baseOpen:new THREE.Vector3(-.168,-.002,HZ*.092),baseFlick:new THREE.Vector3(-.115,-.036,HZ*.085),t1,t2,s1,s2,TL,r2:r[2]},tgt:null};
 }
 const D2R=Math.PI/180,lerp=(a,b,t)=>a+(b-a)*t,lerpA=(a,b,t)=>a.map((v,k)=>lerp(v,b[k],t));
 /* 자세: p 당긴 힘(0 느슨 → 1 뻣뻣·꽉), fl 튕김(0 → 1 중지가 쭉) */
@@ -199,6 +203,7 @@ function poseHand(p,fl){
   if(!HS.C)HS.C=tip.clone();
   const uF=HS.C.clone().sub(B).normalize(),uO=new THREE.Vector3(.78,-.1,HZ*.62).normalize();   // 딱밤: 중지 끝 쪽 / 편 손: 손등 옆 앞으로
   const T=B.clone().add(uF.lerp(uO,o).normalize().multiplyScalar(LT*.96));
+  {const m=Th.mc,dv=B.clone().sub(Th.cmc);m.position.copy(Th.cmc);m.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),dv.clone().normalize());m.userData.cyl.scale.x=dv.length()}
   const v=T.clone().sub(B),d=v.length(),u=v.clone().normalize(),k=1,L1=Th.TL[0],L2=Th.TL[1];
   const a=(L1*L1-L2*L2+d*d)/(2*d),h=Math.sqrt(Math.max(0,L1*L1-a*a));
   const hint=new THREE.Vector3(0,-.4,HZ).normalize(),w=hint.sub(u.clone().multiplyScalar(hint.dot(u))).normalize();   // 마디는 손바닥 바깥·아래로 살짝
