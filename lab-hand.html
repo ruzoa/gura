@@ -54,7 +54,7 @@ input[type=range]{flex:1;min-width:0;height:32px;accent-color:var(--acc)}
   <h2 style="margin-top:10px">살 · 뼈</h2>
   <div class="chips" id="shows"><button class="chip" data-s="0" type="button">살</button><button class="chip" data-s="1" type="button">뼈</button><button class="chip" data-s="2" type="button">같이 (살 비침)</button></div>
   <h2 style="margin-top:10px">살 방식</h2>
-  <div class="chips" id="skins"><button class="chip" data-k="1" type="button">새 살 (뼈에 붙임)</button><button class="chip" data-k="2" type="button">3D 모델</button><button class="chip" data-k="0" type="button">예전 살</button></div>
+  <div class="chips" id="skins"><button class="chip" data-k="1" type="button">새 살 (뼈에 붙임)</button><button class="chip" data-k="2" type="button" id="skinModel" hidden>3D 모델</button><button class="chip" data-k="0" type="button">예전 살</button></div>
 </section>
 
 <section>
@@ -341,7 +341,8 @@ function poseSkin(){
   u.uBase.value=mats.skin.uniforms.uBase.value;u.uShade.value=mats.skin.uniforms.uShade.value;
 }
 /* ===== 3D 모델 손 (lab-hand-model.json·.bin) =====
-   다른 도구로 만든 손 모양(면 5만 개)에 뼈를 넣어 우리 자세 계산으로 움직임. 만드는 법(파이썬): 모델을 우리 좌표(손가락 +x, 손등 +y, 엄지 -z,
+   (2026-10-24: 후위안 모델은 라이선스가 한국을 빼서 내림. 새 모델 파일을 같은 이름으로 넣으면 버튼이 다시 보임)
+   다른 도구로 만든 손 모양에 뼈를 넣어 우리 자세 계산으로 움직임. 만드는 법(파이썬): 모델을 우리 좌표(손가락 +x, 손등 +y, 엄지 -z,
    중지 손가락 뿌리 관절이 원점)로 옮기고, 손가락마다 가운데 선을 따라 관절 자리를 실제 뼈 비율로 찍고, 꼭짓점마다 가까운 뼈(+이웃 뼈)에 무게를 나눔.
    네 손가락은 살 손가락(HS.fs)의 관절 각도를 그대로, 엄지는 thumbChain을 모델 엄지 길이로 풂 */
 let MODEL=null;
@@ -361,8 +362,8 @@ void main(){vec3 n=normalize(vN);if(!gl_FrontFacing)n=-n;vec3 L=normalize(vec3(-
  float s=max(1.-smoothstep(-.36,-.3,ndl),(1.-smoothstep(.2,.25,ndv))*(1.-smoothstep(.35,.45,ndl)));
  gl_FragColor=vec4(mix(uBase,uShade,s),clamp((vFx-uFade.y)/(uFade.x-uFade.y),0.,1.));}`;
 async function loadModel(){
-  try{const [rig,buf]=await Promise.all([fetch('lab-hand-model.json').then(r=>r.json()),fetch('lab-hand-model.bin').then(r=>r.arrayBuffer())]);buildModel(rig,buf);dirty=true}
-  catch(e){console.warn('3D 모델을 못 불러옴',e)}
+  try{const [rig,buf]=await Promise.all([fetch('lab-hand-model.json').then(r=>r.json()),fetch('lab-hand-model.bin').then(r=>r.arrayBuffer())]);buildModel(rig,buf);dirty=true;$('#skinModel').hidden=false}
+  catch(e){if(S.skin===2){S.skin=1;save()}}   // 모델 파일이 없으면(지금은 내려 둠) 버튼을 숨기고 새 살로
 }
 function buildModel(rig,buf){
   const n=rig.count;let o=0;const take=(T,k,c)=>{const a=new T(buf,o,k*c);o+=a.byteLength;return a};
