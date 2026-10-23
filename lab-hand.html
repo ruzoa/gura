@@ -170,11 +170,11 @@ function buildHand(){
     pinky:finger([-.018,.003,HZ*-.075],[.07,.045,.04],.023,.018,true)};
   // 엄지: 두 마디. 길이는 매 프레임 중지 끝까지 거리에 맞춰 늘고 줄어 거의 곧게 받침 (꺾이지 않게)
   const t1=new THREE.Group(),t2=new THREE.Group();inner.add(t1,t2);
-  const r=[.042,.037,.03].map(v=>v*F),TL=[.075,.065];
+  const r=[.035,.031,.025].map(v=>v*F),TL=[.09,.072];   // 엄지: 검지보다 조금 굵고, 보이는 길이는 중지의 7할쯤
   const s1=new THREE.Group(),s2=new THREE.Group();t1.add(s1);t2.add(s2);
   addPart(s1,capGeo(TL[0],r[0],r[1]),'skin');
   addPart(s2,capGeo(TL[1],r[1],r[2]),'skin');nailLine(s2,TL[1],r[2]);
-  HS={fs,thumb:{base:new THREE.Vector3(-.168,-.03,HZ*.098),t1,t2,s1,s2,TL,r2:r[2]},tgt:null};
+  HS={fs,thumb:{baseOpen:new THREE.Vector3(-.168,-.03,HZ*.09),baseFlick:new THREE.Vector3(-.115,-.036,HZ*.085),t1,t2,s1,s2,TL,r2:r[2]},tgt:null};
 }
 const D2R=Math.PI/180,lerp=(a,b,t)=>a+(b-a)*t,lerpA=(a,b,t)=>a.map((v,k)=>lerp(v,b[k],t));
 /* 자세: p 당긴 힘(0 느슨 → 1 뻣뻣·꽉), fl 튕김(0 → 1 중지가 쭉) */
@@ -192,12 +192,14 @@ function poseHand(p,fl){
   // 엄지: 중지 손톱 바로 앞을 받침. 두 마디 길이를 거리에 맞춰 조금 굽은 채로 (손가락처럼 살짝만 굽음)
   inner.updateMatrixWorld(true);
   const tip=inner.worldToLocal(fs.middle.tip.getWorldPosition(new THREE.Vector3()));
-  // 실제 딱밤(영상): 엄지는 거의 곧게 앞으로 뻗고, 말린 중지 끝이 엄지 끝마디 살(길이의 70% 자리)에 걸림 → 엄지 끝은 중지보다 더 앞으로 나감
-  if(fl<=0){const C=tip.clone().add(new THREE.Vector3(.008,-.042,HZ*.01)),Bb=HS.thumb.base;HS.tgt=Bb.clone().add(C.sub(Bb).multiplyScalar(1/.7))}
-  if(!HS.tgt)HS.tgt=tip.clone();
-  const B0=HS.thumb.base,openT=B0.clone().add(new THREE.Vector3(.78,-.1,HZ*.62).normalize().multiplyScalar(.2));   // 편 엄지 끝: 손등 옆 앞으로
-  const Th=HS.thumb,T=o>0?HS.tgt.clone().lerp(openT,o):HS.tgt,B=Th.base,v=T.clone().sub(B),d=Math.max(.06,v.length()),u=v.clone().normalize();
-  const k=d/(.97*(Th.TL[0]+Th.TL[1])),L1=Th.TL[0]*k,L2=Th.TL[1]*k;   // 거리에 맞춘 길이 (곧게 펴면 거리의 1/0.94)
+  // 엄지 길이는 고정(늘이지 않음). 뿌리는 편 손에선 손목 가까이, 딱밤에선 손바닥 쪽으로 접혀 앞으로 나옴 (엄지 손허리뼈가 접히는 것 대신)
+  // 실제 딱밤(영상): 엄지는 거의 곧게 앞으로 뻗고, 말린 중지 끝이 엄지 끝마디 살에 걸림 → 엄지는 그 자리를 지나 제 길이만큼 뻗음
+  const Th=HS.thumb,LT=Th.TL[0]+Th.TL[1],B=Th.baseOpen.clone().lerp(Th.baseFlick,1-o);
+  if(fl<=0)HS.C=tip.clone().add(new THREE.Vector3(.008,-.042,HZ*.01));
+  if(!HS.C)HS.C=tip.clone();
+  const uF=HS.C.clone().sub(B).normalize(),uO=new THREE.Vector3(.78,-.1,HZ*.62).normalize();   // 딱밤: 중지 끝 쪽 / 편 손: 손등 옆 앞으로
+  const T=B.clone().add(uF.lerp(uO,o).normalize().multiplyScalar(LT*.96));
+  const v=T.clone().sub(B),d=v.length(),u=v.clone().normalize(),k=1,L1=Th.TL[0],L2=Th.TL[1];
   const a=(L1*L1-L2*L2+d*d)/(2*d),h=Math.sqrt(Math.max(0,L1*L1-a*a));
   const hint=new THREE.Vector3(0,-.4,HZ).normalize(),w=hint.sub(u.clone().multiplyScalar(hint.dot(u))).normalize();   // 마디는 손바닥 바깥·아래로 살짝
   const E=B.clone().add(u.clone().multiplyScalar(a)).add(w.multiplyScalar(h));
