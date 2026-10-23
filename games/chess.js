@@ -993,6 +993,13 @@ function pieceMesh(t,col,ghost){
   g.userData={t,col,parts};
   return g;
 }
+/* 대기실 홀로그램의 대표 말: 게임과 같은 나이트(받침·머리·갈기)를 주어진 재질로 (먹선·눈 없이). 공통 코드 frontHoloPiece가 부름 */
+G.holoPiece=mat=>{
+  const G3=geoOf(NN),g=new THREE.Group();g.add(new THREE.Mesh(G3.lat,mat));
+  const hg=new THREE.Group(),y0=.235;hg.scale.set(KNS[0],KNS[1],KNS[2]);hg.position.y=y0-y0*KNS[1];g.add(hg);
+  for(const [geo,x,y,z,ry,rz,tag] of G3.ex){if(tag==='eye')continue;const e=new THREE.Mesh(geo,mat);e.position.set(x,y,z);e.rotation.y=ry;e.rotation.z=rz;hg.add(e)}
+  return g;
+};
 /* 나이트는 내 화면에서 옆모양이 보이게 왼쪽을 보고, 상대 쪽으로 조금 돌림 (도면의 나이트처럼) */
 function placeRotFor(g,fl){if(g.userData.t===NN){const away=(g.userData.col===0)!==!!fl;g.rotation.y=away?Math.PI-.44:Math.PI+.44}}
 function placeRot(g){if(g.userData.t===NN){const away=(g.userData.col===0)!==!!Ch3.flipT;g.rotation.y=away?Math.PI-.44:Math.PI+.44}}   // 화면 왼쪽을 보며 상대 쪽으로 조금

@@ -3992,13 +3992,8 @@ function frontHoloPiece(id){
     add(new THREE.CylinderGeometry(.2,.16,.42,24,1,true),holoMat(0x8a4a2a),-.1,-.04,0,0,0,-.5);
     add(new THREE.BoxGeometry(.17,.17,.17),dm,.14,-.16,.06,.4,.7,.2);add(new THREE.BoxGeometry(.17,.17,.17),dm,.3,-.17,-.08,.9,.2,.5);add(new THREE.BoxGeometry(.17,.17,.17),dm,.04,.16,.02,.3,1.1,.8)}
   else if(id==='omok'){add(new THREE.SphereGeometry(.2,20,12),holoMat(0x2a2a2a),-.13,0,0,0,0,0,.45);add(new THREE.SphereGeometry(.2,20,12),holoMat(0xf6f3ea),.13,.1,-.05,0,0,0,.45)}   // 흑돌·백돌
-  else if(id==='chess'){   // 나이트(말머리 옆모양)와 폰
-    const wm=holoMat(0xf3e8d2),bm=holoMat(0x3a3330),base=[[0,0],[.13,0],[.13,.03],[.1,.06],[.08,.07]];
-    const knight=new THREE.Shape();[[-.1,.07],[.1,.07],[.09,.11],[.03,.16],[.06,.19],[.12,.22],[.15,.245],[.15,.27],[.13,.28],[.07,.3],[.035,.33],[.025,.36],[.003,.335],[-.02,.355],[-.035,.32],[-.08,.29],[-.105,.23],[-.115,.16]].forEach(([x,y],i)=>i?knight.lineTo(x,y):knight.moveTo(x,y));
-    const kg=new THREE.ExtrudeGeometry(knight,{depth:.08,bevelEnabled:false});kg.translate(0,0,-.04);kg.scale(1.35,1.35,1.35);
-    add(new THREE.LatheGeometry(base.map(([x,y])=>new THREE.Vector2(x*1.35,y*1.35)),24),wm,-.1,-.24,0);add(kg,wm,-.1,-.24,0,0,-.5,0);
-    const pp=[...base,[.07,.09],[.05,.15],[.075,.16],[.04,.17],...Array.from({length:7},(_,i)=>{const a=-.9+i*(Math.PI/2+.9)/6;return [Math.max(0,.055*Math.cos(a)),.215+.055*Math.sin(a)]})];
-    add(new THREE.LatheGeometry(pp.map(([x,y])=>new THREE.Vector2(x*1.35,y*1.35)),24),bm,.17,-.24,.04)}
+  else if(id==='chess'&&GAMES.chess&&GAMES.chess.holoPiece){   // 게임 속 나이트 그대로 (반투명)
+    const m=holoMat(0xf3e8d2),k=GAMES.chess.holoPiece(m);k.scale.setScalar(.44);k.position.y=-.2;k.rotation.y=-.6;k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k);mats.push(m)}
   else if(id==='blackjack'){   // A♠ 카드 한 장과 칩 더미
     const at=canvasTex(128,186,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.fillStyle='#34404f';x.font='600 34px "IBM Plex Mono", monospace';x.textAlign='left';x.textBaseline='top';x.fillText('A',10,8);x.font='86px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('♠',w/2,h/2+8)});
     add(new THREE.BoxGeometry(.4,.58,.012),holoMat(0xffffff,at),-.1,.04,0,0,0,.12);
