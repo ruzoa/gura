@@ -53,6 +53,8 @@ input[type=range]{flex:1;min-width:0;height:32px;accent-color:var(--acc)}
   <div class="chips"><button class="chip" id="alpha" type="button">반투명 (힘에 따라)</button><button class="chip" id="jitter" type="button">떨림</button><button class="chip" id="ink" type="button">윤곽선</button></div>
   <h2 style="margin-top:10px">살 · 뼈</h2>
   <div class="chips" id="shows"><button class="chip" data-s="0" type="button">살</button><button class="chip" data-s="1" type="button">뼈</button><button class="chip" data-s="2" type="button">같이 (살 비침)</button></div>
+  <h2 style="margin-top:10px">살 방식</h2>
+  <div class="chips" id="skins"><button class="chip" data-k="1" type="button">새 살 (뼈에 붙임)</button><button class="chip" data-k="0" type="button">예전 살</button></div>
 </section>
 
 <section>
@@ -79,7 +81,7 @@ input[type=range]{flex:1;min-width:0;height:32px;accent-color:var(--acc)}
    색은 플레이어 색을 밝게 한 면 + 한쪽 가장자리를 따라 진하고 따뜻한 그늘. 손톱 없음.
    값은 gura-lab-hand3에 저장 */
 const KEY='gura-lab-hand5';
-const DEF={p:.5,fl:0,open:0,pitch:22,tilt:-45,size:1.3,squash:.45,fat:1,spread:17,col:0,view:'top',alpha:1,jitter:1,ink:1,show:0};
+const DEF={p:.5,fl:0,open:0,pitch:22,tilt:-45,size:1.3,squash:.45,fat:1,spread:17,col:0,view:'top',alpha:1,jitter:1,ink:1,show:0,skin:1};
 let S={...DEF};try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){};$('#line').value=JSON.stringify({pitch:S.pitch,tilt:S.tilt,size:S.size,squash:S.squash,fat:S.fat,spread:S.spread})};
 const $=q=>document.querySelector(q);
@@ -223,7 +225,7 @@ function addBone(par,L,rb,rs,rh,x0){const g=new THREE.Group();g.position.x=(x0||
   const m=new THREE.Mesh(boneGeo(L,rb,rs,rh,0),boneMat),h=new THREE.Mesh(boneGeo(L,rb,rs,rh,.7),boneInk);g.add(m,h);return g}
 let SK=null;
 function buildBones(){
-  SK=new THREE.Group();inner.add(SK);const fsk={};
+  SK=new THREE.Group();inner.add(SK);const fsk={},segs=[];   // segs: 손허리뼈 4개, 손가락뼈 12개 순서 (살 붙일 때 씀)
   // 손목뼈
   for(const [,c,z] of BONE.carpal){const g=new THREE.SphereGeometry(1,16,12),m=new THREE.Mesh(g,boneMat),h=new THREE.Mesh(g,boneInk);
     m.scale.set(z[0]/2*BS,z[1]/2*BS,z[2]/2*BS);h.scale.copy(m.scale).multiplyScalar(1.08);m.position.copy(bp(...c));h.position.copy(m.position);SK.add(m,h)}
@@ -231,16 +233,95 @@ function buildBones(){
   const R={index:[4.2,3.8,3.2],middle:[4.4,4,3.3],ring:[4,3.6,3.1],pinky:[3.6,3.3,2.8]};
   for(const k of ['index','middle','ring','pinky']){const b=BONE[k],base=bp(...b.base),head=bp(b.hx,b.head[0],b.head[1]),r=R[k];
     const mg=new THREE.Group();mg.position.copy(base);mg.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),head.clone().sub(base).normalize());SK.add(mg);
-    addBone(mg,b.mc,r[0]*1.5,r[0],r[0]*1.45);
+    segs.push({g:addBone(mg,b.mc,r[0]*1.5,r[0],r[0]*1.45),L:b.mc});
     const root=new THREE.Group();root.position.copy(head);SK.add(root);const joints=[];let par=root;
     b.ph.forEach((L,i)=>{const j=new THREE.Group();if(i)j.position.x=(b.ph[i-1]+BGAP)*BS;else j.position.x=0;par.add(j);joints.push(j);
-      addBone(j,L,r[i]*1.35,r[i]*.85,i<2?r[i]*1.2:r[i]*1.25,BGAP*.5);par=j});
+      segs.push({g:addBone(j,L,r[i]*1.35,r[i]*.85,i<2?r[i]*1.2:r[i]*1.25,BGAP*.5),L});par=j});
     fsk[k]={root,joints}}
   // 엄지: 손허리뼈 · 첫마디 · 끝마디 (자리는 poseBones가 매번 정함)
   const tb=BONE.thumb,th=[addBone(SK,tb.mc,6.5,4.6,6),addBone(SK,tb.ph[0],5.6,3.9,5),addBone(SK,tb.ph[1],4.8,3.2,4.4)];
-  SK.userData={fsk,th};
+  SK.userData={fsk,th,segs};
+  buildSkin();
 }
 /* 뼈 자세: 네 손가락은 살 손가락의 관절 각도를 그대로, 엄지는 살 엄지와 같은 방법(한 평면 각도 사슬)으로 뼈 길이로 다시 풂 */
+/* ===== 살: 뼈대 위에 붙인 살 (거리 함수 + 광선 따라가기) =====
+   뼈마다 끝이 둥근 원뿔(굵기 = 살 두께)을 두고, 손바닥 덩어리끼리는 넓게 부드럽게 녹여 붙임(손허리뼈 4개 + 손목 + 엄지 두덩 + 팔뚝),
+   손가락은 자기 마디끼리 녹이고 손바닥과는 뿌리에서만 녹임. 손가락끼리는 녹이지 않음(붙어도 벙어리장갑이 안 되게).
+   손을 둘러싼 상자에 그려서 화면 점마다 광선을 따라가 살 표면을 찾고, 깊이도 써서 윤곽선·알 가림이 예전처럼 됨 */
+const SKN=22;   // 0~3 손허리뼈(검지~소지) 4 손목 5 팔뚝 6 엄지 손허리뼈 7 엄지 두덩 8~9 엄지 첫·끝마디 10~21 네 손가락 첫·중간·끝마디
+const SKIN2_FS=`
+uniform vec3 uA[${SKN}];uniform vec3 uB[${SKN}];uniform vec2 uR[${SKN}];uniform vec3 uS[${SKN}];
+uniform mat4 uMV;uniform mat4 projectionMatrix;uniform mat3 uNM;   // inner 기준 (상자 자체의 위치·크기는 빼고)
+uniform vec3 uCam;uniform vec3 uMin;uniform vec3 uMax;uniform vec3 uBase;uniform vec3 uShade;uniform vec2 uFade;uniform float uK[4];uniform vec3 uFa[5];uniform vec3 uFb[5];uniform float uFr[5];
+varying vec3 vL;
+float rc(vec3 p,int i){vec3 sc=uS[i];vec3 a=uA[i]*sc,b=uB[i]*sc;p*=sc;float r1=uR[i].x,r2=uR[i].y;   // 끝이 둥근 원뿔 (iq)
+  vec3 ba=b-a;float l2=dot(ba,ba),rr=r1-r2,a2=l2-rr*rr,il2=1./l2;vec3 pa=p-a;float y=dot(pa,ba),z=y-l2;vec3 xv=pa*l2-ba*y;float x2=dot(xv,xv),y2=y*y*l2,z2=z*z*l2;
+  float k=sign(rr)*rr*rr*x2,d;
+  if(sign(z)*a2*z2>k)d=sqrt(x2+z2)*il2-r2;else if(sign(y)*a2*y2<k)d=sqrt(x2+y2)*il2-r1;else d=(sqrt(x2*a2*il2)+y*rr)*il2-r1;
+  return d/max(sc.x,max(sc.y,sc.z));}
+float sm(float a,float b,float k){float h=clamp(.5+.5*(b-a)/k,0.,1.);return mix(b,a,h)-k*h*(1.-h);}
+float map(vec3 p){
+  float pm=rc(p,0);pm=sm(pm,rc(p,1),uK[0]);pm=sm(pm,rc(p,2),uK[0]);pm=sm(pm,rc(p,3),uK[0]);
+  pm=sm(pm,rc(p,4),uK[0]);pm=sm(pm,rc(p,5),uK[1]);pm=sm(pm,rc(p,6),uK[0]);pm=sm(pm,rc(p,7),uK[0]);
+  float d=pm;
+  // 손가락 하나씩: 손가락 전체를 감싸는 굵은 캡슐보다 멀면 계산을 건너뜀 (빠르게)
+  for(int f=0;f<5;f++){vec3 pa=p-uFa[f],ba=uFb[f]-uFa[f];float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);if(length(pa-ba*h)-uFr[f]>d+uK[3])continue;
+    float fd;if(f==4)fd=sm(rc(p,8),rc(p,9),uK[2]);else{int i=10+f*3;fd=sm(sm(rc(p,i),rc(p,i+1),uK[2]),rc(p,i+2),uK[2]);}
+    d=min(d,sm(pm,fd,uK[3]));}
+  return d;}
+vec3 nrm(vec3 p){vec2 e=vec2(.0006,-.0006);return normalize(e.xyy*map(p+e.xyy)+e.yyx*map(p+e.yyx)+e.yxy*map(p+e.yxy)+e.xxx*map(p+e.xxx));}
+void main(){
+  vec3 ro=uCam,rd=normalize(vL-uCam),iv=1./rd,t0=(uMin-ro)*iv,t1=(uMax-ro)*iv,tn=min(t0,t1),tf=max(t0,t1);
+  float t=max(max(max(tn.x,tn.y),tn.z),0.),te=min(min(tf.x,tf.y),tf.z);bool hit=false;
+  for(int i=0;i<72;i++){vec3 p=ro+rd*t;float d=map(p);if(d<.0004){hit=true;break;}t+=d;if(t>te)break;}
+  if(!hit)discard;
+  vec3 p=ro+rd*t,n=normalize(uNM*nrm(p));vec4 mv=uMV*vec4(p,1.);vec3 V=normalize(-mv.xyz);
+  vec3 L=normalize(vec3(-.45,.75,.55));float ndl=dot(n,L),ndv=dot(n,V);
+  float s=max(1.-smoothstep(-.36,-.3,ndl),(1.-smoothstep(.2,.25,ndv))*(1.-smoothstep(.35,.45,ndl)));
+  float a=clamp((p.x-uFade.y)/(uFade.x-uFade.y),0.,1.);
+  gl_FragColor=vec4(mix(uBase,uShade,s),a);
+  vec4 cp=projectionMatrix*mv;gl_FragDepthEXT=(cp.z/cp.w)*.5+.5;}`;
+let SKIN=null;
+function buildSkin(){
+  const box=new THREE.BoxGeometry(1,1,1),u={uA:{value:[]},uB:{value:[]},uR:{value:[]},uS:{value:[]},uCam:{value:new THREE.Vector3()},
+    uMin:{value:new THREE.Vector3(-.62,-.13,-.2)},uMax:{value:new THREE.Vector3(.2,.16,.2)},uBase:{value:mats.skin.uniforms.uBase.value},uShade:{value:mats.skin.uniforms.uShade.value},
+    uFade:{value:new THREE.Vector2(-.3,-.47)},uK:{value:[12*BS,20*BS,2.5*BS,7*BS]},uFa:{value:[0,1,2,3,4].map(()=>new THREE.Vector3())},uFb:{value:[0,1,2,3,4].map(()=>new THREE.Vector3(.001,0,0))},uFr:{value:[0,0,0,0,0]},uMV:{value:new THREE.Matrix4()},uNM:{value:new THREE.Matrix3()}};
+  for(let i=0;i<SKN;i++){u.uA.value.push(new THREE.Vector3());u.uB.value.push(new THREE.Vector3(.001,0,0));u.uR.value.push(new THREE.Vector2(.01,.01));u.uS.value.push(new THREE.Vector3(1,1,1))}
+  const mat=new THREE.ShaderMaterial({uniforms:u,side:THREE.BackSide,extensions:{fragDepth:true},
+    vertexShader:`uniform vec3 uMin;uniform vec3 uMax;varying vec3 vL;void main(){vL=uMin+(position+.5)*(uMax-uMin);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:SKIN2_FS});
+  // 상자: uMin~uMax
+  SKIN=new THREE.Mesh(box,mat);SKIN.layers.set(1);   // 상자 자리·크기는 poseSkin이 매번 살 범위에 맞춤
+  SKIN.frustumCulled=false;inner.add(SKIN);
+}
+/* 살 두께(mm, 반지름): [시작, 끝]. 손바닥(손허리뼈)은 두께 방향(y)으로 두껍고 옆(z)으로 얇게 */
+const FLESH={mc:[[11,10.5],[11,10.5],[10.5,10],[10,10]],fin:{index:[[9.5,8.6],[8.6,7.8],[7.8,6.8]],middle:[[10,9],[9,8.2],[8.2,7.2]],ring:[[9.3,8.5],[8.5,7.7],[7.7,6.8]],pinky:[[8.4,7.6],[7.6,7],[7,6.2]]},
+  th:[[12.5,10.5],[10.5,9.6],[9.6,8.6]]};
+function poseSkin(){
+  if(!SKIN)return;const u=SKIN.material.uniforms,{segs,th}=SK.userData;inner.updateMatrixWorld(true);
+  const L=(g,x)=>inner.worldToLocal(g.localToWorld(new THREE.Vector3(x,0,0)));
+  const put=(i,a,b,r1,r2,sc)=>{u.uA.value[i].copy(a);u.uB.value[i].copy(b);u.uR.value[i].set(r1*BS,r2*BS);u.uS.value[i].copy(sc||new THREE.Vector3(1,1,1))};
+  const flat=new THREE.Vector3(1,1,1.3);   // 손바닥: 옆으로 납작 (두께 쪽이 1.3배)
+  for(let k=0;k<4;k++){const sg=segs[k*4],fr=FLESH.mc[k];put(k,L(sg.g,0),L(sg.g,sg.L*BS),fr[0]*1.3,fr[1]*1.3,flat)}
+  put(4,bp(10,-1,-16),bp(10,-1,18),15,15,new THREE.Vector3(1,1.15,1));   // 손목: 손목뼈 줄을 옆으로 가로지름
+  put(5,bp(-5,-2,0),bp(-150,-4,0),29,32,new THREE.Vector3(1,1.45,1));   // 팔뚝 (뒤로 갈수록 흐려짐)
+  const tb=BONE.thumb;put(6,L(th[0],0),L(th[0],tb.mc*BS),FLESH.th[0][0],FLESH.th[0][1]);   // 엄지 손허리뼈
+  put(7,bp(8,-8,10),L(th[0],tb.mc*BS*.85),15,11);   // 엄지 두덩: 손목(손배뼈) 쪽에서 엄지 뿌리까지 → 엄지가 손목에서부터 시작되어 보이게
+  put(8,L(th[1],0),L(th[1],tb.ph[0]*BS),FLESH.th[1][0],FLESH.th[1][1]);put(9,L(th[2],0),L(th[2],tb.ph[1]*BS),FLESH.th[2][0],FLESH.th[2][1]);
+  ['index','middle','ring','pinky'].forEach((k,f)=>{for(let j=0;j<3;j++){const sg=segs[f*4+1+j],fr=FLESH.fin[k][j],a=L(sg.g,0),b=L(sg.g,sg.L*BS);
+    if(j===0)a.copy(L(segs[f*4].g,segs[f*4].L*BS));   // 첫마디 살은 손허리뼈 머리(손가락 뿌리 관절)부터
+    put(10+f*3+j,a,b,fr[0],fr[1])}});
+  // 손가락 묶음 캡슐(건너뛰기용)과 살 범위 상자
+  for(let f=0;f<5;f++){const ids=f===4?[8,9]:[10+f*3,11+f*3,12+f*3],a=u.uA.value[ids[0]],b=u.uB.value[ids[ids.length-1]];u.uFa.value[f].copy(a);u.uFb.value[f].copy(b);
+    const ba=b.clone().sub(a),l2=Math.max(1e-9,ba.lengthSq());let r=0;for(const i of ids)for(const q of [u.uA.value[i],u.uB.value[i]]){const h=Math.min(1,Math.max(0,q.clone().sub(a).dot(ba)/l2));r=Math.max(r,q.clone().sub(a.clone().addScaledVector(ba,h)).length()+u.uR.value[i].x)}
+    u.uFr.value[f]=r+.004}
+  const mn=new THREE.Vector3(1e9,1e9,1e9),mx=new THREE.Vector3(-1e9,-1e9,-1e9);
+  for(let i=0;i<SKN;i++){if(i===5)continue;const r=Math.max(u.uR.value[i].x,u.uR.value[i].y)+.006;for(const q of [u.uA.value[i],u.uB.value[i]]){mn.min(q.clone().subScalar(r));mx.max(q.clone().addScalar(r))}}
+  mn.x=Math.min(mn.x,u.uFade.value.y);mn.y=Math.min(mn.y,-.06);mx.y=Math.max(mx.y,.06);mn.z=Math.min(mn.z,-.08);mx.z=Math.max(mx.z,.08);   // 팔뚝(흐려지는 끝까지)도 넣음
+  u.uMin.value.copy(mn);u.uMax.value.copy(mx);SKIN.position.copy(mn).add(mx).multiplyScalar(.5);SKIN.scale.copy(mx).sub(mn);
+  u.uCam.value.copy(inner.worldToLocal(cam.position.clone()));
+  cam.updateMatrixWorld();u.uMV.value.multiplyMatrices(cam.matrixWorldInverse,inner.matrixWorld);u.uNM.value.getNormalMatrix(u.uMV.value);
+  u.uBase.value=mats.skin.uniforms.uBase.value;u.uShade.value=mats.skin.uniforms.uShade.value;
+}
 let PFL=0;
 function poseBones(o,Y){
   if(!SK)return;const {fsk,th}=SK.userData;
@@ -382,6 +463,8 @@ $('#cols').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)
 $('#views').addEventListener('click',e=>{const b=e.target.closest('.chip');if(b)setView(b.dataset.v)});
 const tog=(id,k)=>{const b=$('#'+id);b.classList.toggle('on',!!S[k]);b.addEventListener('click',()=>{S[k]=S[k]?0:1;b.classList.toggle('on',!!S[k]);dirty=true;save()})};
 tog('alpha','alpha');tog('jitter','jitter');tog('ink','ink');
+{const set=()=>document.querySelectorAll('#skins .chip').forEach(b=>b.classList.toggle('on',+b.dataset.k===(S.skin===0?0:1)));set();
+ $('#skins').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;S.skin=+b.dataset.k;set();save()})}
 {const set=()=>document.querySelectorAll('#shows .chip').forEach(b=>b.classList.toggle('on',+b.dataset.s===(S.show||0)));set();
  $('#shows').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;S.show=+b.dataset.s;set();save()})}
 $('#reset').addEventListener('click',()=>{const keep={col:S.col,view:S.view};S={...DEF,...keep};for(const k of sl){$('#'+k).value=S[k];$('#'+k+'O').textContent=fmt[k](S[k])}['alpha','jitter','ink'].forEach(k=>$('#'+k).classList.toggle('on',!!S[k]));dirty=true;save()});
@@ -428,7 +511,8 @@ function frame(now){
   // 손목이 판 아래로 들어가면 들어 올리지 않고 중지 끝(알에 닿는 곳)을 축으로 손 뒤쪽을 들어 올림 → 중지 끝은 그대로 알 뒤
   if(lo<0){const hx=Math.max(.2,Math.hypot(wristG.getWorldPosition(v3).x-HAND.position.x,0));HAND.rotation.z=-Math.asin(Math.min(.9,(-lo+.004)/hx))}
   HS.dbg={lo};
-  if(SK)SK.visible=!!S.show;placeCam();renderAll(S.show===2?Math.min(op,.4):op,Math.max(.85,op0)*fade*(S.show===2?.7:1));
+  if(SK)SK.visible=!!S.show;placeCam();
+  {const nw=S.skin!==0;if(SKIN){SKIN.visible=nw;poseSkin()}for(const q of all)q.m.visible=!nw;inner.traverse(o=>{if(o.isMesh&&o.material===inkMat)o.visible=!nw})}renderAll(S.show===2?Math.min(op,.4):op,Math.max(.85,op0)*fade*(S.show===2?.7:1));
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
