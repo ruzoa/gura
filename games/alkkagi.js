@@ -13,6 +13,14 @@ const NL=13,BW=2.3,GM=.3,TOP=.2,PITCH=(2*BW-2*GM)/(NL-1),SR=.15,SH=.066,KY=SR/SH
 const FELT_Y=.016,FELT_R=3.15,TABLE_R=4.9;   // 공통 테이블: 펠트 윗면 높이·반지름, 탁자 반지름
 const PHY={g:32,aB:6.5,aF:11,eSS:.86,eG:.3,vmax:11,dt:1/240,fps:30,tmax:9,slope:.28,kT:700,cT:8,tk:7};   // 중력, 판·펠트 마찰 감속, 알끼리·바닥 튕김, 최고 속도, 계산 간격, 자취 장 수, 최대 길이(초), 미끄러질 때 앞이 숙는 정도, 기울기 복원·감쇠, 부딪힐 때 기우뚱
 const PMIN=.1;   // 이보다 약하게 당기고 놓으면 취소
+/* 손 떨림: 당기기 시작부터 불규칙하게 떨리고, 세게 당길수록 크게. 놓는 순간 손이 가리키던 방향으로 나감 (살살 치면 거의 직선, 끝까지 당기면 최대 SPREAD) */
+const SPREAD=.3;   // 끝까지 당겼을 때 떨림 폭 (라디안, 약 17도)
+const spreadOf=p=>SPREAD*p*p;
+function jit(t){   // -1~1, 잔잔하다 가끔 크게 (규칙적인 흔들림이 아니라 타이밍을 노리기 어렵게)
+  const a=.5*Math.sin(t*.0067+1.3)+.3*Math.sin(t*.0151+.4)+.2*Math.sin(t*.0389+2.1);
+  const b=Math.pow(Math.sin(t*.0021),8)*Math.sin(t*.047);
+  return Math.max(-1,Math.min(1,a*.8+b*.6));
+}
 const speedOf=p=>PHY.vmax*Math.pow(Math.max(0,Math.min(1,p)),1.25);   // 당긴 정도 → 속도 (끝으로 갈수록 조금 더 세짐)
 const onBoardXZ=(x,z)=>Math.abs(x)<=BW&&Math.abs(z)<=BW;
 function groundAt(x,z){
@@ -149,15 +157,15 @@ function botPlan(A,seat,rnd){
   pairs.sort((x,y)=>x.d-y.d);
   const pk=pairs.length?pairs[Math.min(pairs.length-1,(rnd()*Math.min(3,pairs.length))|0)]:{i:mine[0],j:-1,d:1};
   const a=A.st[pk.i],b=pk.j>=0?A.st[pk.j]:{x:-a.x,z:-a.z};
-  const ang=Math.atan2(b.z-a.z,b.x-a.x)+(rnd()*2-1)*.22;
+  const ang=Math.atan2(b.z-a.z,b.x-a.x)+(rnd()*2-1)*.12;
   const need=Math.sqrt(2*PHY.aB*(pk.d+1.6));   // 맞은 알이 판 끝까지 갈 만큼 대충
   let p=Math.pow(Math.min(1,need/PHY.vmax),.8)*(.7+rnd()*.5);
   p=Math.max(.3,Math.min(1,p));
-  return {i:pk.i,a:ang,p};
+  return {i:pk.i,a:ang,p,fa:ang+spreadOf(p)*jit(rnd()*1e6)};   // a: 겨눈 방향(상대 화면의 손), fa: 손 떨림까지 더해 실제로 나가는 방향
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 알을 튕겨 상대 알을 모두 판 밖으로 떨어뜨리면 <b>승리</b>합니다</li><li><b>진행</b> : 번갈아 내 알 하나씩 튕깁니다. 판 밖으로 떨어진 알은 다시 쓰지 못하고, 내 알이 떨어져도 마찬가지입니다</li><li><b>튕기기</b> : 내 알을 누른 채 뒤로 당겼다 놓습니다. 화살표는 당기는 쪽(알 뒤)에 생기고 길수록 세게 나갑니다. 끝까지 당기면 화살표가 흔들리고 더 세지지 않습니다. 조금만 당기고 놓으면 취소됩니다</li><li><b>뜨는 알</b> : 바둑알은 납작해서 세게 부딪히면 위로 튀어 오르기도 합니다</li><li><b>한 번 더</b> : 탁자 설정에서 켜면, 상대 알을 떨어뜨리고 튕긴 내 알이 판에 남았을 때 한 번 더 튕깁니다</li><li><b>끝</b> : 한쪽 알이 모두 떨어지면 끝납니다. 두 사람의 마지막 알이 함께 떨어지면 무승부입니다</li><li><b>제한 시간</b> : 내 차례에 제한 시간이 지나면 차례가 넘어갑니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다</li><li><b>다음 판</b> : 결과 화면에서 바로 시작하면 진 사람이 먼저 튕기고, 비기면 서로 바꿉니다. 첫 판은 탁자 설정의 선 직접 고르기로 정합니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 알을 튕겨 상대 알을 모두 판 밖으로 떨어뜨리면 <b>승리</b>합니다</li><li><b>진행</b> : 번갈아 내 알 하나씩 튕깁니다. 판 밖으로 떨어진 알은 다시 쓰지 못하고, 내 알이 떨어져도 마찬가지입니다</li><li><b>튕기기</b> : 내 알을 누른 채 뒤로 당겼다 놓습니다. 알 뒤에 내 손이 나타나 당길수록 진해지고 세게 나갑니다. 끝까지 당기면 더 세지지 않습니다. 조금만 당기고 놓으면 취소됩니다</li><li><b>손 떨림</b> : 손은 당기는 동안 계속 떨리고, 세게 당길수록 크게 떨립니다. 놓는 순간 손이 가리키던 쪽으로 나가므로 살살 치면 거의 똑바로, 세게 치면 빗나가기 쉽습니다</li><li><b>뜨는 알</b> : 바둑알은 납작해서 세게 부딪히면 위로 튀어 오르기도 합니다</li><li><b>한 번 더</b> : 탁자 설정에서 켜면, 상대 알을 떨어뜨리고 튕긴 내 알이 판에 남았을 때 한 번 더 튕깁니다</li><li><b>끝</b> : 한쪽 알이 모두 떨어지면 끝납니다. 두 사람의 마지막 알이 함께 떨어지면 무승부입니다</li><li><b>제한 시간</b> : 내 차례에 제한 시간이 지나면 차례가 넘어갑니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다</li><li><b>다음 판</b> : 결과 화면에서 바로 시작하면 진 사람이 먼저 튕기고, 비기면 서로 바꿉니다. 첫 판은 탁자 설정의 선 직접 고르기로 정합니다</li></ol>';
 G.modeDesc=['상대 알을 모두 떨어뜨리면 끝','상대 알을 모두 떨어뜨리면 끝'];
 G.defaults={max:2,turn:30,stones:5,again:1,pickfirst:0};
 G.roomSet=[
@@ -252,15 +260,15 @@ function timeout(){
   addLog(`${p.name} 시간 초과로 차례를 넘깁니다.`,'sys');
   startTurn(other(i));
 }
-function botShootNow(i){const b=H.ak.bp||botPlan(H.ak,i);if(!b||!doShot(i,b.i,b.a,b.p))startTurn(other(i))}
-/* 봇: 알을 고르고 화살표를 천천히 당긴 뒤(상대 화면에도 보임) 놓음 */
+function botShootNow(i){const b=H.ak.bp||botPlan(H.ak,i);if(!b||!doShot(i,b.i,b.fa,b.p))startTurn(other(i))}
+/* 봇: 알을 고르고 천천히 당긴 뒤(상대 화면에도 손이 보임) 놓음 */
 function botStep(i,t){
   const A=H.ak;
   if(!A.bp){const b=botPlan(A,i);if(!b){startTurn(other(i));return}A.bp={...b,t0:t,dur:Math.round(rand(650,1150))};A.aim={s:i,i:b.i,a:b.a,p:0,w:0};mark();return}
   const k=(t-A.bp.t0)/A.bp.dur;
   if(k<1){const e=1-Math.pow(1-Math.max(0,k),2),np=Math.round(A.bp.p*e*1000)/1000;if(!A.aim||A.aim.p!==np){A.aim={s:i,i:A.bp.i,a:A.bp.a,p:np,w:0};mark()}return}
   const b=A.bp;A.bp=null;
-  if(!doShot(i,b.i,b.a,b.p))startTurn(other(i));
+  if(!doShot(i,b.i,b.fa,b.p))startTurn(other(i));
 }
 /* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
 G._test={simulate,homes,botPlan,speedOf,groundAt,doShot,doSurrender,timeout,pickFirst,aliveOf,PHY,TOP,SH,SR,BW,PITCH,NL};
@@ -302,7 +310,7 @@ G.engine={
   },
   snap(s,you,t){
     const A=H.ak,r3=v=>Math.round(v*1000)/1000;
-    const sh=A.sh?{id:A.sh.id,by:A.sh.by,i:A.sh.i,age:Math.max(0,Math.round(t-A.sh.t0))}:null;
+    const sh=A.sh?{id:A.sh.id,by:A.sh.by,i:A.sh.i,a:Math.round(A.sh.a*1000)/1000,p:Math.round(A.sh.p*1000)/1000,age:Math.max(0,Math.round(t-A.sh.t0))}:null;
     if(sh&&sh.age<A.sh.dur+4000){sh.tr=A.sh.tr;sh.nf=A.sh.nf;sh.ev=A.sh.ev;sh.dur=A.sh.dur}   // 자취는 연출 중인 동안만 보냄 (가볍게)
     s.ak={gid:A.gid,n:A.n,A:A.A,co:A.co.slice(),st:A.st.map(q=>[r3(q.x),r3(q.y),r3(q.z),q.s,q.o?1:0,q.g?1:0]),ph:A.ph,sid:A.sid,sh,aim:A.aim?{...A.aim}:null,res:A.res?{...A.res}:null,cnt:A.cnt,ag:+H.cfg.again?1:0};
     s.gr=0;
@@ -317,7 +325,7 @@ G.engine={
    3D: 공통 테이블 가운데 13줄 바둑판 + 알, 내 쪽에서 비스듬히 내려다보는 자기 카메라. WebGL이 없으면 위에서 본 2D 판(SVG)
    튕기기: 내 알(가까이 누른 곳의 알)을 누른 채 당기면 알 뒤에 화살표. 끝까지 당기면 흔들리고 더 길어지지 않음 → 놓으면 튕김 */
 let OS=null,drag=null,elAk=null,elSvg=null,elMain=null,elBar=null,elHint=null,lastBar='',lastHint='',msg='',msgUntil=0,msgTimer=null;
-const MAXD=1.25;   // 화살표가 가장 길어지는 당긴 거리 (월드)
+const MAXD=1.25;   // 끝까지 당긴 거리 (월드). 넘게 당겨도 더 세지지 않음
 const SEND_MS=90;   // 당기는 중 화살표를 방장에게 보내는 간격
 const myTurnNow=()=>!!(V&&V.ak&&V.st==='play'&&myReady()&&OS&&OS.ph==='aim');
 const sideOf=()=>myIdx()===1?-1:1;   // 내 쪽: 0번 자리(또는 관전)는 +z, 1번 자리는 -z
@@ -354,7 +362,7 @@ function dragStart(x,z){
   const i=pickStone(x,z);
   if(i<0)return false;
   if(!myTurnNow()||introWait()||Ak3.shot){sndNo();return true}   // 내 알이지만 지금은 못 튕김
-  drag={i,x0:x,z0:z,px:0,pz:0,L:0,p:0,over:false,lvl:0,sent:0,sp:-1,sa:0};
+  drag={i,x0:x,z0:z,px:0,pz:0,L:0,p:0,over:false,lvl:0,sent:0,sp:-1,sa:0,ph:Math.random()*1e6};   // ph: 떨림 위상 (매번 다르게)
   sndPickUp();Ak3.dirty=true;
   return true;
 }
@@ -362,16 +370,16 @@ function dragMove(x,z){
   if(!drag)return;
   drag.px=x-drag.x0;drag.pz=z-drag.z0;drag.L=Math.hypot(drag.px,drag.pz);
   const p=Math.min(1,drag.L/MAXD),over=drag.L>MAXD;
-  if(over&&!drag.over){sndMax();try{navigator.vibrate&&navigator.vibrate(14)}catch(e){}}
+  if(over&&!drag.over){sndMax();try{navigator.vibrate&&navigator.vibrate(14)}catch(e){}}   // 끝까지: 팽팽한 소리·진동 (더 세지지 않음)
   const lvl=Math.floor(p*10);
   if(!over&&lvl>drag.lvl)sndStretch(p);
   drag.lvl=lvl;drag.p=p;drag.over=over;
   sendAim(false);Ak3.dirty=true;
 }
-const shotAng=()=>Math.atan2(-drag.pz,-drag.px);   // 튕기는 방향 = 당긴 방향의 반대
+const baseAng=d=>Math.atan2(-d.pz,-d.px);   // 겨눈 방향 = 당긴 방향의 반대 (떨림 전)
 function sendAim(force){
   if(!drag)return;
-  const t=clock(),a=drag.L>1e-4?shotAng():0;
+  const t=clock(),a=drag.L>1e-4?baseAng(drag):0;
   if(!force&&t-drag.sent<SEND_MS)return;
   if(!force&&Math.abs(drag.p-drag.sp)<.015&&Math.abs(a-drag.sa)<.015)return;
   drag.sent=t;drag.sp=drag.p;drag.sa=a;
@@ -381,23 +389,104 @@ function dragEnd(cancel){
   if(!drag)return;
   const d=drag;drag=null;Ak3.dirty=true;
   if(cancel||d.p<PMIN||!myTurnNow()){sendAct({t:'aim',i:-1});if(!cancel&&d.L>.02)sndPickUp();return}
-  sendAct({t:'shoot',i:d.i,a:Math.atan2(-d.pz,-d.px),p:d.p});
-  sndFlick();Ak3.flickAt=clock();
+  const t=clock(),a=baseAng(d)+spreadOf(d.p)*jit(t+d.ph);   // 놓는 순간 손이 가리키던 방향
+  const q=OS.st[d.i];
+  sendAct({t:'shoot',i:d.i,a,p:d.p});
+  sndFlick();Ak3.flickAt=t;
+  FLK={i:d.i,a,p:d.p,seat:myIdx(),t0:t,x:q.x,z:q.z,mine:true};
 }
-/* 화살표로 보여 줄 것: 내가 당기는 중이면 그것, 아니면 방장이 알려 준 상대(봇)의 당기기 (부드럽게 따라감) */
-const AIM={i:-1,a:0,p:0,w:0,ta:0,tp:0,at:0};
+/* 손으로 보여 줄 것: 내가 당기는 중이면 그것, 아니면 방장이 알려 준 상대(봇)의 당기기 (부드럽게 따라감).
+   a: 겨눈 방향(떨림 전), 실제로 그리는 방향은 shownAng (떨림은 화면마다 따로: 상대의 떨림 위상은 알 수 없음) */
+const AIM={i:-1,a:0,p:0,at:0,ph:0};
 function aimNow(t){
-  if(drag)return {i:drag.i,ang:Math.atan2(drag.pz,drag.px),p:drag.p,w:drag.over,mine:true};
+  if(drag)return {i:drag.i,a:baseAng(drag),p:drag.p,mine:true,seat:myIdx(),ph:drag.ph};
   const o=OS&&OS.aim,me=myIdx();
   if(!o||OS.ph!=='aim'||V.st!=='play'||Ak3.shot||o.s===me){AIM.i=-1;return null}
-  const pull=o.a+Math.PI;   // 화살표는 당긴 쪽 (튕기는 방향의 반대)
-  if(AIM.i!==o.i){AIM.i=o.i;AIM.a=pull;AIM.p=0}
+  if(AIM.i!==o.i){AIM.i=o.i;AIM.a=o.a;AIM.p=0;AIM.ph=Math.random()*1e6}
   const k=Math.min(1,Math.max(0,(t-(AIM.at||t))/1000)*14);AIM.at=t;
-  let da=pull-AIM.a;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;
+  let da=o.a-AIM.a;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;
   AIM.a+=da*k;AIM.p+=(o.p-AIM.p)*k;
-  return {i:o.i,ang:AIM.a,p:AIM.p,w:!!o.w,mine:false};
+  return {i:o.i,a:AIM.a,p:AIM.p,mine:false,seat:o.s,ph:AIM.ph};
 }
-const wob=t=>.06*Math.sin(t*.061)+.035*Math.sin(t*.113);   // 끝까지 당겼을 때 화살표 흔들림 (각도)
+const shownAng=(a,t)=>a.a+spreadOf(a.p)*jit(t+a.ph);
+/* 튕기는 손: 놓으면 중지가 앞으로 뻗어 알을 치고(0.09초) 사라짐(0.38초). 내가 튕긴 것은 놓는 순간, 남이 튕긴 것은 자취가 올 때 */
+let FLK=null;
+const FLK_IN=90,FLK_OUT=380;
+
+/* ----- 손 그림 (위에서 본 반투명 손, 캔버스에 그려 3D 판·2D 판에 같이 씀) -----
+   영상처럼 엄지와 중지가 고리를 만들고(당길수록 원 → 납작한 타원), 검지·약지·소지는 당길수록 펴지고 벌어짐(뻣뻣해짐).
+   손 좌표: 알 가운데가 0, +X가 튕기는 쪽, +Y가 손가락이 펴지는 쪽. 손목은 짧게 자르고 끝은 흐려짐.
+   사람마다 손 색(0번 빨강·1번 파랑), 당길수록 진해짐(20%→90%), 윤곽선은 늘 보임 */
+const HCOL=['#e0553f','#3f7fe0','#f2c230','#47b35a'],HINK='#3b2a1f';
+const HB={x0:-.95,x1:.15,y:.55},HPX=384,HSC=1.4;   // HSC: 손 크기 (고리 앞 끝 X=-.165가 알에 닿은 채로 키움)
+const HAND={cv:null,full:null,line:null,key:'',url:''};
+function handParts(p,fl){
+  const P=[],W=.05;
+  P.push({k:'cap',pts:[[-.47,-.02],[-.86,-.07]],w:.17});   // 손목 (짧게)
+  const curl=1-p;
+  [[-.28,.12,.2],[-.37,.165,.19],[-.46,.14,.15]].forEach(([bx,by,L],k)=>{   // 검지·약지·소지: 당길수록 펴지고(길어 보임) 벌어짐
+    const ang=(100+(k-1)*(16+20*p))*Math.PI/180,len=L*(.5+.5*p);
+    const ex=bx+Math.cos(ang)*len,ey=by+Math.sin(ang)*len;
+    const mx=(bx+ex)/2+curl*.06,my=(by+ey)/2-curl*.01;
+    P.push({k:'cap',pts:[[bx,by],[mx,my],[ex,ey]],w:W*.95});
+  });
+  P.push({k:'ell',cx:-.38,cy:.03,rx:.165,ry:.15,rot:.12});   // 손등
+  const R0=.085,rx=R0*(1-.45*p),ry=R0*(1+.12*p),rcx=-.165-rx,rcy=-.01;
+  return {P,ring:{rcx,rcy,rx,ry,w:W},fl};
+}
+function handPaint(g,mode,col,H2){   // mode: 'ink' 바깥 윤곽(두꺼운 먹), 'fill' 손 색
+  const e=.016,ink=mode==='ink';
+  g.strokeStyle=g.fillStyle=ink?HINK:col;g.lineCap=g.lineJoin='round';
+  for(const q of H2.P){
+    if(q.k==='cap'){g.lineWidth=q.w+(ink?2*e:0);g.beginPath();q.pts.forEach(([x,y],j)=>{if(j===0)g.moveTo(x,y);else if(q.pts.length===3&&j===1){}else if(q.pts.length===3)g.quadraticCurveTo(q.pts[1][0],q.pts[1][1],x,y);else g.lineTo(x,y)});g.stroke()}
+    else{g.beginPath();g.ellipse(q.cx,q.cy,q.rx+(ink?e:0),q.ry+(ink?e:0),q.rot,0,Math.PI*2);g.fill()}
+  }
+}
+function handRing(g,mode,col,H2){   // 엄지·중지 고리 (손등 위에 따로: 고리 구멍이 보이게). 튕기면 중지가 앞으로 뻗음
+  const r=H2.ring,e=.016,ink=mode==='ink',fl=H2.fl;
+  g.strokeStyle=ink?HINK:col;g.lineCap='round';g.lineWidth=r.w+(ink?2*e:0);
+  if(fl<=0){g.beginPath();g.ellipse(r.rcx,r.rcy,r.rx,r.ry,0,0,Math.PI*2);g.stroke()}
+  else{
+    g.beginPath();g.ellipse(r.rcx,r.rcy,r.rx,r.ry,0,Math.PI,Math.PI*2);g.stroke();   // 엄지 (아래 반)
+    const tx=-.17+.05*fl;g.beginPath();g.moveTo(-.29,.035);g.lineTo(tx,.0);g.stroke();   // 중지가 손등에서 앞으로 쭉
+  }
+}
+function handCanvas(p,fl,seat,op){
+  const col=HCOL[Math.max(0,seat)%HCOL.length],key=[seat,Math.round(p*50),Math.round(fl*20),Math.round(op*50)].join(',');
+  if(!HAND.cv){const mk=()=>{const c=document.createElement('canvas');c.width=c.height=HPX;return c};HAND.cv=mk();HAND.full=mk();HAND.line=mk()}
+  if(HAND.key===key)return {cv:HAND.cv,changed:false};
+  HAND.key=key;
+  const H2=handParts(p,fl),k=HPX/(HB.x1-HB.x0),T0=g=>{g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,HPX,HPX);g.setTransform(k,0,0,-k,-HB.x0*k,HB.y*k)};
+  // 꽉 찬 손: 먹 → 손 색 → 고리(먹·손 색) → 고리 구멍은 비움 → 손톱
+  {const g=HAND.full.getContext('2d');T0(g);g.globalCompositeOperation='source-over';
+   handPaint(g,'ink',col,H2);handPaint(g,'fill',col,H2);handRing(g,'ink',col,H2);handRing(g,'fill',col,H2);
+   if(fl<=0){const r=H2.ring;g.globalCompositeOperation='destination-out';g.beginPath();g.ellipse(r.rcx,r.rcy,Math.max(.004,r.rx-r.w/2-.016),Math.max(.004,r.ry-r.w/2-.016),0,0,Math.PI*2);g.fill();g.globalCompositeOperation='source-over';
+     g.fillStyle='rgba(255,255,255,.6)';g.beginPath();g.ellipse(r.rcx+r.rx,r.rcy,.014,.02,0,0,Math.PI*2);g.fill()}   // 중지 손톱 (알에 닿는 곳)
+   g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='destination-out';
+   const fx=x=>(x-HB.x0)*k,gr=g.createLinearGradient(fx(-.95),0,fx(-.66),0);gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,fx(-.66),HPX);   // 손목 끝은 흐리게
+   g.globalCompositeOperation='source-over'}
+  // 윤곽선만: 먹을 그리고 손 색 자리를 지움
+  {const g=HAND.line.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,HPX,HPX);g.drawImage(HAND.full,0,0);
+   g.globalCompositeOperation='source-in';g.fillStyle=HINK;g.fillRect(0,0,HPX,HPX);g.globalCompositeOperation='source-over';
+   const T=HAND.tmp||(HAND.tmp=document.createElement('canvas'));T.width=T.height=HPX;const t2=T.getContext('2d');T0(t2);handPaint(t2,'fill',col,H2);handRing(t2,'fill',col,H2);
+   g.globalCompositeOperation='destination-out';g.drawImage(T,0,0);g.globalCompositeOperation='source-over'}
+  const g=HAND.cv.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,HPX,HPX);
+  g.globalAlpha=op;g.drawImage(HAND.full,0,0);g.globalAlpha=Math.max(0,.6-op*.6);g.drawImage(HAND.line,0,0);g.globalAlpha=1;
+  HAND.url='';
+  return {cv:HAND.cv,changed:true};
+}
+/* 지금 그릴 손: {i, x, z, ang(그리는 방향), p, fl(튕김 0~1), op(불투명도), seat} 또는 null */
+function handNow(t,pos){
+  if(FLK){
+    const e=t-FLK.t0;
+    if(e>FLK_IN+FLK_OUT){FLK=null}
+    else{const fl=Math.min(1,e/FLK_IN),fade=e<=FLK_IN?1:1-(e-FLK_IN)/FLK_OUT;
+      return {i:FLK.i,x:FLK.x,z:FLK.z,ang:FLK.a,p:FLK.p,fl,op:(.2+.7*FLK.p)*fade,seat:FLK.seat,fade}}
+  }
+  const a=aimNow(t);
+  if(!a||!pos[a.i]||V.st!=='play'||Ak3.shot||a.p<.005)return null;
+  return {i:a.i,x:pos[a.i].x,z:pos[a.i].z,ang:shownAng(a,t),p:a.p,fl:0,op:.2+.7*a.p,seat:a.seat,fade:1};
+}
 
 /* ----- 2D (SVG, WebGL이 없을 때) ----- */
 const V2=3.4;   // 그림 범위: 펠트까지
@@ -415,19 +504,19 @@ function boardSvg(){
   return out.join('');
 }
 function stones2D(pos){
-  const out=[];
+  const out=[],t=clock();
   pos.forEach((q,i)=>{
     const s=OS.st[i];if(!s||q.y<-.5)return;
-    const col=OS.co[s.s],[X,Y]=w2s(q.x,q.z),h=Math.max(0,q.y-(groundAt(q.x,q.z)+SH)),k=1+h*1.6,f=col===1?'#232326':'#f7f2e8',st=col===1?'#0c0c0e':'#8c7a5b';
-    out.push(`<circle cx="${X+.02+h*.4}" cy="${Y+.04+h*.6}" r="${SR}" fill="#000" opacity="${.25/(1+h*3)}"/><circle cx="${X}" cy="${Y-h*.3}" r="${SR*k}" fill="${f}" stroke="${st}" stroke-width=".02" opacity="${s.o&&q.y<TOP-.02?.8:1}"/>`);
+    const col=OS.co[s.s],[X,Y]=w2s(q.x,q.z),h=Math.max(0,q.y-(groundAt(q.x,q.z)+SH)),k=stoneScale(q.y),f=col===1?'#232326':'#f7f2e8',st=col===1?'#0c0c0e':'#8c7a5b';
+    out.push(`<circle cx="${X+h*.5}" cy="${Y+h*.35}" r="${SR*(1+h*.8)}" fill="#000" opacity="${.28/(1+h*5)}"/><circle cx="${X}" cy="${Y}" r="${SR*k}" fill="${f}" stroke="${st}" stroke-width=".02"/>`);
   });
-  const a=aimNow(clock());
-  if(a&&OS.st[a.i]){
-    const s=pos[a.i],L=SR*1.15+Math.min(1,a.p)*MAXD,ang=a.ang+(a.w?wob(clock()):0),[X,Y]=w2s(s.x,s.z),sd=sideOf();
-    const ex=X+Math.cos(ang)*L*sd,ey=Y+Math.sin(ang)*L*sd,bx=X+Math.cos(ang)*SR*1.15*sd,by=Y+Math.sin(ang)*SR*1.15*sd;
-    out.push(`<line x1="${bx}" y1="${by}" x2="${ex}" y2="${ey}" stroke="#f2b632" stroke-width=".07" stroke-linecap="round" opacity="${a.mine?1:.8}"/><circle cx="${ex}" cy="${ey}" r=".07" fill="#f2b632"/>`);
+  if(myTurnNow()&&!drag&&!Ak3.shot&&!FLK)OS.st.forEach((s,i)=>{if(s.s===myIdx()&&!s.o){const [X,Y]=w2s(pos[i].x,pos[i].z);out.push(`<circle cx="${X}" cy="${Y}" r="${SR*1.45}" fill="none" stroke="#f2b632" stroke-width=".03" opacity=".85"/>`)}});
+  const hd=handNow(t,pos);
+  if(hd){
+    const r=handCanvas(hd.p,hd.fl,hd.seat,hd.op);if(r.changed||!HAND.url)HAND.url=r.cv.toDataURL();
+    const [X,Y]=w2s(hd.x,hd.z),deg=(hd.ang+(sideOf()<0?Math.PI:0))*180/Math.PI;
+    out.push(`<image href="${HAND.url}" x="${HB.x0}" y="${-HB.y}" width="${HB.x1-HB.x0}" height="${2*HB.y}" transform="translate(${X} ${Y}) rotate(${deg}) translate(${-.165*(1-HSC)} 0) scale(${HSC})"/>`);
   }
-  if(myTurnNow()&&!drag&&!Ak3.shot)OS.st.forEach((s,i)=>{if(s.s===myIdx()&&!s.o){const [X,Y]=w2s(pos[i].x,pos[i].z);out.push(`<circle cx="${X}" cy="${Y}" r="${SR*1.45}" fill="none" stroke="#f2b632" stroke-width=".03" opacity=".85"/>`)}});
   return out.join('');
 }
 function draw2D(){
@@ -470,15 +559,16 @@ function fit2D(){
 }
 
 /* ---------- 3D ---------- */
-const CAMP=50*Math.PI/180;   // 카메라가 내려다보는 각도
-const Ak3={on:false,built:false,fail:false,root:null,cam:null,dirty:true,lastR:0,lay:'',layAt:0,d:12,stones:[],rings:[],arrow:null,shot:null,lastSid:-1,lastGid:-1,flickAt:0,col:[]};
+/* 바로 위(90도)에서 내려다봄: 높이가 안 보이므로 뜬 알은 조금 커지고(stoneScale) 바닥 그림자가 옆으로 벌어지며 흐려짐. 판 아래(펠트)로 떨어진 알은 작아짐 */
+const stoneScale=y=>Math.max(.72,Math.min(1.75,1+(y-(TOP+SH))*1.3));
+const Ak3={on:false,built:false,fail:false,root:null,cam:null,dirty:true,lastR:0,lay:'',layAt:0,d:12,stones:[],rings:[],blobs:[],hand:null,shot:null,lastSid:-1,lastGid:-1,flickAt:0,col:[]};
 const ease=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 const MAT={};
 function stoneMesh(col){
   const key='s'+col;
   if(!MAT[key])MAT[key]=toon({color:col===1?0x26262a:0xf4efe3,rim:col===1?.35:.12});
   if(!MAT.ink)MAT.ink=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide});
-  const g=new THREE.Group(),geo=Ak3.sGeo||(Ak3.sGeo=new THREE.SphereGeometry(SR,28,16)),m=new THREE.Mesh(geo,MAT[key]);m.scale.y=SH/SR;m.castShadow=m.receiveShadow=true;g.add(m);
+  const g=new THREE.Group(),geo=Ak3.sGeo||(Ak3.sGeo=new THREE.SphereGeometry(SR,28,16)),m=new THREE.Mesh(geo,MAT[key]);m.scale.y=SH/SR;m.receiveShadow=true;g.add(m);
   const o=new THREE.Mesh(geo,MAT.ink);o.scale.set(1.07,SH/SR*1.12,1.07);g.add(o);
   g.userData={col,body:m};g.rotation.order='YXZ';
   return g;
@@ -516,16 +606,12 @@ function ak3Build(){
     // 튕길 수 있는 내 알 둘레의 고리 (내 차례), 화살표
     const ringM=new THREE.MeshBasicMaterial({color:0xf2b632,transparent:true,opacity:.9,depthWrite:false});
     Ak3.ringGeo=new THREE.RingGeometry(SR*1.22,SR*1.42,40);Ak3.ringM=ringM;
-    const ar=new THREE.Group();ar.visible=false;ar.renderOrder=6;
-    const am=new THREE.MeshBasicMaterial({color:0xf2b632,transparent:true,opacity:.95,depthTest:false,depthWrite:false}),ak=new THREE.MeshBasicMaterial({color:0x3b2a1f,transparent:true,opacity:.85,depthTest:false,depthWrite:false});
-    const shaft=new THREE.Mesh(new THREE.PlaneGeometry(1,.075),am);shaft.rotation.x=-Math.PI/2;shaft.renderOrder=8;
-    const shO=new THREE.Mesh(new THREE.PlaneGeometry(1,.115),ak);shO.rotation.x=-Math.PI/2;shO.renderOrder=7;
-    const hs=new THREE.Shape();hs.moveTo(0,-.12);hs.lineTo(.22,0);hs.lineTo(0,.12);hs.closePath();
-    const hso=new THREE.Shape();hso.moveTo(-.03,-.16);hso.lineTo(.27,0);hso.lineTo(-.03,.16);hso.closePath();
-    const head=new THREE.Mesh(new THREE.ShapeGeometry(hs),am);head.rotation.x=-Math.PI/2;head.renderOrder=8;
-    const headO=new THREE.Mesh(new THREE.ShapeGeometry(hso),ak);headO.rotation.x=-Math.PI/2;headO.renderOrder=7;
-    ar.add(shaft,shO,head,headO);root.add(ar);
-    Ak3.arrow={g:ar,shaft,shO,head,headO,am};
+    // 손: 위에서 본 반투명 손 그림(캔버스)을 알 위에 눕혀 둠 (다른 알보다 늘 위에 보이게)
+    {const tex=new THREE.CanvasTexture(handCanvas(0,0,0,.2).cv);tex.anisotropy=4;
+     const hm=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false});
+     const pl=new THREE.Mesh(new THREE.PlaneGeometry(HB.x1-HB.x0,2*HB.y),hm);pl.rotation.x=-Math.PI/2;pl.position.x=(HB.x0+HB.x1)/2;pl.renderOrder=9;
+     const inner=new THREE.Group();inner.add(pl);inner.scale.setScalar(HSC);inner.position.x=-.165*(1-HSC);const hg=new THREE.Group();hg.add(inner);hg.visible=false;root.add(hg);Ak3.hand={g:hg,tex}}
+    Ak3.blobGeo=new THREE.CircleGeometry(SR,28);
     Ak3.cam=new THREE.PerspectiveCamera(40,1,.1,100);
     T.scene.add(root);Ak3.root=root;Ak3.built=true;
   }catch(e){Ak3.fail=true;try{console.warn('알까기 3D 준비 실패',e)}catch(_){}}
@@ -537,11 +623,12 @@ function ak3Stones(){
   const key=OS.st.map(s=>OS.co[s.s]).join('');
   if(Ak3.sKey===key)return;
   Ak3.sKey=key;
-  for(const m of Ak3.stones)Ak3.root.remove(m);for(const r of Ak3.rings)Ak3.root.remove(r);
+  for(const m of [...Ak3.stones,...Ak3.rings,...Ak3.blobs])Ak3.root.remove(m);
   Ak3.stones=OS.st.map(s=>{const m=stoneMesh(OS.co[s.s]);Ak3.root.add(m);return m});
+  Ak3.blobs=OS.st.map(()=>{const b=new THREE.Mesh(Ak3.blobGeo,new THREE.MeshBasicMaterial({color:0x1a120c,transparent:true,opacity:.28,depthWrite:false}));b.rotation.x=-Math.PI/2;b.renderOrder=2;Ak3.root.add(b);return b});
   Ak3.rings=OS.st.map(()=>{const r=new THREE.Mesh(Ak3.ringGeo,Ak3.ringM);r.rotation.x=-Math.PI/2;r.visible=false;r.renderOrder=3;Ak3.root.add(r);return r});
 }
-/* 카메라: 판과 판 둘레(떨어진 알이 놓이는 펠트 조금)가 판 자리(위 이름 칸 아래, 휴대폰은 내 정보 칸 위)에 꽉 차게. 내 쪽에서 비스듬히 */
+/* 카메라: 바로 위에서. 판과 판 둘레(떨어진 알이 놓이는 펠트 조금)가 판 자리(위 이름 칸 아래, 휴대폰은 내 정보 칸 위)에 꽉 차게. 내 쪽이 화면 아래 */
 function ak3Layout(t){
   if(t-Ak3.layAt<100&&Ak3.lay)return false;
   Ak3.layAt=t;
@@ -553,17 +640,11 @@ function ak3Layout(t){
   const sd=sideOf(),key=base+','+top+','+sd;
   if(key===Ak3.lay)return false;
   Ak3.lay=key;
-  const narrow=W<700,fy=top+2,fh=(narrow?Hh-70:Hh-40)-fy,fw=W-10,M=BW+.35;
-  const P=[];for(const x of [-M,M])for(const z of [-M,M])P.push([x,0,z]);for(const x of [-BW,BW])for(const z of [-BW,BW])P.push([x,TOP+.3,z]);
-  const cam=Ak3.cam;cam.aspect=W/Hh;cam.clearViewOffset();cam.updateProjectionMatrix();
-  const v=new THREE.Vector3();
-  const measure=D=>{cam.position.set(0,D*Math.sin(CAMP),sd*D*Math.cos(CAMP));cam.up.set(0,1,0);cam.lookAt(0,0,0);cam.updateMatrixWorld();
-    let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const q of P){v.set(q[0],q[1],q[2]).project(cam);const px=(v.x+1)/2*W,py=(1-v.y)/2*Hh;x0=Math.min(x0,px);x1=Math.max(x1,px);y0=Math.min(y0,py);y1=Math.max(y1,py)}
-    return {x0,x1,y0,y1}};
-  let lo=2,hi=80;for(let k=0;k<30;k++){const m=(lo+hi)/2,b=measure(m);if(b.x1-b.x0<=fw&&b.y1-b.y0<=fh)hi=m;else lo=m}
-  const b=measure(hi),cx=(b.x0+b.x1)/2,cy=(b.y0+b.y1)/2;
-  cam.setViewOffset(W,Hh,Math.round(cx-W/2),Math.round(cy-(fy+fh/2)),W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
-  Ak3.d=hi;Ak3.dirty=true;
+  const narrow=W<700,fy=top+2,fh=(narrow?Hh-70:Hh-40)-fy,fw=W-10,ext=2*(BW+.4);
+  const s=Math.min(fw,fh)/ext,cam=Ak3.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(s*f);
+  cam.aspect=W/Hh;cam.position.set(0,TOP+d,0);cam.up.set(0,0,-sd);cam.lookAt(0,TOP,0);
+  cam.setViewOffset(W,Hh,0,-((fy+fh/2)-Hh/2),W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
+  Ak3.d=d;Ak3.dirty=true;
   return true;
 }
 /* 지금 그릴 알 자리: 연출 중이면 자취에서, 아니면 상태 그대로. 시작 연출 중이면 떨어지는 중 */
@@ -594,36 +675,33 @@ function curPos(now){
 function ak3Place(now){
   const pos=curPos(now);
   Ak3.stones.forEach((m,i)=>{
-    const q=pos[i],s=OS.st[i];if(!q||!s){m.visible=false;return}
+    const q=pos[i],s=OS.st[i],bl=Ak3.blobs[i];if(!q||!s){m.visible=false;if(bl)bl.visible=false;return}
     m.visible=!q.hide&&q.y>-1.2;
-    m.position.set(q.x,q.y,q.z);m.rotation.set(-q.az,0,q.ax);
+    m.position.set(q.x,q.y,q.z);m.rotation.set(-q.az,0,q.ax);m.scale.setScalar(stoneScale(q.y));
+    if(bl){const gy=groundAt(q.x,q.z),h=Math.max(0,q.y-(gy+SH));bl.visible=m.visible&&gy>-50;
+      if(bl.visible){bl.position.set(q.x+h*.5,gy+.004,q.z+h*.35);bl.scale.setScalar(1+h*.8);bl.material.opacity=.3/(1+h*5)}}   // 뜬 만큼 그림자가 옆으로 벌어지고 흐려짐
   });
-  // 고리: 내 차례면 튕길 수 있는 내 알, 당기는 중이면 그 알, 상대가 당기는 중이면 상대 알
+  // 고리: 내 차례면 튕길 수 있는 내 알, 상대가 당기는 중이면 그 알 (내가 당기는 중에는 손이 보여 줌)
   const me=myIdx(),a=aimNow(now),pulse=.75+.25*Math.sin(now/260);
   Ak3.ringM.opacity=.9*pulse;
   Ak3.rings.forEach((r,i)=>{
     const s=OS.st[i],q=pos[i];
-    const on=!!s&&!s.o&&V.st==='play'&&!Ak3.shot&&!introWait()&&(a?a.i===i:(myTurnNow()&&s.s===me));
+    const on=!!s&&!s.o&&V.st==='play'&&!Ak3.shot&&!FLK&&!introWait()&&(a?(!a.mine&&a.i===i):(myTurnNow()&&s.s===me));
     r.visible=on;if(on)r.position.set(q.x,TOP+.004,q.z);
   });
-  // 화살표: 알 뒤(당긴 쪽)로. 끝까지 당겼으면 흔들림
-  const A=Ak3.arrow;
-  if(a&&pos[a.i]&&V.st==='play'&&!Ak3.shot){
-    const q=pos[a.i],L=Math.min(1,a.p)*MAXD*(a.w?1+.025*Math.sin(now*.09):1),ang=a.ang+(a.w?wob(now):0),st0=SR*1.2;
-    A.g.visible=L>.02;
-    A.g.position.set(q.x,TOP+2*SH+.03,q.z);A.g.rotation.set(0,-ang,0);
-    const len=Math.max(.001,L);
-    A.shaft.scale.x=A.shO.scale.x=len;A.shaft.position.x=A.shO.position.x=st0+len/2;
-    A.head.position.x=st0+len;A.headO.position.x=st0+len;
-    A.am.opacity=a.mine?.95:.8;
-    A.am.color.setHex(a.w?0xffd23a:0xf2b632);
-  }else A.g.visible=false;
+  // 손
+  const H3=Ak3.hand,hd=handNow(now,pos);
+  if(hd){
+    const r=handCanvas(hd.p,hd.fl,hd.seat,hd.op);if(r.changed)H3.tex.needsUpdate=true;
+    H3.g.visible=true;H3.g.position.set(hd.x,TOP+2*SH+.12,hd.z);H3.g.rotation.set(0,-hd.ang,0);
+  }else H3.g.visible=false;
 }
 /* 튕긴 뒤 소리: 자취와 같은 시각에 */
 function shotSounds(now){
   const S=Ak3.shot;if(!S)return;
   const e=now-S.t0,ev=S.sh.ev||[];
   if(!S.flick){S.flick=1;if(!(Ak3.flickAt&&now-Ak3.flickAt<1500)&&e<400)sndFlick()}   // 내가 튕긴 소리는 놓을 때 이미 냄
+  if(e<0)return;   // 손가락이 닿기 전
   while(S.ei<ev.length&&ev[S.ei][0]<=e){const [,k,v]=ev[S.ei++];if(e-ev[S.ei-1][0]>300)continue;if(k==='c')sndClack(v);else if(k==='b')sndTap(v);else if(k==='f')sndDrop(v);else sndWall(v)}
   if(e>=S.sh.dur+60){Ak3.shot=null;Ak3.dirty=true;drawAll()}
 }
@@ -633,7 +711,7 @@ function ak3Render(t){
   ak3Stones();
   shotSounds(t);
   const intro=IN.on3d&&introStep(t);
-  const busy=!!(Ak3.shot||intro||drag||(OS&&OS.aim&&OS.ph==='aim')||myTurnNow());   // 움직이는 것이 없으면 가끔만 그림
+  const busy=!!(Ak3.shot||intro||drag||FLK||(OS&&OS.aim&&OS.ph==='aim')||myTurnNow());   // 움직이는 것이 없으면 가끔만 그림
   if(!busy&&!Ak3.dirty&&t-Ak3.lastR<400)return;
   ak3Place(t);
   const fog=T.scene.fog,fn=fog?fog.near:0,ff=fog?fog.far:0;
@@ -724,7 +802,11 @@ G.preView=()=>{
   const sh=OS.sh;
   if(sh&&sh.id!==Ak3.lastSid){
     Ak3.lastSid=sh.id;
-    if(sh.tr&&sh.age<sh.dur+300){Ak3.shot={sh,t0:clock()-sh.age,ei:0,flick:0};drag=null}
+    if(sh.tr&&sh.age<sh.dur+300){
+      Ak3.shot={sh,t0:clock()-sh.age+FLK_IN,ei:0,flick:0};drag=null;   // 손가락이 알에 닿은 뒤에 알이 나감
+      const tr=sh.tr[sh.i],mine=FLK&&FLK.mine&&FLK.i===sh.i&&clock()-FLK.t0<2000;
+      if(!mine&&tr&&sh.age<300&&Number.isFinite(sh.a))FLK={i:sh.i,a:sh.a,p:sh.p||.5,seat:sh.by,t0:clock()-sh.age,x:tr[1]/1000,z:tr[3]/1000,mine:false};   // 튕기기 전 자리에서 손이 탁
+    }
     else Ak3.shot=null;
   }
   if(drag&&(!myTurnNow()||V.st!=='play'))drag=null;
@@ -776,7 +858,7 @@ G.live=()=>{
   if(me>=0){const mt=$('#meTime'),s=run&&V.t===me?txt+'초':'';if(mt.textContent!==s)mt.textContent=s}
   if(!Ak3.on){
     if(Ak3.shot){shotSounds(t)}
-    if(Ak3.shot||drag||(OS.aim&&OS.ph==='aim')||myTurnNow())draw2D();
+    if(Ak3.shot||drag||FLK||(OS.aim&&OS.ph==='aim')||myTurnNow())draw2D();
   }
 };
 G.play=()=>{};
@@ -867,7 +949,7 @@ G.init=()=>{
   document.addEventListener('keydown',e=>{if(e.code==='Escape'&&drag&&elAk&&!elAk.hidden)dragEnd(true)});
   window.addEventListener('resize',()=>{Ak3.lay='';fit2D()});
 };
-G._ak3={Ak3,IN,introEnd,get OS(){return OS},get drag(){return drag},dragStart,dragMove,dragEnd,curPos};   // 화면 검사용
+G._ak3={Ak3,IN,introEnd,handCanvas,get FLK(){return FLK},get OS(){return OS},get drag(){return drag},dragStart,dragMove,dragEnd,curPos};   // 화면 검사용
 
 (window.GAMES=window.GAMES||{}).alkkagi=G;
 })();
