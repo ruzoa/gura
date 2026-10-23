@@ -170,7 +170,7 @@ function buildHand(){
     pinky:finger([-.018,.003,HZ*-.075],[.07,.045,.04],.023,.018,true)};
   // 엄지 뼈대 (실제 손뼈 비율): 손허리뼈 CMC→MCP .10(손바닥 살 속, 아래 mc), 첫마디 .068, 끝마디 .057. 길이는 늘지 않음
   const t1=new THREE.Group(),t2=new THREE.Group();inner.add(t1,t2);
-  const r=[.032,.029,.024].map(v=>v*F),TL=[.068,.057],LM=.10;   // 엄지는 검지보다 조금만 굵게
+  const r=[.032,.029,.024].map(v=>v*F),TL=[.068,.048],LM=.10;   // 손뼈 실측 비율(첫마디 29.8mm·끝마디 20.9mm, 중지 첫마디 43.6mm = .1)   // 엄지는 검지보다 조금만 굵게
   const s1=new THREE.Group(),s2=new THREE.Group();t1.add(s1);t2.add(s2);
   addPart(s1,capGeo(TL[0],r[0],r[1]),'skin');
   addPart(s2,capGeo(TL[1],r[1],r[2]),'skin');nailLine(s2,TL[1],r[2]);
@@ -178,7 +178,10 @@ function buildHand(){
   const mc=new THREE.Group();inner.add(mc);
   {const rc=.03*F,cg=new THREE.CylinderGeometry(r[0],rc,1,22,1,true);cg.rotateZ(-Math.PI/2);cg.translate(.5,0,0);
    const cm=addPart(mc,cg,'skin');cm.userData.len=1;addPart(mc,new THREE.SphereGeometry(rc,22,14),'skin');mc.userData.cyl=cm}
-  HS={fs,thumb:{mc,cmc:new THREE.Vector3(-.15,-.045,HZ*.055),wr:new THREE.Vector3(-.226,-.004,HZ*.06),LM,t1,t2,s1,s2,TL,r2:r[2]},tgt:null};   // CMC: 큰마름뼈 자리(손목 주름 바로 앞, 엄지 쪽·손바닥 쪽)
+  // 엄지 두덩(손허리뼈를 덮는 살)과 물갈퀴(엄지·검지 사이 살): 손허리뼈가 손가락처럼 따로 보이지 않고 손바닥으로 보이게. 매 프레임 두 점 사이에 늘여 둠
+  const blob=()=>{const g=new THREE.Group();inner.add(g);addPart(g,new THREE.SphereGeometry(1,26,16),'skin');return g};
+  const thn=blob(),web=blob();
+  HS={fs,thumb:{mc,cmc:new THREE.Vector3(-.15,-.045,HZ*.055),wr:new THREE.Vector3(-.226,-.004,HZ*.06),LM,t1,t2,s1,s2,TL,r2:r[2],thn,web,iRoot:fs.index.root.position.clone()},tgt:null};   // CMC: 큰마름뼈 자리(손목 주름 바로 앞, 엄지 쪽·손바닥 쪽)
 }
 const D2R=Math.PI/180,lerp=(a,b,t)=>a+(b-a)*t,lerpA=(a,b,t)=>a.map((v,k)=>lerp(v,b[k],t));
 /* 자세: p 당긴 힘(0 느슨 → 1 뻣뻣·꽉), fl 튕김(0 → 1 중지가 쭉) */
@@ -217,6 +220,10 @@ function poseHand(p,fl){
   const B=MF.lerp(MO,o),T=TF.lerp(TO,o),EO=ik(MO,TO,L1,L2,DORS);
   {const m=Th.mc,dv=B.clone().sub(Th.wr);m.position.copy(Th.wr);   // 엄지 뿌리 살: 손목 모서리 → MCP (뼈 CMC보다 뒤에서 시작해 손목부터 선이 이어짐)
   m.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),dv.clone().normalize());m.userData.cyl.scale.x=dv.length()}
+  // 두덩: 손목 모서리→MCP, 물갈퀴: MCP→검지 뿌리 (얇게)
+  const span=(g,A,P,ry,rz)=>{const dv=P.clone().sub(A),L=dv.length();g.position.copy(A).add(P).multiplyScalar(.5);g.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),dv.normalize());g.scale.set(L*.5,ry,rz)};
+  span(Th.thn,Th.wr.clone().lerp(B,.12),B,.04*S.fat,.044*S.fat);
+  span(Th.web,B.clone().lerp(Th.iRoot,.08),Th.iRoot.clone().add(new THREE.Vector3(-.02,-.006,0)),.017*S.fat,.026*S.fat);
   const k=1,E=EF.lerp(EO,o);
   // 마디를 향하게 돌리되 손톱(+Y)이 엄지 손등 쪽을 보게
   const aim=(g,from,to)=>{const x=to.clone().sub(from).normalize(),y=DORS.clone().sub(x.clone().multiplyScalar(DORS.dot(x))).normalize(),z=new THREE.Vector3().crossVectors(x,y);
