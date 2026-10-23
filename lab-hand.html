@@ -152,8 +152,8 @@ function buildHand(){
   const sh=new THREE.Shape(),Y=v=>v*HZ*-1*1.12;   // 1.12: 손등 폭 (실제 손 사진에 맞춤)   // 모양 y → 월드 -z 방향을 맞춤 (rotateX 뒤 z=y)
   // 그림처럼: 손목 쪽이 좁고 손가락 뿌리 쪽이 넓은 사다리꼴, 손가락 뿌리 줄은 검지 쪽이 앞으로, 검지와 엄지 사이는 오목하게 파임
   sh.moveTo(-.235,Y(-.068));sh.quadraticCurveTo(-.13,Y(-.071),-.026,Y(-.0695));sh.quadraticCurveTo(-.002,Y(-.068),.0,Y(-.04));   // 소지 쪽: 손목→소지 뿌리까지 곧게 (소지 바깥선과 한 줄)
-  sh.quadraticCurveTo(.014,Y(.0),.01,Y(.05));sh.quadraticCurveTo(.004,Y(.092),-.03,Y(.096));
-  sh.quadraticCurveTo(-.09,Y(.094),-.14,Y(.106));sh.quadraticCurveTo(-.205,Y(.12),-.235,Y(.062));sh.closePath();
+  sh.quadraticCurveTo(.014,Y(.0),.01,Y(.05));sh.quadraticCurveTo(.006,Y(.074),-.025,Y(.0778));   // 검지 쪽: 바깥면이 검지 바깥면(뿌리 z .08 + 굵기)과 같은 줄
+  sh.quadraticCurveTo(-.09,Y(.08),-.14,Y(.1));sh.quadraticCurveTo(-.205,Y(.12),-.235,Y(.062));sh.closePath();
   const ex=(b)=>{const g=new THREE.ExtrudeGeometry(sh,{depth:.026,bevelEnabled:true,bevelThickness:.02+b,bevelSize:.02+b,bevelSegments:5,curveSegments:20});g.rotateX(-Math.PI/2);g.translate(0,-.013,0);return g};
   addPart(inner,ex(0),'skin');
   // 엄지 뿌리 살(손바닥 쪽 도톰한 곳): 손등 엄지 쪽 아래
