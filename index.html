@@ -4037,7 +4037,7 @@ function frontRulesUpdate(t,dt,lobby,wait){
   const pg=S.mode==='game'?Math.min(RB_PG,rbPages()):0,nS=S.mode==='game'?rbNSet():0,show=pg>1;
   const top=RB.L+.06-.34,bot=.2,gapN=nS&&pg>nS?.5:0,step=pg>1?Math.min(.26,(top-bot)/(pg-1+gapN)):0;
   P.pgs.forEach((b,k)=>{const on=show&&k<pg;b.m.visible=b.o.visible=on;if(!on)return;
-    const y=top-step*(k+(k>=nS?gapN:0)),lit=k===S.pg;b.m.position.y=b.o.position.y=y;b.m.position.z=b.o.position.z=lit?.085:.1;
+    const y=top-step*(k+(k>=nS?gapN:0)),lit=k===S.pg,sc=Math.min(1,step/.15);b.m.position.y=b.o.position.y=y;b.m.scale.set(sc,1,sc);b.o.scale.set(sc,1,sc);b.m.position.z=b.o.position.z=lit?.085:.1;
     const lab=rbPgLabel(k,nS);if(b.lab!==lab||b.lit!==lit){b.lab=lab;b.lit=lit;rbPgPaint(b,lab,lit)}});
   P.bk.visible=P.bkO.visible=S.mode==='game'&&!!S.fromList;
   if(S.on&&wait&&S.set&&V&&V.cfg&&S.gid!==(V.cfg.game||'gura')&&!S.chg){S.gid=V.cfg.game||'gura';rbSetPlanks.c=null;if(S.pg>=rbPages())S.pg=0;rbDraw(t)}   // 방장이 게임을 바꿈
