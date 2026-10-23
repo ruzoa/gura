@@ -882,6 +882,7 @@ body.kb .fan .card.cur{z-index:70!important}
 <script src="games/omok.js"></script>
 <script src="games/chess.js"></script>
 <script src="games/blackjack.js"></script>
+<script src="games/alkkagi.js"></script>
 <script>
 /* ================= 공통 ================= */
 const $=s=>document.querySelector(s);
@@ -897,7 +898,7 @@ const isJ=id=>id>=JOKER_BASE;
 const JOKER_C='#efbc4e';
 /* ===== 게임 목록 =====
    G = 지금 화면에 보이는 게임, EG() = 방장 엔진이 돌리는 게임 (방장 화면에서는 둘이 같음) */
-const GAME_IDS=['gura','president','quoridor','yahtzee','omok','chess','blackjack'];
+const GAME_IDS=['gura','president','quoridor','yahtzee','omok','chess','blackjack','alkkagi'];
 let G=GAMES.gura;
 const EG=()=>(H&&H.cfg&&GAMES[H.cfg.game])||GAMES.gura;
 const gameOf=id=>GAMES[id]||GAMES.gura;
@@ -2170,7 +2171,7 @@ function renderPanel(){
       const clipUI=frTableUI(),ro=!isHost;
       const c=V.cfg,minMax=Math.max(2,V.ps.length);
       const nowN=Math.max(2,V.ps.length),cardInfo=G.cardInfo(c,nowN);
-      const DEF={max:4,spec:4,...G.defaults},HL_SKIP=new Set(['max','spec','rounds','chips','turn','grace','tm','inc']),hlv=(k,v)=>clipUI&&!HL_SKIP.has(k)&&DEF[k]!=null&&+DEF[k]!==+v;   // 규칙이 정해진 값과 다르면 항목 이름에 형광펜 (인원·시간·판 수 같은 양은 칠하지 않음)
+      const DEF={max:4,spec:4,...G.defaults},HL_SKIP=new Set(['max','spec','rounds','chips','turn','grace','tm','inc','stones']),hlv=(k,v)=>clipUI&&!HL_SKIP.has(k)&&DEF[k]!=null&&+DEF[k]!==+v;   // 규칙이 정해진 값과 다르면 항목 이름에 형광펜 (인원·시간·판 수 같은 양은 칠하지 않음)
       const rules=G.ruleSet.filter(d=>!d.hidden).map(d=>{const on=!!(+c[d.k]);return `<div class="stp tg"><div class="stp-t"><b${clipUI&&+(DEF[d.k]||0)!==(on?1:0)?' class="hl"':''}>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="sw${on?' on':''}" role="switch" aria-checked="${on}" aria-label="${d.label}" data-act="tog:${d.k}"><i></i></button></div></div>`}).join('');
       const tooMany=GAME_IDS.filter(id=>GAMES[id].maxHi&&V.ps.length>GAMES[id].maxHi);   // 인원 제한이 있는 게임(쿼리도 4명)은 지금 인원이 넘으면 고를 수 없음
       const gpick=`<div class="rs-seg"><div class="rs-h"><b>게임</b><small>${esc(G.lead)}${tooMany.length?`<br>${tooMany.map(id=>`${esc(GAMES[id].name)}은(는) 최대 ${GAMES[id].maxHi}명`).join(', ')}까지 할 수 있습니다.`:''}</small></div><div class="segrow" role="radiogroup" aria-label="게임">${GAME_IDS.map(id=>`<button class="btn ${c.game===id?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${c.game===id}" data-act="game:${id}"${tooMany.includes(id)?' disabled':''}>${esc(GAMES[id].name)}</button>`).join('')}</div></div>`;
@@ -3351,7 +3352,8 @@ function rcCurve(al){   // 종이 길이 al(틈에서부터) → [앞으로 간 
 const RC_CAND={_:{a:[50,-50,90,-90,128,-128,150,-150,180],r:[4.3,3.7,3.1,2.5]},   // a: 각도 순서, r: 반지름 순서 (세로 휴대폰은 둘레가 화면 밖이라 안쪽까지)
   quoridor:{a:[50,-50,90,-90,145,-145,128,-128,180,165,-165],r:[4.3,3.9,3.5]},   // 판·벽 보관함 위에는 놓지 않음
   omok:{a:[90,-128,-90,128,145,-145,50,-50],r:[4.3,3.8,3.3]},
-  yahtzee:{a:[-50,-90,50,90,-128,128],r:[4.3,3.7,3.1,2.5]}};
+  yahtzee:{a:[-50,-90,50,90,-128,128],r:[4.3,3.7,3.1,2.5]},
+  alkkagi:{a:[90,-90,128,-128,150,-150,50,-50,180],r:[4.3,3.9,3.6]}};   // 판(모서리 반지름 3.25)과 떨어진 알 자리는 피함
 function rcptBuild(TG){
   const cv=document.createElement('canvas');cv.width=RC.CW;cv.height=RC.RPX*(RC.MAX+1);
   const tex=new THREE.CanvasTexture(cv);tex.anisotropy=8;
@@ -3781,7 +3783,7 @@ const RS={CX:774,X0:0};
 function rbSetItems(){
   if(!V||!V.cfg)return {main:[],det:[]};
   const g=G,c=V.cfg,main=[],det=[];
-  const D={max:4,spec:4,...g.defaults},skip=new Set(['max','spec','rounds','chips','turn','grace','tm','inc']);
+  const D={max:4,spec:4,...g.defaults},skip=new Set(['max','spec','rounds','chips','turn','grace','tm','inc','stones']);
   const off=(k,v)=>!skip.has(k)&&D[k]!=null&&+D[k]!==+v;
   if(!g.noFast){const v=+c.fast?1:0;main.push({kind:'choice',k:'fast',label:'게임 모드',opts:OPT_LABEL.fast,desc:(g.modeDesc||MODE_DESC).map((d,i)=>`${OPT_LABEL.fast[i]}: ${d}`).join('<br>'),v,diff:!!v,act:o=>'mode'+o})}
   for(const d of roomSetOf(g))if(!d.lever){const v=+(c[d.k]??0);main.push({kind:'num',...d,v,diff:off(d.k,v)})}
@@ -4074,6 +4076,8 @@ function frontHoloPiece(id){
     const at=canvasTex(128,186,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.fillStyle='#34404f';x.font='600 34px "IBM Plex Mono", monospace';x.textAlign='left';x.textBaseline='top';x.fillText('A',10,8);x.font='86px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('♠',w/2,h/2+8)});
     add(new THREE.BoxGeometry(.4,.58,.012),holoMat(0xffffff,at),-.1,.04,0,0,0,.12);
     const cm=holoMat(0xcc3a2e),cw=holoMat(0xf6f3ea);for(let k=0;k<4;k++){add(new THREE.CylinderGeometry(.12,.12,.045,20),k%2?cw:cm,.17,-.2+k*.05,.06)}}
+  else if(id==='alkkagi'&&GAMES.alkkagi&&GAMES.alkkagi.holoPiece){   // 흑돌과 튀어 오르는 백돌 (게임이 모양을 정하고 재질은 여기서)
+    const k=GAMES.alkkagi.holoPiece(c=>{const m=holoMat(c);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else add(new THREE.OctahedronGeometry(.25),holoMat(0xffffff));
   g.userData={mats};return g;
 }
