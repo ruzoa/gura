@@ -71,13 +71,16 @@ input[type=range]{flex:1;min-width:0;height:32px;accent-color:var(--acc)}
    손은 코드로 만든 만화풍 손: 손등(납작한 공) + 손가락(곡선을 따라 만든 둥근 관) + 툰 셰이딩 + 검은 외곽선.
    엄지·중지 고리(당길수록 원 → 납작한 타원), 검지·약지·소지(당길수록 펴지고 벌어짐), 튕기면 중지가 앞으로 쭉.
    반투명은 '깊이만 먼저 그리고 → 색을 한 번만' 그려서 손가락이 겹친 곳도 고르게 비침.
-   값은 gura-lab-hand2에 저장 */
-const KEY='gura-lab-hand2';
-const DEF={p:.5,fl:0,pitch:22,tilt:20,size:1.3,squash:.45,fat:1,spread:17,col:0,view:'top',alpha:1,jitter:1,ink:1};
+   그림처럼 보이게 (2026-10-23): 손은 따로 '불투명하게' 그린 뒤(손 그림 한 장) 그 그림을 통째로 반투명하게 얹음.
+   윤곽선은 그 그림의 깊이 차이로 그림(바깥 윤곽 + 앞 손가락이 뒤를 가리는 곳만, 마디 이음새는 안 그림) → 선이 가늘고 또렷하고 겹친 곳 얼룩 없음.
+   색은 플레이어 색을 밝게 한 면 + 한쪽 가장자리를 따라 진하고 따뜻한 그늘. 손톱 없음.
+   값은 gura-lab-hand3에 저장 */
+const KEY='gura-lab-hand3';
+const DEF={p:.5,fl:0,pitch:22,tilt:60,size:1.3,squash:.45,fat:1,spread:17,col:0,view:'top',alpha:1,jitter:1,ink:1};
 let S={...DEF};try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){};$('#line').value=JSON.stringify({pitch:S.pitch,tilt:S.tilt,size:S.size,squash:S.squash,fat:S.fat,spread:S.spread})};
 const $=q=>document.querySelector(q);
-const COLS=[['빨강',0xe0553f],['파랑',0x3f7fe0],['노랑',0xf2c230],['초록',0x47b35a],['살색',0xf2c49b]];
+const COLS=[['빨강',0xe0553f],['파랑',0x3f7fe0],['노랑',0xf2c230],['초록',0x47b35a]];
 const SR=.15,SH=.066,TOP=0;   // 알 반지름·반두께, 판 윗면 높이 (게임과 같은 값)
 
 /* ----- 장면 ----- */
@@ -95,7 +98,7 @@ const INK=0x3b2a1f;
  g.strokeStyle='rgba(60,36,12,.85)';g.lineWidth=2;for(let k=0;k<=6;k++){const v=k/6*512;g.beginPath();g.moveTo(0,v);g.lineTo(512,v);g.moveTo(v,0);g.lineTo(v,512);g.stroke()}
  const tex=new THREE.CanvasTexture(cv);const b=new THREE.Mesh(new THREE.PlaneGeometry(2,2),toon(0xffffff));b.material.map=tex;b.rotation.x=-Math.PI/2;scene.add(b)}
 const stone=new THREE.Group();{const m=new THREE.Mesh(new THREE.SphereGeometry(SR,32,18),toon(0x26262a));m.scale.y=SH/SR;stone.add(m);const o=new THREE.Mesh(new THREE.SphereGeometry(SR,32,18),new THREE.MeshBasicMaterial({color:INK,side:THREE.BackSide}));o.scale.set(1.07,SH/SR*1.12,1.07);stone.add(o)}
-stone.position.y=SH;scene.add(stone);
+stone.position.y=SH;scene.add(stone);stone.traverse(o=>o.layers.enable(2));
 
 /* ----- 손 만들기 -----
    손등이 위(+Y)를 보고 손가락이 앞(+X, 튕기는 쪽)으로 뻗은 오른손. +Z가 엄지 쪽.
@@ -105,40 +108,33 @@ stone.position.y=SH;scene.add(stone);
 const HAND=new THREE.Group();scene.add(HAND);
 const inner=new THREE.Group();HAND.add(inner);
 const wristG=new THREE.Group();HAND.add(wristG);   // 손목·팔뚝은 손을 세워도 판과 나란히
-const mats={depth:new THREE.MeshBasicMaterial({colorWrite:false}),skin:null,ink:null,nail:null,wrist:null,wristInk:null};
-const fade=(()=>{const c=document.createElement('canvas');c.width=4;c.height=64;const g=c.getContext('2d'),gr=g.createLinearGradient(0,0,0,64);gr.addColorStop(0,'#000');gr.addColorStop(.75,'#fff');gr.addColorStop(1,'#fff');g.fillStyle=gr;g.fillRect(0,0,4,64);const t=new THREE.CanvasTexture(c);return t})();   // 손목 끝이 흐려지게 (alphaMap)
-function mkMats(){
-  const c=COLS[S.col][1],T=o=>Object.assign({transparent:true,depthFunc:THREE.LessEqualDepth,depthWrite:false},o);
-  mats.skin=new THREE.MeshToonMaterial(T({color:c,gradientMap:grad2}));
-  mats.ink=new THREE.MeshBasicMaterial(T({color:INK,side:THREE.BackSide}));
-  mats.nail=new THREE.MeshToonMaterial(T({color:new THREE.Color(c).lerp(new THREE.Color(0xffffff),.55),gradientMap:grad2}));
-  mats.wrist=new THREE.MeshToonMaterial(T({color:c,gradientMap:grad2,alphaMap:fade}));
-  mats.wristInk=new THREE.MeshBasicMaterial(T({color:INK,side:THREE.BackSide,alphaMap:fade}));
-}
-const grad2=(()=>{const d=new Uint8Array([175,255]);const t=new THREE.DataTexture(d,2,1,THREE.LuminanceFormat);t.minFilter=t.magFilter=THREE.NearestFilter;t.needsUpdate=true;return t})();   // 그림처럼 밝은 면 + 그늘 한 단
-const W=.011;   // 외곽선 두께
+const mats={skin:null,wrist:null};
+const SKIN_VS=`varying vec3 vN;varying vec3 vV;varying vec2 vUv;void main(){vUv=uv;vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.);vV=-mv.xyz;gl_Position=projectionMatrix*mv;}`;
+const SKIN_FS=`uniform vec3 uBase;uniform vec3 uShade;uniform float uWrist;varying vec3 vN;varying vec3 vV;varying vec2 vUv;
+void main(){vec3 n=normalize(vN);if(!gl_FrontFacing)n=-n;vec3 L=normalize(vec3(-.45,.75,.55));float ndl=dot(n,L),ndv=dot(n,normalize(vV));
+ float s=max(1.-smoothstep(-.36,-.3,ndl),(1.-smoothstep(.2,.25,ndv))*(1.-smoothstep(.35,.45,ndl)));   // 빛 반대쪽 + 아래쪽 가장자리를 따라 그늘 한 단
+ float a=uWrist>.5?clamp((1.-vUv.y)/.75,0.,1.):1.;gl_FragColor=vec4(mix(uBase,uShade,s),a);}`;
+function skinMat(wrist){const c=new THREE.Color(COLS[S.col][1]),hsl={};c.getHSL(hsl);
+  const base=new THREE.Color().setHSL(hsl.h,Math.min(1,hsl.s*.85),Math.min(.82,hsl.l+.17));   // 밝은 면: 플레이어 색을 밝게
+  const shade=new THREE.Color().setHSL((hsl.h+.985)%1,Math.min(1,hsl.s*1.05),hsl.l+.02);   // 그늘: 진하고 살짝 붉게 (그림의 분홍 그늘처럼)
+  return new THREE.ShaderMaterial({uniforms:{uBase:{value:base},uShade:{value:shade},uWrist:{value:wrist?1:0}},vertexShader:SKIN_VS,fragmentShader:SKIN_FS})}
+function mkMats(){mats.skin=skinMat(0);mats.wrist=skinMat(1)}
 /* 마디 하나: +X로 길이 L, 굵기 r0 → r1 (양 끝 둥글게) */
 function capGeo(L,r0,r1){
   const pts=[],n=8;
   for(let k=0;k<=n;k++){const a=-Math.PI/2+k/n*Math.PI/2;pts.push(new THREE.Vector2(Math.cos(a)*r0,Math.sin(a)*r0))}
   for(let k=0;k<=n;k++){const a=k/n*Math.PI/2;pts.push(new THREE.Vector2(Math.cos(a)*r1,L+Math.sin(a)*r1))}
-  const g=new THREE.LatheGeometry(pts,18);g.rotateZ(-Math.PI/2);return g;   // 세로(Y) → 앞(X)
+  const g=new THREE.LatheGeometry(pts,28);g.rotateZ(-Math.PI/2);return g;   // 세로(Y) → 앞(X)
 }
-const all=[];   // 투명 처리용 {mesh, kind}
-function addPart(parent,geo,kind,hullGeo){
-  const m=new THREE.Mesh(geo,kind==='nail'?mats.nail:kind==='wrist'?mats.wrist:mats.skin);m.renderOrder=kind==='nail'?12:11;parent.add(m);
-  const d=new THREE.Mesh(geo,mats.depth);d.renderOrder=5;parent.add(d);
-  let h=null;if(hullGeo){h=new THREE.Mesh(hullGeo,kind==='wrist'?mats.wristInk:mats.ink);h.renderOrder=10;parent.add(h)}
-  all.push({m,h,kind});return m;
-}
+const all=[];
+function addPart(parent,geo,kind){const m=new THREE.Mesh(geo,kind==='wrist'?mats.wrist:mats.skin);m.layers.set(1);parent.add(m);all.push({m,kind});return m}
 /* 손가락: 뿌리(관절 묶음) → 마디 3개. 각 관절은 Z축으로 아래(손바닥 쪽)로 굽음 */
 function finger(base,lens,r0,r1,nail){
   const F=S.fat,root=new THREE.Group();root.position.set(...base);inner.add(root);
   const joints=[];let par=root;const rs=[r0,r0+(r1-r0)*.45,r0+(r1-r0)*.75,r1].map(v=>v*F);
   lens.forEach((L,k)=>{const j=new THREE.Group();if(k)j.position.x=lens[k-1];par.add(j);joints.push(j);
-    addPart(j,capGeo(L,rs[k],rs[k+1]),'skin',capGeo(L,rs[k]+W,rs[k+1]+W));par=j});
+    addPart(j,capGeo(L,rs[k],rs[k+1]),'skin');par=j});
   const tip=new THREE.Object3D();tip.position.x=lens[lens.length-1]+rs[3]*.6;par.add(tip);
-  if(nail){const nm=new THREE.SphereGeometry(rs[3]*.78,14,10);const n=addPart(par,nm,'nail');n.scale.set(1.15,.38,.95);n.position.set(lens[lens.length-1]-rs[3]*.2,rs[3]*.72,0)}
   return {root,joints,tip,lens};
 }
 let HS=null;   // 손 뼈대
@@ -151,13 +147,13 @@ function buildHand(){
   sh.moveTo(-.235,Y(-.085));sh.quadraticCurveTo(-.12,Y(-.11),-.02,Y(-.098));sh.quadraticCurveTo(.012,Y(-.04),.008,Y(.03));sh.quadraticCurveTo(.0,Y(.088),-.03,Y(.098));
   sh.quadraticCurveTo(-.09,Y(.11),-.15,Y(.112));sh.quadraticCurveTo(-.215,Y(.1),-.235,Y(.075));sh.closePath();
   const ex=(b)=>{const g=new THREE.ExtrudeGeometry(sh,{depth:.026,bevelEnabled:true,bevelThickness:.02+b,bevelSize:.02+b,bevelSegments:5,curveSegments:20});g.rotateX(-Math.PI/2);g.translate(0,-.013,0);return g};
-  addPart(inner,ex(0),'skin',ex(W));
+  addPart(inner,ex(0),'skin');
   // 엄지 뿌리 살(손바닥 쪽 도톰한 곳): 손등 엄지 쪽 아래
   {const tg=b=>{const g=new THREE.SphereGeometry(1,22,14);g.scale(.075+b,.032+b,.042+b);g.rotateY(HZ*-.35);g.translate(-.14,-.028,HZ*.075);return g};
-   addPart(inner,tg(0),'skin',tg(W))}
+   addPart(inner,tg(0),'skin')}
   // 손목: 짧게, 끝은 흐리게
   {const wg=b=>{const g=new THREE.CylinderGeometry(.072+b,.08+b,.22,24,1,true);g.rotateZ(Math.PI/2);g.scale(1,.66,1);g.translate(-.085,0,0);return g};
-   addPart(wristG,wg(0),'wrist',wg(W))}
+   addPart(wristG,wg(0),'wrist')}
   // 손가락: 뿌리는 손등 앞 가장자리에 붙여서 (검지가 엄지 쪽)
   const fs={
     index:finger([.0,.008,HZ*.068],[.09,.055,.045],.03,.024,true),
@@ -168,11 +164,9 @@ function buildHand(){
   const t1=new THREE.Group(),t2=new THREE.Group();inner.add(t1,t2);
   const r=[.033,.03,.025].map(v=>v*F),TL=[.07,.06];
   const s1=new THREE.Group(),s2=new THREE.Group();t1.add(s1);t2.add(s2);
-  addPart(s1,capGeo(TL[0],r[0],r[1]),'skin',capGeo(TL[0],r[0]+W,r[1]+W));
-  addPart(s2,capGeo(TL[1],r[1],r[2]),'skin',capGeo(TL[1],r[1]+W,r[2]+W));
-  const tn=addPart(t2,new THREE.SphereGeometry(r[2]*.8,14,10),'nail');tn.scale.set(1.15,.38,.95);
-  HS={fs,thumb:{base:new THREE.Vector3(-.105,-.032,HZ*.088),t1,t2,s1,s2,TL,nail:tn,r2:r[2]},tgt:null};
-  for(const q of all){if(q.h)q.h.visible=!!S.ink}
+  addPart(s1,capGeo(TL[0],r[0],r[1]),'skin');
+  addPart(s2,capGeo(TL[1],r[1],r[2]),'skin');
+  HS={fs,thumb:{base:new THREE.Vector3(-.105,-.032,HZ*.088),t1,t2,s1,s2,TL,r2:r[2]},tgt:null};
 }
 const D2R=Math.PI/180,lerp=(a,b,t)=>a+(b-a)*t,lerpA=(a,b,t)=>a.map((v,k)=>lerp(v,b[k],t));
 /* 자세: p 당긴 힘(0 느슨 → 1 뻣뻣·꽉), fl 튕김(0 → 1 중지가 쭉) */
@@ -198,9 +192,35 @@ function poseHand(p,fl){
   const E=B.clone().add(u.clone().multiplyScalar(a)).add(w.multiplyScalar(h));
   const aim=(g,from,to)=>{g.position.copy(from);g.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),to.clone().sub(from).normalize())};
   aim(Th.t1,B,E);aim(Th.t2,E,T);Th.s1.scale.x=k;Th.s2.scale.x=k;
-  Th.nail.position.set(L2-Th.r2*.2,Th.r2*.7,0);
 }
-function setOpacity(op){for(const m of [mats.skin,mats.nail,mats.wrist])m.opacity=op;for(const m of [mats.ink,mats.wristInk])m.opacity=Math.max(.6,op)}
+/* ----- 손 그림 한 장: 손만 따로 그리고(알은 깊이만 넣어 가림), 깊이 차이로 윤곽선 → 통째로 반투명하게 얹기 ----- */
+const HP={rt:null,ss:1,depthOnly:new THREE.MeshBasicMaterial({colorWrite:false})};
+const COMP_FS=`uniform sampler2D tC;uniform sampler2D tD;uniform vec2 px;uniform float near;uniform float far;uniform float lw;uniform float op;uniform float lop;uniform float ink;uniform vec3 inkC;varying vec2 vUv;
+float lin(float d){float z=d*2.-1.;return 2.*near*far/(far+near-z*(far-near));}
+void main(){vec4 c=texture2D(tC,vUv);float dp=lin(texture2D(tD,vUv).x),line=0.;
+ if(ink>.5){for(int i=0;i<16;i++){float a=float(i)*.3927;for(int k=1;k<=2;k++){vec2 o=vec2(cos(a),sin(a))*px*lw*float(k)*.5;vec2 q=vUv+o;
+   float aq=texture2D(tC,q).a;if(aq<.02)continue;float dq=lin(texture2D(tD,q).x);
+   float thr=.014*dq;   // 앞 손가락이 뒤를 가리는 곳·바깥 윤곽만 (마디 이음새처럼 이어진 면은 깊이 차이가 작아 안 그림)
+   if(dp-dq>thr)line=max(line,aq);}}}
+ vec4 o=vec4(c.rgb,c.a*op);if(line>0.){o=mix(o,vec4(inkC,lop),line);}
+ if(o.a<.003)discard;gl_FragColor=o;}`;
+const comp=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,
+  uniforms:{tC:{value:null},tD:{value:null},px:{value:new THREE.Vector2()},near:{value:cam.near},far:{value:cam.far},lw:{value:2.4},op:{value:1},lop:{value:1},ink:{value:1},inkC:{value:new THREE.Color(INK)}},
+  vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,fragmentShader:COMP_FS}));
+comp.frustumCulled=false;const compScene=new THREE.Scene();compScene.add(comp);const compCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+function renderAll(op,lop){
+  const W2=R.domElement.width,H2=R.domElement.height,ss=R.getPixelRatio()>=2?1:2,w=W2*ss,h=H2*ss;
+  if(!HP.rt||HP.rt.width!==w||HP.rt.height!==h){if(HP.rt)HP.rt.dispose();HP.rt=new THREE.WebGLRenderTarget(w,h,{depthBuffer:true});HP.rt.depthTexture=new THREE.DepthTexture(w,h);HP.rt.depthTexture.type=THREE.UnsignedIntType;HP.ss=ss}
+  cam.layers.set(0);R.setRenderTarget(null);R.render(scene,cam);   // 판·알
+  if(!HAND.visible)return;
+  const bg=scene.background;scene.background=null;R.setRenderTarget(HP.rt);R.setClearColor(0x000000,0);R.clear(true,true,true);
+  R.autoClear=false;cam.layers.set(2);scene.overrideMaterial=HP.depthOnly;R.render(scene,cam);   // 알은 깊이만 (손이 알 뒤로 가면 가려지게)
+  scene.overrideMaterial=null;cam.layers.set(1);R.render(scene,cam);   // 손 (불투명)
+  R.autoClear=true;scene.background=bg;R.setRenderTarget(null);
+  const u=comp.material.uniforms;u.tC.value=HP.rt.texture;u.tD.value=HP.rt.depthTexture;u.px.value.set(1/w,1/h);u.lw.value=2.2*R.getPixelRatio()*HP.ss;
+  u.op.value=op;u.lop.value=lop;u.ink.value=S.ink?1:0;
+  R.autoClear=false;R.render(compScene,compCam);R.autoClear=true;
+}
 
 /* ----- 떨림 (게임과 같은 식) ----- */
 function jit(t){const a=.5*Math.sin(t*.0067+1.3)+.3*Math.sin(t*.0151+.4)+.2*Math.sin(t*.0389+2.1);const b=Math.pow(Math.sin(t*.0021),8)*Math.sin(t*.047);return Math.max(-1,Math.min(1,a*.8+b*.6))}
@@ -255,7 +275,7 @@ function frame(now){
   const key=[S.fat,S.ink,S.col].join(',');
   if(key!==built||dirty){buildHand();built=key;dirty=false}
   poseHand(p,fl);
-  const op=(S.alpha?.2+.7*p:1)*fade;setOpacity(op);HAND.visible=fade>.01;
+  const op0=S.alpha?.2+.7*p:1,op=op0*fade;HAND.visible=fade>.01;
   // 굴리기(tilt)·크기·떨림: 중지 끝(알에 닿는 곳)이 알 뒤에 오게
   const sc=S.size,tl=S.tilt*Math.PI/180,jt=S.jitter?(S.spread*Math.PI/180)*p*p*jit(now):0;
   inner.rotation.set(0,0,S.pitch*Math.PI/180);inner.position.set(0,0,0);
@@ -273,7 +293,7 @@ function frame(now){
   // 손목이 판 아래로 들어가면 들어 올리지 않고 중지 끝(알에 닿는 곳)을 축으로 손 뒤쪽을 들어 올림 → 중지 끝은 그대로 알 뒤
   if(lo<0){const hx=Math.max(.2,Math.hypot(wristG.getWorldPosition(v3).x-HAND.position.x,0));HAND.rotation.z=-Math.asin(Math.min(.9,(-lo+.004)/hx))}
   HS.dbg={lo};
-  placeCam();R.render(scene,cam);
+  placeCam();renderAll(op,Math.max(.85,op0)*fade);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
