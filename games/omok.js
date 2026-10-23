@@ -441,6 +441,13 @@ G.settingsHTML=(c,{stepRow})=>{
   const pfRow=`<div class="stp tg om-full"><div class="stp-t"><b>${pd.label}</b><small>${pd.desc}</small></div><div class="stp-c"><button type="button" class="sw${pf?' on':''}" role="switch" aria-checked="${pf}" aria-label="${pd.label}" data-act="tog:pickfirst"><i></i></button></div></div>`;
   return `<div class="rs-grid">${[sp,tm,inc].filter(Boolean).map(stepRow).join('')}</div><div class="rulehead">게임 규칙</div>${lever}<p class="pl-sum">${ruleLine(c)}</p>${more}${det}<div class="rs-grid tgs">${pfRow}</div>`;
 };
+/* 나무판 '세부 설정' 항목 (공통 코드가 G.boardSet으로 그림). 맨 위 규칙 레버 → 아래 항목이 한꺼번에 바뀜 */
+G.boardSet=c=>{
+  const pos=presetOf(c),lv=pos===0?0:pos===1?2:1,df=new Set(diffKeys(c)),pd=G.ruleSet[0];
+  return [{kind:'choice',k:'preset',label:'규칙',opts:['자유','커스텀','렌주'],desc:'자유: 금수·오프닝 없음 · 렌주: 흑 금수 + Swap2. 아래 항목을 바꾸면 커스텀이 됩니다',v:lv,act:o=>'om:pr:'+['0','c','1'][o]},
+    ...['sz','b33','ov','op'].map(k=>({kind:'choice',k,label:LV[k].label,opts:LV[k].vals,desc:LV[k].desc,v:Math.max(0,Math.min(LV[k].vals.length-1,+c[k]||0)),diff:df.has(k),act:o=>`om:set:${k}:${o}`})),
+    {kind:'tog',k:'pickfirst',label:pd.label,desc:pd.desc,v:+c.pickfirst?1:0,act:()=>'tog:pickfirst'}];
+};
 G.panelAct=a=>{
   if(!a.startsWith('om:'))return false;
   if(a==='om:more'){MORE=!isMore();store(MORE_KEY,MORE?'1':'0');lastPanelHtml='';renderPanel();return true}

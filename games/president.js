@@ -227,6 +227,13 @@ G.panelAct=a=>{
   }else{const [,k,v]=a.split(':');if(!PKEYS.includes(k))return true;H.cfg={...H.cfg,[k]:+v?1:0}}
   saveRoomCfg(H.cfg);sfx('tick');lastPanelHtml='';mark();return true;
 };
+/* 나무판 '세부 설정' 항목 (공통 코드가 G.boardSet으로 그림). 맨 위 룰 레버 → 아래 규칙이 한꺼번에 바뀜. 누르면 act가 돌려준 패널 동작을 G.panelAct·toggleRule로 */
+G.boardSet=c=>{
+  const pos=presetOf(c),lv=pos===0?0:pos===1?2:1,df=new Set(diffKeys(c));
+  return [{kind:'choice',k:'preset',label:'규칙',opts:['프레지던트','커스텀','대부호'],desc:'왼쪽 서양 룰 · 가운데 커스텀 · 오른쪽 일본 룰. 룰을 고르면 아래 규칙이 그 룰대로 바뀌고, 아래 규칙을 바꾸면 커스텀이 됩니다',v:lv,act:o=>'pr:'+[0,2,1][o]},
+    ...G.ruleSet.filter(d=>!d.hidden&&d.k!=='dlead').map(d=>({kind:'tog',k:d.k,label:d.label,desc:d.desc,v:+c[d.k]?1:0,diff:df.has(d.k),act:()=>'tog:'+d.k})),
+    {kind:'choice',k:'dlead',label:'다음 판 선',opts:['대부호','대빈민'],desc:RULE.dlead.desc,v:+c.dlead?1:0,diff:df.has('dlead'),act:o=>'pset:dlead:'+o}];
+};
 G.roomSub=x=>`조커 ${x.jk}장`;
 G.pubExtra=()=>({});
 G.cardInfo=(c,nowN)=>{
