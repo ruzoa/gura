@@ -248,7 +248,7 @@ function buildBones(){
    뼈마다 끝이 둥근 원뿔(굵기 = 살 두께)을 두고, 손바닥 덩어리끼리는 넓게 부드럽게 녹여 붙임(손허리뼈 4개 + 손목 + 엄지 두덩 + 팔뚝),
    손가락은 자기 마디끼리 녹이고 손바닥과는 뿌리에서만 녹임. 손가락끼리는 녹이지 않음(붙어도 벙어리장갑이 안 되게).
    손을 둘러싼 상자에 그려서 화면 점마다 광선을 따라가 살 표면을 찾고, 깊이도 써서 윤곽선·알 가림이 예전처럼 됨 */
-const SKN=22;   // 0~3 손허리뼈(검지~소지) 4 손목 5 팔뚝 6 엄지 손허리뼈 7 엄지 두덩 8~9 엄지 첫·끝마디 10~21 네 손가락 첫·중간·끝마디
+const SKN=24;   // 0~3 손허리뼈(검지~소지) 4 손목 5 팔뚝 6 엄지 손허리뼈 7 엄지 두덩 8~9 엄지 첫·끝마디 10~21 네 손가락 첫·중간·끝마디 22 새끼 두덩 23 엄지모음근·첫째 등쪽 뼈사이근
 const SKIN2_FS=`
 uniform vec3 uA[${SKN}];uniform vec3 uB[${SKN}];uniform vec2 uR[${SKN}];uniform vec3 uS[${SKN}];
 uniform mat4 uMV;uniform mat4 projectionMatrix;uniform mat3 uNM;   // inner 기준 (상자 자체의 위치·크기는 빼고)
@@ -262,7 +262,7 @@ float rc(vec3 p,int i){vec3 sc=uS[i];vec3 a=uA[i]*sc,b=uB[i]*sc;p*=sc;float r1=u
 float sm(float a,float b,float k){float h=clamp(.5+.5*(b-a)/k,0.,1.);return mix(b,a,h)-k*h*(1.-h);}
 float map(vec3 p){
   float pm=rc(p,0);pm=sm(pm,rc(p,1),uK[0]);pm=sm(pm,rc(p,2),uK[0]);pm=sm(pm,rc(p,3),uK[0]);
-  pm=sm(pm,rc(p,4),uK[0]);pm=sm(pm,rc(p,5),uK[1]);pm=sm(pm,rc(p,6),uK[0]);pm=sm(pm,rc(p,7),uK[0]);
+  pm=sm(pm,rc(p,22),uK[0]);pm=sm(pm,rc(p,4),uK[0]);pm=sm(pm,rc(p,5),uK[1]);pm=sm(pm,rc(p,6),uK[0]);pm=sm(pm,rc(p,7),uK[0]);pm=sm(pm,rc(p,23),uK[0]);
   float d=pm;
   // 손가락 하나씩: 손가락 전체를 감싸는 굵은 캡슐보다 멀면 계산을 건너뜀 (빠르게)
   for(int f=0;f<5;f++){vec3 pa=p-uFa[f],ba=uFb[f]-uFa[f];float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);if(length(pa-ba*h)-uFr[f]>d+uK[3])continue;
@@ -285,7 +285,7 @@ let SKIN=null;
 function buildSkin(){
   const box=new THREE.BoxGeometry(1,1,1),u={uA:{value:[]},uB:{value:[]},uR:{value:[]},uS:{value:[]},uCam:{value:new THREE.Vector3()},
     uMin:{value:new THREE.Vector3(-.62,-.13,-.2)},uMax:{value:new THREE.Vector3(.2,.16,.2)},uBase:{value:mats.skin.uniforms.uBase.value},uShade:{value:mats.skin.uniforms.uShade.value},
-    uFade:{value:new THREE.Vector2(-.3,-.47)},uK:{value:[12*BS,20*BS,2.5*BS,7*BS]},uFa:{value:[0,1,2,3,4].map(()=>new THREE.Vector3())},uFb:{value:[0,1,2,3,4].map(()=>new THREE.Vector3(.001,0,0))},uFr:{value:[0,0,0,0,0]},uMV:{value:new THREE.Matrix4()},uNM:{value:new THREE.Matrix3()}};
+    uFade:{value:new THREE.Vector2(-.3,-.47)},uK:{value:[15*BS,24*BS,2.5*BS,7*BS]},uFa:{value:[0,1,2,3,4].map(()=>new THREE.Vector3())},uFb:{value:[0,1,2,3,4].map(()=>new THREE.Vector3(.001,0,0))},uFr:{value:[0,0,0,0,0]},uMV:{value:new THREE.Matrix4()},uNM:{value:new THREE.Matrix3()}};
   for(let i=0;i<SKN;i++){u.uA.value.push(new THREE.Vector3());u.uB.value.push(new THREE.Vector3(.001,0,0));u.uR.value.push(new THREE.Vector2(.01,.01));u.uS.value.push(new THREE.Vector3(1,1,1))}
   const mat=new THREE.ShaderMaterial({uniforms:u,side:THREE.BackSide,extensions:{fragDepth:true},
     vertexShader:`uniform vec3 uMin;uniform vec3 uMax;varying vec3 vL;void main(){vL=uMin+(position+.5)*(uMax-uMin);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:SKIN2_FS});
@@ -302,10 +302,14 @@ function poseSkin(){
   const put=(i,a,b,r1,r2,sc)=>{u.uA.value[i].copy(a);u.uB.value[i].copy(b);u.uR.value[i].set(r1*BS,r2*BS);u.uS.value[i].copy(sc||new THREE.Vector3(1,1,1))};
   const flat=new THREE.Vector3(1,1,1.3);   // 손바닥: 옆으로 납작 (두께 쪽이 1.3배)
   for(let k=0;k<4;k++){const sg=segs[k*4],fr=FLESH.mc[k];put(k,L(sg.g,0),L(sg.g,sg.L*BS),fr[0]*1.3,fr[1]*1.3,flat)}
-  put(4,bp(10,-1,-16),bp(10,-1,18),15,15,new THREE.Vector3(1,1.15,1));   // 손목: 손목뼈 줄을 옆으로 가로지름
-  put(5,bp(-5,-2,0),bp(-150,-4,0),29,32,new THREE.Vector3(1,1.45,1));   // 팔뚝 (뒤로 갈수록 흐려짐)
+  put(4,bp(8,-2,-13),bp(8,-2,15),16,16,new THREE.Vector3(1,1.2,1));   // 손목: 손목뼈 줄을 옆으로 가로지름
+  // 새끼 두덩(새끼손가락 쪽 손바닥 가장자리): 소지 손허리뼈 머리 → 손목 소지 쪽(콩알뼈). 가장자리를 한 줄로 매끈하게
+  {const m5=segs[12];put(22,L(m5.g,m5.L*BS*.88).add(new THREE.Vector3(0,-2*BS,HZ*-1*BS)),bp(9,-5,-18),11,13,new THREE.Vector3(1,1,1.15))}
+  put(5,bp(-8,-3,0),bp(-150,-4,0),27,31,new THREE.Vector3(1,1.4,1));   // 팔뚝 (뒤로 갈수록 흐려짐)
   const tb=BONE.thumb;put(6,L(th[0],0),L(th[0],tb.mc*BS),FLESH.th[0][0],FLESH.th[0][1]);   // 엄지 손허리뼈
   put(7,bp(8,-8,10),L(th[0],tb.mc*BS*.85),15,11);   // 엄지 두덩: 손목(손배뼈) 쪽에서 엄지 뿌리까지 → 엄지가 손목에서부터 시작되어 보이게
+  // 엄지모음근·첫째 등쪽 뼈사이근: 엄지 손허리뼈 끝 쪽 ↔ 검지 손허리뼈 끝 쪽 사이를 채우는 살 (엄지와 검지 사이 물갈퀴 바닥)
+  {const m2=segs[0];put(23,L(th[0],tb.mc*BS*.78).add(new THREE.Vector3(0,-1.5*BS,0)),L(m2.g,m2.L*BS*.8).add(new THREE.Vector3(0,-2*BS,0)),9,9)}
   put(8,L(th[1],0),L(th[1],tb.ph[0]*BS),FLESH.th[1][0],FLESH.th[1][1]);put(9,L(th[2],0),L(th[2],tb.ph[1]*BS),FLESH.th[2][0],FLESH.th[2][1]);
   ['index','middle','ring','pinky'].forEach((k,f)=>{for(let j=0;j<3;j++){const sg=segs[f*4+1+j],fr=FLESH.fin[k][j],a=L(sg.g,0),b=L(sg.g,sg.L*BS);
     if(j===0)a.copy(L(segs[f*4].g,segs[f*4].L*BS));   // 첫마디 살은 손허리뼈 머리(손가락 뿌리 관절)부터
