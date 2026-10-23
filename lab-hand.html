@@ -142,32 +142,36 @@ function finger(base,lens,r0,r1,nail){
   return {root,joints,tip,lens};
 }
 let HS=null;   // 손 뼈대
+const HZ=-1;   // 엄지 쪽 (-Z): 오른손 (손등이 위, 손가락이 앞으로 뻗었을 때 엄지가 왼쪽)
 function buildHand(){
   inner.clear();wristG.clear();all.length=0;mkMats();
   const F=S.fat;
-  // 손등: 손 모양 윤곽 (x 앞, y 옆: +는 엄지 쪽)
-  const sh=new THREE.Shape();
-  sh.moveTo(-.29,-.105);sh.quadraticCurveTo(-.14,-.155,-.03,-.135);sh.quadraticCurveTo(.02,-.05,.01,.04);sh.quadraticCurveTo(.0,.13,-.04,.135);
-  sh.quadraticCurveTo(-.1,.16,-.17,.175);sh.quadraticCurveTo(-.25,.16,-.29,.115);sh.closePath();
-  const ex=(b)=>{const g=new THREE.ExtrudeGeometry(sh,{depth:.035,bevelEnabled:true,bevelThickness:.026+b,bevelSize:.026+b,bevelSegments:5,curveSegments:20});g.rotateX(Math.PI/2);g.translate(0,.0175,0);return g};
+  // 손등: 손 모양 윤곽 (x 앞, y 옆: 엄지 쪽이 +, 마지막에 HZ로 오른손 방향). 손바닥 길이 ≈ 중지 길이
+  const sh=new THREE.Shape(),Y=v=>v*HZ*-1;   // 모양 y → 월드 -z 방향을 맞춤 (rotateX 뒤 z=y)
+  sh.moveTo(-.235,Y(-.085));sh.quadraticCurveTo(-.12,Y(-.11),-.02,Y(-.098));sh.quadraticCurveTo(.012,Y(-.04),.008,Y(.03));sh.quadraticCurveTo(.0,Y(.088),-.03,Y(.098));
+  sh.quadraticCurveTo(-.09,Y(.11),-.15,Y(.112));sh.quadraticCurveTo(-.215,Y(.1),-.235,Y(.075));sh.closePath();
+  const ex=(b)=>{const g=new THREE.ExtrudeGeometry(sh,{depth:.026,bevelEnabled:true,bevelThickness:.02+b,bevelSize:.02+b,bevelSegments:5,curveSegments:20});g.rotateX(-Math.PI/2);g.translate(0,-.013,0);return g};
   addPart(inner,ex(0),'skin',ex(W));
+  // 엄지 뿌리 살(손바닥 쪽 도톰한 곳): 손등 엄지 쪽 아래
+  {const tg=b=>{const g=new THREE.SphereGeometry(1,22,14);g.scale(.075+b,.032+b,.042+b);g.rotateY(HZ*-.35);g.translate(-.14,-.028,HZ*.075);return g};
+   addPart(inner,tg(0),'skin',tg(W))}
   // 손목: 짧게, 끝은 흐리게
-  {const wg=b=>{const g=new THREE.CylinderGeometry(.092+b,.1+b,.24,24,1,true);g.rotateZ(Math.PI/2);g.scale(1,.7,1);g.translate(-.09,0,0);return g};
+  {const wg=b=>{const g=new THREE.CylinderGeometry(.072+b,.08+b,.22,24,1,true);g.rotateZ(Math.PI/2);g.scale(1,.66,1);g.translate(-.085,0,0);return g};
    addPart(wristG,wg(0),'wrist',wg(W))}
-  // 손가락 (뿌리 위치는 손등 앞쪽 가장자리, 서로 붙게)
+  // 손가락: 뿌리는 손등 앞 가장자리에 붙여서 (검지가 엄지 쪽)
   const fs={
-    index:finger([.0,.012,.098],[.1,.065,.055],.035,.027,true),
-    middle:finger([.012,.012,.033],[.11,.07,.058],.036,.028,true),
-    ring:finger([.004,.01,-.033],[.1,.066,.054],.034,.026,true),
-    pinky:finger([-.022,.006,-.092],[.078,.052,.046],.03,.023,true)};
-  // 엄지: 손등 엄지 쪽 아래에서 시작, 두 마디는 매 프레임 중지 끝을 받치도록 놓음
-  const tb=new THREE.Group();inner.add(tb);
-  const t1=new THREE.Group(),t2=new THREE.Group();tb.add(t1,t2);
-  const r=[.045,.04,.034].map(v=>v*F),TL=[.085,.075];
-  addPart(t1,capGeo(TL[0],r[0],r[1]),'skin',capGeo(TL[0],r[0]+W,r[1]+W));
-  addPart(t2,capGeo(TL[1],r[1],r[2]),'skin',capGeo(TL[1],r[1]+W,r[2]+W));
-  {const n=addPart(t2,new THREE.SphereGeometry(r[2]*.78,14,10),'nail');n.scale.set(1.15,.38,.95);n.position.set(TL[1]-r[2]*.2,r[2]*.72,0)}
-  HS={fs,thumb:{base:new THREE.Vector3(-.15,-.03,.135),t1,t2,TL},tgt:null};
+    index:finger([.0,.008,HZ*.068],[.09,.055,.045],.03,.024,true),
+    middle:finger([.008,.008,HZ*.022],[.1,.062,.05],.031,.025,true),
+    ring:finger([.002,.006,HZ*-.024],[.093,.058,.047],.029,.023,true),
+    pinky:finger([-.018,.003,HZ*-.066],[.07,.045,.04],.025,.02,true)};
+  // 엄지: 두 마디. 길이는 매 프레임 중지 끝까지 거리에 맞춰 늘고 줄어 거의 곧게 받침 (꺾이지 않게)
+  const t1=new THREE.Group(),t2=new THREE.Group();inner.add(t1,t2);
+  const r=[.033,.03,.025].map(v=>v*F),TL=[.07,.06];
+  const s1=new THREE.Group(),s2=new THREE.Group();t1.add(s1);t2.add(s2);
+  addPart(s1,capGeo(TL[0],r[0],r[1]),'skin',capGeo(TL[0],r[0]+W,r[1]+W));
+  addPart(s2,capGeo(TL[1],r[1],r[2]),'skin',capGeo(TL[1],r[1]+W,r[2]+W));
+  const tn=addPart(t2,new THREE.SphereGeometry(r[2]*.8,14,10),'nail');tn.scale.set(1.15,.38,.95);
+  HS={fs,thumb:{base:new THREE.Vector3(-.105,-.032,HZ*.088),t1,t2,s1,s2,TL,nail:tn,r2:r[2]},tgt:null};
   for(const q of all){if(q.h)q.h.visible=!!S.ink}
 }
 const D2R=Math.PI/180,lerp=(a,b,t)=>a+(b-a)*t,lerpA=(a,b,t)=>a.map((v,k)=>lerp(v,b[k],t));
@@ -175,26 +179,26 @@ const D2R=Math.PI/180,lerp=(a,b,t)=>a+(b-a)*t,lerpA=(a,b,t)=>a.map((v,k)=>lerp(v
 function poseHand(p,fl){
   const set=(f,ang,yaw,lift)=>{f.root.rotation.set(0,(yaw||0)*D2R,(lift||0)*D2R);f.joints.forEach((j,k)=>{j.rotation.z=-ang[k]*D2R})};
   const {fs}=HS,sq=S.squash;
-  set(fs.index,lerpA([30,38,22],[2,4,3],p),lerp(2,10,p),lerp(-5,16,p));
-  set(fs.ring,lerpA([42,52,36],[6,8,5],p),lerp(-2,-9,p),lerp(-5,16,p));
-  set(fs.pinky,lerpA([48,58,42],[8,10,6],p),lerp(-4,-18,p),lerp(-5,16,p));   // 검지·약지·소지: 당길수록 곧게 펴져 위로 들리고 벌어짐
-  // 중지: 말려서 엄지에 걸림. 당길수록 더 꽉(고리가 납작), 튕기면 쭉
-  const pc=S.pitch,straight=[pc*.6+18,pc*.3+10,pc*.1+6];   // 튕긴 중지는 판과 나란히 (손을 세운 만큼 아래로)
+  set(fs.index,lerpA([28,34,20],[2,4,3],p),lerp(1,8,p),lerp(-4,14,p));
+  set(fs.ring,lerpA([40,48,34],[6,8,5],p),lerp(-1,-7,p),lerp(-4,14,p));
+  set(fs.pinky,lerpA([46,54,40],[8,10,6],p),lerp(-3,-14,p),lerp(-4,14,p));   // 검지·약지·소지: 당길수록 곧게 펴져 위로 들리고 벌어짐
+  // 중지: 말려서 엄지에 걸림. 당길수록 더 꽉, 튕기면 쭉
+  const pc=S.pitch,straight=[pc*.6+18,pc*.3+10,pc*.1+6];
   const mid=lerpA(lerpA([62,78,46],[62+40*sq,78+30*sq,46+30*sq],p),straight,fl);
   set(fs.middle,mid,0,0);
-  // 엄지: 중지 끝(튕기기 전 자리)을 받치도록 두 마디를 놓음 (2마디 IK)
+  // 엄지: 중지 손톱 바로 앞을 받침. 두 마디 길이를 거리에 맞춰 조금 굽은 채로 (손가락처럼 살짝만 굽음)
   inner.updateMatrixWorld(true);
   const tip=inner.worldToLocal(fs.middle.tip.getWorldPosition(new THREE.Vector3()));
-  if(fl<=0)HS.tgt=tip.clone().add(new THREE.Vector3(.018,-.03,-.004));
+  if(fl<=0)HS.tgt=tip.clone().add(new THREE.Vector3(.016,-.022,0));
   if(!HS.tgt)HS.tgt=tip.clone();
-  const T=HS.tgt,B=HS.thumb.base,[L1,L2]=HS.thumb.TL;
-  const v=T.clone().sub(B);let d=v.length();d=Math.min(d,L1+L2-.002);const u=v.normalize();
+  const Th=HS.thumb,T=HS.tgt,B=Th.base,v=T.clone().sub(B),d=Math.max(.06,v.length()),u=v.clone().normalize();
+  const k=d/(.94*(Th.TL[0]+Th.TL[1])),L1=Th.TL[0]*k,L2=Th.TL[1]*k;   // 거리에 맞춘 길이 (곧게 펴면 거리의 1/0.94)
   const a=(L1*L1-L2*L2+d*d)/(2*d),h=Math.sqrt(Math.max(0,L1*L1-a*a));
-  const hint=new THREE.Vector3(-.2,-1,.9).normalize(),w=hint.sub(u.clone().multiplyScalar(hint.dot(u))).normalize();
-  const E=B.clone().add(u.clone().multiplyScalar(a)).add(w.multiplyScalar(h)),Tt=B.clone().add(u.multiplyScalar(d));
+  const hint=new THREE.Vector3(0,-.4,HZ).normalize(),w=hint.sub(u.clone().multiplyScalar(hint.dot(u))).normalize();   // 마디는 손바닥 바깥·아래로 살짝
+  const E=B.clone().add(u.clone().multiplyScalar(a)).add(w.multiplyScalar(h));
   const aim=(g,from,to)=>{g.position.copy(from);g.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),to.clone().sub(from).normalize())};
-  aim(HS.thumb.t1,B,E);aim(HS.thumb.t2,E,Tt);
-  HS.midTipStraight=.012+.11+.07+.058+.03;   // 중지를 쭉 폈을 때 끝 (알에 닿는 자리)
+  aim(Th.t1,B,E);aim(Th.t2,E,T);Th.s1.scale.x=k;Th.s2.scale.x=k;
+  Th.nail.position.set(L2-Th.r2*.2,Th.r2*.7,0);
 }
 function setOpacity(op){for(const m of [mats.skin,mats.nail,mats.wrist])m.opacity=op;for(const m of [mats.ink,mats.wristInk])m.opacity=Math.max(.6,op)}
 
