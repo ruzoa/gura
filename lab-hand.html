@@ -151,7 +151,7 @@ function buildHand(){
   // 손등: 손 모양 윤곽 (x 앞, y 옆: 엄지 쪽이 +, 마지막에 HZ로 오른손 방향). 손바닥 길이 ≈ 중지 길이
   const sh=new THREE.Shape(),Y=v=>v*HZ*-1*1.12;   // 1.12: 손등 폭 (실제 손 사진에 맞춤)   // 모양 y → 월드 -z 방향을 맞춤 (rotateX 뒤 z=y)
   // 그림처럼: 손목 쪽이 좁고 손가락 뿌리 쪽이 넓은 사다리꼴, 손가락 뿌리 줄은 검지 쪽이 앞으로, 검지와 엄지 사이는 오목하게 파임
-  sh.moveTo(-.235,Y(-.068));sh.quadraticCurveTo(-.12,Y(-.098),-.045,Y(-.09));sh.quadraticCurveTo(-.008,Y(-.082),.0,Y(-.04));
+  sh.moveTo(-.235,Y(-.068));sh.quadraticCurveTo(-.13,Y(-.071),-.026,Y(-.0695));sh.quadraticCurveTo(-.002,Y(-.068),.0,Y(-.04));   // 소지 쪽: 손목→소지 뿌리까지 곧게 (소지 바깥선과 한 줄)
   sh.quadraticCurveTo(.014,Y(.0),.01,Y(.05));sh.quadraticCurveTo(.004,Y(.092),-.03,Y(.096));
   sh.quadraticCurveTo(-.09,Y(.094),-.14,Y(.106));sh.quadraticCurveTo(-.205,Y(.12),-.235,Y(.062));sh.closePath();
   const ex=(b)=>{const g=new THREE.ExtrudeGeometry(sh,{depth:.026,bevelEnabled:true,bevelThickness:.02+b,bevelSize:.02+b,bevelSegments:5,curveSegments:20});g.rotateX(-Math.PI/2);g.translate(0,-.013,0);return g};
@@ -182,9 +182,9 @@ function poseHand(p,fl){
   const set=(f,ang,yaw,lift)=>{f.root.rotation.set(0,(yaw||0)*D2R,(lift||0)*D2R);f.joints.forEach((j,k)=>{j.rotation.z=-ang[k]*D2R})};
   const {fs}=HS,sq=S.squash;
   const o=S.open||0,O=(a,b)=>lerpA(a,b,o),o1=(a,b)=>lerp(a,b,o);   // 손 펴기: 손가락은 살짝만 굽은 채 부채꼴로, 엄지는 옆으로 떨어져 뻗음
-  set(fs.index,O(lerpA([28,34,20],[2,4,3],p),[6,8,6]),o1(lerp(1,8,p),14),o1(lerp(-4,14,p),0));
-  set(fs.ring,O(lerpA([40,48,34],[6,8,5],p),[8,10,8]),o1(lerp(-1,-7,p),-5),o1(lerp(-4,14,p),0));
-  set(fs.pinky,O(lerpA([46,54,40],[8,10,6],p),[10,12,10]),o1(lerp(-3,-14,p),-12),o1(lerp(-4,14,p),0));   // 검지·약지·소지: 당길수록 곧게 펴져 위로 들리고 벌어짐
+  set(fs.index,O(lerpA([10,14,8],[-6,-3,0],p),[6,8,6]),o1(lerp(1,8,p),14),o1(lerp(-4,8,p),0));
+  set(fs.ring,O(lerpA([12,16,10],[-4,-2,0],p),[8,10,8]),o1(lerp(-1,-7,p),-5),o1(lerp(-4,8,p),0));
+  set(fs.pinky,O(lerpA([14,18,12],[-3,-1,0],p),[10,12,10]),o1(lerp(-3,-14,p),-12),o1(lerp(-4,8,p),0));   // 검지·약지·소지: 처음엔 살짝 굽었다가 당길수록 뻣뻣하게 펴져(끝까지 당기면 살짝 젖혀짐) 위로 들리고 벌어짐
   // 중지: 말려서 엄지에 걸림. 당길수록 더 꽉, 튕기면 쭉
   const pc=S.pitch,straight=[pc*.6+18,pc*.3+10,pc*.1+6];
   const mid=lerpA(lerpA([62,78,46],[62+40*sq,78+30*sq,46+30*sq],p),straight,fl);
