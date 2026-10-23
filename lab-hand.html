@@ -54,7 +54,7 @@ input[type=range]{flex:1;min-width:0;height:32px;accent-color:var(--acc)}
   <h2 style="margin-top:10px">살 · 뼈</h2>
   <div class="chips" id="shows"><button class="chip" data-s="0" type="button">살</button><button class="chip" data-s="1" type="button">뼈</button><button class="chip" data-s="2" type="button">같이 (살 비침)</button></div>
   <h2 style="margin-top:10px">살 방식</h2>
-  <div class="chips" id="skins"><button class="chip" data-k="1" type="button">새 살 (뼈에 붙임)</button><button class="chip" data-k="0" type="button">예전 살</button></div>
+  <div class="chips" id="skins"><button class="chip" data-k="1" type="button">새 살 (뼈에 붙임)</button><button class="chip" data-k="2" type="button">3D 모델</button><button class="chip" data-k="0" type="button">예전 살</button></div>
 </section>
 
 <section>
@@ -190,7 +190,7 @@ function buildHand(){
   {const idx=[],N=6;for(let i=0;i<N;i++){const a=1+i,b=1+(i+1)%N;idx.push(0,a,b, 7,7+b,7+a, a,7+a,7+b, a,7+b,b)}webG.setIndex(idx)}
   const webM=addPart(inner,webG,'skin');webM.frustumCulled=false;webM.material=webM.material.clone();webM.material.side=THREE.DoubleSide;
   HS={fs,thumb:{mc,cmc:new THREE.Vector3(-.15,-.045,HZ*.055),wr:new THREE.Vector3(-.226,-.004,HZ*.06),LM,t1,t2,s1,s2,TL,r2:r[2],thn,webG,webM,iRoot:fs.index.root.position.clone()},tgt:null};
-  buildBones();   // CMC: 큰마름뼈 자리(손목 주름 바로 앞, 엄지 쪽·손바닥 쪽)
+  buildBones();if(MODEL)inner.add(MODEL.mesh);   // CMC: 큰마름뼈 자리(손목 주름 바로 앞, 엄지 쪽·손바닥 쪽)
 }
 const D2R=Math.PI/180,lerp=(a,b,t)=>a+(b-a)*t,lerpA=(a,b,t)=>a.map((v,k)=>lerp(v,b[k],t));
 /* ===== 손뼈대 (오른손, 실측 평균) =====
@@ -340,6 +340,65 @@ function poseSkin(){
   cam.updateMatrixWorld();u.uMV.value.multiplyMatrices(cam.matrixWorldInverse,inner.matrixWorld);u.uNM.value.getNormalMatrix(u.uMV.value);
   u.uBase.value=mats.skin.uniforms.uBase.value;u.uShade.value=mats.skin.uniforms.uShade.value;
 }
+/* ===== 3D 모델 손 (lab-hand-model.json·.bin) =====
+   다른 도구로 만든 손 모양(면 5만 개)에 뼈를 넣어 우리 자세 계산으로 움직임. 만드는 법(파이썬): 모델을 우리 좌표(손가락 +x, 손등 +y, 엄지 -z,
+   중지 손가락 뿌리 관절이 원점)로 옮기고, 손가락마다 가운데 선을 따라 관절 자리를 실제 뼈 비율로 찍고, 꼭짓점마다 가까운 뼈(+이웃 뼈)에 무게를 나눔.
+   네 손가락은 살 손가락(HS.fs)의 관절 각도를 그대로, 엄지는 thumbChain을 모델 엄지 길이로 풂 */
+let MODEL=null;
+const MODEL_VS=`#include <common>
+#include <skinning_pars_vertex>
+varying vec3 vN;varying vec3 vV;varying float vFx;
+void main(){
+#include <beginnormal_vertex>
+#include <skinbase_vertex>
+#include <skinnormal_vertex>
+#include <defaultnormal_vertex>
+#include <begin_vertex>
+#include <skinning_vertex>
+  vFx=position.x;vN=normalize(transformedNormal);vec4 mv=modelViewMatrix*vec4(transformed,1.);vV=-mv.xyz;gl_Position=projectionMatrix*mv;}`;
+const MODEL_FS=`uniform vec3 uBase;uniform vec3 uShade;uniform vec2 uFade;varying vec3 vN;varying vec3 vV;varying float vFx;
+void main(){vec3 n=normalize(vN);if(!gl_FrontFacing)n=-n;vec3 L=normalize(vec3(-.45,.75,.55));float ndl=dot(n,L),ndv=dot(n,normalize(vV));
+ float s=max(1.-smoothstep(-.36,-.3,ndl),(1.-smoothstep(.2,.25,ndv))*(1.-smoothstep(.35,.45,ndl)));
+ gl_FragColor=vec4(mix(uBase,uShade,s),clamp((vFx-uFade.y)/(uFade.x-uFade.y),0.,1.));}`;
+async function loadModel(){
+  try{const [rig,buf]=await Promise.all([fetch('lab-hand-model.json').then(r=>r.json()),fetch('lab-hand-model.bin').then(r=>r.arrayBuffer())]);buildModel(rig,buf);dirty=true}
+  catch(e){console.warn('3D 모델을 못 불러옴',e)}
+}
+function buildModel(rig,buf){
+  const n=rig.count;let o=0;const take=(T,k,c)=>{const a=new T(buf,o,k*c);o+=a.byteLength;return a};
+  const pos=take(Float32Array,n,3),nor=take(Float32Array,n,3),si=take(Uint8Array,n,4),sw=take(Uint8Array,n,4),idx=take(Uint16Array,rig.tris,3);
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('normal',new THREE.BufferAttribute(nor,3));
+  g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(Array.from(si),4));g.setAttribute('skinWeight',new THREE.BufferAttribute(sw,4,true));g.setIndex(new THREE.BufferAttribute(idx,1));
+  const V=a=>new THREE.Vector3(...a),bones=[],B={},root=new THREE.Bone();bones.push(root);
+  // 네 손가락: 뿌리 뼈(손가락 뿌리 관절) → 중간 → 끝. 쉬는 자세 각도는 모델 손가락 모양에서
+  for(const k of ['index','middle','ring','pinky']){const j=rig.fingers[k].joints.map(V),d=[0,1,2].map(i=>j[i+1].clone().sub(j[i])),L=d.map(v=>v.length());
+    const yaw=Math.atan2(-d[0].z,d[0].x),ph=d.map(v=>Math.atan2(v.y,Math.hypot(v.x,v.z))),ang=[-ph[0],ph[0]-ph[1],ph[1]-ph[2]];
+    const b0=new THREE.Bone(),b1=new THREE.Bone(),b2=new THREE.Bone(),tip=new THREE.Object3D();
+    b0.position.copy(j[0]);b0.quaternion.setFromEuler(new THREE.Euler(0,yaw,0)).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),-ang[0]));
+    b1.position.set(L[0],0,0);b1.quaternion.setFromAxisAngle(new THREE.Vector3(0,0,1),-ang[1]);b2.position.set(L[1],0,0);b2.quaternion.setFromAxisAngle(new THREE.Vector3(0,0,1),-ang[2]);tip.position.set(L[2],0,0);
+    root.add(b0);b0.add(b1);b1.add(b2);b2.add(tip);bones.push(b0,b1,b2);B[k]={b:[b0,b1,b2],L,tip}}
+  // 엄지: 손바닥(root) 아래 세 뼈를 매번 자리·방향을 직접 정함
+  const tj=rig.thumb.joints.map(V),tb=[new THREE.Bone(),new THREE.Bone(),new THREE.Bone()];tb.forEach(b=>root.add(b));bones.push(...tb);
+  const DORS=new THREE.Vector3(0,.55,HZ*.83).normalize();let Z=new THREE.Vector3().crossVectors(tj[1].clone().sub(tj[0]),tj[3].clone().sub(tj[1])).normalize();
+  {const x=tj[1].clone().sub(tj[0]).normalize();if(new THREE.Vector3().crossVectors(Z,x).dot(DORS)<0)Z.negate()}
+  const aimT=(b,from,to,Zv)=>{const x=to.clone().sub(from).normalize(),y=new THREE.Vector3().crossVectors(Zv,x).normalize(),z=new THREE.Vector3().crossVectors(x,y);b.position.copy(from);b.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x,y,z))};
+  for(let i=0;i<3;i++)aimT(tb[i],tj[i],tj[i+1],Z);
+  const mat=new THREE.ShaderMaterial({uniforms:{uBase:{value:mats.skin.uniforms.uBase.value},uShade:{value:mats.skin.uniforms.uShade.value},uFade:{value:new THREE.Vector2(rig.xMin*.55,rig.xMin*.9)}},vertexShader:MODEL_VS,fragmentShader:MODEL_FS,skinning:true});
+  const mesh=new THREE.SkinnedMesh(g,mat);mesh.add(root);mesh.layers.set(1);mesh.frustumCulled=false;mesh.updateMatrixWorld(true);mesh.bind(new THREE.Skeleton(bones));
+  MODEL={mesh,B,tb,tip:B.middle.tip,aimT,thumb:{cmc:tj[0],LM:tj[1].distanceTo(tj[0]),L1:tj[2].distanceTo(tj[1]),L2:tj[3].distanceTo(tj[2])},rig,tst:{}};
+  inner.add(mesh);
+}
+function poseModel(o,fl,DORS){
+  if(!MODEL)return;const {B,tb,thumb:T}=MODEL;
+  for(const k of ['index','middle','ring','pinky']){const s=HS.fs[k],b=B[k].b;b[0].quaternion.setFromEuler(s.root.rotation).multiply(s.joints[0].quaternion);b[1].quaternion.copy(s.joints[1].quaternion);b[2].quaternion.copy(s.joints[2].quaternion)}
+  MODEL.mesh.material.uniforms.uBase.value=mats.skin.uniforms.uBase.value;MODEL.mesh.material.uniforms.uShade.value=mats.skin.uniforms.uShade.value;
+  // 엄지 지문이 모델 중지 손톱에 닿는 자리
+  const b2=B.middle.b[2],L2=B.middle.L[2];MODEL.mesh.updateMatrixWorld(true);
+  const q=inner.worldToLocal(b2.localToWorld(new THREE.Vector3(L2*.7,0,0))),nq=inner.worldToLocal(b2.localToWorld(new THREE.Vector3(L2*.7,1,0))).sub(q).normalize();
+  const C=q.add(nq.clone().multiplyScalar((MODEL.rig.rMidDist+MODEL.rig.rThumbDist)*.95));
+  const ch=thumbChain(T.cmc,T.LM,T.L1,T.L2,C,o,DORS,MODEL.tst,fl,nq);
+  MODEL.aimT(tb[0],T.cmc,ch.B,ch.Z);MODEL.aimT(tb[1],ch.B,ch.E,ch.Z);MODEL.aimT(tb[2],ch.E,ch.T,ch.Z);
+}
 let PFL=0;
 function poseBones(o,Y){
   if(!SK)return;const {fsk,th}=SK.userData;
@@ -423,7 +482,7 @@ function poseHand(p,fl){
   const aim=(g,from,to)=>{const x=to.clone().sub(from).normalize(),y=new THREE.Vector3().crossVectors(ch.Z,x).normalize(),z=new THREE.Vector3().crossVectors(x,y);
     g.position.copy(from);g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x,y,z))};
   aim(Th.t1,B,E);aim(Th.t2,E,T);Th.s1.scale.x=k;Th.s2.scale.x=k;
-  PFL=fl;poseBones(o,DORS);
+  PFL=fl;poseBones(o,DORS);poseModel(o,fl,DORS);
 }
 /* ----- 손 그림 한 장: 손만 따로 그리고(알은 깊이만 넣어 가림), 깊이 차이로 윤곽선 → 통째로 반투명하게 얹기 ----- */
 const HP={rt:null,ss:1,depthOnly:new THREE.MeshBasicMaterial({colorWrite:false})};
@@ -481,7 +540,7 @@ $('#cols').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)
 $('#views').addEventListener('click',e=>{const b=e.target.closest('.chip');if(b)setView(b.dataset.v)});
 const tog=(id,k)=>{const b=$('#'+id);b.classList.toggle('on',!!S[k]);b.addEventListener('click',()=>{S[k]=S[k]?0:1;b.classList.toggle('on',!!S[k]);dirty=true;save()})};
 tog('alpha','alpha');tog('jitter','jitter');tog('ink','ink');
-{const set=()=>document.querySelectorAll('#skins .chip').forEach(b=>b.classList.toggle('on',+b.dataset.k===(S.skin===0?0:1)));set();
+{const set=()=>document.querySelectorAll('#skins .chip').forEach(b=>b.classList.toggle('on',+b.dataset.k===(S.skin==null?1:S.skin)));set();
  $('#skins').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;S.skin=+b.dataset.k;set();save()})}
 {const set=()=>document.querySelectorAll('#shows .chip').forEach(b=>b.classList.toggle('on',+b.dataset.s===(S.show||0)));set();
  $('#shows').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;S.show=+b.dataset.s;set();save()})}
@@ -494,7 +553,7 @@ $('#loop').addEventListener('click',()=>{loop=!loop;$('#loop').classList.toggle(
 const AN={pull:1200,hold:400,flick:90,fly:900,rest:500};
 
 /* ----- 그리기 ----- */
-mkMats();setView(S.view||'top');save();
+mkMats();setView(S.view||'top');save();loadModel();
 let built='';
 function frame(now){
   const w=view.clientWidth,h=view.clientHeight;if(R.domElement.width!==Math.round(w*R.getPixelRatio())||R.domElement.height!==Math.round(h*R.getPixelRatio())){R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
@@ -516,7 +575,7 @@ function frame(now){
   const sc=S.size,tl=S.tilt*Math.PI/180,jt=S.jitter?(S.spread*Math.PI/180)*p*p*jit(now):0;
   inner.rotation.set(0,0,S.pitch*Math.PI/180);inner.position.set(0,0,0);
   poseHand(p,1);inner.updateMatrix();   // 튕긴 자세의 중지 끝을 알 뒤 자리에 맞춤
-  const tipH=inner.worldToLocal(HS.fs.middle.tip.getWorldPosition(new THREE.Vector3())).applyMatrix4(inner.matrix);
+  const tipH=inner.worldToLocal(((MODEL&&S.skin===2)?MODEL.tip:HS.fs.middle.tip).getWorldPosition(new THREE.Vector3())).applyMatrix4(inner.matrix);   // 3D 모델이면 모델 중지 끝을 알 뒤에
   inner.position.set(-tipH.x,-tipH.y,-tipH.z);poseHand(p,fl);
   HAND.rotation.order='YXZ';HAND.rotation.set(-tl,-jt,0);HAND.updateMatrixWorld(true);
   HAND.scale.setScalar(sc);
@@ -530,7 +589,7 @@ function frame(now){
   if(lo<0){const hx=Math.max(.2,Math.hypot(wristG.getWorldPosition(v3).x-HAND.position.x,0));HAND.rotation.z=-Math.asin(Math.min(.9,(-lo+.004)/hx))}
   HS.dbg={lo};
   if(SK)SK.visible=!!S.show;placeCam();
-  {const nw=S.skin!==0;if(SKIN){SKIN.visible=nw;poseSkin()}for(const q of all)q.m.visible=!nw;inner.traverse(o=>{if(o.isMesh&&o.material===inkMat)o.visible=!nw})}renderAll(S.show===2?Math.min(op,.4):op,Math.max(.85,op0)*fade*(S.show===2?.7:1));
+  {const sk=S.skin==null?1:S.skin,nw=sk!==0;if(SKIN){SKIN.visible=sk===1;if(sk===1)poseSkin()}if(MODEL)MODEL.mesh.visible=sk===2;for(const q of all)q.m.visible=!nw;inner.traverse(o=>{if(o.isMesh&&o.material===inkMat)o.visible=!nw})}renderAll(S.show===2?Math.min(op,.4):op,Math.max(.85,op0)*fade*(S.show===2?.7:1));
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
