@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>테스트룸 · 알까기 손</title>
+<style>
+:root{--bg:#10170f;--panel:#1a241a;--line:#2d3b2c;--fg:#e8efe4;--dim:#93a38f;--acc:#f2c14e}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,'Noto Sans KR',sans-serif}
+main{max-width:560px;margin:0 auto;padding:10px 12px calc(24px + env(safe-area-inset-bottom))}
+.nav{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.nav a{color:var(--dim);text-decoration:none;border:1px solid var(--line);border-radius:16px;padding:5px 11px;font-size:13px}
+.nav a.on{color:#1a1405;background:var(--acc);border-color:var(--acc);font-weight:700}
+#viewWrap{position:sticky;top:0;z-index:5;background:var(--bg);padding:4px 0 8px}
+#view{position:relative;width:100%;aspect-ratio:1/1;max-height:62vh;margin:0 auto;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#e6d0a6;touch-action:none}
+#view canvas{display:block;width:100%;height:100%}
+#hint{position:absolute;left:8px;bottom:6px;font-size:12px;color:#5b4129;background:rgba(255,250,240,.75);border-radius:8px;padding:2px 8px;pointer-events:none}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}
+h2{font-size:13px;color:var(--dim);margin:0 0 4px;font-weight:600}
+.row{display:flex;align-items:center;gap:10px;margin:6px 0}
+.row>label{flex:0 0 92px;color:var(--dim);font-size:13px}
+.row>output{flex:0 0 52px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+input[type=range]{flex:1;min-width:0;height:32px;accent-color:var(--acc)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:#0f180f;color:var(--fg);border-radius:18px;padding:7px 12px;font:inherit;cursor:pointer}
+.chip.on{background:var(--acc);color:#1a1405;border-color:var(--acc);font-weight:700}
+.btns{display:flex;gap:8px;margin-top:8px}
+.btn{flex:1;border:0;border-radius:10px;padding:12px 8px;font:inherit;font-weight:700;cursor:pointer;background:#2b3a2a;color:var(--fg)}
+.btn.main{flex:2;background:var(--acc);color:#1a1405;font-size:16px}
+#line{width:100%;margin-top:8px;background:#0b110b;color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px;font:12px/1.4 ui-monospace,Menlo,monospace;resize:none}
+</style>
+</head>
+<body>
+<main>
+<nav class="nav"><a href="lab.html">첫 차례 룰렛</a><a href="lab-icon.html">아이콘 찍기</a><a href="lab-hand.html" class="on">알까기 손</a></nav>
+<div id="viewWrap"><div id="view"><div id="hint">끌어서 돌려 보기 · 두 손가락/휠로 확대</div></div></div>
+
+<section>
+  <div class="btns"><button class="btn main" id="play" type="button">튕기기 재생</button><button class="btn" id="loop" type="button">반복</button></div>
+  <div class="row"><label for="p">당긴 힘</label><input id="p" type="range" min="0" max="1" step=".01"><output id="pO"></output></div>
+  <div class="row"><label for="fl">튕김</label><input id="fl" type="range" min="0" max="1" step=".01"><output id="flO"></output></div>
+</section>
+
+<section>
+  <h2>시점</h2>
+  <div class="chips" id="views"><button class="chip" data-v="top" type="button">게임처럼 위에서</button><button class="chip" data-v="side" type="button">옆에서</button><button class="chip" data-v="near" type="button">가까이</button></div>
+  <h2 style="margin-top:10px">손 색</h2>
+  <div class="chips" id="cols"></div>
+  <h2 style="margin-top:10px">보이기</h2>
+  <div class="chips"><button class="chip" id="alpha" type="button">반투명 (힘에 따라)</button><button class="chip" id="jitter" type="button">떨림</button><button class="chip" id="ink" type="button">윤곽선</button></div>
+</section>
+
+<section>
+  <h2>모양</h2>
+  <div class="row"><label for="tilt">손 기울기</label><input id="tilt" type="range" min="0" max="90" step="1"><output id="tiltO"></output></div>
+  <div class="row"><label for="size">손 크기</label><input id="size" type="range" min=".6" max="1.8" step=".05"><output id="sizeO"></output></div>
+  <div class="row"><label for="squash">고리 납작</label><input id="squash" type="range" min="0" max=".8" step=".05"><output id="squashO"></output></div>
+  <div class="row"><label for="fat">손가락 굵기</label><input id="fat" type="range" min=".6" max="1.6" step=".05"><output id="fatO"></output></div>
+  <div class="row"><label for="spread">떨림 폭(도)</label><input id="spread" type="range" min="0" max="35" step="1"><output id="spreadO"></output></div>
+  <div class="btns"><button class="btn" id="reset" type="button">처음 값으로</button><button class="btn" id="copy" type="button">값 복사</button></div>
+  <textarea id="line" rows="2" readonly></textarea>
+</section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* 테스트룸 · 알까기 손: 게임에 넣기 전에 3D 손 모양을 보는 곳 (메인에 링크 없음).
+   손은 코드로 만든 만화풍 손: 손등(납작한 공) + 손가락(곡선을 따라 만든 둥근 관) + 툰 셰이딩 + 검은 외곽선.
+   엄지·중지 고리(당길수록 원 → 납작한 타원), 검지·약지·소지(당길수록 펴지고 벌어짐), 튕기면 중지가 앞으로 쭉.
+   반투명은 '깊이만 먼저 그리고 → 색을 한 번만' 그려서 손가락이 겹친 곳도 고르게 비침.
+   값은 gura-lab-hand에 저장 */
+const KEY='gura-lab-hand';
+const DEF={p:.5,fl:0,tilt:55,size:1,squash:.45,fat:1,spread:17,col:0,view:'top',alpha:1,jitter:1,ink:1};
+let S={...DEF};try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){};$('#line').value=JSON.stringify({tilt:S.tilt,size:S.size,squash:S.squash,fat:S.fat,spread:S.spread})};
+const $=q=>document.querySelector(q);
+const COLS=[['빨강',0xe0553f],['파랑',0x3f7fe0],['노랑',0xf2c230],['초록',0x47b35a]];
+const SR=.15,SH=.066,TOP=0;   // 알 반지름·반두께, 판 윗면 높이 (게임과 같은 값)
+
+/* ----- 장면 ----- */
+const view=$('#view'),R=new THREE.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(2,devicePixelRatio||1));view.prepend(R.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xe6d0a6);
+scene.add(new THREE.HemisphereLight(0xfff6e6,0x8a6a4a,.75));
+const sun=new THREE.DirectionalLight(0xffffff,.55);sun.position.set(-2,5,3);scene.add(sun);
+const cam=new THREE.PerspectiveCamera(36,1,.05,50);
+const grad=(()=>{const d=new Uint8Array([90,160,255]);const t=new THREE.DataTexture(d,3,1,THREE.LuminanceFormat);t.minFilter=t.magFilter=THREE.NearestFilter;t.needsUpdate=true;return t})();
+const toon=c=>new THREE.MeshToonMaterial({color:c,gradientMap:grad});
+const INK=0x3b2a1f;
+// 판 한 칸과 알 (게임처럼 13줄 판의 일부)
+{const cv=document.createElement('canvas');cv.width=cv.height=512;const g=cv.getContext('2d');g.fillStyle='#e0b878';g.fillRect(0,0,512,512);
+ for(let i=0;i<40;i++){g.strokeStyle='rgba(138,85,32,.12)';g.lineWidth=1+Math.random()*2;g.beginPath();const y=Math.random()*512;g.moveTo(0,y);g.bezierCurveTo(170,y+8,340,y-8,512,y+3);g.stroke()}
+ g.strokeStyle='rgba(60,36,12,.85)';g.lineWidth=2;for(let k=0;k<=6;k++){const v=k/6*512;g.beginPath();g.moveTo(0,v);g.lineTo(512,v);g.moveTo(v,0);g.lineTo(v,512);g.stroke()}
+ const tex=new THREE.CanvasTexture(cv);const b=new THREE.Mesh(new THREE.PlaneGeometry(2,2),toon(0xffffff));b.material.map=tex;b.rotation.x=-Math.PI/2;scene.add(b)}
+const stone=new THREE.Group();{const m=new THREE.Mesh(new THREE.SphereGeometry(SR,32,18),toon(0x26262a));m.scale.y=SH/SR;stone.add(m);const o=new THREE.Mesh(new THREE.SphereGeometry(SR,32,18),new THREE.MeshBasicMaterial({color:INK,side:THREE.BackSide}));o.scale.set(1.07,SH/SR*1.12,1.07);stone.add(o)}
+stone.position.y=SH;scene.add(stone);
+
+/* ----- 손 만들기 -----
+   손 좌표(기울이기 전): +X 튕기는 쪽, +Y 위, +Z 손가락이 늘어선 쪽(손등 폭). 고리는 XY 평면(바닥에 세로로 섬, 영상과 같음).
+   통째로 X축(튕기는 방향)을 축으로 기울여(tilt) 위에서도 고리 구멍이 보이게 함 */
+const HAND=new THREE.Group();scene.add(HAND);
+const inner=new THREE.Group();HAND.add(inner);
+let parts=[];   // {body, hull}
+const mats={depth:new THREE.MeshBasicMaterial({colorWrite:false}),skin:null,ink:null,nail:null};
+function mkMats(){
+  const c=COLS[S.col][1];
+  mats.skin=new THREE.MeshToonMaterial({color:c,gradientMap:grad,transparent:true,depthFunc:THREE.LessEqualDepth,depthWrite:false});
+  mats.ink=new THREE.MeshBasicMaterial({color:INK,side:THREE.BackSide,transparent:true,depthFunc:THREE.LessEqualDepth,depthWrite:false});
+  mats.nail=new THREE.MeshToonMaterial({color:0xfff1e6,gradientMap:grad,transparent:true,depthFunc:THREE.LessEqualDepth,depthWrite:false});
+}
+/* 관 하나: 점들을 지나는 곡선을 따라 굵기 r (끝은 둥글게), 외곽선은 조금 굵은 관을 뒤집어서 */
+function tube(pts,r,hullR,nail){
+  const curve=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p)),false,'centripetal');
+  const add=(rad,isHull)=>{
+    const g=new THREE.Group();
+    const tg=new THREE.TubeGeometry(curve,28,rad,14,false);g.add(new THREE.Mesh(tg));
+    const s=new THREE.SphereGeometry(rad,14,10);
+    const a=new THREE.Mesh(s);a.position.copy(curve.getPoint(0));g.add(a);
+    const b=new THREE.Mesh(s);b.position.copy(curve.getPoint(1));g.add(b);
+    return g;
+  };
+  const body=add(r),hull=add(r+hullR,true);
+  const res={body,hull};
+  if(nail){   // 손톱: 끝에서 손등 쪽에 납작한 타원
+    const end=curve.getPoint(1),tan=curve.getTangent(1);
+    const n=new THREE.Mesh(new THREE.SphereGeometry(r*.72,12,8));n.scale.set(1,.45,1);n.position.copy(end).addScaledVector(tan,-r*.35);
+    n.position.y+=r*.55;res.nail=n;
+  }
+  return res;
+}
+function blob(c,sc,hullR){
+  const g=new THREE.SphereGeometry(1,28,18);
+  const body=new THREE.Mesh(g);body.position.set(...c);body.scale.set(...sc);
+  const hull=new THREE.Mesh(g);hull.position.set(...c);hull.scale.set(sc[0]+hullR,sc[1]+hullR,sc[2]+hullR);
+  return {body,hull};
+}
+/* 지금 값으로 손 모양을 다시 만듦 (p: 당긴 힘, fl: 튕김 0~1) */
+function buildHand(p,fl){
+  inner.clear();parts=[];
+  const F=S.fat,W=.012,ring={R0:.1,rx:0,ry:0,cx:0,cy:0};
+  ring.rx=ring.R0*(1-S.squash*p);ring.ry=ring.R0*(1+.15*p);
+  ring.cx=-SR-.012-ring.rx;ring.cy=.115;   // 고리 앞 끝(중지 손톱)이 알 뒤에 닿음
+  const E=(a)=>[ring.cx+Math.cos(a)*ring.rx,ring.cy+Math.sin(a)*ring.ry,0];
+  // 손등: 고리 뒤쪽 위 (손등 폭은 Z로)
+  const palm=[ring.cx-.22,ring.cy+.1,-.04];
+  parts.push(blob(palm,[.14,.12,.1],W));
+  // 손목: 손등에서 뒤·아래로 (짧게)
+  parts.push(tube([[palm[0]-.05,palm[1]-.03,-.03],[palm[0]-.22,palm[1]-.1,-.04],[palm[0]-.4,palm[1]-.2,-.05]],.085*F,W));
+  // 엄지: 손등 아래에서 고리 아래쪽 반을 따라 앞으로
+  {const pts=[[palm[0]+.03,palm[1]-.1,.04]];for(let k=0;k<=5;k++)pts.push(E(Math.PI*1.05+k/5*Math.PI*.83));parts.push(tube(pts,.05*F,W))}
+  // 중지: 손등 앞 위에서 고리 위쪽 반을 따라 앞으로 → 튕기면 앞으로 쭉
+  {const k0=[palm[0]+.11,palm[1]+.05,0];let pts;
+   const curled=[k0];for(let k=0;k<=6;k++)curled.push(E(Math.PI*.82-k/6*Math.PI*.86));
+   if(fl>0){const st=[];for(let k=0;k<=7;k++){const t=k/7;st.push([k0[0]+t*(-SR-.045-k0[0]),k0[1]+t*(ring.cy-.06-k0[1]),0])}   // 앞으로 뻗은 중지 (손톱이 알 뒤를 침)
+     pts=curled.map((c,k)=>{const s=st[Math.min(st.length-1,k)];return [c[0]+(s[0]-c[0])*fl,c[1]+(s[1]-c[1])*fl,c[2]]})}
+   else pts=curled;
+   parts.push(tube(pts,.045*F,W,true))}
+  // 검지·약지·소지: 위로 서 있다가 당길수록 펴지고(길어짐) 벌어지고 뒤로 젖혀짐
+  [[.075,.2+0],[-.07,.19],[-.13,.15]].forEach(([z,L],k)=>{
+    const base=[palm[0]+.05-(k?.03:0),palm[1]+.1,z];
+    const curl=.25+(1-p)*1.9,spread=(k===0?1:-1)*(.08+.25*p)*(k===2?1.6:1),back=-.15-.3*p;
+    const pts=[base];let ang=back,pos=[...base];const n=4;
+    for(let j=1;j<=n;j++){ang+=curl/n;const seg=L/n;   // 마디마다 앞으로 굽음 (힘을 주면 곧게)
+      pos=[pos[0]+Math.sin(ang)*seg,pos[1]+Math.cos(ang)*seg,pos[2]+spread*seg];pts.push(pos)}
+    parts.push(tube(pts,.042*F*(k===2?.85:1),W,true));
+  });
+  for(const q of parts){
+    q.body.traverse(o=>{if(o.isMesh){o.material=mats.skin;o.renderOrder=11}});
+    q.hull.traverse(o=>{if(o.isMesh){o.material=mats.ink;o.renderOrder=10}});
+    inner.add(q.body);if(S.ink)inner.add(q.hull);
+    if(q.nail){q.nail.material=mats.nail;q.nail.renderOrder=12;inner.add(q.nail)}
+    // 깊이만 먼저 (반투명이 한 번만 칠해지게)
+    const dp=q.body.clone();dp.traverse(o=>{if(o.isMesh){o.material=mats.depth;o.renderOrder=5}});inner.add(dp);
+  }
+  // 고리 앞 끝(알에 닿는 곳)을 기준으로 기울이고 키움
+  const pivot=new THREE.Vector3(-SR-.012,ring.cy,0);
+  inner.position.copy(pivot).multiplyScalar(-1);
+  HAND.position.copy(pivot);HAND.position.y=SH*0+.0;   // 기울인 뒤 높이는 아래에서 맞춤
+  HAND.userData.pivotY=ring.cy;
+}
+function setOpacity(op){mats.skin.opacity=op;mats.nail.opacity=op;mats.ink.opacity=Math.max(.55,op)}
+
+/* ----- 떨림 (게임과 같은 식) ----- */
+function jit(t){const a=.5*Math.sin(t*.0067+1.3)+.3*Math.sin(t*.0151+.4)+.2*Math.sin(t*.0389+2.1);const b=Math.pow(Math.sin(t*.0021),8)*Math.sin(t*.047);return Math.max(-1,Math.min(1,a*.8+b*.6))}
+
+/* ----- 카메라 (끌어서 돌리기·확대) ----- */
+const CV={top:{th:-Math.PI/2,ph:1.5707,d:2.2},side:{th:-Math.PI/2+.9,ph:.35,d:1.5},near:{th:-Math.PI/2+.5,ph:.8,d:.95}};
+let orb={...CV[S.view]||CV.top},tgt=new THREE.Vector3(-.3,.05,0);
+function placeCam(){const ph=Math.min(1.5707,Math.max(.05,orb.ph));cam.position.set(tgt.x+orb.d*Math.cos(ph)*Math.cos(orb.th),tgt.y+orb.d*Math.sin(ph),tgt.z-orb.d*Math.cos(ph)*Math.sin(orb.th));
+  if(ph>1.56){cam.up.set(0,0,-1)}else cam.up.set(0,1,0);cam.lookAt(tgt)}
+{let pts=new Map(),last=null,pinch=0;
+ view.addEventListener('pointerdown',e=>{view.setPointerCapture(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);last=[e.clientX,e.clientY];if(pts.size===2){const [a,b]=[...pts.values()];pinch=Math.hypot(a[0]-b[0],a[1]-b[1])}});
+ view.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,[e.clientX,e.clientY]);
+   if(pts.size===2){const [a,b]=[...pts.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pinch)orb.d=Math.max(.4,Math.min(4,orb.d*pinch/d));pinch=d;return}
+   const dx=e.clientX-last[0],dy=e.clientY-last[1];last=[e.clientX,e.clientY];orb.th-=dx*.008;orb.ph+=dy*.008;setView('')});
+ const up=e=>{pts.delete(e.pointerId);pinch=0;if(pts.size===1)last=[...pts.values()][0]};view.addEventListener('pointerup',up);view.addEventListener('pointercancel',up);
+ view.addEventListener('wheel',e=>{e.preventDefault();orb.d=Math.max(.4,Math.min(4,orb.d*(1+Math.sign(e.deltaY)*.1)))},{passive:false})}
+function setView(v){S.view=v;document.querySelectorAll('#views .chip').forEach(b=>b.classList.toggle('on',b.dataset.v===v));if(v&&CV[v])orb={...CV[v]};save()}
+
+/* ----- 조작판 ----- */
+const sl=['p','fl','tilt','size','squash','fat','spread'];
+const fmt={p:v=>Math.round(v*100)+'%',fl:v=>Math.round(v*100)+'%',tilt:v=>v+'°',size:v=>(+v).toFixed(2),squash:v=>(+v).toFixed(2),fat:v=>(+v).toFixed(2),spread:v=>v+'°'};
+let dirty=true;
+for(const k of sl){const el=$('#'+k);el.value=S[k];$('#'+k+'O').textContent=fmt[k](S[k]);el.addEventListener('input',()=>{S[k]=+el.value;$('#'+k+'O').textContent=fmt[k](S[k]);anim=null;dirty=true;save()})}
+$('#cols').innerHTML=COLS.map(([n],i)=>`<button class="chip${i===S.col?' on':''}" data-c="${i}" type="button">${n}</button>`).join('');
+$('#cols').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;S.col=+b.dataset.c;document.querySelectorAll('#cols .chip').forEach(x=>x.classList.toggle('on',x===b));mkMats();dirty=true;save()});
+$('#views').addEventListener('click',e=>{const b=e.target.closest('.chip');if(b)setView(b.dataset.v)});
+const tog=(id,k)=>{const b=$('#'+id);b.classList.toggle('on',!!S[k]);b.addEventListener('click',()=>{S[k]=S[k]?0:1;b.classList.toggle('on',!!S[k]);dirty=true;save()})};
+tog('alpha','alpha');tog('jitter','jitter');tog('ink','ink');
+$('#reset').addEventListener('click',()=>{const keep={col:S.col,view:S.view};S={...DEF,...keep};for(const k of sl){$('#'+k).value=S[k];$('#'+k+'O').textContent=fmt[k](S[k])}['alpha','jitter','ink'].forEach(k=>$('#'+k).classList.toggle('on',!!S[k]));dirty=true;save()});
+$('#copy').addEventListener('click',()=>{const t=$('#line').value;try{navigator.clipboard.writeText(t);$('#copy').textContent='복사했습니다';setTimeout(()=>$('#copy').textContent='값 복사',1400)}catch(e){}});
+/* 튕기기 재생: 0 → 당긴 힘까지 천천히 당김(1.2초) → 0.4초 버팀 → 중지로 탁(0.09초) → 알이 미끄러져 나가고 손은 사라짐 → 처음으로 */
+let anim=null,loop=false;
+$('#play').addEventListener('click',()=>{anim={t0:performance.now()}});
+$('#loop').addEventListener('click',()=>{loop=!loop;$('#loop').classList.toggle('main',loop);if(loop&&!anim)anim={t0:performance.now()}});
+const AN={pull:1200,hold:400,flick:90,fly:900,rest:500};
+
+/* ----- 그리기 ----- */
+mkMats();setView(S.view||'top');save();
+let built='';
+function frame(now){
+  const w=view.clientWidth,h=view.clientHeight;if(R.domElement.width!==Math.round(w*R.getPixelRatio())||R.domElement.height!==Math.round(h*R.getPixelRatio())){R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
+  let p=S.p,fl=S.fl,fade=1,sx=0;
+  if(anim){const e=now-anim.t0,A=AN;
+    if(e<A.pull)p=S.p*(1-Math.pow(1-e/A.pull,2)),fl=0;
+    else if(e<A.pull+A.hold){p=S.p;fl=0}
+    else if(e<A.pull+A.hold+A.flick){p=S.p;fl=(e-A.pull-A.hold)/A.flick}
+    else if(e<A.pull+A.hold+A.flick+A.fly){const k=(e-A.pull-A.hold-A.flick)/A.fly;p=S.p;fl=1;fade=Math.max(0,1-k*2.4);sx=(1-Math.pow(1-k,3))*(.4+1.4*S.p)}
+    else if(e<A.pull+A.hold+A.flick+A.fly+A.rest){fade=0;sx=.4+1.4*S.p}
+    else{anim=loop?{t0:now}:null}
+  }
+  stone.position.x=sx;
+  const key=[Math.round(p*100),Math.round(fl*30),S.squash,S.fat,S.ink].join(',');
+  if(key!==built||dirty){buildHand(p,fl);built=key;dirty=false}
+  const op=(S.alpha?.2+.7*p:1)*fade;setOpacity(op);HAND.visible=fade>.01;
+  // 기울기·크기·떨림: 고리 앞 끝을 축으로
+  const sc=S.size,tl=S.tilt*Math.PI/180;
+  const jt=S.jitter?(S.spread*Math.PI/180)*p*p*jit(now):0;
+  HAND.rotation.set(0,0,0);HAND.rotation.order='YXZ';HAND.rotation.y=-jt;HAND.rotation.x=-tl;
+  HAND.scale.setScalar(sc);
+  // 기울인 뒤에도 손이 판 위에 뜨게: 고리 앞 끝 높이를 알 윗면 근처로
+  HAND.position.set(-SR-.012,SH+.02+HAND.userData.pivotY*Math.cos(tl)*sc*.35,0);
+  placeCam();R.render(scene,cam);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
