@@ -211,6 +211,8 @@ const BONE={
   carpal:[   // 손목뼈 8개: 가운데 [x,y,t], 크기 [x,y,t] (mm)
     ['손배뼈',[12,-2,16],[20,10,12]],['반달뼈',[11,0,3],[15,11,13]],['세모뼈',[10,-1,-10],[13,10,11]],['콩알뼈',[8,-9,-14],[9,8,9]],
     ['큰마름뼈',[25,-6,21],[14,10,13]],['작은마름뼈',[27,0,11],[11,10,10]],['알머리뼈',[24,0,0],[20,12,13]],['갈고리뼈',[24,-1,-13],[17,11,13]]]};
+// 손가락 길이: 실측보다 조금 길게(그림처럼 손가락이 손바닥 폭보다 길어 보이게). 손허리뼈(손바닥)는 그대로
+const FLEN=1.08,TLEN=1.1;for(const k of ['index','middle','ring','pinky'])BONE[k].ph=BONE[k].ph.map(v=>v*FLEN);BONE.thumb.ph=BONE.thumb.ph.map(v=>v*TLEN);
 // 머리 x: 바닥에서 손허리뼈 길이만큼 (옆·아래로 벌어진 만큼 줄어듦)
 for(const k of ['index','middle','ring','pinky']){const b=BONE[k],dy=b.head[0]-b.base[1],dt=b.head[1]-b.base[2];b.hx=b.base[0]+Math.sqrt(b.mc*b.mc-dy*dy-dt*dt)}
 const BX0=BONE.middle.hx;   // 중지 MCP가 장면 x=0 (살 손가락 뿌리 자리와 같음)
@@ -266,14 +268,18 @@ float palmSlab(vec3 p){vec2 q=p.xz;float d=dot(q-uPv[0],q-uPv[0]),sg=1.;
     bvec3 c=bvec3(q.y>=uPv[i].y,q.y<uPv[j].y,e.x*w.y>e.y*w.x);if(all(c)||all(not(c)))sg*=-1.;}
   float d2=sg*sqrt(d)+uPs.z,dy=abs(p.y-uPs.x)-uPs.y;   // uPs: 가운데 높이, 반두께, 둥근 모서리
   return length(max(vec2(d2,dy),0.))+min(max(d2,dy),0.)-uPs.z;}
+const float WEB=0.018349;   // 손가락 사이 물갈퀴 녹이는 폭 (8mm)
 float sm(float a,float b,float k){float h=clamp(.5+.5*(b-a)/k,0.,1.);return mix(b,a,h)-k*h*(1.-h);}
 float map(vec3 p){
   float pm=palmSlab(p);for(int i=0;i<4;i++)pm=sm(pm,rc(p,i),uK[0]*.5);   // 손허리뼈는 손등에 살짝 드러나는 정도
-  pm=sm(pm,rc(p,4),uK[0]);pm=sm(pm,rc(p,5),uK[0]);pm=sm(pm,rc(p,7),uK[1]);pm=sm(pm,rc(p,6),uK[1]);pm=sm(pm,rc(p,23),uK[4]);
+  pm=sm(pm,rc(p,4),uK[0]);pm=sm(pm,rc(p,5),uK[0]);pm=sm(pm,rc(p,7),uK[1]);pm=sm(pm,rc(p,6),uK[1]);pm=sm(pm,rc(p,23),uK[4]);pm=sm(pm,rc(p,22),uK[1]);
   float d=pm;
+  // 손가락 사이 물갈퀴: 이웃한 손가락 첫마디끼리만 좁게(WEB) 녹여 뿌리 쪽 틈을 메움 → 손가락이 손등 마디부터 V자로 갈라지지 않고 첫마디 조금 위에서 갈라짐 (벌어진 끝쪽은 안 붙음)
+  float q0=rc(p,10),q1=rc(p,13),q2=rc(p,16),q3=rc(p,19);
+  d=min(d,sm(pm,min(min(sm(q0,q1,WEB),sm(q1,q2,WEB)),sm(q2,q3,WEB)),uK[3]));
   // 손가락 하나씩: 손가락 전체를 감싸는 굵은 캡슐보다 멀면 계산을 건너뜀 (빠르게)
   for(int f=0;f<5;f++){vec3 pa=p-uFa[f],ba=uFb[f]-uFa[f];float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);if(length(pa-ba*h)-uFr[f]>d+uK[3])continue;
-    float fd;if(f==4)fd=sm(rc(p,8),rc(p,9),uK[2]);else{int i=10+f*3;fd=sm(sm(rc(p,i),rc(p,i+1),uK[2]),rc(p,i+2),uK[2]);}
+    float fd;if(f==4)fd=sm(rc(p,8),rc(p,9),uK[2]);else{int i=10+f*3;fd=sm(sm(f==0?q0:f==1?q1:f==2?q2:q3,rc(p,i+1),uK[2]),rc(p,i+2),uK[2]);}   // 첫마디는 위에서 잰 값
     d=min(d,sm(pm,fd,uK[3]));}
   return d;}
 vec3 nrm(vec3 p){vec2 e=vec2(.0016,-.0016);   // 넓게 재서 매끈한 법선 (그늘 경계가 깔끔하게)
@@ -289,7 +295,7 @@ void main(){
   float w1=min(fwidth(ndl),.08)*1.2+.004,w2=min(fwidth(ndv),.08)*1.2+.004;   // 화면 한 칸 너비만큼만 부드럽게: 그늘 경계가 톱니 없이 매끈한 곡선
   float s=max(1.-smoothstep(-.33-w1,-.33+w1,ndl),(1.-smoothstep(.17-w2,.17+w2,ndv))*(1.-smoothstep(.4-w1,.4+w1,ndl)));
   float a=clamp((p.x-uFade.y)/(uFade.x-uFade.y),0.,1.);
-  float bi=1.,bd=palmSlab(p);for(int i=0;i<8;i++){if(i==5)continue;bd=min(bd,rc(p,i));}bd=min(bd,rc(p,23));
+  float bi=1.,bd=palmSlab(p);for(int i=0;i<8;i++){if(i==5)continue;bd=min(bd,rc(p,i));}bd=min(bd,min(rc(p,22),rc(p,23)));
   {float q=rc(p,8);if(q<bd){bd=q;bi=2.;}q=rc(p,9);if(q<bd){bd=q;bi=3.;}for(int i=10;i<22;i++){q=rc(p,i);if(q<bd){bd=q;bi=float(i-6);}}}
   gl_FragColor=vec4(mix(uBase,uShade,s),(floor(a*15.+.5)*16.+bi)/255.);   // 알파 = 흐림(위 4비트) + 살 조각 번호(아래 4비트): 윤곽선이 조각끼리 경계를 알 수 있게
   if(uDbg>.5){float m=palmSlab(p);vec3 c=vec3(1,.3,.3);   // 점검용: 가장 가까운 살 조각 색
@@ -309,8 +315,8 @@ function buildSkin(){
   SKIN.frustumCulled=false;inner.add(SKIN);
 }
 /* 살 두께(mm, 반지름): [시작, 끝]. 손바닥(손허리뼈)은 두께 방향(y)으로 두껍고 옆(z)으로 얇게 */
-const FLESH={mc:[[11,10.5],[11,10.5],[10.5,10],[10,10]],fin:{index:[[10.6,9.4],[9.2,8.2],[8,6.8]],middle:[[11,9.8],[9.6,8.6],[8.4,7.1]],ring:[[10.4,9.2],[9,8],[7.8,6.7]],pinky:[[9.3,8.2],[8,7.2],[7,6]]},   // 뿌리에서 끝으로 가늘어짐
-  th:[[10,9.5],[11,9.6],[9.4,7.6]]};
+const FLESH={mc:[[11,10.5],[11,10.5],[10.5,10],[10,10]],fin:{index:[[9.6,9.1],[8.9,8.5],[8.3,8]],middle:[[9.9,9.4],[9.2,8.8],[8.6,8.3]],ring:[[9.3,8.8],[8.6,8.2],[8.1,7.8]],pinky:[[8.4,8],[7.8,7.4],[7.2,7]]},   // 뿌리에서 끝으로 조금만 가늘어짐 (끝마디 폭이 뿌리의 8할: 그림처럼 거의 나란한 가는 기둥에 둥근 끝)
+  th:[[10,9.5],[11.2,10],[9.8,8.2]]};
 function poseSkin(){
   if(!SKIN)return;const u=SKIN.material.uniforms,{segs,th}=SK.userData;inner.updateMatrixWorld(true);
   const L=(g,x)=>inner.worldToLocal(g.localToWorld(new THREE.Vector3(x,0,0)));
@@ -319,16 +325,16 @@ function poseSkin(){
   ['index','middle','ring','pinky'].forEach((nm,k)=>{const sg=segs[k*4],bend=Math.min(1,Math.max(0,-HS.fs[nm].joints[0].rotation.z/(50*D2R)));put(k,L(sg.g,sg.L*BS*.3),L(sg.g,sg.L*BS),5,5.5+3*bend)});   // 손허리뼈 머리(주먹 마디): 편 손가락은 손바닥 판 안에 묻히고, 굽힌 손가락만 둥글게 드러나 손등에서 첫 마디로 꺼지지 않음   // 손등의 손허리뼈 줄기와 머리(주먹 마디): 손가락이 굽어도 마디가 둥글게 남아 손등에서 첫 마디로 푹 꺼지지 않음   // 손등의 손허리뼈 줄기·마디(주먹 마디)
   {const bi=BONE.index,bk=BONE.pinky,PR=7,P=(x,t)=>{const v=bp(x,0,t);return new THREE.Vector2(v.x,v.z)};
    // 판의 끝(손가락 쪽)은 손허리뼈 머리보다 조금 뒤 → 손가락이 손바닥에 묻히지 않고 마디부터 보임
-   const v=[P(bi.hx-2,bi.head[1]+FLESH.fin.index[0][0]),P(bk.hx-2,bk.head[1]-FLESH.fin.pinky[0][0]),P(6,-27),P(6,25)];if(HZ<0)v.reverse();   // 손가락 쪽 꼭짓점은 검지·소지 바깥면과 같은 줄(턱 없음), 손목 쪽은 손목뼈 자리에서 팔뚝과 같은 폭(약 52mm, 손바닥의 7할)으로 곧게 좁아짐
-   v.forEach((q,i)=>u.uPv.value[i].copy(q));u.uPs.value.set(-2*BS,2.5*BS,12.5*BS)}   // 손바닥 판: 모서리를 두께의 대부분만큼 둥글게(베개 모양) → 옆에서 봐도 판자가 아니라 손
+   const v=[P(bi.hx-2,bi.head[1]+FLESH.fin.index[0][0]),P(bk.hx-2,bk.head[1]-FLESH.fin.pinky[0][0]),P(22,-27),P(22,24)];if(HZ<0)v.reverse();   // 손가락 쪽 꼭짓점은 검지·소지 바깥면과 같은 줄(턱 없음), 손목 쪽은 손목뼈 자리에서 팔뚝과 같은 폭(약 52mm, 손바닥의 7할)으로 곧게 좁아짐
+   v.forEach((q,i)=>u.uPv.value[i].copy(q));u.uPs.value.set(-3*BS,4*BS,12.5*BS)}   // 손바닥 판: 모서리를 두께의 대부분만큼 둥글게(베개 모양) → 옆에서 봐도 판자가 아니라 손
   put(4,bp(22,5,2),bp(84,6,-5),15,14,new THREE.Vector3(1,1.7,.72));   // 손등 볼록: 손허리뼈 가운데를 덮는 낮고 넓은 둔덕 (옆에서 봐도 판자가 아니게)
   // 새끼 두덩(새끼손가락 쪽 손바닥 가장자리): 소지 손허리뼈 머리 → 손목 소지 쪽(콩알뼈). 가장자리를 한 줄로 매끈하게
-  put(22,bp(0,0,0),bp(1,0,0),.1,.1);   // (안 씀: 손바닥 판이 대신)
-  put(5,bp(10,-2,-1),bp(-150,-4,0),26.5,28,new THREE.Vector3(1,1.75,1));   // 손목 단면: 너비 약 53mm × 두께 약 30mm 타원 — 손바닥 손목 쪽 끝과 같은 폭으로 이어짐   // 팔뚝: 손목에서 손바닥 판과 같은 폭으로 시작해 뒤로 갈수록 천천히 굵어짐(흐려짐)
+  put(22,bp(20,-12,-15),bp(58,-9,-21),11.5,8,new THREE.Vector3(1,.8,1.25));   // 새끼 두덩: 손바닥 쪽 소지 가장자리의 도톰한 살 (손목 쪽이 두껍고 소지 뿌리 쪽으로 얇아짐) → 옆에서 보면 손바닥이 손목 쪽으로 두꺼운 쐐기
+  put(5,bp(4,-3,-1),bp(-150,-6,0),22,30,new THREE.Vector3(1,1.25,1));   // 손목 단면: 너비 약 44mm × 두께 약 35mm 타원 — 손바닥 손목 쪽 끝과 같은 폭으로 이어짐   // 팔뚝: 손목에서 손바닥 판과 같은 폭으로 시작해 뒤로 갈수록 천천히 굵어짐(흐려짐)
   // 엄지 쪽 가장자리(손목→엄지 뿌리)는 엄지 두덩 근육(짧은엄지벌림근·짧은엄지굽힘근·엄지맞섬근)이 엄지 손허리뼈를 손바닥 쪽에서 덮어 한 줄의 볼록한 곡선.
   // 손허리뼈 살은 두덩 안에 묻히게 가늘게, 두덩은 손목 엄지 쪽(손배뼈·큰마름뼈)에서 엄지 뿌리 관절까지 하나로 → 따로 솟는 혹이 없음
-  const tb=BONE.thumb;put(6,L(th[0],tb.mc*BS*.25),L(th[0],tb.mc*BS),7,8.5);   // 엄지 손허리뼈 (손등 쪽에서 살짝 만져지는 정도)
-  put(7,bp(14,-8,15),L(th[0],tb.mc*BS*.85).add(new THREE.Vector3(0,-4*BS,0)),11,13.5);   // 엄지 두덩: 손목 쪽은 가늘게 시작해 엄지 뿌리 쪽으로 도톰하게 (손목 위에 혹이 나지 않게)
+  const tb=BONE.thumb;put(6,L(th[0],tb.mc*BS*.45),L(th[0],tb.mc*BS),6.5,8.5);   // 엄지 손허리뼈 (손등 쪽에서 살짝 만져지는 정도)
+  put(7,bp(20,-8,10),L(th[0],tb.mc*BS*.85).add(new THREE.Vector3(0,-5*BS,0)),9,14);   // 엄지 두덩: 손목 쪽은 가늘게 시작해 엄지 뿌리 쪽으로 도톰하게 (손목 위에 혹이 나지 않게)
   // 엄지모음근·첫째 등쪽 뼈사이근: 엄지 손허리뼈 끝 쪽 ↔ 검지 손허리뼈 끝 쪽 사이를 채우는 살 (엄지와 검지 사이 물갈퀴 바닥)
   {const m2=segs[0];put(23,L(th[0],tb.mc*BS).add(new THREE.Vector3(0,-3*BS,0)),L(m2.g,m2.L*BS*.95).add(new THREE.Vector3(0,-3*BS,0)),8,7.5)}   // 엄지모음근·첫째 등쪽 뼈사이근 (엄지 뿌리 관절 ↔ 검지 손허리뼈 머리 쪽, 손바닥 쪽으로 조금). 이것만 넓게(uK[4] 30mm) 녹여 붙여 엄지·검지 사이 물갈퀴가 차게: 손목을 가늘게 하려고 엄지 쪽 녹이는 폭을 10mm로 줄였을 때 같이 사라졌던 살
   put(8,L(th[1],0),L(th[1],tb.ph[0]*BS),FLESH.th[1][0],FLESH.th[1][1]);put(9,L(th[2],0),L(th[2],tb.ph[1]*BS),FLESH.th[2][0],FLESH.th[2][1]);
@@ -497,9 +503,9 @@ function poseHand(p,fl){
   const set=(f,ang,yaw,lift)=>{f.root.rotation.set(0,(yaw||0)*D2R,(lift||0)*D2R);f.joints.forEach((j,k)=>{j.rotation.z=-ang[k]*D2R})};
   const {fs}=HS,sq=S.squash;
   const o=S.open||0,O=(a,b)=>lerpA(a,b,o),o1=(a,b)=>lerp(a,b,o);   // 손 펴기: 손가락은 살짝만 굽은 채 부채꼴로, 엄지는 옆으로 떨어져 뻗음
-  set(fs.index,O(lerpA([10,12,-6],[-6,-2,-14],p),[2,2,0]),o1(lerp(2,13,p),14),o1(lerp(-4,8,p),0));
-  set(fs.ring,O(lerpA([12,14,-4],[-4,-1,-12],p),[2,2,0]),o1(lerp(-2,-10,p),-5),o1(lerp(-4,8,p),0));
-  set(fs.pinky,O(lerpA([14,16,-2],[-3,0,-10],p),[2,2,0]),o1(lerp(-4,-20,p),-12),o1(lerp(-4,8,p),0));   // 검지·약지·소지: 처음엔 살짝 굽었다가 당길수록 뻣뻣하게 펴져(끝까지 당기면 살짝 젖혀짐) 위로 들리고 벌어짐
+  set(fs.index,O(lerpA([10,12,-6],[-6,-2,-14],p),[2,2,0]),o1(lerp(2,13,p),17),o1(lerp(-4,8,p),0));
+  set(fs.ring,O(lerpA([12,14,-4],[-4,-1,-12],p),[2,2,0]),o1(lerp(-2,-10,p),-7),o1(lerp(-4,8,p),0));
+  set(fs.pinky,O(lerpA([14,16,-2],[-3,0,-10],p),[2,2,0]),o1(lerp(-4,-20,p),-17),o1(lerp(-4,8,p),0));   // 검지·약지·소지: 처음엔 살짝 굽었다가 당길수록 뻣뻣하게 펴져(끝까지 당기면 살짝 젖혀짐) 위로 들리고 벌어짐
   // 중지: 둘째 관절(손톱 쪽에서 두 번째)이 90도로 꺾이고, 뿌리에서 엄지 쪽으로 틀어 손끝이 엄지를 향함. 당길수록 뿌리·끝마디가 더 꽉, 튕기면 쭉
   const pc=S.pitch,straight=[pc*.6+18,pc*.3+10,pc*.1+6];
   const mid=lerpA(lerpA([48,74,42],[48+18*sq,78,42+20*sq],p),straight,fl);   // 세 마디에 고르게 나눠 둥근 고리
