@@ -1,4 +1,6 @@
-# 공통 코드 (`index.html`)
+# 공통 코드 (`index.html`, `core/`)
+
+> 코드는 `core/*.js`에 나뉘어 있습니다(파일과 순서는 `CLAUDE.md` 표). 첫 화면·자판은 `core/front.js`, 공개 탁자 목록 판은 `core/front-list.js`, 규칙 나무판·설정 판자는 `core/rules-board.js`, 영수증은 `core/receipt.js`, 홀로그램·클립보드·시작 버튼·카메라는 `core/front-objs.js`, 대기실 이름표는 `core/wait.js`.
 
 > 원래 `CLAUDE.md` 파일 구조 표에 있던 자세한 설명입니다. 이 기능을 바꾸면 이 문서를 고칩니다.
 
