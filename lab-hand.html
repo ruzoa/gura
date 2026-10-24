@@ -313,7 +313,7 @@ function poseSkin(){
   for(let k=0;k<4;k++){const sg=segs[k*4];put(k,L(sg.g,sg.L*BS*.3),L(sg.g,sg.L*BS*.97),5.5,7.5)}   // 손등의 손허리뼈 줄기·마디(주먹 마디)
   {const bi=BONE.index,bk=BONE.pinky,PR=7,P=(x,t)=>{const v=bp(x,0,t);return new THREE.Vector2(v.x,v.z)};
    // 판의 끝(손가락 쪽)은 손허리뼈 머리보다 조금 뒤 → 손가락이 손바닥에 묻히지 않고 마디부터 보임
-   const v=[P(bi.hx-6,bi.head[1]+10),P(bk.hx-8,bk.head[1]-10),P(-4,-22),P(-4,20)];   // 손목 쪽 두 꼭짓점은 팔뚝 속으로 들어가 팔뚝보다 좁게 → 모서리가 튀어나오지 않음if(HZ<0)v.reverse();
+   const v=[P(bi.hx-6,bi.head[1]+11.5),P(bk.hx-8,bk.head[1]-11.5),P(-4,-22),P(-4,20)];   // 손목 쪽 두 꼭짓점은 팔뚝 속으로 들어가 팔뚝보다 좁게 → 모서리가 튀어나오지 않음if(HZ<0)v.reverse();
    v.forEach((q,i)=>u.uPv.value[i].copy(q));u.uPs.value.set(-2*BS,8*BS,PR*BS)}
   put(4,bp(0,0,0),bp(1,0,0),.1,.1);   // (안 씀: 손바닥 판이 손목까지)   // 손목: 손목뼈 줄을 옆으로 가로지름
   // 새끼 두덩(새끼손가락 쪽 손바닥 가장자리): 소지 손허리뼈 머리 → 손목 소지 쪽(콩알뼈). 가장자리를 한 줄로 매끈하게
@@ -436,17 +436,17 @@ function thumbChain(CMC,LM,L1,L2,C,o,DORS,st,fl,N){
       const sc=(N?-nail.dot(N):0)+.12*(1-y.dot(DORS));if(sc<bs){bs=sc;X=x;Y=y}}   // 엄지 손톱이 N 쪽 = 지문은 중지 손톱 반대편에서 마주 봄
     st.a=best*D2R;st.X=X;st.Y=Y}
   const F=place(chain(st.a,lerp(st.ib,4*D2R,Math.max(0,fl))),st.X,st.Y);
-  let Op;{const X=new THREE.Vector3(.55,.18,HZ*.82).normalize(),Y=DORS.clone().sub(X.clone().multiplyScalar(DORS.dot(X))).normalize();Op=place(chain(8*D2R,8*D2R),X,Y)}
-  const ZF=new THREE.Vector3().crossVectors(st.X,st.Y),XO=new THREE.Vector3(.55,.18,HZ*.82).normalize(),ZO=new THREE.Vector3().crossVectors(XO,DORS.clone().sub(XO.clone().multiplyScalar(DORS.dot(XO))).normalize());
+  let Op;{const X=new THREE.Vector3(.72,.16,HZ*.67).normalize(),Y=DORS.clone().sub(X.clone().multiplyScalar(DORS.dot(X))).normalize();Op=place(chain(8*D2R,8*D2R),X,Y)}
+  const ZF=new THREE.Vector3().crossVectors(st.X,st.Y),XO=new THREE.Vector3(.72,.16,HZ*.67).normalize(),ZO=new THREE.Vector3().crossVectors(XO,DORS.clone().sub(XO.clone().multiplyScalar(DORS.dot(XO))).normalize());
   return {B:F.B.lerp(Op.B,o),E:F.E.lerp(Op.E,o),T:F.T.lerp(Op.T,o),Y:F.Y.clone().lerp(Op.Y,o).normalize(),Z:ZF.lerp(ZO,o).normalize()};   // Z: 굽는 평면의 법선 (마디 방향을 정할 때 씀: 크게 굽어도 손톱이 뒤집히지 않게)
 }
 function poseHand(p,fl){
   const set=(f,ang,yaw,lift)=>{f.root.rotation.set(0,(yaw||0)*D2R,(lift||0)*D2R);f.joints.forEach((j,k)=>{j.rotation.z=-ang[k]*D2R})};
   const {fs}=HS,sq=S.squash;
   const o=S.open||0,O=(a,b)=>lerpA(a,b,o),o1=(a,b)=>lerp(a,b,o);   // 손 펴기: 손가락은 살짝만 굽은 채 부채꼴로, 엄지는 옆으로 떨어져 뻗음
-  set(fs.index,O(lerpA([10,12,-6],[-6,-2,-14],p),[5,6,-8]),o1(lerp(1,8,p),14),o1(lerp(-4,8,p),0));
-  set(fs.ring,O(lerpA([12,14,-4],[-4,-1,-12],p),[6,8,-6]),o1(lerp(-1,-7,p),-5),o1(lerp(-4,8,p),0));
-  set(fs.pinky,O(lerpA([14,16,-2],[-3,0,-10],p),[8,10,-4]),o1(lerp(-3,-14,p),-12),o1(lerp(-4,8,p),0));   // 검지·약지·소지: 처음엔 살짝 굽었다가 당길수록 뻣뻣하게 펴져(끝까지 당기면 살짝 젖혀짐) 위로 들리고 벌어짐
+  set(fs.index,O(lerpA([10,12,-6],[-6,-2,-14],p),[5,6,-8]),o1(lerp(2,13,p),14),o1(lerp(-4,8,p),0));
+  set(fs.ring,O(lerpA([12,14,-4],[-4,-1,-12],p),[6,8,-6]),o1(lerp(-2,-10,p),-5),o1(lerp(-4,8,p),0));
+  set(fs.pinky,O(lerpA([14,16,-2],[-3,0,-10],p),[8,10,-4]),o1(lerp(-4,-20,p),-12),o1(lerp(-4,8,p),0));   // 검지·약지·소지: 처음엔 살짝 굽었다가 당길수록 뻣뻣하게 펴져(끝까지 당기면 살짝 젖혀짐) 위로 들리고 벌어짐
   // 중지: 둘째 관절(손톱 쪽에서 두 번째)이 90도로 꺾이고, 뿌리에서 엄지 쪽으로 틀어 손끝이 엄지를 향함. 당길수록 뿌리·끝마디가 더 꽉, 튕기면 쭉
   const pc=S.pitch,straight=[pc*.6+18,pc*.3+10,pc*.1+6];
   const mid=lerpA(lerpA([50,90,22],[50+20*sq,90,22+25*sq],p),straight,fl);
