@@ -26,7 +26,8 @@ for(let n=1;n<=10;n++){
  ok(r.dur>0&&r.dur<9100,'duration '+r.dur);
  for(const q of r.fin)ok(Math.abs(q.y-(TOP+SH))<.003,'rest height '+q.y.toFixed(3));}
 {const r=T.simulate([at(0,-1.4,0),at(0,-2.0,1)],{i:0,vx:0,vz:-9,p:.85});
- eq(r.fin[1].o,1,'knocked off edge');ok(r.fin[1].y<TOP,'fallen below board top');}
+ eq(r.fin[1].o,1,'knocked off edge');ok(r.fin[1].y<TOP,'fallen below board top');
+ ok(r.of[1]>0&&r.of[1]<r.dur,'fall time recorded '+r.of[1]);ok(r.of[0]==null||r.fin[0].o,'no fall time for stone on board');}
 {const r=T.simulate([at(0,0,0)],{i:0,vx:11,vz:0,p:1});eq(r.fin[0].o,1,'own stone flies off');}
 /* 세게 부딪히면 자주 뜸, 살살 치면 거의 안 뜸 */
 {let hi=0,lo=0;for(let k=0;k<40;k++){
@@ -61,9 +62,11 @@ const roll=()=>{for(let k=0;k<80&&H.ak.ph==='roll'&&H.phase==='play';k++){NOW+=2
  AK.engine.act(0,{t:'aim',i:-1});eq(H.ak.aim,null,'aim cleared');
  AK.engine.act(0,{t:'shoot',i:2,a:-Math.PI/2,p:.35});
  eq(H.ak.cnt,1,'shot made');eq(H.ak.ph,'roll','rolling');
+ ok(!H.log.some(l=>/^1\. /.test(l[0])),'shot log waits for roll end');
  {const s=snapFor(1);ok(s.ak.sh&&s.ak.sh.tr&&s.ak.sh.dur>0,'track sent');ok(s.t==null,'no turn while rolling');eq(s.dl,0,'no deadline while rolling')}
  AK.engine.act(0,{t:'shoot',i:2,a:-Math.PI/2,p:.35});eq(H.ak.cnt,1,'no shot while rolling');
  roll();eq(H.ak.ph,'aim','roll ends');
+ ok(H.log.some(l=>/^1\. /.test(l[0])),'shot log after roll');
  ok(H.turn===1||H.ak.next===0,'turn passes unless again');
  {NOW+=60000;const s=snapFor(0);ok(!s.ak.sh.tr,'old track dropped')}}
 /* 한 번 더: 상대 알을 떨어뜨리고 튕긴 알이 남으면 같은 사람, 아니면 상대 (규칙을 끄면 늘 상대) */

@@ -35,11 +35,11 @@ const wrapA=a=>{a%=Math.PI;if(a>Math.PI/2)a-=Math.PI;else if(a<-Math.PI/2)a+=Mat
 const tiltOf=q=>{let t=Math.hypot(q.ax,q.az)%Math.PI;if(t>Math.PI/2)t=Math.PI-t;return t};
 const halfH=q=>{const t=tiltOf(q);return SH*Math.cos(t)+SR*Math.sin(t)};   // 기울어진 알의 반높이 (가장자리로 서면 높아짐)
 /* 한 번 튕기기: st(알 목록 {x,y,z,s,o,g})에서 shot.i번 알을 (vx,vz)로. 기울기 (ax,az): +x·+z 쪽 가장자리가 올라간 각도
-   돌려줌: fin 끝난 자리, tr 움직인 알의 자취 {번호: [시작 장, x,y,z,ax,az(1000배 정수)…]}, nf 장 수, ev 소리 [[ms, 종류, 세기]], dur 길이(ms) */
+   돌려줌: fin 끝난 자리, tr 움직인 알의 자취 {번호: [시작 장, x,y,z,ax,az(1000배 정수)…]}, nf 장 수, ev 소리 [[ms, 종류, 세기]], of 떨어진 시각 {번호: ms}, dur 길이(ms) */
 function simulate(st,shot,rnd){
   rnd=rnd||Math.random;
   const P=PHY,dt=P.dt,S=st.map(s=>({x:s.x,y:s.y,z:s.z,o:s.o?1:0,g:s.g?1:0,s:s.s,vx:0,vy:0,vz:0,ax:0,az:0,bx:0,bz:0,aw:0,still:0}));
-  const ev=[],frames=[],every=Math.round(1/(P.fps*dt));
+  const ev=[],frames=[],every=Math.round(1/(P.fps*dt)),of={};   // of: 판에서 떨어진 시각(ms) {번호: ms} (화면이 남은 알 수를 그 순간에 줄임)
   const rec=()=>frames.push(S.map(q=>[q.x,q.y,q.z,q.ax,q.az]));
   const push=(k,v,step)=>{if(ev.length<60)ev.push([Math.round(step*dt*1000),k,Math.round(v*100)/100])};
   const q0=S[shot.i];q0.vx=shot.vx;q0.vz=shot.vz;q0.aw=1;
@@ -77,8 +77,8 @@ function simulate(st,shot,rnd){
         }
       }
       // 판에서 떨어지면 탈락(다시 올라와도 그대로). 판 밖으로 기울며 넘어감
-      if(!q.o&&q.y<TOP-.01&&!onBoardXZ(q.x,q.z)){q.o=1;if(Math.abs(q.x)>BW)q.bx-=Math.sign(q.x)*6;if(Math.abs(q.z)>BW)q.bz-=Math.sign(q.z)*6}
-      if(q.y<-1.5){q.g=1;q.o=1;q.aw=0;q.vx=q.vy=q.vz=0}   // 탁자 밖으로 떨어짐 (사라짐)
+      if(!q.o&&q.y<TOP-.01&&!onBoardXZ(q.x,q.z)){q.o=1;of[S.indexOf(q)]=Math.round(step*dt*1000);if(Math.abs(q.x)>BW)q.bx-=Math.sign(q.x)*6;if(Math.abs(q.z)>BW)q.bz-=Math.sign(q.z)*6}
+      if(q.y<-1.5){if(!q.o)of[S.indexOf(q)]=Math.round(step*dt*1000);q.g=1;q.o=1;q.aw=0;q.vx=q.vy=q.vz=0}   // 탁자 밖으로 떨어짐 (사라짐)
     }
     // 알끼리: 납작한 알(타원체) 두 개는 세로를 KY배로 늘리면 공 두 개가 됨
     for(let it=0;it<2;it++)for(let i=0;i<S.length;i++){const a=S[i];if(a.g)continue;
@@ -133,7 +133,7 @@ function simulate(st,shot,rnd){
     const out=[f0-1];for(let f=f0-1;f<=f1;f++)for(const v of frames[f][i])out.push(Math.round(v*1000));
     tr[i]=out;
   });
-  return {fin:S.map(q=>({x:q.x,y:q.y,z:q.z,s:q.s,o:q.o,g:q.g})),tr,nf,ev,dur:Math.round((nf-1)/P.fps*1000)};
+  return {fin:S.map(q=>({x:q.x,y:q.y,z:q.z,s:q.s,o:q.o,g:q.g})),tr,nf,ev,of,dur:Math.round((nf-1)/P.fps*1000)};
 }
 /* 처음 자리: 내 쪽 끝에서 5번째 줄(6개까지 한 줄, 7개부터 끝에서 4·7번째 두 줄), 가운데에서 좌우 대칭, 4칸까지 띄움. 1번 자리는 판을 돌린 자리 */
 function homes(n){
@@ -210,6 +210,7 @@ function startTurn(i){
   mark();
 }
 function finishGame(w,why){
+  flushLog();   // 굴러가는 중에 항복·탈주하면 그 튕기기 기록을 먼저
   const A=H.ak;
   A.res={w,why:why||''};A.ph='aim';A.aim=null;A.bp=null;
   if(w>=0){
@@ -235,17 +236,19 @@ function doShot(seat,i,a,p){
   A.st=r.fin.map((q,k)=>({x:q.x,y:q.y,z:q.z,s:q.s,o:A.st[k].o||q.o?1:0,g:A.st[k].g||q.g?1:0}));
   const after=[aliveOf(A,0),aliveOf(A,1)],kn=before[other(seat)]-after[other(seat)],own=before[seat]-after[seat];
   A.cnt++;A.sid++;
-  A.sh={id:A.sid,by:seat,i,a,p,tr:r.tr,nf:r.nf,ev:r.ev,dur:r.dur,t0:clock()};
+  A.sh={id:A.sid,by:seat,i,a,p,tr:r.tr,nf:r.nf,ev:r.ev,of:r.of,dur:r.dur,t0:clock()};
   A.ph='roll';A.until=clock()+r.dur+450;A.aim=null;A.bp=null;H.botActAt=0;
   A.next=+H.cfg.again&&kn>0&&!A.st[i].o?seat:other(seat);   // 한 번 더: 상대 알을 떨어뜨리고 튕긴 알이 판에 남음
   H.seatNote[seat]='';
   const nm=H.players[seat].name,parts=[];
   if(kn)parts.push(`${kn}알 까기`);if(own)parts.push(`내 알 ${own}개 떨어짐`);
-  addLog(`${A.cnt}. ${nm} ${parts.length?parts.join(' · '):'빗나감'}`,kn?'fin':'');
+  A.lg=[`${A.cnt}. ${nm} ${parts.length?parts.join(' · '):'빗나감'}`,kn?'fin':''];   // 기록은 알이 다 멈춘 뒤에 (굴러가는 동안 영수증이 결과를 먼저 알려 주지 않게)
   mark();
   return true;
 }
+function flushLog(){const A=H.ak;if(A&&A.lg){addLog(A.lg[0],A.lg[1]);A.lg=null}}
 function afterShot(){
+  flushLog();
   const A=H.ak,a0=aliveOf(A,0),a1=aliveOf(A,1);
   if(!a0||!a1){finishGame(!a0&&!a1?-1:a0?0:1);return}
   startTurn(A.next);
@@ -312,7 +315,7 @@ G.engine={
   snap(s,you,t){
     const A=H.ak,r3=v=>Math.round(v*1000)/1000;
     const sh=A.sh?{id:A.sh.id,by:A.sh.by,i:A.sh.i,a:Math.round(A.sh.a*1000)/1000,p:Math.round(A.sh.p*1000)/1000,age:Math.max(0,Math.round(t-A.sh.t0))}:null;
-    if(sh&&sh.age<A.sh.dur+4000){sh.tr=A.sh.tr;sh.nf=A.sh.nf;sh.ev=A.sh.ev;sh.dur=A.sh.dur}   // 자취는 연출 중인 동안만 보냄 (가볍게)
+    if(sh&&sh.age<A.sh.dur+4000){sh.tr=A.sh.tr;sh.nf=A.sh.nf;sh.ev=A.sh.ev;sh.of=A.sh.of;sh.dur=A.sh.dur}   // 자취는 연출 중인 동안만 보냄 (가볍게)
     s.ak={gid:A.gid,n:A.n,A:A.A,co:A.co.slice(),st:A.st.map(q=>[r3(q.x),r3(q.y),r3(q.z),q.s,q.o?1:0,q.g?1:0]),ph:A.ph,sid:A.sid,sh,aim:A.aim?{...A.aim}:null,res:A.res?{...A.res}:null,cnt:A.cnt,ag:+H.cfg.again?1:0};
     s.gr=0;
     if(H.phase==='play'&&A.ph==='aim')s.dl=Math.max(0,Math.round(H.deadline-t));
@@ -338,7 +341,12 @@ function say(txt){
   clearTimeout(msgTimer);msgTimer=setTimeout(drawHint,2500);
 }
 const nm=i=>V.ps[i]?V.ps[i].n:'?';
-const aliveS=(seat)=>OS?OS.st.filter(s=>s.s===seat&&!s.o).length:0;
+/* 남은 알: 튕긴 자취를 재생하는 동안은 아직 떨어지지 않은 알(떨어진 시각 of가 재생 시각보다 뒤)도 남은 것으로 셈 */
+function aliveS(seat){
+  if(!OS)return 0;
+  const S=Ak3.shot,of=S&&S.sh.of,e=S?clock()-S.t0:0;
+  return OS.st.filter((s,i)=>s.s===seat&&(!s.o||(of&&of[i]!=null&&e<of[i]))).length;
+}
 /* ----- 소리 (코드로 만든 소리) ----- */
 function sndFlick(){hiss(.03,{freq:4200,q:3,vol:.22});tone(1600,.03,{type:'triangle',vol:.06})}   // 손톱으로 탁
 function sndClack(v){const k=Math.min(1,v/8);hiss(.035,{freq:3600,q:2.2,vol:.1+.22*k});tone(2300,.03,{type:'triangle',vol:.03+.07*k});tone(900,.05,{type:'sine',vol:.03+.04*k,at:.004})}   // 알끼리 딱
@@ -870,6 +878,8 @@ G.live=()=>{
   if(elBar)elBar.querySelectorAll('[data-ct]').forEach(el=>{const i=+el.dataset.ct,s=run&&V.t===i?txt:'';if(el.textContent!==s)el.textContent=s;
     const low=run&&V.t===i&&left<=10000;if(el.parentNode.classList.contains('low')!==low)el.parentNode.classList.toggle('low',low)});
   const me=myIdx();
+  if(Ak3.shot){const k=aliveS(0)+','+aliveS(1);if(k!==Ak3.aliveK){Ak3.aliveK=k;drawAll();if(me>=0&&me<2)G.me(me)}}   // 재생 중 알이 떨어지는 순간 점·남은 알 수를 줄임
+  else if(Ak3.aliveK){Ak3.aliveK='';if(me>=0&&me<2)G.me(me)}
   if(me>=0){const mt=$('#meTime'),s=run&&V.t===me?txt+'초':'';if(mt.textContent!==s)mt.textContent=s}
   if(!Ak3.on){
     if(Ak3.shot){shotSounds(t)}

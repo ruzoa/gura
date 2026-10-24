@@ -3369,7 +3369,7 @@ function rcptBuild(TG){
     for(const [x,z,sx,sz] of [[0,-(Dp-b)/2,W,b],[0,(Dp-b)/2,W,b],[-(W-b)/2,0,b,Dp],[(W-b)/2,0,b,Dp]]){const m=new THREE.Mesh(new THREE.BoxGeometry(sx,h,sz),brass);m.position.set(x,h/2,z);m.castShadow=true;g.add(m)}
     const hole=new THREE.Mesh(new THREE.BoxGeometry(W-2*b,.006,Dp-2*b),new THREE.MeshBasicMaterial({color:0x0d0806}));hole.position.y=.002;g.add(hole);
     g.visible=false;TG.add(g);return g};
-  if(!T.r._rcWrap){const r0=T.r.render.bind(T.r);T.r.render=(sc,cam)=>{T.lastCam=cam;r0(sc,cam)};T.r._rcWrap=1}   // 마지막으로 그린 카메라 (쿼리도·오목·야추는 자기 카메라)
+  if(!T.r._rcWrap){const r0=T.r.render.bind(T.r);T.r.render=(sc,cam)=>{if(sc===T.scene)T.lastCam=cam;r0(sc,cam)};T.r._rcWrap=1}   // 마지막으로 공통 장면을 그린 카메라 (쿼리도·오목·야추는 자기 카메라). 따로 그리는 장면(알까기 3D 손의 윤곽선 합치기 등)의 카메라는 빼야 영수증 자리가 흔들리지 않음
   T.rc={cv,tex,geo,mat,paper,ink,out:slot(RC.PW),inn:slot(RC.PW),rows:[],seen:0,waitTop:0,feedAt:-1e9,oa:{v:0,to:0,from:0,t0:0,ms:0},ia:{v:0,to:0,from:0,t0:0,ms:0},open:false,spot:null,camKey:'',camAt:0,sizeKey:''};
   rcptHot();
 }
