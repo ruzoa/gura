@@ -716,27 +716,33 @@ function ak3Build(){
      const inner=new THREE.Group();inner.add(pl);inner.scale.setScalar(HSC);inner.position.x=-.165*(1-HSC)+HOFF;const hg=new THREE.Group();hg.add(inner);hg.visible=false;root.add(hg);Ak3.hand={g:hg,tex}}
     loadHand3D();
     Ak3.blobGeo=new THREE.CircleGeometry(SR,28);
-    // 놓기: 상대 쪽 반(가운데 줄 빼고)에 반투명 빨간 빗금(판 위·알 아래), 가운데 줄에 검정·노랑 바리케이드, 미리 보기 알
+    // 놓기: 상대 쪽 반(가운데 줄 빼고)에 반투명 빨간 빗금(판 위·알 아래, 한쪽으로 흘러감), 가운데 줄에 건널목 차단기, 미리 보기 알
     {const w=2*BW-.12,h=BW-.06-PITCH/2,tex=canvasTex(128,128,(g,W)=>{g.clearRect(0,0,W,W);g.strokeStyle='rgba(214,40,30,1)';g.lineWidth=W*.16;g.lineCap='square';
        for(let c=-W;c<=2*W;c+=W/2){g.beginPath();g.moveTo(c,0);g.lineTo(c+W,W);g.stroke()}});
      tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(w/.46,h/.46);
      const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:.32,depthWrite:false}));
      m.rotation.x=-Math.PI/2;m.visible=false;m.renderOrder=1;m.userData.h=h;root.add(m);Ak3.half=m}
-    // 바리케이드: 공사장 가림막처럼 A자 다리 셋 + 검정·노랑 사선 판자 셋(꼭대기에 세운 판자 하나, 양쪽 비탈면 아래쪽에 하나씩).
-    // 카메라는 늘 바로 위라서 위에서 보면 줄무늬 띠 세 줄과 그 사이로 비치는 판·그림자로 세운 물건이 읽히게. 다리는 가운데 줄 양옆 알 자리(z ±.233, 반지름 .107)에 닿지 않게 좁게
-    {const L=2*BW-.3,PH=.1,PT=.045,TOPY=.3,FZ=.1,tex=canvasTex(256,32,(g,W,Hc)=>{g.fillStyle='#f2c230';g.fillRect(0,0,W,Hc);g.fillStyle='#1d1b19';
+    // 건널목 차단기: 판 틀 양끝(가운데 줄 끝)에 기둥, 기둥 위 축에서 검정·노랑 차단봉이 가운데 줄 위로 내려옴. 기둥 머리에 빨간 경고등 둘(번갈아 깜빡)
+    {const XP=BW-.13,AH=.3,AL=XP-.045,AW=.06,AT=.04,tex=canvasTex(256,32,(g,W,Hc)=>{g.fillStyle='#f2c230';g.fillRect(0,0,W,Hc);g.fillStyle='#1d1b19';
        for(let x=-Hc;x<W+Hc;x+=Hc*2){g.beginPath();g.moveTo(x,Hc);g.lineTo(x+Hc,Hc);g.lineTo(x+2*Hc,0);g.lineTo(x+Hc,0);g.closePath();g.fill()}});
-     tex.wrapS=THREE.RepeatWrapping;tex.repeat.set(L/(PH*8),1);
-     const g=new THREE.Group(),pm=toon({map:tex,rim:.1}),lm=toon({color:0x6b6f75,rim:.15}),add=(geo,m,x,y,z,rx)=>{const a=new THREE.Mesh(geo,m),o=new THREE.Mesh(geo,inkM);o.scale.setScalar(1);
-       a.position.set(x,y,z);o.position.copy(a.position);if(rx){a.rotation.x=o.rotation.x=rx}a.castShadow=true;g.add(a,o);return o};
-     const grow=(geo,e)=>{geo.computeBoundingBox();const b=geo.boundingBox,sx=b.max.x-b.min.x,sy=b.max.y-b.min.y,sz=b.max.z-b.min.z;return [(sx+e)/sx,(sy+e)/sy,(sz+e)/sz]};
-     const plank=new THREE.BoxGeometry(L,PH,PT),pk=grow(plank,.02),ang=Math.atan2(FZ,TOPY);
-     {const o=add(plank,pm,0,TOPY-PH/2+.01,0);o.scale.set(...pk)}   // 꼭대기 판자 (세움)
-     for(const sg of [-1,1]){const y=.1,z=sg*(FZ*(1-y/TOPY)+.012);const o=add(plank,pm,0,y,z,sg*ang);o.scale.set(...pk)}   // 비탈면 판자 (다리 바깥에 붙어 다리와 같이 기욺)
-     const LL=Math.hypot(TOPY,FZ),leg=new THREE.BoxGeometry(.04,LL,.04),lk=grow(leg,.02);
-     for(const x of [-L/2+.18,0,L/2-.18])for(const sg of [-1,1]){const o=add(leg,lm,x,TOPY/2,sg*FZ/2,sg*ang);o.scale.set(...lk)}
-     const foot=new THREE.BoxGeometry(.05,.022,2*FZ+.02),fk=grow(foot,.02);for(const x of [-L/2+.18,0,L/2-.18]){const o=add(foot,lm,x,.011,0);o.scale.set(...fk)}
-     g.visible=false;g.position.y=TOP;root.add(g);Ak3.barG=g}
+     tex.wrapS=THREE.RepeatWrapping;tex.repeat.set(AL/(AW*8),1);
+     const g=new THREE.Group(),am=toon({map:tex,rim:.1}),pm=toon({color:0xd9dcdf,rim:.15}),dm=toon({color:0x2b2b2e,rim:.1}),
+       lampA=new THREE.MeshBasicMaterial({color:0x5a1410}),lampB=new THREE.MeshBasicMaterial({color:0x5a1410}),
+       add=(par,geo,m,x,y,z)=>{const a=new THREE.Mesh(geo,m),o=new THREE.Mesh(geo,inkM);a.position.set(x,y,z);o.position.copy(a.position);
+         geo.computeBoundingBox();const bb=geo.boundingBox,e=.018;o.scale.set(...['x','y','z'].map(k=>(bb.max[k]-bb.min[k]+e)/(bb.max[k]-bb.min[k])));a.castShadow=true;par.add(a,o);return a};
+     const arms=[];
+     for(const sg of [-1,1]){
+       const post=new THREE.Group();post.position.set(sg*XP,0,0);g.add(post);
+       add(post,new THREE.CylinderGeometry(.075,.085,.03,20),dm,0,.015,0);   // 받침
+       add(post,new THREE.CylinderGeometry(.03,.034,AH+.1,16),pm,0,(AH+.1)/2,0);   // 기둥
+       add(post,new THREE.BoxGeometry(.06,.07,.16),dm,0,AH+.13,0);   // 경고등 머리
+       for(const [z,m] of [[-.05,lampA],[.05,lampB]]){const l=new THREE.Mesh(new THREE.SphereGeometry(.028,14,10),m);l.position.set(0,AH+.13+.03,z);post.add(l)}
+       const piv=new THREE.Group();piv.position.set(0,AH,0);piv.rotation.y=sg>0?Math.PI:0;post.add(piv);   // 축: 봉이 판 가운데 쪽(+x 로컬)으로 뻗음
+       const arm=new THREE.Group();piv.add(arm);
+       add(arm,new THREE.BoxGeometry(AL,AW,AT),am,AL/2,0,0);
+       add(arm,new THREE.BoxGeometry(.13,.07,.07),dm,-.08,0,0);   // 축 뒤 추
+       arms.push(arm)}
+     g.visible=false;g.position.y=TOP;root.add(g);Ak3.barG=g;Ak3.gate={arms,lampA,lampB}}
     {const g=new THREE.Group(),mat=new THREE.MeshBasicMaterial({color:0x26262a,transparent:true,opacity:.5,depthWrite:false}),m=new THREE.Mesh(new THREE.SphereGeometry(SR,28,16),mat);
      m.scale.y=SH/SR;g.add(m);g.visible=false;g.renderOrder=4;root.add(g);Ak3.ghost={g,mat}}
     Ak3.cam=new THREE.PerspectiveCamera(40,1,.1,100);
@@ -833,11 +839,8 @@ function ak3Place(now){
   {const on=myPlaceNow(),me=myIdx(),sd=me===1?-1:1,pl=OS.ph==='place'&&V.st==='play'&&!introWait(),B=Ak3.bar;
    if(pl!==B.on){B.on=pl;B.t0=now}
    const k=ease((now-B.t0)/BAR_MS),bk=B.on?k:1-k;   // 놓기 단계가 되면 바리케이드가 판에서 솟고 빗금이 나타남, 끝나면 들어가며 사라짐
-   {const e=now-B.t0,x=B.on?e/BAR_MS:1+e/BAR_MS;   // 놓기 단계가 되면 위에서 툭 떨어져 서고(쿵), 끝나면 들려 올라가 사라짐
-    Ak3.barG.visible=B.on?e>=0:x<2;
-    Ak3.barG.position.y=TOP+(B.on?dropY(Math.min(1,x),1.6):1.8*ease(x-1));
-    if(B.on&&x>=.68&&!B.thud){B.thud=1;tone(140,.12,{type:'triangle',vol:.16});hiss(.08,{freq:900,vol:.1})}
-    if(!B.on)B.thud=0}
+   gateStep(now,B);
+   if(Ak3.half.visible){const m=Ak3.half.material.map;m.offset.x=(now/2600)%1}   // 빗금은 늘 한쪽으로 흘러감
    Ak3.half.visible=bk>.01&&me>=0&&me<2;if(Ak3.half.visible){Ak3.half.position.set(0,TOP+.003,-sd*(PITCH/2+Ak3.half.userData.h/2));Ak3.half.material.opacity=.32*bk}
    const gh=Ak3.ghost;gh.g.visible=on&&!!GH;
    if(gh.g.visible){const [x,z]=gridXZ(GH.c,GH.r);gh.g.position.set(x,TOP+SH,z);gh.mat.color.set(OS.co[me]===1?0x26262a:0xf4efe3)}}
@@ -866,13 +869,17 @@ function ak3Render(t){
   ak3Stones();
   shotSounds(t);
   const intro=IN.on3d&&introStep(t);
-  const busy=!!(Ak3.shot||intro||drag||FLK||(OS&&OS.aim&&OS.ph==='aim')||myTurnNow()||myPlaceNow()||(OS&&OS.hd>=0)||(Ak3.bar.t0>t-2*BAR_MS-50)||(Ak3.pl&&Ak3.pl.some(Boolean)));   // 움직이는 것이 없으면 가끔만 그림
+  const busy=!!(Ak3.shot||intro||drag||FLK||(OS&&OS.aim&&OS.ph==='aim')||myTurnNow()||myPlaceNow()||(OS&&OS.hd>=0)||gateTimes(Ak3.bar,t).busy||(OS&&OS.ph==='place')||(Ak3.pl&&Ak3.pl.some(Boolean)));   // 움직이는 것이 없으면 가끔만 그림
   if(!busy&&!Ak3.dirty&&t-Ak3.lastR<400)return;
   ak3Place(t);
   const fog=T.scene.fog,fn=fog?fog.near:0,ff=fog?fog.far:0;
   if(fog){fog.near=Ak3.d+4;fog.far=Ak3.d+26}
   for(const m of [T.timerBg,T.timerArc,T.ring])if(m)m.visible=false;
   let cam=Ak3.cam;
+  {const k=gateTimes(Ak3.bar,t).cam;   // 놓기 동안: 내 쪽에서 비스듬히 (차단기가 서 있는 게 보이게), 끝나면 천천히 바로 위로
+   if(k>.001&&!intro){const tc=Ak3.tcam||(Ak3.tcam=new THREE.PerspectiveCamera()),sd=sideOf(),th=GATE.tilt*k,d=Ak3.d*(1+.06*k);
+     tc.position.set(0,TOP+d*Math.cos(th),sd*d*Math.sin(th));tc.up.set(0,0,-sd);tc.lookAt(0,TOP,0);
+     tc.projectionMatrix.copy(Ak3.cam.projectionMatrix);tc.projectionMatrixInverse.copy(Ak3.cam.projectionMatrixInverse);tc.updateMatrixWorld();cam=tc}}
   {const k=intro&&IN.fromLobby?ease((t-IN.t0)/INTRO.cam):1;
    if(k<1){   // 시작 연출: 이 기기의 로비 카메라에서 알까기 카메라로 위치·방향·화면 범위를 함께 옮김
      const ic=Ak3.icam||(Ak3.icam=new THREE.PerspectiveCamera());
@@ -883,7 +890,7 @@ function ak3Render(t){
      if(fog){fog.near=fn+(fog.near-fn)*k;fog.far=ff+(fog.far-ff)*k}
      cam=ic;
    }}
-  T.r.render(T.scene,cam);
+  Ak3.vcam=cam;T.r.render(T.scene,cam);
   if(Ak3.h3&&Ak3.hd){const hd=Ak3.hd;Ak3.h3.draw(T.r,cam,hd.op,Math.max(.85,handOp(hd.p))*(hd.fade==null?1:hd.fade))}   // 3D 손은 판·알 위에 늘 보이게 따로 그려 얹음
   if(fog){fog.near=fn;fog.far=ff}
   Ak3.lastR=t;Ak3.dirty=false;
@@ -892,7 +899,7 @@ function ak3Render(t){
 const akRay=()=>Ak3.ray||(Ak3.ray=new THREE.Raycaster());
 function ak3World(e){
   const r=T.r.domElement.getBoundingClientRect();if(!r.width)return null;
-  const ray=akRay();ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},Ak3.cam);
+  const ray=akRay();ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},Ak3.vcam||Ak3.cam);   // 지금 그린 카메라 (놓기 동안은 기운 카메라)
   const o=ray.ray.origin,dv=ray.ray.direction;if(Math.abs(dv.y)<1e-6)return null;
   const k=(TOP+SH-o.y)/dv.y;return [o.x+dv.x*k,o.z+dv.z*k];
 }
@@ -901,7 +908,28 @@ function ak3World(e){
    처음: 0~1.1초 로비 카메라 → 알까기 카메라, 0.1~0.5초 판이 내려앉음, 0.6초부터 알이 양쪽 번갈아 하나씩 판 바깥 놓기 전 자리(내 쪽 펠트)에 떨어짐, 끝에 '○○님이 흑으로 먼저 놓습니다'
    바로 시작: 판은 그대로, 있던 자리(판 밖에 떨어진 알 포함)에서 알이 날아와 제자리에 */
 const PL_MS=420;   // 놓은 알이 날아가는 시간
-const LIFT=.22,LIFT_MS=220,BAR_MS=520;   // 집어 든 알이 뜨는 높이·시간, 바리케이드가 떨어지는 시간
+const LIFT=.22,LIFT_MS=220,BAR_MS=520;   // 집어 든 알이 뜨는 높이·시간, 빗금이 나타나는 시간
+/* 건널목 차단기 (놓기 동안): 기둥이 툭 떨어져 서고(쿵) → 경고등이 번갈아 깜빡이며 '땡땡' → 봉이 천천히 내려옴. 끝나면 '땡땡' 하며 봉이 올라가고 기둥이 들려 사라짐.
+   그동안 카메라는 내 쪽에서 비스듬히(GATE.tilt) 천천히 기울고, 끝나면 봉이 반쯤 올라갔을 때부터 천천히 바로 위로 돌아옴 */
+const GATE={post:450,arm0:500,arm:1100,bell:380,cam:1100,tilt:24*Math.PI/180};
+function gateTimes(B,now){
+  const e=now-B.t0,G2=GATE;
+  if(B.on)return {e,post:Math.min(1,e/G2.post),up:1-ease((e-G2.arm0)/G2.arm),bell:e>=G2.post&&e<G2.arm0+G2.arm+250,cam:ease(e/G2.cam),busy:e<G2.arm0+G2.arm+600};
+  const lift=(e-G2.arm*.8)/G2.post;
+  return {e,post:lift>=1?-1:2+Math.max(0,lift),up:ease(e/(G2.arm*.8)),bell:e<G2.arm*.8,cam:1-ease((e-G2.arm*.4)/G2.cam),busy:e<G2.arm*.4+G2.cam+100};
+}
+function gateStep(now,B){
+  const g=Ak3.gate,T2=gateTimes(B,now),bar=Ak3.barG;
+  bar.visible=T2.post>=0&&!(B.on&&T2.e<0);
+  if(bar.visible)bar.position.y=TOP+(T2.post<=1?dropY(T2.post,1.6):1.8*ease(T2.post-2));
+  if(B.on&&T2.post>=.68&&!B.thud){B.thud=1;tone(140,.12,{type:'triangle',vol:.16});hiss(.08,{freq:900,vol:.1})}
+  if(!B.on)B.thud=0;
+  for(const a of g.arms)a.rotation.z=T2.up*Math.PI/2;   // 1 = 서 있음, 0 = 가운데 줄 위로 내려옴
+  const k=Math.floor(T2.e/GATE.bell);
+  g.lampA.color.setHex(T2.bell&&k%2===0?0xff3b2a:0x5a1410);g.lampB.color.setHex(T2.bell&&k%2===1?0xff3b2a:0x5a1410);
+  if(T2.bell&&k!==B.bk&&T2.e>=0){B.bk=k;tone(1480,.09,{type:'triangle',vol:.07});tone(1975,.07,{type:'sine',vol:.04,at:.01})}   // 땡
+  return T2;
+}
 function heldIdx(){   // 지금 떠 있는 알: 내가 미리 보기를 골랐으면 내 다음 알, 아니면 방장이 알려 준 사람(상대·봇)의 다음 알
   if(!OS||OS.ph!=='place'||!V||V.st!=='play')return -1;
   const me=myIdx();if(me>=0&&me<2&&V.t===me)return GH?nextOf(me):-1;
@@ -1100,7 +1128,7 @@ G.init=()=>{
 `;
   document.head.appendChild(css);
   elAk=document.createElement('div');elAk.id='ak';elAk.hidden=true;
-  elAk.innerHTML=`<div class="ak-bar"></div><div class="ak-row"><div class="ak-hint" aria-live="polite"></div></div><div class="ak-bd"><svg viewBox="${-VX} ${-VY} ${2*VX} ${2*VY}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="알까기 판"><defs><pattern id="akHatch" width=".23" height=".23" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".075" height=".23" fill="#d6281e"/></pattern><pattern id="akBar" width=".15" height=".15" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".15" height=".15" fill="#f2c230"/><rect width=".075" height=".15" fill="#1d1b19"/></pattern></defs><g id="akB"></g><g id="akS"></g></svg></div>`;
+  elAk.innerHTML=`<div class="ak-bar"></div><div class="ak-row"><div class="ak-hint" aria-live="polite"></div></div><div class="ak-bd"><svg viewBox="${-VX} ${-VY} ${2*VX} ${2*VY}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="알까기 판"><defs><pattern id="akHatch" width=".23" height=".23" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".075" height=".23" fill="#d6281e"/><animateTransform attributeName="patternTransform" type="translate" from="0 0" to=".23 0" dur="2.6s" repeatCount="indefinite" additive="sum"/></pattern><pattern id="akBar" width=".15" height=".15" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".15" height=".15" fill="#f2c230"/><rect width=".075" height=".15" fill="#1d1b19"/></pattern></defs><g id="akB"></g><g id="akS"></g></svg></div>`;
   $('#stage').insertBefore(elAk,$('#fx'));
   elSvg=elAk.querySelector('svg');elMain=elSvg;elBar=elAk.querySelector('.ak-bar');elHint=elAk.querySelector('.ak-hint');
   // 당기기: 3D(캔버스)와 2D(SVG) 모두 누르기 → 끌기 → 놓기. 누른 채 화면 밖으로 끌어도 이어짐
