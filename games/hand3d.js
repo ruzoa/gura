@@ -152,7 +152,7 @@ const SKN=24;   // 0~3 손허리뼈(검지~소지) 4 손목 5 팔뚝 6 엄지 �
 const SKIN2_FS=`
 uniform vec3 uA[${SKN}];uniform vec3 uB[${SKN}];uniform vec2 uR[${SKN}];uniform vec3 uS[${SKN}];
 uniform mat4 uMV;uniform mat4 projectionMatrix;uniform mat3 uNM;   // inner 기준 (상자 자체의 위치·크기는 빼고)
-uniform vec3 uCam;uniform vec3 uMin;uniform vec3 uMax;uniform vec3 uBase;uniform vec3 uShade;uniform vec2 uFade;uniform float uK[4];uniform float uDbg;uniform vec2 uPv[4];uniform vec3 uPs;uniform vec3 uFa[5];uniform vec3 uFb[5];uniform float uFr[5];
+uniform vec3 uCam;uniform vec3 uMin;uniform vec3 uMax;uniform vec3 uBase;uniform vec3 uShade;uniform vec2 uFade;uniform float uK[5];uniform float uDbg;uniform vec2 uPv[4];uniform vec3 uPs;uniform vec3 uFa[5];uniform vec3 uFb[5];uniform float uFr[5];
 varying vec3 vL;
 float rc(vec3 p,int i){vec3 sc=uS[i];vec3 a=uA[i]*sc,b=uB[i]*sc;p*=sc;float r1=uR[i].x,r2=uR[i].y;   // 끝이 둥근 원뿔 (iq)
   vec3 ba=b-a;float l2=dot(ba,ba),rr=r1-r2,a2=l2-rr*rr,il2=1./l2;vec3 pa=p-a;float y=dot(pa,ba),z=y-l2;vec3 xv=pa*l2-ba*y;float x2=dot(xv,xv),y2=y*y*l2,z2=z*z*l2;
@@ -168,7 +168,7 @@ float palmSlab(vec3 p){vec2 q=p.xz;float d=dot(q-uPv[0],q-uPv[0]),sg=1.;
 float sm(float a,float b,float k){float h=clamp(.5+.5*(b-a)/k,0.,1.);return mix(b,a,h)-k*h*(1.-h);}
 float map(vec3 p){
   float pm=palmSlab(p);for(int i=0;i<4;i++)pm=sm(pm,rc(p,i),uK[0]*.5);   // 손허리뼈는 손등에 살짝 드러나는 정도
-  pm=sm(pm,rc(p,4),uK[0]);pm=sm(pm,rc(p,5),uK[0]);pm=sm(pm,rc(p,7),uK[1]);pm=sm(pm,rc(p,6),uK[1]);pm=sm(pm,rc(p,23),uK[1]);
+  pm=sm(pm,rc(p,4),uK[0]);pm=sm(pm,rc(p,5),uK[0]);pm=sm(pm,rc(p,7),uK[1]);pm=sm(pm,rc(p,6),uK[1]);pm=sm(pm,rc(p,23),uK[4]);
   float d=pm;
   // 손가락 하나씩: 손가락 전체를 감싸는 굵은 캡슐보다 멀면 계산을 건너뜀 (빠르게)
   for(int f=0;f<5;f++){vec3 pa=p-uFa[f],ba=uFb[f]-uFa[f];float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);if(length(pa-ba*h)-uFr[f]>d+uK[3])continue;
@@ -199,7 +199,7 @@ let SKIN=null;
 function buildSkin(){
   const box=new THREE.BoxGeometry(1,1,1),u={uA:{value:[]},uB:{value:[]},uR:{value:[]},uS:{value:[]},uCam:{value:new THREE.Vector3()},
     uMin:{value:new THREE.Vector3(-.62,-.13,-.2)},uMax:{value:new THREE.Vector3(.2,.16,.2)},uBase:{value:mats.skin.uniforms.uBase.value},uShade:{value:mats.skin.uniforms.uShade.value},
-    uFade:{value:new THREE.Vector2(-.25,-.33)},uK:{value:[8*BS,10*BS,1.5*BS,9*BS]},uFa:{value:[0,1,2,3,4].map(()=>new THREE.Vector3())},uFb:{value:[0,1,2,3,4].map(()=>new THREE.Vector3(.001,0,0))},uFr:{value:[0,0,0,0,0]},uMV:{value:new THREE.Matrix4()},uDbg:{value:0},uPv:{value:[0,1,2,3].map(()=>new THREE.Vector2())},uPs:{value:new THREE.Vector3()},uNM:{value:new THREE.Matrix3()}};
+    uFade:{value:new THREE.Vector2(-.25,-.33)},uK:{value:[8*BS,10*BS,1.5*BS,9*BS,30*BS]},uFa:{value:[0,1,2,3,4].map(()=>new THREE.Vector3())},uFb:{value:[0,1,2,3,4].map(()=>new THREE.Vector3(.001,0,0))},uFr:{value:[0,0,0,0,0]},uMV:{value:new THREE.Matrix4()},uDbg:{value:0},uPv:{value:[0,1,2,3].map(()=>new THREE.Vector2())},uPs:{value:new THREE.Vector3()},uNM:{value:new THREE.Matrix3()}};
   for(let i=0;i<SKN;i++){u.uA.value.push(new THREE.Vector3());u.uB.value.push(new THREE.Vector3(.001,0,0));u.uR.value.push(new THREE.Vector2(.01,.01));u.uS.value.push(new THREE.Vector3(1,1,1))}
   const mat=new THREE.ShaderMaterial({uniforms:u,side:THREE.BackSide,extensions:{fragDepth:true},
     vertexShader:`uniform vec3 uMin;uniform vec3 uMax;varying vec3 vL;void main(){vL=uMin+(position+.5)*(uMax-uMin);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:SKIN2_FS});
@@ -229,7 +229,7 @@ function poseSkin(){
   const tb=BONE.thumb;put(6,L(th[0],tb.mc*BS*.25),L(th[0],tb.mc*BS),7,8.5);   // 엄지 손허리뼈 (손등 쪽에서 살짝 만져지는 정도)
   put(7,bp(14,-8,15),L(th[0],tb.mc*BS*.85).add(new THREE.Vector3(0,-4*BS,0)),11,13.5);   // 엄지 두덩: 손목 쪽은 가늘게 시작해 엄지 뿌리 쪽으로 도톰하게 (손목 위에 혹이 나지 않게)
   // 엄지모음근·첫째 등쪽 뼈사이근: 엄지 손허리뼈 끝 쪽 ↔ 검지 손허리뼈 끝 쪽 사이를 채우는 살 (엄지와 검지 사이 물갈퀴 바닥)
-  {const m2=segs[0];put(23,L(th[0],tb.mc*BS*.7).add(new THREE.Vector3(0,-3*BS,0)),L(m2.g,m2.L*BS*.75).add(new THREE.Vector3(0,-3*BS,0)),7,6.5)}   // 엄지모음근·첫째 등쪽 뼈사이근 (엄지·검지 손허리뼈 사이, 손바닥 쪽으로 조금)
+  {const m2=segs[0];put(23,L(th[0],tb.mc*BS).add(new THREE.Vector3(0,-3*BS,0)),L(m2.g,m2.L*BS*.95).add(new THREE.Vector3(0,-3*BS,0)),8,7.5)}   // 엄지모음근·첫째 등쪽 뼈사이근 (엄지 뿌리 관절 ↔ 검지 손허리뼈 머리 쪽, 손바닥 쪽으로 조금). 이것만 넓게(uK[4] 30mm) 녹여 붙여 엄지·검지 사이 물갈퀴가 차게: 손목을 가늘게 하려고 엄지 쪽 녹이는 폭을 10mm로 줄였을 때 같이 사라졌던 살
   put(8,L(th[1],0),L(th[1],tb.ph[0]*BS),FLESH.th[1][0],FLESH.th[1][1]);put(9,L(th[2],0),L(th[2],tb.ph[1]*BS),FLESH.th[2][0],FLESH.th[2][1]);
   // 손가락: 마디 살이 관절 점을 정확히 같이 쓰고(틈 없음), 굵기는 뿌리→끝까지 한 직선으로 가늘어짐 → 펴면 매끈한 원뿔 기둥, 마디마다 불룩하지 않음
   ['index','middle','ring','pinky'].forEach((k,f)=>{const ph=BONE[k].ph,Lt=ph[0]+ph[1]+ph[2]+2*BGAP-2,r0=FLESH.fin[k][0][0],r1=FLESH.fin[k][2][1];let acc=0;
