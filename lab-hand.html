@@ -269,7 +269,7 @@ float palmSlab(vec3 p){vec2 q=p.xz;float d=dot(q-uPv[0],q-uPv[0]),sg=1.;
 float sm(float a,float b,float k){float h=clamp(.5+.5*(b-a)/k,0.,1.);return mix(b,a,h)-k*h*(1.-h);}
 float map(vec3 p){
   float pm=palmSlab(p);for(int i=0;i<4;i++)pm=sm(pm,rc(p,i),uK[0]*.5);   // 손허리뼈는 손등에 살짝 드러나는 정도
-  pm=sm(pm,rc(p,4),uK[0]);pm=sm(pm,rc(p,5),uK[1]);pm=sm(pm,rc(p,7),uK[1]);pm=sm(pm,rc(p,6),uK[1]);pm=sm(pm,rc(p,23),uK[1]);
+  pm=sm(pm,rc(p,4),uK[0]);pm=sm(pm,rc(p,5),uK[0]);pm=sm(pm,rc(p,7),uK[1]);pm=sm(pm,rc(p,6),uK[1]);pm=sm(pm,rc(p,23),uK[1]);
   float d=pm;
   // 손가락 하나씩: 손가락 전체를 감싸는 굵은 캡슐보다 멀면 계산을 건너뜀 (빠르게)
   for(int f=0;f<5;f++){vec3 pa=p-uFa[f],ba=uFb[f]-uFa[f];float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);if(length(pa-ba*h)-uFr[f]>d+uK[3])continue;
@@ -324,7 +324,7 @@ function poseSkin(){
   put(4,bp(22,5,2),bp(84,6,-5),15,14,new THREE.Vector3(1,1.7,.72));   // 손등 볼록: 손허리뼈 가운데를 덮는 낮고 넓은 둔덕 (옆에서 봐도 판자가 아니게)
   // 새끼 두덩(새끼손가락 쪽 손바닥 가장자리): 소지 손허리뼈 머리 → 손목 소지 쪽(콩알뼈). 가장자리를 한 줄로 매끈하게
   put(22,bp(0,0,0),bp(1,0,0),.1,.1);   // (안 씀: 손바닥 판이 대신)
-  put(5,bp(0,-2,-1),bp(-150,-4,0),25,29,new THREE.Vector3(1,1.65,.92));   // 손목 단면: 너비 약 54mm × 두께 약 30mm 타원 (손바닥과 같은 두께로 이어짐)   // 팔뚝: 손목에서 손바닥 판과 같은 폭으로 시작해 뒤로 갈수록 천천히 굵어짐(흐려짐)
+  put(5,bp(0,-2,-1),bp(-150,-4,0),20,23,new THREE.Vector3(1,1.33,1));   // 손목 단면: 너비 약 40mm × 두께 약 30mm 타원 — 손바닥 손목 쪽 끝(약 42mm)보다 조금 좁아 손날·엄지 쪽 선이 손목으로 들어감   // 팔뚝: 손목에서 손바닥 판과 같은 폭으로 시작해 뒤로 갈수록 천천히 굵어짐(흐려짐)
   // 엄지 쪽 가장자리(손목→엄지 뿌리)는 엄지 두덩 근육(짧은엄지벌림근·짧은엄지굽힘근·엄지맞섬근)이 엄지 손허리뼈를 손바닥 쪽에서 덮어 한 줄의 볼록한 곡선.
   // 손허리뼈 살은 두덩 안에 묻히게 가늘게, 두덩은 손목 엄지 쪽(손배뼈·큰마름뼈)에서 엄지 뿌리 관절까지 하나로 → 따로 솟는 혹이 없음
   const tb=BONE.thumb;put(6,L(th[0],tb.mc*BS*.25),L(th[0],tb.mc*BS),7,8.5);   // 엄지 손허리뼈 (손등 쪽에서 살짝 만져지는 정도)
