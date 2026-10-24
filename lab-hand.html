@@ -342,7 +342,7 @@ function poseSkin(){
     const ba=b.clone().sub(a),l2=Math.max(1e-9,ba.lengthSq());let r=0;for(const i of ids)for(const q of [u.uA.value[i],u.uB.value[i]]){const h=Math.min(1,Math.max(0,q.clone().sub(a).dot(ba)/l2));r=Math.max(r,q.clone().sub(a.clone().addScaledVector(ba,h)).length()+u.uR.value[i].x)}
     u.uFr.value[f]=r+.004}
   const mn=new THREE.Vector3(1e9,1e9,1e9),mx=new THREE.Vector3(-1e9,-1e9,-1e9);
-  for(let i=0;i<SKN;i++){if(i===5)continue;const r=Math.max(u.uR.value[i].x,u.uR.value[i].y)+.006;for(const q of [u.uA.value[i],u.uB.value[i]]){mn.min(q.clone().subScalar(r));mx.max(q.clone().addScalar(r))}}
+  for(let i=0;i<SKN;i++){if(i===5)continue;const r=Math.max(u.uR.value[i].x,u.uR.value[i].y)*Math.max(u.uS.value[i].x,u.uS.value[i].y,u.uS.value[i].z)+.03;for(const q of [u.uA.value[i],u.uB.value[i]]){mn.min(q.clone().subScalar(r));mx.max(q.clone().addScalar(r))}}   // 넉넉히(+3cm): 상자 가장자리에 걸린 손끝이 떨어진 조각으로 그려지던 것
   mn.x=Math.min(mn.x,u.uFade.value.y);mn.y=Math.min(mn.y,-.08);mx.y=Math.max(mx.y,.08);mn.z=Math.min(mn.z,-.09);mx.z=Math.max(mx.z,.09);   // 팔뚝(흐려지는 끝까지)도 넣음
   u.uMin.value.copy(mn);u.uMax.value.copy(mx);SKIN.position.copy(mn).add(mx).multiplyScalar(.5);SKIN.scale.copy(mx).sub(mn);
   u.uCam.value.copy(inner.worldToLocal(cam.position.clone()));
