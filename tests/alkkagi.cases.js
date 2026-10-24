@@ -125,6 +125,10 @@ for(const ag of [1,0])for(let rep=0;rep<6;rep++){
  for(let k=0;k<50;k++){const b=T.botPlan(A,1);ok(b&&A.st[b.i].s===1&&b.p>=.3&&b.p<=1&&Number.isFinite(b.a),'bot plan')}
  A.st.forEach(q=>{if(q.s===1)q.o=1});eq(T.botPlan(A,1),null,'bot with no stones');}
 
+/* 보통·어려움 봇: 후보는 내 알에서, 판 끝 상대 알을 정면으로 치는 수는 점수가 좋음 */
+{const A={st:[at(0,.4,0),at(0,-1.9,1),at(2,2,1)]},c=T.shotCands(A,0,2);
+ ok(c.length>0&&c.every(q=>q.i===0&&q.p>=.3&&q.p<=1),'cands from own stone');
+ ok(T.shotScore(A,0,{i:0,a:-Math.PI/2,p:.9})>=10,'straight hit scores');}
 /* 봇끼리 끝까지 */
 function playOutA(over,lvs){
   hostNew(false,'t','t');
