@@ -203,10 +203,10 @@ const D2R=Math.PI/180,lerp=(a,b,t)=>a+(b-a)*t,lerpA=(a,b,t)=>a.map((v,k)=>lerp(v
    엄지 CMC(큰마름뼈와 엄지 손허리뼈의 안장 관절)는 손바닥 쪽으로 깊고, 엄지 사슬은 손가락들과 약 90도 돌아 있어 손톱이 바깥을 봄 */
 const BS=.1/43.6,BGAP=3;
 const BONE={
-  index:{mc:68.8,base:[31,1,11],head:[0,25],ph:[39.2,21.3,15.3]},
-  middle:{mc:66.6,base:[33,0,0],head:[0,5],ph:[43.6,25.8,16.2]},
-  ring:{mc:59.2,base:[31,-1,-10],head:[-2,-15],ph:[41.0,24.5,16.6]},
-  pinky:{mc:52.8,base:[28,-3,-19],head:[-5,-33],ph:[31.9,17.1,14.9]},
+  index:{mc:68.8,base:[31,1,11],head:[-1,25],ph:[39.2,21.3,15.3]},
+  middle:{mc:66.6,base:[33,0,0],head:[2,5],ph:[43.6,25.8,16.2]},
+  ring:{mc:59.2,base:[31,-1,-10],head:[.5,-15],ph:[41.0,24.5,16.6]},
+  pinky:{mc:52.8,base:[28,-3,-19],head:[-3.5,-33],   // 손가락 뿌리 관절은 중지·약지가 살짝 높은 아치ph:[31.9,17.1,14.9]},
   thumb:{mc:47.5,cmc:[21,-11,23],ph:[29.8,20.9]},
   carpal:[   // 손목뼈 8개: 가운데 [x,y,t], 크기 [x,y,t] (mm)
     ['손배뼈',[12,-2,16],[20,10,12]],['반달뼈',[11,0,3],[15,11,13]],['세모뼈',[10,-1,-10],[13,10,11]],['콩알뼈',[8,-9,-14],[9,8,9]],
@@ -276,7 +276,8 @@ float map(vec3 p){
     float fd;if(f==4)fd=sm(rc(p,8),rc(p,9),uK[2]);else{int i=10+f*3;fd=sm(sm(rc(p,i),rc(p,i+1),uK[2]),rc(p,i+2),uK[2]);}
     d=min(d,sm(pm,fd,uK[3]));}
   return d;}
-vec3 nrm(vec3 p){vec2 e=vec2(.0006,-.0006);return normalize(e.xyy*map(p+e.xyy)+e.yyx*map(p+e.yyx)+e.yxy*map(p+e.yxy)+e.xxx*map(p+e.xxx));}
+vec3 nrm(vec3 p){vec2 e=vec2(.0016,-.0016);   // 넓게 재서 매끈한 법선 (그늘 경계가 깔끔하게)
+ return normalize(e.xyy*map(p+e.xyy)+e.yyx*map(p+e.yyx)+e.yxy*map(p+e.yxy)+e.xxx*map(p+e.xxx));}
 void main(){
   vec3 ro=uCam,rd=normalize(vL-uCam),iv=1./rd,t0=(uMin-ro)*iv,t1=(uMax-ro)*iv,tn=min(t0,t1),tf=max(t0,t1);
   float t=max(max(max(tn.x,tn.y),tn.z),0.),te=min(min(tf.x,tf.y),tf.z);bool hit=false;
@@ -295,7 +296,7 @@ let SKIN=null;
 function buildSkin(){
   const box=new THREE.BoxGeometry(1,1,1),u={uA:{value:[]},uB:{value:[]},uR:{value:[]},uS:{value:[]},uCam:{value:new THREE.Vector3()},
     uMin:{value:new THREE.Vector3(-.62,-.13,-.2)},uMax:{value:new THREE.Vector3(.2,.16,.2)},uBase:{value:mats.skin.uniforms.uBase.value},uShade:{value:mats.skin.uniforms.uShade.value},
-    uFade:{value:new THREE.Vector2(-.25,-.33)},uK:{value:[14*BS,30*BS,3*BS,9*BS]},uFa:{value:[0,1,2,3,4].map(()=>new THREE.Vector3())},uFb:{value:[0,1,2,3,4].map(()=>new THREE.Vector3(.001,0,0))},uFr:{value:[0,0,0,0,0]},uMV:{value:new THREE.Matrix4()},uDbg:{value:0},uPv:{value:[0,1,2,3].map(()=>new THREE.Vector2())},uPs:{value:new THREE.Vector3()},uNM:{value:new THREE.Matrix3()}};
+    uFade:{value:new THREE.Vector2(-.25,-.33)},uK:{value:[14*BS,30*BS,6*BS,9*BS]},uFa:{value:[0,1,2,3,4].map(()=>new THREE.Vector3())},uFb:{value:[0,1,2,3,4].map(()=>new THREE.Vector3(.001,0,0))},uFr:{value:[0,0,0,0,0]},uMV:{value:new THREE.Matrix4()},uDbg:{value:0},uPv:{value:[0,1,2,3].map(()=>new THREE.Vector2())},uPs:{value:new THREE.Vector3()},uNM:{value:new THREE.Matrix3()}};
   for(let i=0;i<SKN;i++){u.uA.value.push(new THREE.Vector3());u.uB.value.push(new THREE.Vector3(.001,0,0));u.uR.value.push(new THREE.Vector2(.01,.01));u.uS.value.push(new THREE.Vector3(1,1,1))}
   const mat=new THREE.ShaderMaterial({uniforms:u,side:THREE.BackSide,extensions:{fragDepth:true},
     vertexShader:`uniform vec3 uMin;uniform vec3 uMax;varying vec3 vL;void main(){vL=uMin+(position+.5)*(uMax-uMin);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:SKIN2_FS});
@@ -316,14 +317,14 @@ function poseSkin(){
    // 판의 끝(손가락 쪽)은 손허리뼈 머리보다 조금 뒤 → 손가락이 손바닥에 묻히지 않고 마디부터 보임
    const v=[P(bi.hx-6,bi.head[1]+11.5),P(bk.hx-8,bk.head[1]-11.5),P(-12,-22),P(-12,20)];   // 손목 쪽 두 꼭짓점은 팔뚝 속으로 들어가 팔뚝보다 좁게 → 모서리가 튀어나오지 않음if(HZ<0)v.reverse();
    v.forEach((q,i)=>u.uPv.value[i].copy(q));u.uPs.value.set(-2*BS,2.5*BS,12.5*BS)}   // 손바닥 판: 모서리를 두께의 대부분만큼 둥글게(베개 모양) → 옆에서 봐도 판자가 아니라 손
-  put(4,bp(0,0,0),bp(1,0,0),.1,.1);   // (안 씀: 손바닥 판이 손목까지)   // 손목: 손목뼈 줄을 옆으로 가로지름
+  put(4,bp(22,5,2),bp(84,6,-5),15,14,new THREE.Vector3(1,1.7,.72));   // 손등 볼록: 손허리뼈 가운데를 덮는 낮고 넓은 둔덕 (옆에서 봐도 판자가 아니게)
   // 새끼 두덩(새끼손가락 쪽 손바닥 가장자리): 소지 손허리뼈 머리 → 손목 소지 쪽(콩알뼈). 가장자리를 한 줄로 매끈하게
   put(22,bp(0,0,0),bp(1,0,0),.1,.1);   // (안 씀: 손바닥 판이 대신)
-  put(5,bp(0,-2,-1),bp(-150,-4,0),21.5,27,new THREE.Vector3(1,1.25,1));   // 팔뚝: 손목에서 손바닥 판과 같은 폭으로 시작해 뒤로 갈수록 천천히 굵어짐(흐려짐)
+  put(5,bp(0,-2,-1),bp(-150,-4,0),21.5,27,new THREE.Vector3(1,1.08,1));   // 손목 단면: 납작하지 않은 두툼한 타원   // 팔뚝: 손목에서 손바닥 판과 같은 폭으로 시작해 뒤로 갈수록 천천히 굵어짐(흐려짐)
   // 엄지 쪽 가장자리(손목→엄지 뿌리)는 엄지 두덩 근육(짧은엄지벌림근·짧은엄지굽힘근·엄지맞섬근)이 엄지 손허리뼈를 손바닥 쪽에서 덮어 한 줄의 볼록한 곡선.
   // 손허리뼈 살은 두덩 안에 묻히게 가늘게, 두덩은 손목 엄지 쪽(손배뼈·큰마름뼈)에서 엄지 뿌리 관절까지 하나로 → 따로 솟는 혹이 없음
   const tb=BONE.thumb;put(6,L(th[0],tb.mc*BS*.25),L(th[0],tb.mc*BS),7,8.5);   // 엄지 손허리뼈 (손등 쪽에서 살짝 만져지는 정도)
-  put(7,bp(6,-7,13),L(th[0],tb.mc*BS*.95).add(new THREE.Vector3(0,-3*BS,0)),14,10.5);   // 엄지 두덩: 손목 엄지 쪽 → 엄지 뿌리 관절, 손바닥 쪽으로 조금 내림
+  put(7,bp(6,-8,13),L(th[0],tb.mc*BS*.95).add(new THREE.Vector3(0,-4*BS,0)),16.5,11.5);   // 엄지 두덩: 손목 엄지 쪽 → 엄지 뿌리 관절, 손바닥 쪽으로 조금 내림
   // 엄지모음근·첫째 등쪽 뼈사이근: 엄지 손허리뼈 끝 쪽 ↔ 검지 손허리뼈 끝 쪽 사이를 채우는 살 (엄지와 검지 사이 물갈퀴 바닥)
   {const m2=segs[0];put(23,L(th[0],tb.mc*BS*.7).add(new THREE.Vector3(0,-3*BS,0)),L(m2.g,m2.L*BS*.75).add(new THREE.Vector3(0,-3*BS,0)),7,6.5)}   // 엄지모음근·첫째 등쪽 뼈사이근 (엄지·검지 손허리뼈 사이, 손바닥 쪽으로 조금)
   put(8,L(th[1],0),L(th[1],tb.ph[0]*BS),FLESH.th[1][0],FLESH.th[1][1]);put(9,L(th[2],0),L(th[2],tb.ph[1]*BS),FLESH.th[2][0],FLESH.th[2][1]);
@@ -430,7 +431,7 @@ function thumbChain(CMC,LM,L1,L2,C,o,DORS,st,fl,N){
   // 쏜 뒤(fl>0): 엄지는 기억한 자리에 그대로 두고 IP(손톱 쪽 첫 관절)만 50도 → 4도로 펴짐 (중지를 따라가지 않음)
   const IPB=50*D2R;
   if(fl<=0||!st.X){const v=C.clone().sub(CMC),d=v.length(),u=v.normalize();let best=0,be=1e9;
-    let bb=IPB;for(let a=0;a<=70;a+=1)for(let ib=14;ib<=60;ib+=2){const c=chain(a*D2R,ib*D2R),e=Math.abs(Math.hypot(c.P[0],c.P[1])-d)+Math.abs(ib-50)*.00004;if(e<be){be=e;best=a;bb=ib*D2R}}   // IP는 50도 근처, 닿지 않으면 펴서 닿게
+    let bb=IPB;for(let a=0;a<=70;a+=1)for(let ib=14;ib<=60;ib+=2){const c=chain(a*D2R,ib*D2R),e=Math.abs(Math.hypot(c.P[0],c.P[1])-d)+Math.abs(ib-34)*.00004+Math.abs(a-22)*.00002;   /* 엄지는 MCP·IP가 함께 나눠 굽어 둥근 고리 (한 관절만 꺾이지 않게) */if(e<be){be=e;best=a;bb=ib*D2R}}   // IP는 50도 근처, 닿지 않으면 펴서 닿게
     st.res=be;st.ib=bb;const c=chain(best*D2R,bb),ph=Math.atan2(c.P[1],c.P[0]),w0=DORS.clone().sub(u.clone().multiplyScalar(DORS.dot(u))).normalize();
     // 엄지가 굽는 평면을 u 둘레로 돌려 고름: 지문(끝마디 손바닥 쪽)이 중지 손톱(N)을 마주 보게, 엄지 손톱은 되도록 바깥(DORS)을 보게
     let X,Y,bs=1e9;for(let rd=-90;rd<=90;rd+=3){const w=w0.clone().applyAxisAngle(u,rd*D2R);
@@ -452,7 +453,7 @@ function poseHand(p,fl){
   set(fs.pinky,O(lerpA([14,16,-2],[-3,0,-10],p),[8,10,-4]),o1(lerp(-4,-20,p),-12),o1(lerp(-4,8,p),0));   // 검지·약지·소지: 처음엔 살짝 굽었다가 당길수록 뻣뻣하게 펴져(끝까지 당기면 살짝 젖혀짐) 위로 들리고 벌어짐
   // 중지: 둘째 관절(손톱 쪽에서 두 번째)이 90도로 꺾이고, 뿌리에서 엄지 쪽으로 틀어 손끝이 엄지를 향함. 당길수록 뿌리·끝마디가 더 꽉, 튕기면 쭉
   const pc=S.pitch,straight=[pc*.6+18,pc*.3+10,pc*.1+6];
-  const mid=lerpA(lerpA([50,90,22],[50+20*sq,90,22+25*sq],p),straight,fl);
+  const mid=lerpA(lerpA([48,74,42],[48+18*sq,78,42+20*sq],p),straight,fl);   // 세 마디에 고르게 나눠 둥근 고리
   set(fs.middle,O(mid,[6,8,6]),lerp(14,0,Math.max(fl,o)),0);
   // 엄지: 중지 손톱 바로 앞을 받침. 두 마디 길이를 거리에 맞춰 조금 굽은 채로 (손가락처럼 살짝만 굽음)
   inner.updateMatrixWorld(true);
@@ -498,8 +499,9 @@ float lin(float d){float z=d*2.-1.;return 2.*near*far/(far+near-z*(far-near));}
 void main(){vec4 c=texture2D(tC,vUv);float dp=lin(texture2D(tD,vUv).x),line=0.;
  if(ink>.5){for(int i=0;i<16;i++){float a=float(i)*.3927;for(int k=1;k<=2;k++){vec2 o=vec2(cos(a),sin(a))*px*lw*float(k)*.5;vec2 q=vUv+o;
    float aq=texture2D(tC,q).a;if(aq<.02)continue;float dq=lin(texture2D(tD,q).x);
-   float thr=.026*dq;   // 앞 손가락이 뒤를 가리는 곳·바깥 윤곽만 (마디 이음새처럼 이어진 면은 깊이 차이가 작아 안 그림)
-   if(dp-dq>thr)line=max(line,aq);}}}
+   vec2 q2=q+o;float dq2=texture2D(tC,q2).a<.02?dq:lin(texture2D(tD,q2).x),pred=dq+clamp(dq-dq2,-.05*dq,.05*dq);   // 앞쪽 면(q)의 기울기를 p까지 이어 본 깊이
+   // 앞 면을 이어 본 깊이보다 p가 눈에 띄게 뒤 = 겹친 손가락의 뒤쪽 또는 바깥 → 선. 비스듬히 보이는 한 면은 기울기대로라 선이 없음
+   if(dp-pred>.007*dq)line=max(line,aq);}}}
  vec4 o=vec4(c.rgb,c.a*op);if(line>0.){o=mix(o,vec4(inkC,lop),line);}
  if(o.a<.003)discard;gl_FragColor=o;}`;
 const comp=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,
