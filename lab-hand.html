@@ -300,7 +300,7 @@ let SKIN=null;
 function buildSkin(){
   const box=new THREE.BoxGeometry(1,1,1),u={uA:{value:[]},uB:{value:[]},uR:{value:[]},uS:{value:[]},uCam:{value:new THREE.Vector3()},
     uMin:{value:new THREE.Vector3(-.62,-.13,-.2)},uMax:{value:new THREE.Vector3(.2,.16,.2)},uBase:{value:mats.skin.uniforms.uBase.value},uShade:{value:mats.skin.uniforms.uShade.value},
-    uFade:{value:new THREE.Vector2(-.25,-.33)},uK:{value:[14*BS,30*BS,1.5*BS,9*BS]},uFa:{value:[0,1,2,3,4].map(()=>new THREE.Vector3())},uFb:{value:[0,1,2,3,4].map(()=>new THREE.Vector3(.001,0,0))},uFr:{value:[0,0,0,0,0]},uMV:{value:new THREE.Matrix4()},uDbg:{value:0},uPv:{value:[0,1,2,3].map(()=>new THREE.Vector2())},uPs:{value:new THREE.Vector3()},uNM:{value:new THREE.Matrix3()}};
+    uFade:{value:new THREE.Vector2(-.25,-.33)},uK:{value:[8*BS,10*BS,1.5*BS,9*BS]},uFa:{value:[0,1,2,3,4].map(()=>new THREE.Vector3())},uFb:{value:[0,1,2,3,4].map(()=>new THREE.Vector3(.001,0,0))},uFr:{value:[0,0,0,0,0]},uMV:{value:new THREE.Matrix4()},uDbg:{value:0},uPv:{value:[0,1,2,3].map(()=>new THREE.Vector2())},uPs:{value:new THREE.Vector3()},uNM:{value:new THREE.Matrix3()}};
   for(let i=0;i<SKN;i++){u.uA.value.push(new THREE.Vector3());u.uB.value.push(new THREE.Vector3(.001,0,0));u.uR.value.push(new THREE.Vector2(.01,.01));u.uS.value.push(new THREE.Vector3(1,1,1))}
   const mat=new THREE.ShaderMaterial({uniforms:u,side:THREE.BackSide,extensions:{fragDepth:true},
     vertexShader:`uniform vec3 uMin;uniform vec3 uMax;varying vec3 vL;void main(){vL=uMin+(position+.5)*(uMax-uMin);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:SKIN2_FS});
