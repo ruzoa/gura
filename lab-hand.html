@@ -478,7 +478,8 @@ function thumbChain(CMC,LM,L1,L2,C,o,DORS,st,fl,N){
   // 엄지가 굽는 평면은 중지 손톱이 보는 쪽(N)을 품게 → 지문과 손톱이 마주 봄.
   // 쏜 뒤(fl>0): 엄지는 기억한 자리에 그대로 두고 IP(손톱 쪽 첫 관절)만 50도 → 4도로 펴짐 (중지를 따라가지 않음)
   const IPB=50*D2R;
-  if(fl<=0||!st.X){const v=C.clone().sub(CMC),d=v.length(),u=v.normalize();let best=0,be=1e9;
+  const ck=fl<=0?[C.x,C.y,C.z,N?N.x:0,N?N.y:0,N?N.z:0].map(v=>Math.round(v*1e5)).join():'';   // 받칠 자리가 그대로면(당긴 정도가 같으면) 지난번 답을 그대로 씀
+  if((fl<=0&&st.ck!==ck)||!st.X){st.ck=ck;const v=C.clone().sub(CMC),d=v.length(),u=v.normalize();let best=0,be=1e9;
     let bb=IPB;for(let a=0;a<=70;a+=1)for(let ib=14;ib<=60;ib+=2){const c=chain(a*D2R,ib*D2R),e=Math.abs(Math.hypot(c.P[0],c.P[1])-d)+Math.abs(ib-34)*.00004+Math.abs(a-22)*.00002;   /* 엄지는 MCP·IP가 함께 나눠 굽어 둥근 고리 (한 관절만 꺾이지 않게) */if(e<be){be=e;best=a;bb=ib*D2R}}   // IP는 50도 근처, 닿지 않으면 펴서 닿게
     st.res=be;st.ib=bb;const c=chain(best*D2R,bb),ph=Math.atan2(c.P[1],c.P[0]),w0=DORS.clone().sub(u.clone().multiplyScalar(DORS.dot(u))).normalize();
     // 엄지가 굽는 평면을 u 둘레로 돌려 고름: 지문(끝마디 손바닥 쪽)이 중지 손톱(N)을 마주 보게, 엄지 손톱은 되도록 바깥(DORS)을 보게

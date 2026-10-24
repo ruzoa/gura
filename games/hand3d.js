@@ -271,7 +271,8 @@ function thumbChain(CMC,LM,L1,L2,C,o,DORS,st,fl,N){
   // 엄지가 굽는 평면은 중지 손톱이 보는 쪽(N)을 품게 → 지문과 손톱이 마주 봄.
   // 쏜 뒤(fl>0): 엄지는 기억한 자리에 그대로 두고 IP(손톱 쪽 첫 관절)만 50도 → 4도로 펴짐 (중지를 따라가지 않음)
   const IPB=50*D2R;
-  if(fl<=0||!st.X){const v=C.clone().sub(CMC),d=v.length(),u=v.normalize();let best=0,be=1e9;
+  const ck=fl<=0?[C.x,C.y,C.z,N?N.x:0,N?N.y:0,N?N.z:0].map(v=>Math.round(v*1e5)).join():'';   // 받칠 자리가 그대로면(당긴 정도가 같으면) 지난번 답을 그대로 씀
+  if((fl<=0&&st.ck!==ck)||!st.X){st.ck=ck;const v=C.clone().sub(CMC),d=v.length(),u=v.normalize();let best=0,be=1e9;
     let bb=IPB;for(let a=0;a<=70;a+=1)for(let ib=14;ib<=60;ib+=2){const c=chain(a*D2R,ib*D2R),e=Math.abs(Math.hypot(c.P[0],c.P[1])-d)+Math.abs(ib-34)*.00004+Math.abs(a-22)*.00002;   /* 엄지는 MCP·IP가 함께 나눠 굽어 둥근 고리 (한 관절만 꺾이지 않게) */if(e<be){be=e;best=a;bb=ib*D2R}}   // IP는 50도 근처, 닿지 않으면 펴서 닿게
     st.res=be;st.ib=bb;const c=chain(best*D2R,bb),ph=Math.atan2(c.P[1],c.P[0]),w0=DORS.clone().sub(u.clone().multiplyScalar(DORS.dot(u))).normalize();
     // 엄지가 굽는 평면을 u 둘레로 돌려 고름: 지문(끝마디 손바닥 쪽)이 중지 손톱(N)을 마주 보게, 엄지 손톱은 되도록 바깥(DORS)을 보게
@@ -363,13 +364,31 @@ function draw(rend,camera,op,lop){
   const w=R.domElement.width,h=R.domElement.height;   // 화면 해상도 그대로 (휴대폰에서 가볍게)
   if(!HP.rt||HP.rt.width!==w||HP.rt.height!==h){if(HP.rt)HP.rt.dispose();HP.rt=new THREE.WebGLRenderTarget(w,h,{depthBuffer:true,minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter});
     HP.rt.depthTexture=new THREE.DepthTexture(w,h);HP.rt.depthTexture.type=THREE.UnsignedIntType;HP.ss=1}
-  const ac=R.autoClear,cc=R.getClearColor(new THREE.Color()).getHex(),ca=R.getClearAlpha(),cl=camera.layers.mask;
-  R.setRenderTarget(HP.rt);R.setClearColor(0x000000,0);R.clear(true,true,true);
+  const ac=R.autoClear,cc=R.getClearColor(new THREE.Color()).getHex(),ca=R.getClearAlpha(),cl=camera.layers.mask,pr=R.getPixelRatio(),lw=1.6*pr;
+  const rc=handRect(camera,w,h,Math.ceil(lw)+4);   // 손이 차지하는 화면 네모(윤곽선 폭만큼 넓혀서): 살 그리기·윤곽선 합치기는 이 안에서만
+  HP.rt.scissorTest=false;R.setRenderTarget(HP.rt);R.setClearColor(0x000000,0);R.clear(true,true,true);   // 지우기는 통째로 (싸고, 지난 프레임 손이 남지 않게)
+  if(rc){HP.rt.scissor.set(rc[0],rc[1],rc[2],rc[3]);HP.rt.scissorTest=true;R.setRenderTarget(HP.rt)}
   R.autoClear=false;camera.layers.set(1);R.render(scene,camera);camera.layers.mask=cl;
-  R.setRenderTarget(null);R.setClearColor(cc,ca);
-  const u=comp.material.uniforms;u.tC.value=HP.rt.texture;u.tD.value=HP.rt.depthTexture;u.px.value.set(1/w,1/h);u.lw.value=1.6*R.getPixelRatio();
+  HP.rt.scissorTest=false;R.setRenderTarget(null);R.setClearColor(cc,ca);
+  const u=comp.material.uniforms;u.tC.value=HP.rt.texture;u.tD.value=HP.rt.depthTexture;u.px.value.set(1/w,1/h);u.lw.value=lw;
   u.near.value=camera.near;u.far.value=camera.far;u.op.value=op;u.lop.value=lop;u.ink.value=1;
+  if(rc){R.setScissor(rc[0]/pr,rc[1]/pr,rc[2]/pr,rc[3]/pr);R.setScissorTest(true)}
   R.render(compScene,compCam);R.autoClear=ac;
+  if(rc)R.setScissorTest(false);
+}
+/* 살 상자(SKIN)의 꼭짓점 8개를 화면에 옮긴 네모 [x,y,w,h] (화면 점, 아래가 0), pad만큼 넓힘. 상자가 카메라 뒤에 걸리면 null(화면 전체) */
+const HR={v:new THREE.Vector3()};
+function handRect(camera,w,h,pad){
+  SKIN.updateMatrixWorld();camera.updateMatrixWorld();
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;const v=HR.v;
+  for(let k=0;k<8;k++){
+    v.set(k&1?.5:-.5,k&2?.5:-.5,k&4?.5:-.5).applyMatrix4(SKIN.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
+    if(v.z>-camera.near)return null;
+    v.applyMatrix4(camera.projectionMatrix);
+    const X=(v.x+1)/2*w,Y=(v.y+1)/2*h;x0=Math.min(x0,X);x1=Math.max(x1,X);y0=Math.min(y0,Y);y1=Math.max(y1,Y);
+  }
+  x0=Math.max(0,Math.floor(x0-pad));y0=Math.max(0,Math.floor(y0-pad));x1=Math.min(w,Math.ceil(x1+pad));y1=Math.min(h,Math.ceil(y1+pad));
+  return x1>x0&&y1>y0?[x0,y0,x1-x0,y1-y0]:[0,0,0,0];
 }
 /* 자세·자리: x,z 알 가운데, ang 손이 가리키는 방향(라디안, 게임과 같은 뜻: 회전 -ang), j 그중 떨림 몫(팔꿈치를 축으로 돎),
    p 당긴 힘, fl 튕김(0~1), seat 손 색, top 판 윗면 높이 */
