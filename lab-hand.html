@@ -283,9 +283,11 @@ void main(){
   float t=max(max(max(tn.x,tn.y),tn.z),0.),te=min(min(tf.x,tf.y),tf.z);bool hit=false;
   float dl=1.;for(int i=0;i<140;i++){vec3 p=ro+rd*t;float d=map(p);dl=d;if(d<.0004){hit=true;break;}t+=d*.95;if(t>te)break;}   // 비스듬히 볼 때(손끝·손목 쪽)는 길게 따라가야 해서 넉넉히
   if(!hit)discard;
+  for(int i=0;i<3;i++)t+=map(ro+rd*t);   // 표면 위치를 몇 번 더 다듬음 (비스듬한 손날에서 깊이·법선이 들쭉날쭉하지 않게)
   vec3 p=ro+rd*t,n=normalize(uNM*nrm(p));vec4 mv=uMV*vec4(p,1.);vec3 V=normalize(-mv.xyz);
   vec3 L=normalize(vec3(-.45,.75,.55));float ndl=dot(n,L),ndv=dot(n,V);
-  float s=max(1.-smoothstep(-.36,-.3,ndl),(1.-smoothstep(.2,.25,ndv))*(1.-smoothstep(.35,.45,ndl)));
+  float w1=min(fwidth(ndl),.08)*1.2+.004,w2=min(fwidth(ndv),.08)*1.2+.004;   // 화면 한 칸 너비만큼만 부드럽게: 그늘 경계가 톱니 없이 매끈한 곡선
+  float s=max(1.-smoothstep(-.33-w1,-.33+w1,ndl),(1.-smoothstep(.17-w2,.17+w2,ndv))*(1.-smoothstep(.4-w1,.4+w1,ndl)));
   float a=clamp((p.x-uFade.y)/(uFade.x-uFade.y),0.,1.);
   float bi=1.,bd=palmSlab(p);for(int i=0;i<8;i++){if(i==5)continue;bd=min(bd,rc(p,i));}bd=min(bd,rc(p,23));
   {float q=rc(p,8);if(q<bd){bd=q;bi=2.;}q=rc(p,9);if(q<bd){bd=q;bi=3.;}for(int i=10;i<22;i++){q=rc(p,i);if(q<bd){bd=q;bi=float(i-6);}}}
