@@ -14,7 +14,7 @@ const FELT_Y=.016,FELT_R=3.15,TABLE_R=4.9;   // 공통 테이블: 펠트 윗면 
 const PHY={g:32,aB:6.5,aF:11,eSS:.86,eG:.3,vmax:11,dt:1/240,fps:30,tmax:9,slope:.28,kT:700,cT:8,tk:7};   // 중력, 판·펠트 마찰 감속, 알끼리·바닥 튕김, 최고 속도, 계산 간격, 자취 장 수, 최대 길이(초), 미끄러질 때 앞이 숙는 정도, 기울기 복원·감쇠, 부딪힐 때 기우뚱
 const PMIN=.1;   // 이보다 약하게 당기고 놓으면 취소
 /* 손 떨림: 당기기 시작부터 불규칙하게 떨리고, 세게 당길수록 크게. 놓는 순간 손이 가리키던 방향으로 나감 (살살 치면 거의 직선, 끝까지 당기면 최대 SPREAD) */
-const SPREAD=.3;   // 끝까지 당겼을 때 떨림 폭 (라디안, 약 17도)
+const SPREAD=2*Math.PI/180;   // 끝까지 당겼을 때 떨림 폭 (라디안, 2도: 손은 팔꿈치를 축으로 흔들려 손끝이 그만큼 더 크게 움직여 보임)
 const spreadOf=p=>SPREAD*p*p;
 function jit(t){   // -1~1, 잔잔하다 가끔 크게 (규칙적인 흔들림이 아니라 타이밍을 노리기 어렵게)
   const a=.5*Math.sin(t*.0067+1.3)+.3*Math.sin(t*.0151+.4)+.2*Math.sin(t*.0389+2.1);
@@ -389,11 +389,11 @@ function dragEnd(cancel){
   if(!drag)return;
   const d=drag;drag=null;Ak3.dirty=true;
   if(cancel||d.p<PMIN||!myTurnNow()){sendAct({t:'aim',i:-1});if(!cancel&&d.L>.02)sndPickUp();return}
-  const t=clock(),a=baseAng(d)+spreadOf(d.p)*jit(t+d.ph);   // 놓는 순간 손이 가리키던 방향
+  const t=clock(),j=spreadOf(d.p)*jit(t+d.ph),a=baseAng(d)+j;   // 놓는 순간 손이 가리키던 방향 (j: 그중 떨림 몫)
   const q=OS.st[d.i];
   sendAct({t:'shoot',i:d.i,a,p:d.p});
   sndFlick();Ak3.flickAt=t;
-  FLK={i:d.i,a,p:d.p,seat:myIdx(),t0:t,x:q.x,z:q.z,mine:true};
+  FLK={i:d.i,a,j,p:d.p,seat:myIdx(),t0:t,x:q.x,z:q.z,mine:true};
 }
 /* 손으로 보여 줄 것: 내가 당기는 중이면 그것, 아니면 방장이 알려 준 상대(봇)의 당기기 (부드럽게 따라감).
    a: 겨눈 방향(떨림 전), 실제로 그리는 방향은 shownAng (떨림은 화면마다 따로: 상대의 떨림 위상은 알 수 없음) */
@@ -476,16 +476,18 @@ function handCanvas(p,fl,seat,op){
   return {cv:HAND.cv,changed:true};
 }
 /* 지금 그릴 손: {i, x, z, ang(그리는 방향), p, fl(튕김 0~1), op(불투명도), seat} 또는 null */
+const handOp=p=>.45+.5*p;   // 손 진하기: 당길수록 45% → 95%
 function handNow(t,pos){
   if(FLK){
     const e=t-FLK.t0;
     if(e>FLK_IN+FLK_OUT){FLK=null}
     else{const fl=Math.min(1,e/FLK_IN),fade=e<=FLK_IN?1:1-(e-FLK_IN)/FLK_OUT;
-      return {i:FLK.i,x:FLK.x,z:FLK.z,ang:FLK.a,p:FLK.p,fl,op:(.2+.7*FLK.p)*fade,seat:FLK.seat,fade}}
+      return {i:FLK.i,x:FLK.x,z:FLK.z,ang:FLK.a,j:FLK.j||0,p:FLK.p,fl,op:handOp(FLK.p)*fade,seat:FLK.seat,fade}}
   }
   const a=aimNow(t);
   if(!a||!pos[a.i]||V.st!=='play'||Ak3.shot||a.p<.005)return null;
-  return {i:a.i,x:pos[a.i].x,z:pos[a.i].z,ang:shownAng(a,t),p:a.p,fl:0,op:.2+.7*a.p,seat:a.seat,fade:1};
+  const j=spreadOf(a.p)*jit(t+a.ph);
+  return {i:a.i,x:pos[a.i].x,z:pos[a.i].z,ang:a.a+j,j,p:a.p,fl:0,op:handOp(a.p),seat:a.seat,fade:1};
 }
 
 /* ----- 2D (SVG, WebGL이 없을 때) ----- */
@@ -611,11 +613,19 @@ function ak3Build(){
      const hm=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false});
      const pl=new THREE.Mesh(new THREE.PlaneGeometry(HB.x1-HB.x0,2*HB.y),hm);pl.rotation.x=-Math.PI/2;pl.position.x=(HB.x0+HB.x1)/2;pl.renderOrder=9;
      const inner=new THREE.Group();inner.add(pl);inner.scale.setScalar(HSC);inner.position.x=-.165*(1-HSC);const hg=new THREE.Group();hg.add(inner);hg.visible=false;root.add(hg);Ak3.hand={g:hg,tex}}
+    loadHand3D();
     Ak3.blobGeo=new THREE.CircleGeometry(SR,28);
     Ak3.cam=new THREE.PerspectiveCamera(40,1,.1,100);
     T.scene.add(root);Ak3.root=root;Ak3.built=true;
   }catch(e){Ak3.fail=true;try{console.warn('알까기 3D 준비 실패',e)}catch(_){}}
   return Ak3.built;
+}
+/* 3D 손: games/hand3d.js(테스트룸 '새 살'을 옮긴 것)를 필요할 때 한 번 불러옴. 못 쓰면 위의 캔버스 손 그대로 */
+function loadHand3D(){
+  if(Ak3.h3||Ak3.h3load)return;Ak3.h3load=true;
+  const go=()=>{try{if(window.Hand3D)Ak3.h3=window.Hand3D(THREE,{SR,SH})}catch(e){Ak3.h3=null;try{console.warn('3D 손 준비 실패',e)}catch(_){}}};
+  if(window.Hand3D)return go();
+  const sc=document.createElement('script');sc.src='games/hand3d.js';sc.onload=go;document.head.appendChild(sc);
 }
 /* 알 개수·색이 바뀌면 다시 만듦 */
 function ak3Stones(){
@@ -691,10 +701,13 @@ function ak3Place(now){
   });
   // 손
   const H3=Ak3.hand,hd=handNow(now,pos);
-  if(hd){
+  Ak3.hd=hd;
+  if(hd&&Ak3.h3){H3.g.visible=false;Ak3.root.updateMatrixWorld(true);Ak3.h3.set({x:hd.x,z:hd.z,ang:hd.ang,j:hd.j||0,p:hd.p,fl:hd.fl,seat:hd.seat,top:TOP,base:Ak3.root.matrixWorld})}
+  else if(hd){
+    if(Ak3.h3)Ak3.h3.set(null);
     const r=handCanvas(hd.p,hd.fl,hd.seat,hd.op);if(r.changed)H3.tex.needsUpdate=true;
     H3.g.visible=true;H3.g.position.set(hd.x,TOP+2*SH+.12,hd.z);H3.g.rotation.set(0,-hd.ang,0);
-  }else H3.g.visible=false;
+  }else{H3.g.visible=false;if(Ak3.h3)Ak3.h3.set(null)}
 }
 /* 튕긴 뒤 소리: 자취와 같은 시각에 */
 function shotSounds(now){
@@ -729,6 +742,7 @@ function ak3Render(t){
      cam=ic;
    }}
   T.r.render(T.scene,cam);
+  if(Ak3.h3&&Ak3.hd){const hd=Ak3.hd;Ak3.h3.draw(T.r,cam,hd.op,Math.max(.85,handOp(hd.p))*(hd.fade==null?1:hd.fade))}   // 3D 손은 판·알 위에 늘 보이게 따로 그려 얹음
   if(fog){fog.near=fn;fog.far=ff}
   Ak3.lastR=t;Ak3.dirty=false;
 }
