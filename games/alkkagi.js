@@ -9,7 +9,8 @@
 const G={id:'alkkagi',name:'알까기',short:'알까기',lead:'바둑알을 튕겨 상대 알을 판 밖으로',brand:'알까기',brandPx:56,maxHi:2,noFast:true,firstPick:true};   // firstPick: 대기실 이름표 메뉴의 [선]을 씀 (룰렛 연출은 없음)
 
 /* ---------- 판·알·물리 (방장 엔진과 화면이 같은 값을 씀) ---------- */
-const NL=13,BW=2.3,GM=.3,TOP=.2,PITCH=(2*BW-2*GM)/(NL-1),SR=.15,SH=.066,KY=SR/SH;   // 줄 수, 판 반폭(틀 포함), 틀 안쪽 여백, 판 윗면 높이, 줄 간격, 알 반지름, 알 반두께
+const NL=19,BW=2.3,GM=.3,TOP=.2,PITCH=(2*BW-2*GM)/(NL-1),SR=PITCH*.46,SH=SR*.52,KY=SR/SH;   // 줄 수, 판 반폭(틀 포함), 틀 안쪽 여백, 판 윗면 높이, 줄 간격, 알 반지름·반두께(오목 돌과 같은 비율: 줄 간격에 맞춤)
+const HOSHI=[3,9,15];   // 화점 (19줄)
 const FELT_Y=.016,FELT_R=3.15,TABLE_R=4.9;   // 공통 테이블: 펠트 윗면 높이·반지름, 탁자 반지름
 const PHY={g:32,aB:6.5,aF:11,eSS:.86,eG:.3,vmax:11,dt:1/240,fps:30,tmax:9,slope:.28,kT:700,cT:8,tk:7};   // 중력, 판·펠트 마찰 감속, 알끼리·바닥 튕김, 최고 속도, 계산 간격, 자취 장 수, 최대 길이(초), 미끄러질 때 앞이 숙는 정도, 기울기 복원·감쇠, 부딪힐 때 기우뚱
 const PMIN=.1;   // 이보다 약하게 당기고 놓으면 취소
@@ -134,13 +135,13 @@ function simulate(st,shot,rnd){
   });
   return {fin:S.map(q=>({x:q.x,y:q.y,z:q.z,s:q.s,o:q.o,g:q.g})),tr,nf,ev,dur:Math.round((nf-1)/P.fps*1000)};
 }
-/* 처음 자리: 내 쪽 끝에서 4번째 줄(6개까지 한 줄, 7개부터 두 줄), 가운데에서 좌우 대칭. 1번 자리는 판을 돌린 자리 */
+/* 처음 자리: 내 쪽 끝에서 5번째 줄(6개까지 한 줄, 7개부터 끝에서 4·7번째 두 줄), 가운데에서 좌우 대칭, 4칸까지 띄움. 1번 자리는 판을 돌린 자리 */
 function homes(n){
   const out=[],c0=(NL-1)/2;
-  const row=(cnt,L)=>{const step=cnt>1?Math.min(3,10/(cnt-1)):0,cs=[];
+  const row=(cnt,L)=>{const step=cnt>1?Math.min(4,15/(cnt-1)):0,cs=[];
     for(let k=0;k<cnt;k++){const o=(k-(cnt-1)/2)*step;cs.push(c0+Math.sign(o)*Math.round(Math.abs(o)))}
     return cs.map(c=>[(c-c0)*PITCH,(c0-L)*PITCH])};
-  const pts=n<=6?row(n,3):[...row(Math.ceil(n/2),4),...row(Math.floor(n/2),2)];
+  const pts=n<=6?row(n,4):[...row(Math.ceil(n/2),6),...row(Math.floor(n/2),3)];
   for(const s of [0,1])for(const [x,z] of pts)out.push({x:s?-x:x,y:TOP+SH,z:s?-z:z,s,o:0,g:0});
   return out;
 }
@@ -322,7 +323,7 @@ G.engine={
 };
 
 /* ---------- 화면 (모든 참가자) ----------
-   3D: 공통 테이블 가운데 13줄 바둑판 + 알, 내 쪽에서 비스듬히 내려다보는 자기 카메라. WebGL이 없으면 위에서 본 2D 판(SVG)
+   3D: 공통 테이블 가운데 19줄 바둑판 + 알, 내 쪽에서 비스듬히 내려다보는 자기 카메라. WebGL이 없으면 위에서 본 2D 판(SVG)
    튕기기: 내 알(가까이 누른 곳의 알)을 누른 채 당기면 알 뒤에 화살표. 끝까지 당기면 흔들리고 더 길어지지 않음 → 놓으면 튕김 */
 let OS=null,drag=null,elAk=null,elSvg=null,elMain=null,elBar=null,elHint=null,lastBar='',lastHint='',msg='',msgUntil=0,msgTimer=null;
 const MAXD=1.25;   // 끝까지 당긴 거리 (월드). 넘게 당겨도 더 세지지 않음
@@ -350,9 +351,9 @@ function sndPickUp(){hiss(.025,{freq:2800,q:3,vol:.08})}   // 알을 짚음
 function sndNo(){sfx('no')}
 
 /* ----- 당기기 (3D·2D 같은 계산: 월드 좌표의 당긴 벡터) ----- */
-function pickStone(x,z){   // 누른 곳에서 가까운 내 알 (반지름의 3배 안)
+function pickStone(x,z){   // 누른 곳에서 가까운 내 알 (알이 작아도 손가락으로 집기 쉽게 .45 안)
   if(!OS)return -1;
-  const me=myIdx();let best=-1,bd=SR*3;
+  const me=myIdx();let best=-1,bd=.45;
   OS.st.forEach((s,i)=>{if(s.s!==me||s.o)return;const d=Math.hypot(s.x-x,s.z-z);if(d<bd){bd=d;best=i}});
   return best;
 }
@@ -418,7 +419,7 @@ const FLK_IN=90,FLK_OUT=380;
    손 좌표: 알 가운데가 0, +X가 튕기는 쪽, +Y가 손가락이 펴지는 쪽. 손목은 짧게 자르고 끝은 흐려짐.
    사람마다 손 색(0번 빨강·1번 파랑), 당길수록 진해짐(20%→90%), 윤곽선은 늘 보임 */
 const HCOL=['#e0553f','#3f7fe0','#f2c230','#47b35a'],HINK='#3b2a1f';
-const HB={x0:-.95,x1:.15,y:.55},HPX=384,HSC=1.4;   // HSC: 손 크기 (고리 앞 끝 X=-.165가 알에 닿은 채로 키움)
+const HB={x0:-.95,x1:.15,y:.55},HPX=384,HSC=1.4,HOFF=.15-SR;   // HSC: 손 크기 (고리 앞 끝 X=-.165가 알에 닿은 채로 키움), HOFF: 그림은 반지름 .15 알에 맞춰져 있어 작은 알에 닿게 옮김
 const HAND={cv:null,full:null,line:null,key:'',url:''};
 function handParts(p,fl){
   const P=[],W=.05;
@@ -501,8 +502,8 @@ function s2w(e){
 function boardSvg(){
   const out=[],c0=(NL-1)/2,hl=c0*PITCH;
   out.push(`<circle cx="0" cy="0" r="3.15" fill="#2f6b4f"/><rect x="${-BW-.06}" y="${-BW+.08}" width="${2*BW+.12}" height="${2*BW+.04}" rx=".08" fill="#000" opacity=".22"/><rect x="${-BW}" y="${-BW}" width="${2*BW}" height="${2*BW}" rx=".06" fill="#8a5a32"/><rect x="${-BW+.06}" y="${-BW+.06}" width="${2*BW-.12}" height="${2*BW-.12}" rx=".04" fill="#e3bd7e"/>`);
-  for(let k=0;k<NL;k++){const v=(k-c0)*PITCH;out.push(`<line x1="${-hl}" y1="${v}" x2="${hl}" y2="${v}" stroke="#6b4a26" stroke-width=".018"/><line x1="${v}" y1="${-hl}" x2="${v}" y2="${hl}" stroke="#6b4a26" stroke-width=".018"/>`)}
-  for(const a of [3,6,9])for(const b of [3,6,9])out.push(`<circle cx="${(a-c0)*PITCH}" cy="${(b-c0)*PITCH}" r=".035" fill="#4b3319"/>`);
+  for(let k=0;k<NL;k++){const v=(k-c0)*PITCH;out.push(`<line x1="${-hl}" y1="${v}" x2="${hl}" y2="${v}" stroke="#6b4a26" stroke-width=".014"/><line x1="${v}" y1="${-hl}" x2="${v}" y2="${hl}" stroke="#6b4a26" stroke-width=".014"/>`)}
+  for(const a of HOSHI)for(const b of HOSHI)out.push(`<circle cx="${(a-c0)*PITCH}" cy="${(b-c0)*PITCH}" r=".03" fill="#4b3319"/>`);
   return out.join('');
 }
 function stones2D(pos){
@@ -517,7 +518,7 @@ function stones2D(pos){
   if(hd){
     const r=handCanvas(hd.p,hd.fl,hd.seat,hd.op);if(r.changed||!HAND.url)HAND.url=r.cv.toDataURL();
     const [X,Y]=w2s(hd.x,hd.z),deg=(hd.ang+(sideOf()<0?Math.PI:0))*180/Math.PI;
-    out.push(`<image href="${HAND.url}" x="${HB.x0}" y="${-HB.y}" width="${HB.x1-HB.x0}" height="${2*HB.y}" transform="translate(${X} ${Y}) rotate(${deg}) translate(${-.165*(1-HSC)} 0) scale(${HSC})"/>`);
+    out.push(`<image href="${HAND.url}" x="${HB.x0}" y="${-HB.y}" width="${HB.x1-HB.x0}" height="${2*HB.y}" transform="translate(${X} ${Y}) rotate(${deg}) translate(${-.165*(1-HSC)+HOFF} 0) scale(${HSC})"/>`);
   }
   return out.join('');
 }
@@ -586,11 +587,11 @@ function boardTex(){
   return canvasTex(1024,1024,(g,N)=>{
     woodPaint(g,N,N,'#e0b878','#8a5520',90,13);
     const s=N/(2*BW),X=v=>(v+BW)*s,c0=(NL-1)/2,hl=c0*PITCH;
-    g.strokeStyle='rgba(60,36,12,.9)';g.lineWidth=Math.max(1.5,N/600);
+    g.strokeStyle='rgba(60,36,12,.9)';g.lineWidth=Math.max(1.5,N/700);
     for(let k=0;k<NL;k++){const v=(k-c0)*PITCH;g.beginPath();g.moveTo(X(-hl),X(v));g.lineTo(X(hl),X(v));g.moveTo(X(v),X(-hl));g.lineTo(X(v),X(hl));g.stroke()}
     g.lineWidth=Math.max(3,N/300);g.strokeRect(X(-hl),X(-hl),2*hl*s,2*hl*s);
     g.fillStyle='rgba(60,36,12,1)';
-    for(const a of [3,6,9])for(const b of [3,6,9]){g.beginPath();g.arc(X((a-c0)*PITCH),X((b-c0)*PITCH),Math.max(4,N/180),0,7);g.fill()}
+    for(const a of HOSHI)for(const b of HOSHI){g.beginPath();g.arc(X((a-c0)*PITCH),X((b-c0)*PITCH),Math.max(3,N/230),0,7);g.fill()}
   });
 }
 function ak3Build(){
@@ -612,7 +613,7 @@ function ak3Build(){
     {const tex=new THREE.CanvasTexture(handCanvas(0,0,0,.2).cv);tex.anisotropy=4;
      const hm=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false});
      const pl=new THREE.Mesh(new THREE.PlaneGeometry(HB.x1-HB.x0,2*HB.y),hm);pl.rotation.x=-Math.PI/2;pl.position.x=(HB.x0+HB.x1)/2;pl.renderOrder=9;
-     const inner=new THREE.Group();inner.add(pl);inner.scale.setScalar(HSC);inner.position.x=-.165*(1-HSC);const hg=new THREE.Group();hg.add(inner);hg.visible=false;root.add(hg);Ak3.hand={g:hg,tex}}
+     const inner=new THREE.Group();inner.add(pl);inner.scale.setScalar(HSC);inner.position.x=-.165*(1-HSC)+HOFF;const hg=new THREE.Group();hg.add(inner);hg.visible=false;root.add(hg);Ak3.hand={g:hg,tex}}
     loadHand3D();
     Ak3.blobGeo=new THREE.CircleGeometry(SR,28);
     Ak3.cam=new THREE.PerspectiveCamera(40,1,.1,100);
