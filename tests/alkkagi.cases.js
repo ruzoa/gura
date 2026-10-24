@@ -6,16 +6,14 @@ const ok=(c,m)=>{if(!c)fail('alkkagi '+m)};
 const at=(x,z,s)=>({x,y:TOP+SH,z,s,o:0,g:0});
 const maxY=(r,i)=>{const t=r.tr[i];if(!t)return TOP+SH;let m=-9;for(let k=1;k<t.length;k+=5)m=Math.max(m,t[k+1]/1000);return m};
 
-/* 처음 자리: 개수대로, 모두 판 위, 겹치지 않음, 두 사람이 대칭 */
+/* 놓기 전 자리: 개수대로, 모두 판 밖 펠트 위, 겹치지 않음, 두 사람이 대칭 */
 for(let n=1;n<=10;n++){
-  const h=T.homes(n);
-  eq(h.length,2*n,'homes count '+n);
-  ok(h.every(q=>Math.abs(q.x)<BW-SR&&Math.abs(q.z)<BW-SR),'homes on board '+n);
-  for(let i=0;i<h.length;i++)for(let j=i+1;j<h.length;j++)if(Math.hypot(h[i].x-h[j].x,h[i].z-h[j].z)<2*SR+.01)fail('alkkagi homes overlap n='+n);
-  ok(h.slice(0,n).every(q=>q.z>0&&q.s===0)&&h.slice(n).every(q=>q.z<0&&q.s===1),'homes sides '+n);
-  ok(h.slice(0,n).every((q,k)=>Math.abs(q.x+h[n+k].x)<1e-9&&Math.abs(q.z+h[n+k].z)<1e-9),'homes mirrored '+n);
+  const h=T.reserves(n);
+  eq(h.length,2*n,'reserves count '+n);
+  ok(h.every(q=>q.u&&Math.abs(q.z)>BW+SR&&Math.hypot(q.x,q.z)<3.15-SR),'reserves on felt '+n);
+  for(let i=0;i<h.length;i++)for(let j=i+1;j<h.length;j++)if(Math.hypot(h[i].x-h[j].x,h[i].z-h[j].z)<2*SR+.01)fail('alkkagi reserves overlap n='+n);
+  ok(h.slice(0,n).every(q=>q.z>0&&q.s===0)&&h.slice(n).every(q=>q.z<0&&q.s===1),'reserves sides '+n);
 }
-
 /* 물리: 가만히 있는 알은 그대로, 정면으로 치면 맞은 알이 앞으로, 판 끝에서 치면 떨어짐 */
 {const st=[at(0,1,0),at(0,0,1),at(1.5,-1.5,1)];
  const r=T.simulate(st,{i:0,vx:0,vz:-4,p:.4});
@@ -42,15 +40,43 @@ for(let n=1;n<=10;n++){
    ok(t[0]+m<=r.nf,'track within frames '+i)}}
 
 /* ---------- 엔진 ---------- */
-const mkRoom=(over,names=['가','나'])=>{
+const mkRoom=(over,names=['가','나'],keepPlace)=>{
   hostNew(false,'t','t');
   H.cfg={...cfgFor('alkkagi'),...over,game:'alkkagi'};
   H.members=names.map((n,i)=>({name:n,bot:false,conn:null,host:i===0}));
   hostStart();
   NOW+=10000;H.dealUntil=0;H.deadline=NOW+H.cfg.turn*1000;H.botActAt=0;   // 시작 연출 지나감
+  if(!keepPlace)placeAll();
   return H;
 };
+/* 놓기를 끝냄: 차례인 사람이 봇처럼 놓을 자리를 골라 놓음 */
+function placeAll(){for(let k=0;k<40&&H.ak.ph==='place';k++){const b=T.placePlan(H.ak,H.turn);AK.engine.act(H.turn,{t:'place',c:b[0],r:b[1]})}H.deadline=NOW+H.cfg.turn*1000;H.botActAt=0}
 const roll=()=>{for(let k=0;k<80&&H.ak.ph==='roll'&&H.phase==='play';k++){NOW+=250;engineTick()}};
+/* 놓기: 선부터 번갈아 내 쪽 반의 빈 줄 점에만. 다 놓으면 선이 먼저 튕김 */
+{mkRoom({pickfirst:1,stones:3},undefined,true);
+ const A=H.ak,C=(T.NL-1)/2;   // 가운데 줄 번호 (9)
+ eq(A.ph,'place','starts with placing');eq(H.turn,0,'first places first');ok(A.st.every(q=>q.u),'all in reserve');
+ {const s=snapFor(1);eq(s.t,0,'turn sent while placing');ok(s.dl>0,'deadline while placing');ok(s.ak.st.every(q=>q[6]===1),'unplaced flag sent')}
+ AK.engine.act(0,{t:'shoot',i:0,a:0,p:.5});eq(A.cnt,0,'no shot while placing');
+ AK.engine.act(1,{t:'place',c:9,r:4});eq(A.pc,0,'not your turn to place');
+ AK.engine.act(0,{t:'place',c:9,r:4});eq(A.pc,0,'not on opponent half');
+ AK.engine.act(0,{t:'place',c:9,r:C});eq(A.pc,0,'not on centre line');
+ AK.engine.act(0,{t:'place',c:19,r:14});eq(A.pc,0,'not off grid');
+ AK.engine.act(0,{t:'place',c:9.5,r:14});eq(A.pc,0,'not between lines');
+ AK.engine.act(0,{t:'place',c:9,r:14});eq(A.pc,1,'placed');eq(H.turn,1,'then opponent');
+ {const q=A.st[0];ok(!q.u&&Math.abs(q.x)<1e-9&&q.z>0&&Math.abs(q.y-(TOP+SH))<1e-9,'placed on board')}
+ AK.engine.act(1,{t:'place',c:9,r:4});eq(A.pc,2,'opponent placed');eq(H.turn,0,'back to first');
+ AK.engine.act(0,{t:'place',c:9,r:14});eq(A.pc,2,'occupied point refused');
+ AK.engine.act(0,{t:'place',c:10,r:14});AK.engine.act(1,{t:'place',c:10,r:4});
+ AK.engine.act(0,{t:'place',c:11,r:18});eq(A.ph,'place','last stone still to place');eq(H.turn,1,'second places last');
+ AK.engine.act(1,{t:'place',c:0,r:0});
+ eq(A.ph,'aim','shooting starts');eq(H.turn,0,'first shoots first');ok(A.st.every(q=>!q.u&&!q.o),'all on board');
+ ok(A.st.slice(0,3).every(q=>q.z>0)&&A.st.slice(3).every(q=>q.z<0),'each on own half');}
+/* 놓을 차례에 시간이 지나면 아무 자리에 대신 놓음 (차례를 넘기지 않음) */
+{mkRoom({pickfirst:1,stones:2,turn:20},undefined,true);NOW+=20001;engineTick();
+ eq(H.ak.pc,1,'timeout places');eq(H.turn,1,'then opponent');ok(H.ak.st[0].z>0&&!H.ak.st[0].u,'auto placed on own half');}
+/* 봇 놓기 계획: 늘 놓을 수 있는 곳 */
+{const A={st:T.reserves(10)};for(let k=0;k<20;k++)for(const s of [0,1]){const b=T.placePlan(A,s);ok(b&&T.canPlace(A,s,b[0],b[1]),'place plan valid');const i=A.st.findIndex(q=>q.s===s&&q.u);if(i>=0){const [x,z]=T.gridXZ(b[0],b[1]);A.st[i]={x,y:TOP+SH,z,s,o:0,g:0}}}}
 /* 선 직접 고르기: 방장이 흑으로 먼저. 남의 차례·남의 알·잘못된 값은 무시 */
 {mkRoom({pickfirst:1,stones:5});
  eq(H.ak.A,0,'host first');eq(H.ak.co.join(),'1,2','colours');eq(H.turn,0,'first turn');eq(H.ak.st.length,10,'stone count');
@@ -95,7 +121,8 @@ for(const ag of [1,0])for(let rep=0;rep<6;rep++){
 /* 바로 시작하면 진 사람이 먼저 */
 {mkRoom({pickfirst:1});AK.engine.act(0,{t:'surrender'});eq(H.ak.res.w,1,'p1 wins');hostStart();eq(H.ak.A,0,'loser first on rematch');eq(H.ak.co.join(),'1,2','loser black');}
 /* 봇: 계획은 남은 내 알 중에서, 힘은 범위 안 */
-{const A={st:T.homes(5)};for(let k=0;k<50;k++){const b=T.botPlan(A,1);ok(b&&A.st[b.i].s===1&&b.p>=.3&&b.p<=1&&Number.isFinite(b.a),'bot plan')}
+{const A={st:T.reserves(5)};for(const s of [0,1])for(let k=0;k<5;k++){const b=T.placePlan(A,s),[x,z]=T.gridXZ(b[0],b[1]);A.st[A.st.findIndex(q=>q.s===s&&q.u)]={x,y:TOP+SH,z,s,o:0,g:0}}
+ for(let k=0;k<50;k++){const b=T.botPlan(A,1);ok(b&&A.st[b.i].s===1&&b.p>=.3&&b.p<=1&&Number.isFinite(b.a),'bot plan')}
  A.st.forEach(q=>{if(q.s===1)q.o=1});eq(T.botPlan(A,1),null,'bot with no stones');}
 
 /* 봇끼리 끝까지 */

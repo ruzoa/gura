@@ -135,15 +135,29 @@ function simulate(st,shot,rnd){
   });
   return {fin:S.map(q=>({x:q.x,y:q.y,z:q.z,s:q.s,o:q.o,g:q.g})),tr,nf,ev,of,dur:Math.round((nf-1)/P.fps*1000)};
 }
-/* 처음 자리: 내 쪽 끝에서 5번째 줄(6개까지 한 줄, 7개부터 끝에서 4·7번째 두 줄), 가운데에서 좌우 대칭, 4칸까지 띄움. 1번 자리는 판을 돌린 자리 */
-function homes(n){
-  const out=[],c0=(NL-1)/2;
-  const row=(cnt,L)=>{const step=cnt>1?Math.min(4,15/(cnt-1)):0,cs=[];
-    for(let k=0;k<cnt;k++){const o=(k-(cnt-1)/2)*step;cs.push(c0+Math.sign(o)*Math.round(Math.abs(o)))}
-    return cs.map(c=>[(c-c0)*PITCH,(c0-L)*PITCH])};
-  const pts=n<=6?row(n,4):[...row(Math.ceil(n/2),6),...row(Math.floor(n/2),3)];
-  for(const s of [0,1])for(const [x,z] of pts)out.push({x:s?-x:x,y:TOP+SH,z:s?-z:z,s,o:0,g:0});
-  return out;
+/* 놓기 전 알: 내 쪽 판 바깥 펠트에 한 줄로 (놓으면 판으로 날아감). k번째 알, 한 사람 n개 */
+function reserveAt(s,k,n){
+  const step=n>1?Math.min(.3,2.7/(n-1)):0,x=(k-(n-1)/2)*step,z=BW+.3,sd=s?-1:1;
+  return {x:x*sd,y:FELT_Y+SH,z:z*sd,s,o:0,g:0,u:1};
+}
+function reserves(n){const out=[];for(const s of [0,1])for(let k=0;k<n;k++)out.push(reserveAt(s,k,n));return out}
+/* 놓을 수 있는 자리: 줄이 만나는 점 (c 가로, r 세로 0~18). 0번 자리는 +z 쪽 반(r>9), 1번 자리는 -z 쪽 반(r<9), 가운데 줄은 안 됨, 다른 알이 없는 곳 */
+const C0=(NL-1)/2;
+const gridXZ=(c,r)=>[(c-C0)*PITCH,(r-C0)*PITCH];
+const ownRow=(seat,r)=>seat===0?r>C0:r<C0;
+function freeAt(A,c,r){const [x,z]=gridXZ(c,r);return !A.st.some(q=>!q.u&&!q.o&&Math.hypot(q.x-x,q.z-z)<PITCH*.6)}
+function canPlace(A,seat,c,r){return Number.isInteger(c)&&Number.isInteger(r)&&c>=0&&c<NL&&r>=0&&r<NL&&ownRow(seat,r)&&freeAt(A,c,r)}
+/* 봇·시간 초과의 놓기: 내 끝줄에서 2~7줄 안쪽, 다른 알과 붙지 않은 곳 중 아무 데나 (없으면 놓을 수 있는 아무 곳) */
+function placePlan(A,seat,rnd){
+  rnd=rnd||Math.random;
+  const all=[],good=[];
+  for(let r=0;r<NL;r++)for(let c=0;c<NL;c++){
+    if(!canPlace(A,seat,c,r))continue;all.push([c,r]);
+    const dEdge=seat===0?NL-1-r:r,[x,z]=gridXZ(c,r);
+    if(dEdge>=2&&dEdge<=7&&c>=2&&c<=NL-3&&!A.st.some(q=>!q.u&&!q.o&&Math.hypot(q.x-x,q.z-z)<PITCH*1.5))good.push([c,r]);
+  }
+  const L=good.length?good:all;
+  return L.length?L[(rnd()*L.length)|0]:null;
 }
 const CNAME=['','흑','백'];
 
@@ -166,7 +180,7 @@ function botPlan(A,seat,rnd){
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 알을 튕겨 상대 알을 모두 판 밖으로 떨어뜨리면 <b>승리</b>합니다</li><li><b>진행</b> : 번갈아 내 알 하나씩 튕깁니다. 판 밖으로 떨어진 알은 다시 쓰지 못하고, 내 알이 떨어져도 마찬가지입니다</li><li><b>튕기기</b> : 내 알을 누른 채 뒤로 당겼다 놓습니다. 알 뒤에 내 손이 나타나 당길수록 진해지고 세게 나갑니다. 끝까지 당기면 더 세지지 않습니다. 조금만 당기고 놓으면 취소됩니다</li><li><b>손 떨림</b> : 손은 당기는 동안 계속 떨리고, 세게 당길수록 크게 떨립니다. 놓는 순간 손이 가리키던 쪽으로 나가므로 살살 치면 거의 똑바로, 세게 치면 빗나가기 쉽습니다</li><li><b>뜨는 알</b> : 바둑알은 납작해서 세게 부딪히면 위로 튀어 오르기도 합니다</li><li><b>한 번 더</b> : 탁자 설정에서 켜면, 상대 알을 떨어뜨리고 튕긴 내 알이 판에 남았을 때 한 번 더 튕깁니다</li><li><b>끝</b> : 한쪽 알이 모두 떨어지면 끝납니다. 두 사람의 마지막 알이 함께 떨어지면 무승부입니다</li><li><b>제한 시간</b> : 내 차례에 제한 시간이 지나면 차례가 넘어갑니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다</li><li><b>다음 판</b> : 결과 화면에서 바로 시작하면 진 사람이 먼저 튕기고, 비기면 서로 바꿉니다. 첫 판은 탁자 설정의 선 직접 고르기로 정합니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 알을 튕겨 상대 알을 모두 판 밖으로 떨어뜨리면 <b>승리</b>합니다</li><li><b>알 놓기</b> : 먼저 선(흑)이 내 쪽 반의 줄이 만나는 점에 알을 하나 놓고, 이어서 상대가 하나 놓습니다. 이렇게 번갈아 모두 놓으면 알까기를 시작합니다. 가운데 줄과 상대 쪽 반에는 놓지 못합니다. 누른 점에 미리 보기가 뜨고, 같은 점을 한 번 더 누르면 놓습니다(설정의 ‘두 번 눌러 놓기’를 끄면 바로 놓습니다)</li><li><b>진행</b> : 선부터 번갈아 내 알 하나씩 튕깁니다. 판 밖으로 떨어진 알은 다시 쓰지 못하고, 내 알이 떨어져도 마찬가지입니다</li><li><b>튕기기</b> : 내 알을 누른 채 뒤로 당겼다 놓습니다. 알 뒤에 내 손이 나타나 당길수록 진해지고 세게 나갑니다. 끝까지 당기면 더 세지지 않습니다. 조금만 당기고 놓으면 취소됩니다</li><li><b>손 떨림</b> : 손은 당기는 동안 계속 떨리고, 세게 당길수록 크게 떨립니다. 놓는 순간 손이 가리키던 쪽으로 나가므로 살살 치면 거의 똑바로, 세게 치면 빗나가기 쉽습니다</li><li><b>뜨는 알</b> : 바둑알은 납작해서 세게 부딪히면 위로 튀어 오르기도 합니다</li><li><b>한 번 더</b> : 탁자 설정에서 켜면, 상대 알을 떨어뜨리고 튕긴 내 알이 판에 남았을 때 한 번 더 튕깁니다</li><li><b>끝</b> : 한쪽 알이 모두 떨어지면 끝납니다. 두 사람의 마지막 알이 함께 떨어지면 무승부입니다</li><li><b>제한 시간</b> : 튕길 차례에 제한 시간이 지나면 차례가 넘어가고, 놓을 차례에 지나면 아무 자리에 대신 놓습니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다</li><li><b>다음 판</b> : 결과 화면에서 바로 시작하면 진 사람이 선(먼저 놓고 먼저 튕김)이 되고, 비기면 서로 바꿉니다. 첫 판은 탁자 설정의 선 직접 고르기로 정합니다</li></ol>';
 G.modeDesc=['상대 알을 모두 떨어뜨리면 끝','상대 알을 모두 떨어뜨리면 끝'];
 G.defaults={max:2,turn:30,stones:5,again:1,pickfirst:0};
 G.roomSet=[
@@ -174,7 +188,7 @@ G.roomSet=[
   {k:'turn',label:'제한 시간',unit:'초',lo:10,hi:120,step:5,desc:'시간이 지나면 차례가 넘어갑니다'}];
 G.ruleSet=[
   {k:'again',label:'떨어뜨리면 한 번 더',desc:'상대 알을 떨어뜨리고 튕긴 내 알이 판에 남으면 한 번 더 튕깁니다'},
-  {k:'pickfirst',label:'선 직접 고르기',desc:'켜면 방장이 대기실에서 먼저 튕길 사람을 고릅니다. 끄면 랜덤입니다'}];
+  {k:'pickfirst',label:'선 직접 고르기',desc:'켜면 방장이 대기실에서 선(먼저 놓고 먼저 튕길 사람)을 고릅니다. 끄면 랜덤입니다'}];
 const nStones=c=>Math.max(1,Math.min(10,Math.round(+c.stones||5)));
 G.cfgChips=c=>`<span class="chip">알 <b>${nStones(c)}개</b></span><span class="chip">제한 시간 <b>${+c.turn||30}초</b></span><span class="chip">한 번 더 <b>${+c.again?'켜기':'끄기'}</b></span><span class="chip">선 <b>${+c.pickfirst?'방장 선택':'랜덤'}</b></span>`;
 G.cfgSum=c=>`알 ${nStones(c)}개 · 제한 시간 ${+c.turn||30}초 · 한 번 더 ${+c.again?'켜기':'끄기'} · 선 ${+c.pickfirst?'방장 선택':'랜덤'}`;
@@ -202,9 +216,9 @@ function pickFirst(again){
   }
   return typeof firstSeat==='function'?firstSeat(2):(Math.random()<.5?0:1);
 }
-function startTurn(i){
+function startTurn(i,ph){
   const A=H.ak,t=clock();
-  A.ph='aim';A.aim=null;A.bp=null;H.turn=i;H.graceUntil=0;
+  A.ph=ph||'aim';A.aim=null;A.bp=null;H.turn=i;H.graceUntil=0;
   H.deadline=t+(+H.cfg.turn||30)*1000;
   H.botActAt=H.players[i]&&H.players[i].bot?t+rand(700,1400):0;
   mark();
@@ -246,6 +260,19 @@ function doShot(seat,i,a,p){
   mark();
   return true;
 }
+/* 놓기: 선부터 한 알씩 번갈아 내 쪽 반에 놓음. 다 놓으면 선이 먼저 튕김 */
+const unplaced=(A,seat)=>A.st.filter(q=>q.s===seat&&q.u).length;
+function doPlace(seat,c,r){
+  const A=H.ak;
+  if(A.ph!=='place'||!canPlace(A,seat,c,r))return false;
+  const i=A.st.findIndex(q=>q.s===seat&&q.u);if(i<0)return false;
+  const [x,z]=gridXZ(c,r);A.st[i]={x,y:TOP+SH,z,s:seat,o:0,g:0};A.pc=(A.pc||0)+1;
+  H.seatNote[seat]='';
+  if(!unplaced(A,0)&&!unplaced(A,1)){addLog('알을 모두 놓았습니다. 알까기를 시작합니다.','sys');startTurn(A.A);return true}
+  startTurn(unplaced(A,other(seat))?other(seat):seat,'place');
+  return true;
+}
+function autoPlace(i){const b=placePlan(H.ak,i);if(!b||!doPlace(i,b[0],b[1])){const A=H.ak;A.st.forEach(q=>{if(q.u){q.u=0;q.o=1;q.g=1}});startTurn(A.A)}}   // 놓을 곳이 없으면(생기지 않음) 남은 알은 빼고 시작
 function flushLog(){const A=H.ak;if(A&&A.lg){addLog(A.lg[0],A.lg[1]);A.lg=null}}
 function afterShot(){
   flushLog();
@@ -260,6 +287,7 @@ function doSurrender(seat){
 /* 제한 시간이 지나면 차례를 넘김. 봇(과 탈주해서 봇이 맡은 자리)은 바로 튕김. 연결이 끊겨 기다리는 사람도 다른 사람과 똑같이 넘어감 */
 function timeout(){
   const i=H.turn,p=H.players[i];
+  if(H.ak.ph==='place'){if(!(p.bot&&!awayHuman(p)))addLog(`${p.name} 시간 초과로 아무 자리에 놓습니다.`,'sys');autoPlace(i);return}   // 놓기는 넘기지 않고 대신 놓음
   if(p.bot&&!awayHuman(p)){botShootNow(i);return}
   addLog(`${p.name} 시간 초과로 차례를 넘깁니다.`,'sys');
   startTurn(other(i));
@@ -275,7 +303,7 @@ function botStep(i,t){
   if(!doShot(i,b.i,b.fa,b.p))startTurn(other(i));
 }
 /* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
-G._test={simulate,homes,botPlan,speedOf,groundAt,doShot,doSurrender,timeout,pickFirst,aliveOf,PHY,TOP,SH,SR,BW,PITCH,NL};
+G._test={simulate,reserves,placePlan,canPlace,gridXZ,botPlan,speedOf,groundAt,doShot,doSurrender,timeout,pickFirst,aliveOf,PHY,TOP,SH,SR,BW,PITCH,NL};
 G.engine={
   /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
   start(){
@@ -287,14 +315,16 @@ G.engine={
     });
     const Af=pickFirst(again);
     H.akGid=(H.akGid||0)+1;
-    H.ak={gid:H.akGid,n,A:Af,co:Af===0?[1,2]:[2,1],st:homes(n),ph:'aim',sid:0,sh:null,aim:null,bp:null,res:null,cnt:0,next:Af,until:0};
-    addLog(`${H.players[Af].name}님이 흑으로 먼저 튕깁니다. (알 ${n}개씩)`,'sys');
-    startTurn(Af);
+    H.ak={gid:H.akGid,n,A:Af,co:Af===0?[1,2]:[2,1],st:reserves(n),ph:'place',pc:0,sid:0,sh:null,aim:null,bp:null,res:null,cnt:0,next:Af,until:0};
+    addLog(`${H.players[Af].name}님이 흑으로 먼저 놓고 먼저 튕깁니다. (알 ${n}개씩 번갈아 놓기)`,'sys');
+    startTurn(Af,'place');
   },
   act(seat,a){
     if(a.t==='surrender'){doSurrender(seat);return}
     const A=H.ak;
-    if(!A||H.phase!=='play'||seat<0||seat>1||H.turn!==seat||A.ph!=='aim')return;
+    if(!A||H.phase!=='play'||seat<0||seat>1||H.turn!==seat)return;
+    if(a.t==='place'){doPlace(seat,a.c,a.r);return}
+    if(A.ph!=='aim')return;
     if(a.t==='aim'){   // 당기는 중 (화살표를 상대에게도 보여 줌). i<0이면 내려놓음
       if(!Number.isInteger(a.i)||a.i<0){if(A.aim){A.aim=null;mark()}return}
       const s=A.st[a.i];if(!s||s.s!==seat||s.o||!Number.isFinite(+a.a)||!Number.isFinite(+a.p))return;
@@ -310,15 +340,15 @@ G.engine={
     if(A.ph==='roll'){if(t>=A.until)afterShot();return}
     const cur=H.players[H.turn];if(!cur)return;
     if(t>=H.deadline){timeout();return}
-    if(cur.bot&&H.botActAt&&t>=H.botActAt&&!(cur.away&&t<cur.awayAt+AWAY_WAIT))botStep(H.turn,t);
+    if(cur.bot&&H.botActAt&&t>=H.botActAt&&!(cur.away&&t<cur.awayAt+AWAY_WAIT)){if(A.ph==='place')autoPlace(H.turn);else botStep(H.turn,t)}
   },
   snap(s,you,t){
     const A=H.ak,r3=v=>Math.round(v*1000)/1000;
     const sh=A.sh?{id:A.sh.id,by:A.sh.by,i:A.sh.i,a:Math.round(A.sh.a*1000)/1000,p:Math.round(A.sh.p*1000)/1000,age:Math.max(0,Math.round(t-A.sh.t0))}:null;
     if(sh&&sh.age<A.sh.dur+4000){sh.tr=A.sh.tr;sh.nf=A.sh.nf;sh.ev=A.sh.ev;sh.of=A.sh.of;sh.dur=A.sh.dur}   // 자취는 연출 중인 동안만 보냄 (가볍게)
-    s.ak={gid:A.gid,n:A.n,A:A.A,co:A.co.slice(),st:A.st.map(q=>[r3(q.x),r3(q.y),r3(q.z),q.s,q.o?1:0,q.g?1:0]),ph:A.ph,sid:A.sid,sh,aim:A.aim?{...A.aim}:null,res:A.res?{...A.res}:null,cnt:A.cnt,ag:+H.cfg.again?1:0};
+    s.ak={gid:A.gid,n:A.n,A:A.A,co:A.co.slice(),st:A.st.map(q=>[r3(q.x),r3(q.y),r3(q.z),q.s,q.o?1:0,q.g?1:0,q.u?1:0]),ph:A.ph,sid:A.sid,sh,aim:A.aim?{...A.aim}:null,res:A.res?{...A.res}:null,cnt:A.cnt,ag:+H.cfg.again?1:0};
     s.gr=0;
-    if(H.phase==='play'&&A.ph==='aim')s.dl=Math.max(0,Math.round(H.deadline-t));
+    if(H.phase==='play'&&(A.ph==='aim'||A.ph==='place'))s.dl=Math.max(0,Math.round(H.deadline-t));
     else{s.dl=0;if(H.phase==='play')delete s.t}   // 알이 굴러가는 동안은 아무 차례도 아님 (시간 표시 없음)
   },
   restore(ms){const A=H.ak;if(!A||!ms)return;if(A.until)A.until+=ms;if(A.sh)A.sh.t0+=ms;if(A.bp)A.bp.t0+=ms},   // 시작 연출 동안·방장이 꺼져 있던 동안은 멈춤
@@ -332,9 +362,10 @@ let OS=null,drag=null,elAk=null,elSvg=null,elMain=null,elBar=null,elHint=null,la
 const MAXD=1.25;   // 끝까지 당긴 거리 (월드). 넘게 당겨도 더 세지지 않음
 const SEND_MS=90;   // 당기는 중 화살표를 방장에게 보내는 간격
 const myTurnNow=()=>!!(V&&V.ak&&V.st==='play'&&myReady()&&OS&&OS.ph==='aim');
+const myPlaceNow=()=>!!(V&&V.ak&&V.st==='play'&&V.t===myIdx()&&OS&&OS.ph==='place'&&!introWait());
 const sideOf=()=>myIdx()===1?-1:1;   // 내 쪽: 0번 자리(또는 관전)는 +z, 1번 자리는 -z
 function buildS(o){
-  return {gid:o.gid,n:o.n,A:o.A,co:o.co,st:o.st.map(a=>({x:a[0],y:a[1],z:a[2],s:a[3],o:a[4],g:a[5]})),ph:o.ph,sid:o.sid,sh:o.sh,aim:o.aim,res:o.res,cnt:o.cnt,ag:o.ag};
+  return {gid:o.gid,n:o.n,A:o.A,co:o.co,st:o.st.map(a=>({x:a[0],y:a[1],z:a[2],s:a[3],o:a[4],g:a[5],u:a[6]})),ph:o.ph,sid:o.sid,sh:o.sh,aim:o.aim,res:o.res,cnt:o.cnt,ag:o.ag};
 }
 function say(txt){
   msg=txt;msgUntil=Date.now()+2400;drawHint();
@@ -365,9 +396,22 @@ function pickStone(x,z){   // 누른 곳에서 가까운 내 알 (알이 작아�
   OS.st.forEach((s,i)=>{if(s.s!==me||s.o)return;const d=Math.hypot(s.x-x,s.z-z);if(d<bd){bd=d;best=i}});
   return best;
 }
+/* 놓기: 누른 곳에서 가장 가까운 줄 점. 처음 누르면 반투명 미리 보기, 같은 점을 한 번 더 누르면 놓음('두 번 눌러 놓기'를 끄면 바로) */
+let GH=null;   // 미리 보기 {c,r}
+function nearGrid(x,z){const c=Math.round(x/PITCH+C0),r=Math.round(z/PITCH+C0);return Math.hypot(x-(c-C0)*PITCH,z-(r-C0)*PITCH)<PITCH*.75?[c,r]:null}
+function placeTap(x,z){
+  const me=myIdx();if(me<0||me>1)return;
+  if(!myPlaceNow()){sndNo();return}
+  const g=nearGrid(x,z);
+  if(!g||!canPlace(OS,me,g[0],g[1])){sndNo();return}
+  const dbl=typeof dblTap==='undefined'||!!dblTap;
+  if(dbl&&!(GH&&GH.c===g[0]&&GH.r===g[1])){GH={c:g[0],r:g[1]};sndPickUp();Ak3.dirty=true;draw2D();return}
+  GH=null;sendAct({t:'place',c:g[0],r:g[1]});Ak3.dirty=true;
+}
 function dragStart(x,z){
   if(!OS||!V||V.st!=='play')return false;
   const me=myIdx();if(me<0)return false;
+  if(OS.ph==='place'){placeTap(x,z);return false}
   const i=pickStone(x,z);
   if(i<0)return false;
   if(!myTurnNow()||introWait()||Ak3.shot){sndNo();return true}   // 내 알이지만 지금은 못 튕김
@@ -521,6 +565,9 @@ function stones2D(pos){
     const col=OS.co[s.s],[X,Y]=w2s(q.x,q.z),h=Math.max(0,q.y-(groundAt(q.x,q.z)+SH)),k=stoneScale(q.y),f=col===1?'#232326':'#f7f2e8',st=col===1?'#0c0c0e':'#8c7a5b';
     out.push(`<circle cx="${X+h*.5}" cy="${Y+h*.35}" r="${SR*(1+h*.8)}" fill="#000" opacity="${.28/(1+h*5)}"/><circle cx="${X}" cy="${Y}" r="${SR*k}" fill="${f}" stroke="${st}" stroke-width=".02"/>`);
   });
+  if(myPlaceNow()){const me=myIdx(),y0=PITCH/2,y1=BW-.06,sd=me===1?-1:1,[,a]=w2s(0,sd*y0),[,b]=w2s(0,sd*y1);
+    out.unshift(`<rect x="${-BW+.06}" y="${Math.min(a,b)}" width="${2*BW-.12}" height="${Math.abs(b-a)}" fill="#f2b632" opacity=".18"/>`);
+    if(GH){const [x,z]=gridXZ(GH.c,GH.r),[X,Y]=w2s(x,z),c=OS.co[me];out.push(`<circle cx="${X}" cy="${Y}" r="${SR}" fill="${c===1?'#232326':'#f7f2e8'}" stroke="${c===1?'#0c0c0e':'#8c7a5b'}" stroke-width=".02" opacity=".5"/>`)}}
   if(myTurnNow()&&!drag&&!Ak3.shot&&!FLK)OS.st.forEach((s,i)=>{if(s.s===myIdx()&&!s.o){const [X,Y]=w2s(pos[i].x,pos[i].z);out.push(`<circle cx="${X}" cy="${Y}" r="${SR*1.45}" fill="none" stroke="#f2b632" stroke-width=".03" opacity=".85"/>`)}});
   const hd=handNow(t,pos);
   if(hd){
@@ -555,6 +602,7 @@ function hintText(){
     const r=OS.res;if(!r)return '게임이 끝났습니다.';
     return r.w<0?'무승부입니다.':`${nm(r.w)} 승리${r.why==='surrender'?' (항복)':r.why==='desert'?' (탈주)':''}`;
   }
+  if(OS.ph==='place'&&!introWait())return `알 놓기 ${OS.st.filter(q=>!q.u).length+1}/${OS.st.length}`;   // 놓기 단계 (몇 번째 알인지)
   return '';
 }
 function drawHint(){if(!elHint)return;const h=hintText();if(h!==lastHint){elHint.textContent=h;lastHint=h}}
@@ -624,6 +672,11 @@ function ak3Build(){
      const inner=new THREE.Group();inner.add(pl);inner.scale.setScalar(HSC);inner.position.x=-.165*(1-HSC)+HOFF;const hg=new THREE.Group();hg.add(inner);hg.visible=false;root.add(hg);Ak3.hand={g:hg,tex}}
     loadHand3D();
     Ak3.blobGeo=new THREE.CircleGeometry(SR,28);
+    // 놓기: 내가 놓을 수 있는 반쪽(가운데 줄 빼고)을 옅게 칠함 + 미리 보기 알
+    {const w=2*BW-.12,h=BW-.06-PITCH/2,m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({color:0xf2b632,transparent:true,opacity:.2,depthWrite:false}));
+     m.rotation.x=-Math.PI/2;m.visible=false;m.renderOrder=1;m.userData.h=h;root.add(m);Ak3.half=m}
+    {const g=new THREE.Group(),mat=new THREE.MeshBasicMaterial({color:0x26262a,transparent:true,opacity:.5,depthWrite:false}),m=new THREE.Mesh(new THREE.SphereGeometry(SR,28,16),mat);
+     m.scale.y=SH/SR;g.add(m);g.visible=false;g.renderOrder=4;root.add(g);Ak3.ghost={g,mat}}
     Ak3.cam=new THREE.PerspectiveCamera(40,1,.1,100);
     T.scene.add(root);Ak3.root=root;Ak3.built=true;
   }catch(e){Ak3.fail=true;try{console.warn('알까기 3D 준비 실패',e)}catch(_){}}
@@ -659,7 +712,7 @@ function ak3Layout(t){
   const sd=sideOf(),key=base+','+top+','+sd;
   if(key===Ak3.lay)return false;
   Ak3.lay=key;
-  const narrow=W<700,fy=top+2,fh=(narrow?Hh-70:Hh-40)-fy,fw=W-10,ext=2*(BW+.4);
+  const narrow=W<700,fy=top+2,fh=(narrow?Hh-70:Hh-40)-fy,fw=W-10,ext=2*(BW+.45);
   const s=Math.min(fw,fh)/ext,cam=Ak3.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(s*f);
   cam.aspect=W/Hh;cam.position.set(0,TOP+d,0);cam.up.set(0,0,-sd);cam.lookAt(0,TOP,0);
   cam.setViewOffset(W,Hh,0,-((fy+fh/2)-Hh/2),W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
@@ -680,6 +733,8 @@ function curPos(now){
       base[i]={x:g(0),y:g(1),z:g(2),ax:g(3),az:g(4)};
     }
   }
+  if(Ak3.pl)base.forEach((q,i)=>{const a=Ak3.pl[i];if(!a)return;const x=(now-a.t0)/PL_MS;   // 놓은 알: 놓기 전 자리에서 날아와 툭
+    if(x>=1){Ak3.pl[i]=null;return}const k=ease(Math.max(0,x));q.x=a.x+(q.x-a.x)*k;q.z=a.z+(q.z-a.z)*k;q.y=a.y+(q.y-a.y)*k+Math.sin(Math.PI*Math.max(0,x))*.7});
   if(IN.on3d&&IN.drop){   // 시작 연출: 알이 하나씩 위에서 떨어져 제자리에
     const e=now-IN.t0;
     base.forEach((q,i)=>{const d=IN.drop[i];if(!d)return;const x=(e-d.t)/d.dur;
@@ -708,6 +763,11 @@ function ak3Place(now){
     const on=!!s&&!s.o&&V.st==='play'&&!Ak3.shot&&!FLK&&!introWait()&&(a?(!a.mine&&a.i===i):(myTurnNow()&&s.s===me));
     r.visible=on;if(on)r.position.set(q.x,TOP+.004,q.z);
   });
+  // 놓기: 놓을 수 있는 반쪽과 미리 보기
+  {const on=myPlaceNow(),me=myIdx(),sd=me===1?-1:1;Ak3.half.visible=on;
+   if(on){Ak3.half.position.set(0,TOP+.003,sd*(PITCH/2+Ak3.half.userData.h/2));Ak3.half.material.opacity=.13+.09*Math.sin(now/300)}
+   const gh=Ak3.ghost;gh.g.visible=on&&!!GH;
+   if(gh.g.visible){const [x,z]=gridXZ(GH.c,GH.r);gh.g.position.set(x,TOP+SH,z);gh.mat.color.set(OS.co[me]===1?0x26262a:0xf4efe3)}}
   // 손
   const H3=Ak3.hand,hd=handNow(now,pos);
   Ak3.hd=hd;
@@ -733,7 +793,7 @@ function ak3Render(t){
   ak3Stones();
   shotSounds(t);
   const intro=IN.on3d&&introStep(t);
-  const busy=!!(Ak3.shot||intro||drag||FLK||(OS&&OS.aim&&OS.ph==='aim')||myTurnNow());   // 움직이는 것이 없으면 가끔만 그림
+  const busy=!!(Ak3.shot||intro||drag||FLK||(OS&&OS.aim&&OS.ph==='aim')||myTurnNow()||myPlaceNow()||(Ak3.pl&&Ak3.pl.some(Boolean)));   // 움직이는 것이 없으면 가끔만 그림
   if(!busy&&!Ak3.dirty&&t-Ak3.lastR<400)return;
   ak3Place(t);
   const fog=T.scene.fog,fn=fog?fog.near:0,ff=fog?fog.far:0;
@@ -765,8 +825,9 @@ function ak3World(e){
 }
 
 /* ---------- 시작 연출 (방장이 그동안 시간·봇을 멈춤) ----------
-   처음: 0~1.1초 로비 카메라 → 알까기 카메라, 0.1~0.5초 판이 내려앉음, 0.6초부터 알이 양쪽 번갈아 하나씩 떨어져 제자리에, 끝에 '○○님이 흑으로 먼저 튕깁니다'
+   처음: 0~1.1초 로비 카메라 → 알까기 카메라, 0.1~0.5초 판이 내려앉음, 0.6초부터 알이 양쪽 번갈아 하나씩 판 바깥 놓기 전 자리(내 쪽 펠트)에 떨어짐, 끝에 '○○님이 흑으로 먼저 놓습니다'
    바로 시작: 판은 그대로, 있던 자리(판 밖에 떨어진 알 포함)에서 알이 날아와 제자리에 */
+const PL_MS=420;   // 놓은 알이 날아가는 시간
 const INTRO={cam:1100,board:[100,400],drop:600,dur:320};
 G.introMs=again=>again?1500:2600;
 const IN={on:false,on3d:false,t0:0,fromLobby:true,said:false,snd:{},drop:null,total:2600};
@@ -808,7 +869,7 @@ function introTick(){
   if(e>=sayAt&&!IN.said){
     IN.said=true;$('#stage').classList.remove('ak-intro');
     const A=V&&V.ak&&V.ak.A,p=V&&V.ps&&V.ps[A];
-    if(p)say(A===myIdx()?'내가 흑으로 먼저 튕깁니다.':`${p.n}님이 흑으로 먼저 튕깁니다.`);
+    if(p)say(A===myIdx()?'내가 흑으로 먼저 놓습니다.':`${p.n}님이 흑으로 먼저 놓습니다.`);
     sfx('turn');lastBar='';
   }
   if(e>=IN.total){IN.on=false;IN.drop=null;lastBar='';lastHint=''}
@@ -833,6 +894,11 @@ G.preView=()=>{
     else Ak3.shot=null;
   }
   if(drag&&(!myTurnNow()||V.st!=='play'))drag=null;
+  // 새로 놓인 알: 놓기 전 자리에서 날아가게 (같은 판에서 바로 앞 상태를 본 경우만)
+  if(pv&&pv.gid===OS.gid&&pv.st){Ak3.pl=Ak3.pl||[];OS.st.forEach((q,i)=>{const o=pv.st[i];if(o&&o[6]&&!q.u){Ak3.pl[i]={x:o[0],y:o[1],z:o[2],t0:clock()};Ak3.plSnd=Ak3.plSnd||{};Ak3.plSnd[i]=0}})}
+  if(!myPlaceNow())GH=null;
+  else if(GH&&!canPlace(OS,myIdx(),GH.c,GH.r))GH=null;
+  if(pv&&pv.ph==='place'&&OS.ph==='aim'&&V.st==='play'){say('알까기를 시작합니다.');sfx('turn')}
   // 한 번 더: 굴러가기가 끝나고 같은 사람 차례가 다시 오면
   if(pv&&pv.ph==='roll'&&OS.ph==='aim'&&V.st==='play'&&OS.sh&&V.t===OS.sh.by)say(V.t===myIdx()?'한 번 더':`${nm(V.t)} 한 번 더`);
   Ak3.dirty=true;
@@ -873,7 +939,8 @@ G.buttons=()=>{
 G.live=()=>{
   if(IN.on)introTick();
   if(!V||!V.ak||!OS)return;
-  const t=clock(),run=V.st==='play'&&OS.ph==='aim'&&!introWait()&&Number.isInteger(V.t);
+  const t=clock(),run=V.st==='play'&&(OS.ph==='aim'||OS.ph==='place')&&!introWait()&&Number.isInteger(V.t);
+  if(Ak3.pl)Ak3.pl.forEach((a,i)=>{if(a&&!Ak3.plSnd[i]&&t-a.t0>=PL_MS*.7){Ak3.plSnd[i]=1;sndTap(2.4)}});   // 놓은 알이 판에 툭
   const left=run?Math.max(0,V.deadAt-t):0,txt=run?String(Math.ceil(left/1000)):'';
   if(elBar)elBar.querySelectorAll('[data-ct]').forEach(el=>{const i=+el.dataset.ct,s=run&&V.t===i?txt:'';if(el.textContent!==s)el.textContent=s;
     const low=run&&V.t===i&&left<=10000;if(el.parentNode.classList.contains('low')!==low)el.parentNode.classList.toggle('low',low)});
@@ -883,7 +950,7 @@ G.live=()=>{
   if(me>=0){const mt=$('#meTime'),s=run&&V.t===me?txt+'초':'';if(mt.textContent!==s)mt.textContent=s}
   if(!Ak3.on){
     if(Ak3.shot){shotSounds(t)}
-    if(Ak3.shot||drag||FLK||(OS.aim&&OS.ph==='aim')||myTurnNow())draw2D();
+    if(Ak3.shot||drag||FLK||(OS.aim&&OS.ph==='aim')||myTurnNow()||(Ak3.pl&&Ak3.pl.some(Boolean)))draw2D();
   }
 };
 G.play=()=>{};
