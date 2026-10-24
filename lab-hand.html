@@ -501,7 +501,7 @@ void main(){vec4 c=texture2D(tC,vUv);float dp=lin(texture2D(tD,vUv).x),line=0.;
    float aq=texture2D(tC,q).a;if(aq<.02)continue;float dq=lin(texture2D(tD,q).x);
    vec2 q2=q+o;float dq2=texture2D(tC,q2).a<.02?dq:lin(texture2D(tD,q2).x),pred=dq+clamp(dq-dq2,-.05*dq,.05*dq);   // 앞쪽 면(q)의 기울기를 p까지 이어 본 깊이
    // 앞 면을 이어 본 깊이보다 p가 눈에 띄게 뒤 = 겹친 손가락의 뒤쪽 또는 바깥 → 선. 비스듬히 보이는 한 면은 기울기대로라 선이 없음
-   if(dp-pred>.007*dq)line=max(line,aq);}}}
+   if(dp-pred>.018*dq)line=max(line,aq);}}}
  vec4 o=vec4(c.rgb,c.a*op);if(line>0.){o=mix(o,vec4(inkC,lop),line);}
  if(o.a<.003)discard;gl_FragColor=o;}`;
 const comp=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,
