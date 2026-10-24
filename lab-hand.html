@@ -279,7 +279,7 @@ vec3 nrm(vec3 p){vec2 e=vec2(.0006,-.0006);return normalize(e.xyy*map(p+e.xyy)+e
 void main(){
   vec3 ro=uCam,rd=normalize(vL-uCam),iv=1./rd,t0=(uMin-ro)*iv,t1=(uMax-ro)*iv,tn=min(t0,t1),tf=max(t0,t1);
   float t=max(max(max(tn.x,tn.y),tn.z),0.),te=min(min(tf.x,tf.y),tf.z);bool hit=false;
-  for(int i=0;i<72;i++){vec3 p=ro+rd*t;float d=map(p);if(d<.0004){hit=true;break;}t+=d;if(t>te)break;}
+  float dl=1.;for(int i=0;i<140;i++){vec3 p=ro+rd*t;float d=map(p);dl=d;if(d<.0004){hit=true;break;}t+=d*.95;if(t>te)break;}   // 비스듬히 볼 때(손끝·손목 쪽)는 길게 따라가야 해서 넉넉히
   if(!hit)discard;
   vec3 p=ro+rd*t,n=normalize(uNM*nrm(p));vec4 mv=uMV*vec4(p,1.);vec3 V=normalize(-mv.xyz);
   vec3 L=normalize(vec3(-.45,.75,.55));float ndl=dot(n,L),ndv=dot(n,V);
@@ -336,7 +336,7 @@ function poseSkin(){
     u.uFr.value[f]=r+.004}
   const mn=new THREE.Vector3(1e9,1e9,1e9),mx=new THREE.Vector3(-1e9,-1e9,-1e9);
   for(let i=0;i<SKN;i++){if(i===5)continue;const r=Math.max(u.uR.value[i].x,u.uR.value[i].y)+.006;for(const q of [u.uA.value[i],u.uB.value[i]]){mn.min(q.clone().subScalar(r));mx.max(q.clone().addScalar(r))}}
-  mn.x=Math.min(mn.x,u.uFade.value.y);mn.y=Math.min(mn.y,-.06);mx.y=Math.max(mx.y,.06);mn.z=Math.min(mn.z,-.08);mx.z=Math.max(mx.z,.08);   // 팔뚝(흐려지는 끝까지)도 넣음
+  mn.x=Math.min(mn.x,u.uFade.value.y);mn.y=Math.min(mn.y,-.08);mx.y=Math.max(mx.y,.08);mn.z=Math.min(mn.z,-.09);mx.z=Math.max(mx.z,.09);   // 팔뚝(흐려지는 끝까지)도 넣음
   u.uMin.value.copy(mn);u.uMax.value.copy(mx);SKIN.position.copy(mn).add(mx).multiplyScalar(.5);SKIN.scale.copy(mx).sub(mn);
   u.uCam.value.copy(inner.worldToLocal(cam.position.clone()));
   cam.updateMatrixWorld();u.uMV.value.multiplyMatrices(cam.matrixWorldInverse,inner.matrixWorld);u.uNM.value.getNormalMatrix(u.uMV.value);
@@ -497,7 +497,7 @@ float lin(float d){float z=d*2.-1.;return 2.*near*far/(far+near-z*(far-near));}
 void main(){vec4 c=texture2D(tC,vUv);float dp=lin(texture2D(tD,vUv).x),line=0.;
  if(ink>.5){for(int i=0;i<16;i++){float a=float(i)*.3927;for(int k=1;k<=2;k++){vec2 o=vec2(cos(a),sin(a))*px*lw*float(k)*.5;vec2 q=vUv+o;
    float aq=texture2D(tC,q).a;if(aq<.02)continue;float dq=lin(texture2D(tD,q).x);
-   float thr=.014*dq;   // 앞 손가락이 뒤를 가리는 곳·바깥 윤곽만 (마디 이음새처럼 이어진 면은 깊이 차이가 작아 안 그림)
+   float thr=.026*dq;   // 앞 손가락이 뒤를 가리는 곳·바깥 윤곽만 (마디 이음새처럼 이어진 면은 깊이 차이가 작아 안 그림)
    if(dp-dq>thr)line=max(line,aq);}}}
  vec4 o=vec4(c.rgb,c.a*op);if(line>0.){o=mix(o,vec4(inkC,lop),line);}
  if(o.a<.003)discard;gl_FragColor=o;}`;
