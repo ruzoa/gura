@@ -259,7 +259,7 @@ const AK=GAMES.alkkagi;
 }`,'alkkagi.cases.js');
 run(`
 let at=0;const a0=Date.now();
-for(let rep=0;rep<16;rep++)at+=playOutA({stones:[5,1,3,10,7][rep%5],again:rep%2,turn:[30,10,60][rep%3],pickfirst:rep%3===0?1:0},[0,2]);
+for(let rep=0;rep<16;rep++)at+=playOutA({stones:[5,1,3,10,7][rep%5],again:rep%2,turn:[30,10,60][rep%3],pickfirst:rep%3===0?1:0},[[0,2],[1,0],[2,1]][rep%3]);
 console.log('alkkagi ticks',at,'ms',Date.now()-a0);
 `,'alkkagi.run');
 // 탈주: 나가기 버튼은 바로, 연결 끊김은 DESERT_WAIT(45초) 이어질 때 항복 처리 + 표시 (모든 게임).
