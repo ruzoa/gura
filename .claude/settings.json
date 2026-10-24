@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./lab-hand-mesh*.bin)",
+      "Read(./lab-hand-mesh*.json)",
+      "Read(./*.png)"
+    ]
+  }
+}

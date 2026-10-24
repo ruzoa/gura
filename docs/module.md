@@ -11,6 +11,6 @@
 - 방의 게임 종류는 `H.cfg.game`에 들어 있습니다. 방장이 대기실의 방 설정에서 바꿀 수 있습니다.
 - 새 게임을 추가하는 순서:
   1. `games/새게임.js`를 만듭니다.
-  2. `index.html`의 `<script src>`와 `GAME_IDS`에 추가합니다.
+  2. `index.html`의 `<script src>`(`core/` 앞, 게임 파일들 사이)와 `core/base.js`의 `GAME_IDS`에 추가합니다.
   3. 테스트에 대전을 추가합니다.
   4. 첫 차례를 뽑는 게임이면 위 `firstPick` 방식으로 룰렛을 붙입니다 (값은 `lab.html`에서 같이 맞춤).

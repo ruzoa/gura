@@ -3,11 +3,14 @@
    내용: 대부호·쿼리도·야추다이스 규칙 단위 테스트 + 쿼리도 규칙 무작위 대조 + 야추다이스 봇 세기 + 모든 게임 봇끼리 여러 설정으로 끝까지 자동 대전(멈춤·카드 수·순위 확인) */
 const fs=require('fs'),path=require('path'),vm=require('vm');
 const root=path.join(__dirname,'..');
-const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+// 공통 코드는 index.html이 부르는 core/*.js를 같은 순서로 이어 붙여 한 덩어리로 읽음
+const coreFiles=[...fs.readFileSync(path.join(root,'index.html'),'utf8').matchAll(/<script src="(core\/[^"]+\.js)"><\/script>/g)].map(m=>m[1]);
+if(coreFiles.length<2)throw new Error('core/*.js not found in index.html');
+const html=coreFiles.map(f=>fs.readFileSync(path.join(root,f),'utf8')).join('\n');
 const cut=(a,b)=>{const s=html.indexOf(a),e=html.indexOf(b,s);if(s<0||e<0)throw new Error('marker not found: '+a);return html.slice(s,e)};
 const run=(code,name)=>vm.runInThisContext(code,{filename:name});
-// index.html 안의 스크립트 전체가 문법에 맞는지 먼저 확인 (테스트가 일부만 잘라 쓰기 때문에, 나머지 부분의 실수도 잡기 위함)
-{const re=/<script>([\s\S]*?)<\/script>/g;let m;while((m=re.exec(html)))new vm.Script(m[1],{filename:'index.html inline script'})}
+// 공통 코드 파일마다 문법에 맞는지 먼저 확인 (테스트가 일부만 잘라 쓰기 때문에, 나머지 부분의 실수도 잡기 위함)
+for(const f of coreFiles)new vm.Script(fs.readFileSync(path.join(root,f),'utf8'),{filename:f});
 run(`
 var window=globalThis;
 let NOW=0;const clock=()=>NOW;
