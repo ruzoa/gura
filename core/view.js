@@ -338,11 +338,13 @@ const FIELD = {
     if (!this.n) { if (!on) return; this.build(c, out) }
     this.n.out.gain.setTargetAtTime(on ? this.LEVEL : 0, c.currentTime, on ? 1 : .4);
   },
-  // 새 한 번 짹: f0→f1로 미끄러지는 짧은 소리
-  chirp(c, t, f0, f1, dur, vol, pan) {
+  // 새 한 번 짹: f0→f1로 미끄러지는 짧은 소리. 탁 치고 줄어드는 모양이면 실로폰처럼 들리므로
+  // 크기는 부드럽게 올랐다 내려가고(언덕 모양), wob이면 음이 빠르게 떨려(wr Hz) 새 목소리처럼 거칠어짐
+  chirp(c, t, f0, f1, dur, vol, pan, wob = 0, wr = 40) {
     const o = c.createOscillator(), g = c.createGain();
     o.type = 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
-    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + Math.min(.012, dur * .3)); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + dur * .4); g.gain.linearRampToValueAtTime(0, t + dur);
+    if (wob) { const m = c.createOscillator(), mg = c.createGain(); m.frequency.value = wr; mg.gain.value = f0 * wob; m.connect(mg); mg.connect(o.frequency); m.start(t); m.stop(t + dur + .02) }
     o.connect(g);
     if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = pan; g.connect(p); p.connect(this.n.birds) } else g.connect(this.n.birds);
     o.start(t); o.stop(t + dur + .02);
@@ -352,43 +354,45 @@ const FIELD = {
     const pan = Math.random() * 1.6 - .8, far = .45 + Math.random() * .55, r = Math.random(), j = (a) => a * (.94 + Math.random() * .12);
     if (r < .38) {           // 짹짹: 짧은 소리 2~4번
       const k = 2 + Math.floor(Math.random() * 3), f = j(3600);
-      for (let i = 0; i < k; i++) this.chirp(c, t + i * j(.11), f, f * .78, .055, .03 * far, pan);
+      for (let i = 0; i < k; i++) this.chirp(c, t + i * j(.12), f, f * .8, .07, .035 * far, pan, .05, 55);
     } else if (r < .63) {    // 휘파람: 올라갔다 내려오는 소리
       const f = j(2300);
-      this.chirp(c, t, f, f * 1.45, .2, .022 * far, pan);
-      this.chirp(c, t + .22, f * 1.45, f * 1.1, .14, .02 * far, pan);
-      if (Math.random() < .5) this.chirp(c, t + .45, f * 1.2, f * 1.5, .1, .016 * far, pan);
+      this.chirp(c, t, f, f * 1.45, .24, .026 * far, pan, .012, 9);
+      this.chirp(c, t + .26, f * 1.45, f * 1.1, .18, .024 * far, pan, .012, 9);
+      if (Math.random() < .5) this.chirp(c, t + .5, f * 1.2, f * 1.5, .14, .02 * far, pan, .012, 9);
     } else if (r < .85) {    // 떨림: 아주 짧은 소리를 빠르게 여러 번
       const k = 8 + Math.floor(Math.random() * 8), f = j(4300);
-      for (let i = 0; i < k; i++) this.chirp(c, t + i * .045, f * (1 + .04 * Math.sin(i)), f * .9, .03, .016 * far * (1 - i / k * .5), pan);
+      for (let i = 0; i < k; i++) this.chirp(c, t + i * .05, f * (1 + .04 * Math.sin(i)), f * .9, .045, .02 * far * (1 - i / k * .5), pan, .03, 70);
     } else {                 // 멀리서 산비둘기: 낮고 둥근 두 음
       const f = j(620);
-      this.chirp(c, t, f, f * .95, .32, .02, pan * .5);
-      this.chirp(c, t + .45, f * .86, f * .8, .5, .018, pan * .5);
+      this.chirp(c, t, f, f * .95, .32, .024, pan * .5, .01, 6);
+      this.chirp(c, t + .45, f * .86, f * .8, .5, .022, pan * .5, .01, 6);
     }
   },
   // 풀벌레: 귀뚜라미처럼 '찌르르'(짧은 떨림 3번)를 몇 번 되풀이
   bug(c, t) {
     const pan = Math.random() * 1.8 - .9, f = 3700 + Math.random() * 500, k = 2 + Math.floor(Math.random() * 5), v = .007 + Math.random() * .006;
-    for (let j = 0; j < k; j++) for (let i = 0; i < 3; i++) this.chirp(c, t + j * .38 + i * .022, f, f * .98, .016, v, pan);
+    for (let j = 0; j < k; j++) for (let i = 0; i < 3; i++) this.chirp(c, t + j * .38 + i * .024, f, f * .98, .02, v, pan, .02, 90);
   },
   // 박자(약 0.43초)마다 한 번: 바람 세기를 따라가고 가끔 새가 울림
   step(c, t) {
     const n = this.n;
     // 바람은 가끔: 한 번 불면 2~4초, 1~2초에 걸쳐 잦아들고, 그친 뒤 조용한 틈을 두어 평균 15초마다
-    if (t >= this.nextGust) { this.goal = .3 + .7 * Math.random(); this.gustEnd = t + 2 + Math.random() * 2; this.nextGust = this.gustEnd + 5 - Math.log(1 - Math.random()) * 7 }
+    if (t >= this.nextGust) { this.goal = .35 + .45 * Math.random(); this.gustEnd = t + 2 + Math.random() * 2; this.nextGust = this.gustEnd + 5 - Math.log(1 - Math.random()) * 7 }
     if (t >= this.gustEnd) this.goal = 0;
     this.gust += (this.goal - this.gust) * (this.goal > this.gust ? .25 : .35);
     if (this.gust < .01) this.gust = 0;
     const g = this.gust;
-    n.wind.gain.setTargetAtTime(.0008 + .02 * g, t, .5);
-    n.lp1.frequency.setTargetAtTime(260 + 650 * g, t, 1.5); n.lp2.frequency.setTargetAtTime(300 + 700 * g, t, 1.5);
-    n.bp.frequency.setTargetAtTime(520 + 520 * g, t, 2);
-    n.whistle.gain.setTargetAtTime(.0001 + .004 * g * g, t, .5);
+    // 순한 산들바람: 낮고(필터 220~500Hz) 작게, '휘잉' 공명은 아주 조금만 (세면 태풍처럼 들림)
+    n.wind.gain.setTargetAtTime(.0008 + .014 * g, t, .5);
+    n.lp1.frequency.setTargetAtTime(220 + 280 * g, t, 1.5); n.lp2.frequency.setTargetAtTime(240 + 300 * g, t, 1.5);
+    n.bp.frequency.setTargetAtTime(480 + 200 * g, t, 2);
+    n.whistle.gain.setTargetAtTime(.0001 + .0012 * g * g, t, .5);
     // 풀은 바람이 불 때 잘게 사각거림
-    for (let i = 0; i < 4; i++) n.grass.gain.setTargetAtTime((.0001 + .01 * g * g) * (.5 + Math.random()), t + i * .1, .05);
-    if (Math.random() < .11) this.call(c, t + Math.random() * .4);
-    if (Math.random() < .05) this.bug(c, t + Math.random() * .4);
+    for (let i = 0; i < 4; i++) n.grass.gain.setTargetAtTime((.0001 + .006 * g * g) * (.5 + Math.random()), t + i * .1, .05);
+    // 새·풀벌레는 바람과 상관없이 늘 가끔 울림 (바람이 없을 때도 들리게)
+    if (Math.random() < .14) this.call(c, t + Math.random() * .4);
+    if (Math.random() < .07) this.bug(c, t + Math.random() * .4);
   }
 };
 
