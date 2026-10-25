@@ -1,4 +1,4 @@
-# 탁자하나 (A table) — 게임 모음 (구라! · 대부호 · 쿼리도 · 야추다이스 · 오목 · 체스 · 블랙잭 · 알까기)
+# 탁자하나 (A table) — 게임 모음 (구라! · 대부호 · 쿼리도 · 야추다이스 · 오목 · 체스 · 블랙잭 · 포커 · 알까기)
 
 사이트 이름은 **탁자하나**(영어 A table), 로비 메뉴는 **상차리기**(방 만들기)·**참여하기**(방 들어가기), 링크 미리보기 문구는 "그저 탁자 하나"입니다. 구라!는 그 안의 게임 하나입니다.
 화면에서 방은 **탁자**로 부릅니다: 탁자 이름, 탁자 번호(4자리 코드), 공개 탁자·비공개 탁자, 탁자 목록, 아무 탁자나 앉기, 번호로 참여하기, 탁자 설정, 탁자 떠나기. **방장**과 **대기실**은 그대로 씁니다. 코드 안의 이름(`room`, `H.code`, `gura-` 저장 키, PeerJS 이름표)은 바꾸지 않습니다.
@@ -21,6 +21,7 @@
 | `games/omok.js` | 오목 (렌주 규칙·오프닝·체스 시계·바둑통) | `docs/omok.md` |
 | `games/chess.js` | 체스 (0x88 엔진·Web Worker 봇·3D 기물) | `docs/chess.md` |
 | `games/blackjack.js` | 블랙잭 (슈·사람 딜러·3D 칩) | `docs/blackjack.md` |
+| `games/poker.js` | 포커 (텍사스 홀덤 노 리밋·사이드 팟·쉬움 봇) | `docs/poker.md` |
 | `games/alkkagi.js`, `games/hand3d.js` | 알까기 (물리는 방장만·3D 손·오목 모드) | `docs/alkkagi.md` |
 | `tests/`, `roulette.js`, `lab*.html`, `manifest.webmanifest`, `sw.js`, 아이콘 | 테스트(`node tests/engine.test.js`), 룰렛 계산, 연출·아이콘 테스트룸, 홈 화면 앱 | `docs/tools.md` |
 
@@ -47,7 +48,7 @@
   - 안 되는 곳을 누르면 글 대신 공통 금지 소리 `sfx('no')`를 냅니다. 왜 안 되는지는 화면에 보여야 합니다(초록 점, 빨간 ✕, 빨간 벽 등).
   - 안내 줄에는 꼭 필요한 것만 짧게 남깁니다(진행 단계, 판 시작 안내, 결과, 조커처럼 화면만으로 알 수 없는 규칙). 비면 자리만 남기고 숨깁니다(`:empty{visibility:hidden}` 또는 고정 높이).
 - **안전 영역(노치·홈 바)**: `body.fs` 한 곳에서만 `env(safe-area-inset-*)` 패딩을 줍니다. `html`/`:root`에 또 주면 홈 화면 앱 위쪽에 띠가 두 번 생깁니다.
-- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`, `gura-roomcfg-chess`, `gura-roomcfg-blackjack`, `gura-roomcfg-alkkagi`). 오목은 이 밖에 커스텀 규칙 기억(`gura-omok-custom`)과 세부 설정 펼침(`gura-omok-more`)도 저장합니다.
+- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`, `gura-roomcfg-chess`, `gura-roomcfg-blackjack`, `gura-roomcfg-poker`, `gura-roomcfg-alkkagi`). 오목은 이 밖에 커스텀 규칙 기억(`gura-omok-custom`)과 세부 설정 펼침(`gura-omok-more`)도 저장합니다.
 - **움직임 줄이기**: 기기의 '움직임 줄이기'(`prefers-reduced-motion`) 설정을 보고 게임 움직임을 끄지 않습니다. 시작 연출, 주사위 굴리기, 말·벽 이동, 돌 놓기처럼 게임 진행을 보여 주는 움직임은 설정과 상관없이 모든 기기에서 똑같이 보여야 합니다. `matchMedia('(prefers-reduced-motion…')`로 움직임을 건너뛰는 코드를 새로 넣지 않습니다. (아직 남은 예외: `core/style.css`의 2D 화면용 CSS 규칙, `games/gura.js`, `games/yahtzee.js`의 2D 주사위 CSS. 손볼 때 같이 정리)
 
 ## 모든 모드 공통 원칙
@@ -82,4 +83,5 @@
 - **늦게 붙는 모양의 크기는 자기 안 좌표로 잼**: `setFromObject`는 세계 좌표라 부모 `matrixWorld`를 잠시 비우고 잼(알까기 `holoPiece`).
 - **테스트는 시작 연출 시간을 건너뜀**(야추 `mk()`).
 - **게임 자기 배경음악은 공통 배경음악과 같은 크기로**: RMS로 맞춤(대부호 `BG.LEVEL`).
+- **게임 키는 다른 게임 키와 겹치지 않게**: 모든 게임 키가 한 표(`DEFAULT_KEYS`)에 모이므로, 같은 뜻이면 같은 이름을 같이 씀(포커 ↑↓ = 블랙잭 `bjUp`·`bjDown`).
 - **배포는 몇 분 걸림**: "적용이 안 됐다"면 먼저 사이트의 파일이 바뀌었는지 확인합니다.

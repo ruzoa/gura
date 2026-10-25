@@ -32,6 +32,7 @@ run(fs.readFileSync(path.join(root,'games/yahtzee.js'),'utf8'),'yahtzee.js');
 run(fs.readFileSync(path.join(root,'games/omok.js'),'utf8'),'omok.js');
 run(fs.readFileSync(path.join(root,'games/chess.js'),'utf8'),'chess.js');
 run(fs.readFileSync(path.join(root,'games/blackjack.js'),'utf8'),'blackjack.js');
+run(fs.readFileSync(path.join(root,'games/poker.js'),'utf8'),'poker.js');
 run(fs.readFileSync(path.join(root,'games/alkkagi.js'),'utf8'),'alkkagi.js');
 run(cut('/* 카드 id 규칙은','const PEER_PREFIX='),'core-consts');
 run(cut('let H=null, flushQueued=false, lastBeat=0;','function seatOfConn(conn){').replace('setInterval(engineTick,100);',''),'core-engine');
@@ -252,6 +253,20 @@ for(let rep=0;rep<48;rep++){
 }
 console.log('blackjack ticks',bt);
 `,'blackjack.run');
+// 포커: 규칙 단위 테스트 + 봇끼리 끝까지
+run(`{
+const PK=GAMES.poker;
+`+fs.readFileSync(path.join(__dirname,'poker.cases.js'),'utf8')+`
+}`,'poker.cases.js');
+run(`
+let pt=0;const p0=Date.now();
+for(let rep=0;rep<24;rep++){
+  const n=2+(rep%7);
+  pt+=playOutP(n,{chips:[1000,200,3000,500][rep%4],sb:[10,50,20][rep%3],rounds:[10,3,25,6][rep%4],up:[0,2,5][rep%3],turn:[30,10,60][rep%3],pickfirst:rep%3===0?1:0,max:8});
+}
+if(!(globalThis.pkShows>0))fail('pk bots never reached showdown');
+console.log('poker ticks',pt,'ms',Date.now()-p0);
+`,'poker.run');
 // 알까기: 물리·규칙 단위 테스트 + 봇끼리 끝까지 자동 대전
 run(`{
 const AK=GAMES.alkkagi;
@@ -268,7 +283,7 @@ console.log('alkkagi omok ticks',akt,'ms',Date.now()-ak0);
 // 탈주: 나가기 버튼은 바로, 연결 끊김은 DESERT_WAIT(45초) 이어질 때 항복 처리 + 표시 (모든 게임).
 //  기다리는 동안 봇은 두지 않고 제한 시간은 그대로 흐름(멈추면 끊어서 시간을 벌 수 있음). 그 전에 돌아오면 그대로. 방장은 해당 없음
 run(`
-for(const [g,n] of [['gura',3],['president',3],['quoridor',3],['yahtzee',3],['omok',2],['chess',2],['blackjack',3],['alkkagi',2]]){
+for(const [g,n] of [['gura',3],['president',3],['quoridor',3],['yahtzee',3],['omok',2],['chess',2],['blackjack',3],['poker',3],['alkkagi',2]]){
   const setup=(bots)=>{hostNew(false,'t','t');H.cfg={...cfgFor(g),game:g,turn:120};
     H.members=[];for(let i=0;i<n;i++)H.members.push(bots&&i?{name:'b'+i,bot:true,conn:null,host:false,lv:1}:{name:'p'+i,bot:false,conn:i?{}:null,host:i===0,cid:i?'c'+i:''});
     hostStart();for(let k=0;k<60;k++){NOW+=250;engineTick()}   // 시작 연출이 끝날 때까지 (제한 시간 안)

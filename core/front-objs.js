@@ -27,6 +27,10 @@ function frontHoloPiece(id){
     const at=canvasTex(128,186,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.fillStyle='#34404f';x.font='600 34px "IBM Plex Mono", monospace';x.textAlign='left';x.textBaseline='top';x.fillText('A',10,8);x.font='86px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('♠',w/2,h/2+8)});
     add(new THREE.BoxGeometry(.4,.58,.012),holoMat(0xffffff,at),-.1,.04,0,0,0,.12);
     const cm=holoMat(0xcc3a2e),cw=holoMat(0xf6f3ea);for(let k=0;k<4;k++){add(new THREE.CylinderGeometry(.12,.12,.045,20),k%2?cw:cm,.17,-.2+k*.05,.06)}}
+  else if(id==='poker'){   // 엎은 카드와 A♠ 두 장, 칩 기둥
+    const at=canvasTex(128,186,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.fillStyle='#34404f';x.font='600 34px "IBM Plex Mono", monospace';x.textAlign='left';x.textBaseline='top';x.fillText('A',10,8);x.font='86px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('♠',w/2,h/2+8)});
+    add(new THREE.BoxGeometry(.4,.58,.012),holoMat(0xffffff,T.back.map),-.2,.02,-.03,0,0,.2);add(new THREE.BoxGeometry(.4,.58,.012),holoMat(0xffffff,at),-.04,.05,0,0,0,-.08);
+    const cm=holoMat(0x2e7d4f),cw=holoMat(0xf6f3ea);for(let k=0;k<5;k++){add(new THREE.CylinderGeometry(.12,.12,.045,20),k%2?cw:cm,.22,-.22+k*.05,.06)}}
   else if(id==='alkkagi'&&GAMES.alkkagi&&GAMES.alkkagi.holoPiece){   // 풀차징된 손과 흑돌 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.alkkagi.holoPiece(c=>{const m=holoMat(c);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else add(new THREE.OctahedronGeometry(.25),holoMat(0xffffff));

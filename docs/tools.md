@@ -4,11 +4,11 @@
 
 ## `tests/engine.test.js`
 
-엔진 테스트 (`node tests/engine.test.js`). `tests/*.cases.js`(야추다이스는 `tests/yahtzee.cases.js`, 오목은 `tests/omok.cases.js`, 체스는 `tests/chess.cases.js`, 블랙잭은 `tests/blackjack.cases.js`, 알까기는 `tests/alkkagi.cases.js`), `tests/quoridor.fuzz.js`를 불러서 함께 돌림
+엔진 테스트 (`node tests/engine.test.js`). `tests/*.cases.js`(야추다이스는 `tests/yahtzee.cases.js`, 오목은 `tests/omok.cases.js`, 체스는 `tests/chess.cases.js`, 블랙잭은 `tests/blackjack.cases.js`, 포커는 `tests/poker.cases.js`, 알까기는 `tests/alkkagi.cases.js`), `tests/quoridor.fuzz.js`를 불러서 함께 돌림
 
 ## `roulette.js`
 
-첫 차례 룰렛 순서 계산(순수 함수, 화면·소리 없음). `Roulette.plan(인원, 첫 차례, 옵션)` → 칸 넘김 시각 목록. 빠른 구간 칸 수는 매 판 무작위(`pickFast`), 감속은 빠른 간격에서 바로 같은 비율로 늘어 마지막 간격에 닿음. 값은 `Roulette.DEF` 한 곳(테스트룸에서 맞춘 값). `lead`(돌기 전 후보가 모두 켜진 시간)와 `fixed`(방장이 고른 선: 돌지 않음, `planFor(n,first,fast)`에서 fast<0)도 계산함. 쿼리도에 연결됨, 나머지 게임은 아직
+첫 차례 룰렛 순서 계산(순수 함수, 화면·소리 없음). `Roulette.plan(인원, 첫 차례, 옵션)` → 칸 넘김 시각 목록. 빠른 구간 칸 수는 매 판 무작위(`pickFast`), 감속은 빠른 간격에서 바로 같은 비율로 늘어 마지막 간격에 닿음. 값은 `Roulette.DEF` 한 곳(테스트룸에서 맞춘 값). `lead`(돌기 전 후보가 모두 켜진 시간)와 `fixed`(방장이 고른 선: 돌지 않음, `planFor(n,first,fast)`에서 fast<0)도 계산함. 쿼리도·알까기·포커(첫 딜러 버튼)에 연결됨
 
 ## `lab.html`
 
