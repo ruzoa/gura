@@ -167,15 +167,15 @@ const bowl=s=>({x:0,y:.1,z:s?-2.6:2.6,s,o:0,g:0,u:1});
  eq(H.turn,0,'timeout passes');ok(A.st.filter(q=>q.s===1&&q.u).length===T.OM_N,'timed-out stone back to bowl');eq(A.ph,'place','next places');
  NOW+=31000;engineTick();eq(H.turn,1,'timeout while placing passes');}
 /* 떨어뜨린 상대 돌은 내 통으로 (연출이 끝난 뒤), 돌이 5개뿐이면 자기 통으로 */
-for(const floor of [0,1]){
-  mkRoom({pickfirst:1,omok:1},undefined,true);
+for(const floor of [0,1])for(const ag of [1,0]){
+  mkRoom({pickfirst:1,omok:1,again:ag},undefined,true);
   const A=H.ak;
   A.st=[gp(9,16,0),gp(9,4,1)];for(let k=0;k<9;k++)A.st.push(bowl(0));for(let k=0;k<(floor?4:9);k++)A.st.push(bowl(1));
   A.st[1]=at(0,-2.05,1);A.st[0]=at(0,-1.45,0);A.fx=0;A.ph='aim';H.turn=0;
   AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.4});
   ok(A.st[1].o&&!A.st[1].u,'knocked stone waits on felt during roll');eq(A.st[1].s,1,'owner unchanged during roll');
   roll();
-  if(!A.st[0].o){eq(A.st[1].u,1,'knocked stone to bowl');eq(A.st[1].s,floor?1:0,'owner after capture floor='+floor)}
+  if(!A.st[0].o){eq(A.st[1].u,1,'knocked stone to bowl');eq(A.st[1].s,floor?1:0,'owner after capture floor='+floor);eq(H.turn,ag?0:1,'omok again after knock ag='+ag)}
   else fail('alkkagi omok capture setup');
 }
 /* 오목 판정: 상대가 만들어 준 오목도 승리, 동시 오목은 튕긴 사람 패배 */
