@@ -325,19 +325,28 @@ function liveUI(t){
 /* 입력 */
 /* 끌어서 내기: 카드를 잡고 위로 끌어 손패에서 완전히 떼어 놓으면 냄 (내기 버튼까지 가지 않아도 됨). 손패에 조금이라도 겹친 채 놓으면 취소
    고른 카드를 잡으면 고른 카드가 모두, 안 고른 카드를 잡으면 그 한 장만 따라옴 */
-const DRAG={el:null,x:0,y:0,on:false,rest:null,cards:[],one:null,suppress:0};
-function dragClear(){for(const c of DRAG.cards){c.classList.remove('drag','go');c.style.removeProperty('--dx');c.style.removeProperty('--dy')}DRAG.el=null;DRAG.on=false;DRAG.cards=[];DRAG.one=null}
+const DRAG={el:null,x:0,y:0,on:false,rest:null,cards:[],off:[],one:null,gt:0,suppress:0};
+function dragClear(){clearTimeout(DRAG.gt);for(const c of DRAG.cards){c.classList.remove('drag','gath','go');for(const v of ['--dx','--dy','--ra'])c.style.removeProperty(v)}DRAG.el=null;DRAG.on=false;DRAG.cards=[];DRAG.off=[];DRAG.one=null}
+/* 끌기 시작: 끄는 카드는 기울기를 펴고 잡은 카드 옆으로 촘촘하게 모임(잡은 카드는 손 아래 그대로) */
 function dragBegin(b){
   const cs=[...$('#hand').children];let l=1e9,t=1e9,r=-1e9,bt=-1e9;
   for(const c of cs){const q=c.getBoundingClientRect();l=Math.min(l,q.left);t=Math.min(t,q.top);r=Math.max(r,q.right);bt=Math.max(bt,q.bottom)}
   DRAG.rest={l,t,r,b:bt};DRAG.on=true;
   DRAG.one=b.classList.contains('sel')?null:+b.dataset.id;
   DRAG.cards=DRAG.one==null?cs.filter(c=>c.classList.contains('sel')):[b];
-  for(const c of DRAG.cards)c.classList.add('drag');
+  const k=parseFloat($('#hand').style.getPropertyValue('--k'))||1,mid=q=>[(q.left+q.right)/2,(q.top+q.bottom)/2];
+  const g=mid(b.getBoundingClientRect()),gi=Math.max(0,DRAG.cards.indexOf(b)),GAP=18;
+  // 기울기를 편 자리를 재고(움직임 없이) 원래대로 돌린 뒤, 짧게 미끄러지며 모임
+  for(const c of DRAG.cards){c.classList.add('drag');c.style.setProperty('--ra','0rad')}
+  DRAG.off=DRAG.cards.map((c,j)=>{const m=mid(c.getBoundingClientRect());return [(g[0]-m[0])/k+(j-gi)*GAP,(g[1]-m[1])/k]});
+  for(const c of DRAG.cards)c.style.removeProperty('--ra');
+  void b.offsetWidth;
+  for(const c of DRAG.cards){c.classList.add('gath');c.style.setProperty('--ra','0rad')}
+  DRAG.gt=setTimeout(()=>{for(const c of DRAG.cards)c.classList.remove('gath')},160);
 }
 function dragMove(e){
   const dx=e.clientX-DRAG.x,dy=e.clientY-DRAG.y,k=parseFloat($('#hand').style.getPropertyValue('--k'))||1;
-  for(const c of DRAG.cards){c.style.setProperty('--dx',(dx/k).toFixed(1)+'px');c.style.setProperty('--dy',(dy/k).toFixed(1)+'px')}
+  DRAG.cards.forEach((c,j)=>{const o=DRAG.off[j]||[0,0];c.style.setProperty('--dx',(o[0]+dx/k).toFixed(1)+'px');c.style.setProperty('--dy',(o[1]+dy/k).toFixed(1)+'px')});
   const go=dragFree();for(const c of DRAG.cards)c.classList.toggle('go',go);
 }
 /* 끌고 있는 카드가 손패(끌기 전 카드 자리 전체)와 한 점도 겹치지 않으면 true */
@@ -347,6 +356,7 @@ function dragFree(){
 }
 /* 놓기: 손패와 떨어져 있으면 냄 (내기 버튼을 누른 것과 같음). 한 장을 끌었으면 그 카드만 골라서 냄 */
 function dragDrop(cancel){
+  for(const c of DRAG.cards)c.classList.remove('gath');   // 모이는 중에 놓아도 다 모인 자리로 판단
   const free=!cancel&&dragFree(),one=DRAG.one;
   dragClear();DRAG.suppress=Date.now();
   if(!free)return;
