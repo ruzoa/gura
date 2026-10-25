@@ -564,7 +564,7 @@ G.cues=(v,pv)=>{
 /* ---------- 탁자 배치 (월드 좌표, 나는 +z 쪽) ---------- */
 const O={x:0,z:0};                     // 공용 카드 가운데 = 탁자 정중앙
 const BD_DX=.66,S_BD=.74,POT={x:0,z:.86},DECK={x:0,z:-.92};
-const MY={x:0,z:2.1},MYBET={x:0,z:1.44},BANK_Z=2.1,BANK_X=[-1.42,-.94,.94,1.42],CHIP_R=.2,CHIP_H=.052;   // 내 카드는 다른 사람과 같은 거리(둘레), 칩 더미는 카드 양옆
+const MY={x:0,z:2.1},MYBET={x:0,z:1.44},BANK_Z=3.45,BANK_X=[-.75,-.25,.25,.75],CHIP_R=.2,CHIP_H=.052;   // 내 카드는 다른 사람과 같은 거리(둘레), 칩 더미는 펠트 밖 나무 띠 위 내 앞
 const CW=.62*1.2,CH=.9*1.2;            // 카드 폭·높이 (크기 1일 때)
 const S_ME=.82,S_OT=.58,S_SHOW=.7,RZ=2.25,TH_MAX=1.85;
 let SP=new Map(),spKey='',RX=2.9;
@@ -595,7 +595,8 @@ function layout(){
     const th=ths.get(i),p=arcPos(th,RX);
     if(Math.abs(p.x-O.x)<BOARD_HX+.45&&p.z>O.z-.9)p.z=O.z-.9;   // 좁은 화면: 양옆 자리가 공용 카드 높이에 걸치면 공용 카드 위쪽으로
     const dx=O.x-p.x,dz=O.z-p.z,dl=Math.hypot(dx,dz)||1;
-    SP.set(i,{x:p.x,z:p.z,th,ry:th*.5,ux:dx/dl,uz:dz/dl,bet:offBoard({x:p.x+dx/dl*.68,z:p.z+dz/dl*.68})});
+    SP.set(i,{x:p.x,z:p.z,th,ry:Math.atan2(-dx/dl,-dz/dl),ux:dx/dl,uz:dz/dl,   // 카드 위쪽이 탁자 중심을 향함
+      bet:offBoard({x:p.x+dx/dl*.68,z:p.z+dz/dl*.68})});
   }
   if(me>=0)SP.set(me,{x:MY.x,z:MY.z,th:0,ry:0,ux:0,uz:-1,bet:MYBET,me:true});
   V3.ringsKey='';
@@ -606,8 +607,8 @@ const betPos=i=>(SP.get(i)||{bet:POT}).bet;
 function cardPose(seat,k,show){
   if(seat<0)return {x:O.x+(k-2)*BD_DX,y:.02,z:O.z,ry:0,s:S_BD};
   const S=SP.get(seat);if(!S)return {x:DECK.x,y:.4,z:DECK.z,ry:0,s:.4};
-  const s=S.me?S_ME:show?S_SHOW:S_OT,gap=CW*s*(S.me?.56:show?.6:.42),o=(k-.5)*gap,tx=-S.uz,tz=S.ux,inw=show&&!S.me?.32:0;   // 호의 접선 방향으로 나란히. 펼친 카드는 크게, 안쪽으로
-  return {x:S.x+tx*o+S.ux*inw,y:.02+k*.004,z:S.z+tz*o+S.uz*inw,ry:S.ry*(show?.5:1),s};
+  const s=S.me?S_ME:show?S_SHOW:S_OT,gap=.62*s*1.08,o=(k-.5)*gap,tx=-S.uz,tz=S.ux,inw=show&&!S.me?.32:0;   // 자리에서 본 옆으로 겹치지 않게 나란히(카드 폭 .62×크기). 펼친 카드는 크게, 안쪽으로
+  return {x:S.x+tx*o+S.ux*inw,y:.02,z:S.z+tz*o+S.uz*inw,ry:S.ry,s};
 }
 
 /* ---------- 3D ---------- */
@@ -788,7 +789,7 @@ function offBoard(p){
 /* 딜러 버튼 자리: 그 사람 카드 옆 (내 것은 오른쪽 앞) */
 function btnPos(i){
   const S=SP.get(i);if(!S)return null;
-  if(S.me)return {x:.62,z:1.45};
+  if(S.me)return {x:.78,z:1.75};
   const tx=-S.uz,tz=S.ux,sd=S.th>=0?-1:1;   // 탁자 안쪽(화면 가운데) 쪽으로
   return {x:S.x+tx*.48*sd+S.ux*.2,z:S.z+tz*.48*sd+S.uz*.2};
 }
