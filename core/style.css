@@ -240,6 +240,7 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
   text-shadow:3px 4px 0 var(--mustard),0 0 26px rgba(255,250,240,.9),0 0 8px rgba(255,250,240,.8);animation:frFloat 6s ease-in-out infinite}
 @keyframes frFloat{0%,100%{translate:0 0}50%{translate:0 -7px}}
 .fr-hot{position:absolute;pointer-events:auto;background:transparent;border:0;border-radius:22px;padding:0;-webkit-tap-highlight-color:transparent}
+.stage.holo #frPick,.stage.holo #frPrev,.stage.holo #frNext{touch-action:pan-y}   /* 게임 고르기: 말 위에서 옆으로 밀어도 브라우저가 가로채지 않게 */
 .fr-hot:focus-visible{outline:3px dashed var(--mustard);outline-offset:2px}
 .fr-hot.off{pointer-events:none;visibility:hidden}
 .fr-foot{position:absolute;left:0;right:0;bottom:14px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 16px}

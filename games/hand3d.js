@@ -415,7 +415,26 @@ function set(o){
   if(o.base)BASE.matrix.copy(o.base);ROOT.position.set(o.x,o.top||0,o.z);ROOT.rotation.set(0,-(o.ang-jt),0);
   BASE.updateMatrixWorld(true);
 }
+/* 대기실 홀로그램용 손: 끝까지 당긴(풀차징) 딱밤 자세를 게임과 같은 자리(알 가운데가 원점)에 굳히고, 게임과 같은 살(광선 따라가기)을
+   홀로그램 색으로 칠해 돌려줌. mk(색)이 준 홀로그램 재질의 값(색·투명도·시간)을 같이 써서 다른 홀로그램 말과 함께 켜지고 꺼짐 */
+const HOLO_FS=`  float f=1.-abs(ndv);vec3 col=mix(uHC*(1.-.3*s),uHR,.28)+uHR*pow(f,2.)*.85;float sc=.88+.12*sin((uMW*vec4(p,1.)).y*90.-uHT*4.);
+  gl_FragColor=vec4(col,uHA*a*(.58+.42*pow(f,1.5))*sc);
+`;
+function holo(mk){
+  set({x:0,z:0,ang:0,p:1,fl:0,seat:0,top:0});HAND.visible=false;
+  cam=new THREE.PerspectiveCamera();BASE.updateMatrixWorld(true);poseSkin();   // cam은 poseSkin이 쓰는 자리만 채움 (그릴 때마다 다시 정함)
+  const m=mk(0xf2d0b4),u=Object.assign({},SKIN.material.uniforms,{uHC:m.uniforms.uC,uHR:m.uniforms.uR,uHA:m.uniforms.uA,uHT:m.uniforms.uT,uMW:{value:new THREE.Matrix4()}});
+  const fs=SKIN2_FS.replace('varying vec3 vL;','varying vec3 vL;uniform vec3 uHC;uniform vec3 uHR;uniform float uHA;uniform float uHT;uniform mat4 uMW;')
+    .replace(/  float bi=1\.,bd=[\s\S]*?(?=  vec4 cp=)/,HOLO_FS);
+  const mat=new THREE.ShaderMaterial({uniforms:u,side:THREE.BackSide,transparent:true,depthWrite:false,extensions:{fragDepth:true},vertexShader:SKIN.material.vertexShader,fragmentShader:fs});
+  const g=new THREE.Group();g.matrixAutoUpdate=false;g.matrix.multiplyMatrices(new THREE.Matrix4().copy(ROOT.matrixWorld).invert(),inner.matrixWorld);
+  const sk=new THREE.Mesh(SKIN.geometry,mat),iv=new THREE.Matrix4();sk.position.copy(SKIN.position);sk.scale.copy(SKIN.scale);sk.frustumCulled=false;g.add(sk);
+  const o=new THREE.Group();o.add(g);   // 꽉 당긴 손이 잘게 떨림
+  sk.onBeforeRender=(r,sc,c)=>{const t=performance.now()/1000;o.position.set(Math.sin(t*61)*.003,0,Math.sin(t*47+1)*.002);const W=g.matrixWorld;u.uMW.value.copy(W);u.uMV.value.multiplyMatrices(c.matrixWorldInverse,W);u.uNM.value.getNormalMatrix(u.uMV.value);
+    u.uCam.value.setFromMatrixPosition(c.matrixWorld).applyMatrix4(iv.copy(W).invert())};
+  return o;
+}
 mkMats();
-return {set,draw,root:ROOT};
+return {set,draw,holo,root:ROOT};
 };
 })();

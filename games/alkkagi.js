@@ -906,11 +906,13 @@ function ak3Build(){
   return Ak3.built;
 }
 /* 3D 손: games/hand3d.js(테스트룸 '새 살'을 옮긴 것)를 필요할 때 한 번 불러옴. 못 쓰면 위의 캔버스 손 그대로 */
-function loadHand3D(){
-  if(Ak3.h3||Ak3.h3load)return;Ak3.h3load=true;
-  const go=()=>{try{if(window.Hand3D)Ak3.h3=window.Hand3D(THREE,{SR,SH})}catch(e){Ak3.h3=null;try{console.warn('3D 손 준비 실패',e)}catch(_){}}};
+const H3W=[];   // 손 파일을 다 불러오면 부를 것들 (게임 손·홀로그램 손)
+function loadHand3D(cb){
+  const go=cb||(()=>{try{if(window.Hand3D)Ak3.h3=window.Hand3D(THREE,{SR,SH})}catch(e){Ak3.h3=null;try{console.warn('3D 손 준비 실패',e)}catch(_){}}});
+  if(!cb){if(Ak3.h3||Ak3.h3load)return;Ak3.h3load=true}
   if(window.Hand3D)return go();
-  const sc=document.createElement('script');sc.src='games/hand3d.js';sc.onload=go;document.head.appendChild(sc);
+  H3W.push(go);if(H3W.length>1)return;
+  const sc=document.createElement('script');sc.src='games/hand3d.js';sc.onload=()=>{while(H3W.length)H3W.shift()()};document.head.appendChild(sc);
 }
 /* 알 개수·색이 바뀌면 다시 만듦 */
 function ak3Stones(){
@@ -1295,11 +1297,15 @@ G.keyPhase=st=>st==='play';
 G.onKey=()=>false;
 G.field3D=()=>{if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=false})};
 G.render3D=t=>{if(Ak3.on)ak3Render(t);else if(T.ok&&!$('#stage').classList.contains('ak2d'))T.r.render(T.scene,T.cam)};
-/* 대기실 홀로그램의 대표 말: 흑돌 하나와 그 위로 튀어 오르는 백돌 (공통 frontHoloPiece가 부름) */
+/* 대기실 홀로그램의 대표 말: 끝까지 당긴(풀차징) 손과 그 앞의 흑돌 (공통 frontHoloPiece가 부름). 손은 games/hand3d.js를 불러온 뒤 붙임 */
 G.holoPiece=(mk)=>{
-  const g=new THREE.Group(),geo=new THREE.SphereGeometry(.2,24,14);
-  const b=new THREE.Mesh(geo,mk(0x2a2a2a));b.scale.y=.42;b.position.set(-.1,-.12,0);g.add(b);
-  const w=new THREE.Mesh(geo,mk(0xf6f3ea));w.scale.y=.42;w.position.set(.14,.12,-.04);w.rotation.z=.55;g.add(w);
+  const g=new THREE.Group(),box=new THREE.Group();g.add(box);
+  const K=1.7,b=new THREE.Mesh(new THREE.SphereGeometry(SR*K,24,14),mk(0x2a2a2a));b.scale.y=SH/SR;b.position.set(SR*(K-1)-.025,SH*K,0);box.add(b);   // 알은 손보다 크게(작으면 홀로그램에서 안 보임), 손끝 바로 앞에
+  const fit=()=>{box.position.set(0,0,0);box.scale.setScalar(1);box.updateMatrixWorld(true);   // 손까지 넣은 크기를 다른 말과 비슷하게, 가운데를 투사기 축에
+    const bb=new THREE.Box3().setFromObject(box),sz=bb.getSize(new THREE.Vector3()),c=bb.getCenter(new THREE.Vector3()),k=.62/Math.max(sz.x,sz.z,.4);
+    box.scale.setScalar(k);box.position.set(-c.x*k,-c.y*k,-c.z*k)};
+  fit();
+  loadHand3D(()=>{try{const h=window.Hand3D(THREE,{SR,SH}).holo(mk);h.traverse(o=>{if(o.isMesh)o.renderOrder=41});box.add(h);fit()}catch(e){try{console.warn('홀로그램 손 준비 실패',e)}catch(_){}}});
   return g;
 };
 G.enter=()=>{
