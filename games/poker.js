@@ -562,9 +562,9 @@ G.cues=(v,pv)=>{
 };
 
 /* ---------- 탁자 배치 (월드 좌표, 나는 +z 쪽) ---------- */
-const O={x:0,z:-.6};                  // 공용 카드 가운데
-const BD_DX=.66,S_BD=.74,POT={x:0,z:.2},DECK={x:0,z:-1.6};
-const MY={x:0,z:1.42},MYBET={x:0,z:.8},BANK_Z=2.42,BANK_X=[-.75,-.25,.25,.75],CHIP_R=.2,CHIP_H=.052;
+const O={x:0,z:0};                     // 공용 카드 가운데 = 탁자 정중앙
+const BD_DX=.66,S_BD=.74,POT={x:0,z:.86},DECK={x:0,z:-.92};
+const MY={x:0,z:2.1},MYBET={x:0,z:1.44},BANK_Z=3.45,BANK_X=[-.75,-.25,.25,.75],CHIP_R=.2,CHIP_H=.052;   // 내 카드는 다른 사람과 같은 거리(둘레), 칩 더미는 펠트 밖 나무 띠 위 내 앞
 const CW=.62*1.2,CH=.9*1.2;            // 카드 폭·높이 (크기 1일 때)
 const S_ME=.82,S_OT=.58,S_SHOW=.7,RZ=2.25,TH_MAX=1.85;
 let SP=new Map(),spKey='',RX=2.9;
@@ -592,8 +592,11 @@ function layout(){
   const list=seatList(),ths=thetas(list);RX=fitRx(ths);
   SP=new Map();
   for(const i of list){
-    const th=ths.get(i),p=arcPos(th,RX),dx=O.x-p.x,dz=O.z-p.z,dl=Math.hypot(dx,dz)||1;
-    SP.set(i,{x:p.x,z:p.z,th,ry:th*.5,ux:dx/dl,uz:dz/dl,bet:{x:p.x+dx*.36,z:p.z+dz*.36}});
+    const th=ths.get(i),p=arcPos(th,RX);
+    if(Math.abs(p.x-O.x)<BOARD_HX+.45&&p.z>O.z-.9)p.z=O.z-.9;   // 좁은 화면: 양옆 자리가 공용 카드 높이에 걸치면 공용 카드 위쪽으로
+    const dx=O.x-p.x,dz=O.z-p.z,dl=Math.hypot(dx,dz)||1;
+    SP.set(i,{x:p.x,z:p.z,th,ry:Math.atan2(-dx/dl,-dz/dl),ux:dx/dl,uz:dz/dl,   // 카드 위쪽이 탁자 중심을 향함
+      bet:offBoard({x:p.x+dx/dl*.68,z:p.z+dz/dl*.68})});
   }
   if(me>=0)SP.set(me,{x:MY.x,z:MY.z,th:0,ry:0,ux:0,uz:-1,bet:MYBET,me:true});
   V3.ringsKey='';
@@ -604,8 +607,8 @@ const betPos=i=>(SP.get(i)||{bet:POT}).bet;
 function cardPose(seat,k,show){
   if(seat<0)return {x:O.x+(k-2)*BD_DX,y:.02,z:O.z,ry:0,s:S_BD};
   const S=SP.get(seat);if(!S)return {x:DECK.x,y:.4,z:DECK.z,ry:0,s:.4};
-  const s=S.me?S_ME:show?S_SHOW:S_OT,gap=CW*s*(S.me?.56:show?.6:.42),o=(k-.5)*gap,tx=-S.uz,tz=S.ux,inw=show&&!S.me?.32:0;   // 호의 접선 방향으로 나란히. 펼친 카드는 크게, 안쪽으로
-  return {x:S.x+tx*o+S.ux*inw,y:.02+k*.004,z:S.z+tz*o+S.uz*inw,ry:S.ry*(show?.5:1),s};
+  const s=S.me?S_ME:show?S_SHOW:S_OT,gap=.62*s*1.08,o=(k-.5)*gap,tx=-S.uz,tz=S.ux,inw=show&&!S.me?.32:0;   // 자리에서 본 옆으로 겹치지 않게 나란히(카드 폭 .62×크기). 펼친 카드는 크게, 안쪽으로
+  return {x:S.x+tx*o+S.ux*inw,y:.02,z:S.z+tz*o+S.uz*inw,ry:S.ry,s};
 }
 
 /* ---------- 3D ---------- */
@@ -739,7 +742,7 @@ function cardStep(e,now){
   const ph=(1-c.f)*Math.PI,guard=Math.abs(Math.sin(ph))*CW*c.s*.5+Math.abs(Math.sin(c.tl))*CH*c.s*.5+.02;
   c.y=Math.max(A.y+(Bt.y-A.y)*q+Math.sin(k*Math.PI)*w.lift,guard);
   cardApply(e);
-  if(k>=1){e.tw=null;if(Bt.die){killCard(e.g);V3.cards.delete(e.key)}}
+  if(k>=1){e.tw=null;if(Bt.die){killCard(e.g);if(Bt.keep)e.gone=true;else V3.cards.delete(e.key)}}   // keep: 폴드한 카드는 사라져도 목록에 남겨 다시 만들지 않음
 }
 /* ---------- 펠트 무늬·덱·딜러 버튼 ---------- */
 function feltTex(){
@@ -776,10 +779,17 @@ function buildRoot(){
   const b=new THREE.Mesh(new THREE.CylinderGeometry(.17,.17,.06,32),[side,tm,tm]);b.castShadow=true;b.position.y=.03;
   const bg=new THREE.Group();bg.add(b);hull(new THREE.CylinderGeometry(.185,.185,.075,32),b,bg);bg.visible=false;root.add(bg);V3.btn=bg;V3.btnAt=null;
 }
+/* 베팅 칸이 공용 카드 칸에 걸치면 위아래로 비킴 (좁은 화면에서 양옆 자리가 가운데로 모일 때) */
+const BOARD_HX=2*BD_DX+CW*S_BD/2;   // 공용 카드 줄의 반폭
+function offBoard(p){
+  const hx=BOARD_HX+.25,hz=CH*S_BD/2+.25;
+  if(Math.abs(p.x-O.x)<hx&&Math.abs(p.z-O.z)<hz)p.z=O.z+(p.z>=O.z?hz:-hz);
+  return p;
+}
 /* 딜러 버튼 자리: 그 사람 카드 옆 (내 것은 오른쪽 앞) */
 function btnPos(i){
   const S=SP.get(i);if(!S)return null;
-  if(S.me)return {x:.98,z:1.2};
+  if(S.me)return {x:.78,z:1.75};
   const tx=-S.uz,tz=S.ux,sd=S.th>=0?-1:1;   // 탁자 안쪽(화면 가운데) 쪽으로
   return {x:S.x+tx*.48*sd+S.ux*.2,z:S.z+tz*.48*sd+S.uz*.2};
 }
@@ -844,6 +854,7 @@ function sync3(v){
   }
   const dk={x:DECK.x,z:DECK.z};
   for(const [key,e] of V3.cards){   // 지난 판 카드는 엎어서 덱으로
+    if(e.gone&&!want.has(key)){V3.cards.delete(key);continue}
     if(want.has(key)||e.dying)continue;
     if(!e.launched){killCard(e.g);V3.cards.delete(key);continue}
     e.dying=true;cardSet(e,{x:dk.x,y:.3,z:dk.z,ry:0,s:.4,f:0,tl:0,die:true},460,.3);
@@ -853,6 +864,8 @@ function sync3(v){
   let bdNew=0;
   for(const [key,c] of want){
     let e=V3.cards.get(key);
+    if(e&&e.gone)continue;
+    if(!e&&c.seat>=0&&c.seat!==me&&B.st[c.seat]===1)continue;   // 이미 폴드한 사람의 카드는 새로 만들지 않음 (늦게 들어온 사람)
     if(!e){
       const g=makeCard(new THREE.Vector3(dk.x,.4,dk.z),Math.PI/2,0,.4);g.userData.man=true;g.visible=false;
       let at=now;
@@ -862,7 +875,7 @@ function sync3(v){
     }
     if(c.id>=0&&e.id!==c.id){e.g.children[0].material=faceMat(c.id);e.id=c.id}
     const P=cardPose(c.seat,c.k,c.id>=0&&c.seat!==me),folded=c.seat>=0&&B.st[c.seat]===1,up=c.id>=0&&!folded,L=c.id>=0&&lift.has(c.id)?.09:0;
-    if(folded&&c.seat!==me){cardSet(e,{x:dk.x+(c.k-.5)*.1,y:.05,z:dk.z+.35,ry:.3*(c.k?1:-1),s:.4,f:0,tl:0,die:true},420,.25);continue}   // 폴드한 카드는 덱 쪽으로 모음
+    if(folded&&c.seat!==me){cardSet(e,{x:dk.x+(c.k-.5)*.1,y:.05,z:dk.z,ry:.3*(c.k?1:-1),s:.4,f:0,tl:0,die:true,keep:true},420,.25);continue}   // 폴드한 카드는 덱 쪽으로 모음
     glow(e,!!L&&up);
     const flip=e.to&&e.to.f!==(up?1:0);
     cardSet(e,{x:P.x,y:P.y+L+(folded?-.01:0),z:P.z-(L?.06:0),ry:P.ry,s:P.s*(folded?.88:1),f:up?1:0,tl:0},flip?420:300,flip?.32:.14);
