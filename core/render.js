@@ -323,7 +323,63 @@ function liveUI(t){
 }
 
 /* 입력 */
-/* 터치: 짧게 탭하면 선택, 꾹 누르면 카드가 올라와서 미리 보기(손가락을 옆으로 밀면 다른 카드 보기), 떼면 선택 안 함 */
+/* 끌어서 내기: 카드를 잡고 위로 끌어 손패에서 완전히 떼어 놓으면 냄 (내기 버튼까지 가지 않아도 됨). 손패에 조금이라도 겹친 채 놓으면 취소
+   고른 카드를 잡으면 고른 카드가 모두, 안 고른 카드를 잡으면 그 한 장만 따라옴 */
+const DRAG={el:null,x:0,y:0,on:false,rest:null,cards:[],one:null,suppress:0};
+function dragClear(){for(const c of DRAG.cards){c.classList.remove('drag','go');c.style.removeProperty('--dx');c.style.removeProperty('--dy')}DRAG.el=null;DRAG.on=false;DRAG.cards=[];DRAG.one=null}
+function dragBegin(b){
+  const cs=[...$('#hand').children];let l=1e9,t=1e9,r=-1e9,bt=-1e9;
+  for(const c of cs){const q=c.getBoundingClientRect();l=Math.min(l,q.left);t=Math.min(t,q.top);r=Math.max(r,q.right);bt=Math.max(bt,q.bottom)}
+  DRAG.rest={l,t,r,b:bt};DRAG.on=true;
+  DRAG.one=b.classList.contains('sel')?null:+b.dataset.id;
+  DRAG.cards=DRAG.one==null?cs.filter(c=>c.classList.contains('sel')):[b];
+  for(const c of DRAG.cards)c.classList.add('drag');
+}
+function dragMove(e){
+  const dx=e.clientX-DRAG.x,dy=e.clientY-DRAG.y,k=parseFloat($('#hand').style.getPropertyValue('--k'))||1;
+  for(const c of DRAG.cards){c.style.setProperty('--dx',(dx/k).toFixed(1)+'px');c.style.setProperty('--dy',(dy/k).toFixed(1)+'px')}
+  const go=dragFree();for(const c of DRAG.cards)c.classList.toggle('go',go);
+}
+/* 끌고 있는 카드가 손패(끌기 전 카드 자리 전체)와 한 점도 겹치지 않으면 true */
+function dragFree(){
+  const R=DRAG.rest;if(!R)return false;
+  return DRAG.cards.every(c=>{const b=c.getBoundingClientRect();return b.right<R.l||b.left>R.r||b.bottom<R.t||b.top>R.b});
+}
+/* 놓기: 손패와 떨어져 있으면 냄 (내기 버튼을 누른 것과 같음). 한 장을 끌었으면 그 카드만 골라서 냄 */
+function dragDrop(cancel){
+  const free=!cancel&&dragFree(),one=DRAG.one;
+  dragClear();DRAG.suppress=Date.now();
+  if(!free)return;
+  const pb=$('#btnPlay');
+  if(one!=null){
+    const old=new Set(sel);sel.clear();sel.add(one);renderButtons();
+    if(pb.hidden||pb.disabled){sel.clear();for(const id of old)sel.add(id);renderMe();sfx('no');return}
+    curId=one;
+  }else if(pb.hidden||pb.disabled){sfx('no');return}
+  G.play();
+}
+$('#hand').addEventListener('pointerdown',e=>{
+  if(e.pointerType==='touch'||e.button!==0)return;
+  const b=e.target.closest('.card');if(!b)return;
+  DRAG.el=b;DRAG.x=e.clientX;DRAG.y=e.clientY;DRAG.on=false;
+  try{b.setPointerCapture(e.pointerId)}catch(_){}
+});
+$('#hand').addEventListener('pointermove',e=>{
+  if(e.pointerType==='touch'||!DRAG.el)return;
+  if(!DRAG.on){if(Math.hypot(e.clientX-DRAG.x,e.clientY-DRAG.y)<6)return;dragBegin(DRAG.el)}
+  dragMove(e);
+});
+function mouseUp(e,cancel){
+  if(e.pointerType==='touch'||!DRAG.el)return;
+  if(!DRAG.on){DRAG.el=null;return}   // 움직이지 않았으면 그냥 누르기 (click에서 고르기 풀기)
+  dragDrop(cancel);
+}
+$('#hand').addEventListener('pointerup',e=>mouseUp(e,false));
+$('#hand').addEventListener('pointercancel',e=>mouseUp(e,true));
+$('#hand').addEventListener('lostpointercapture',e=>mouseUp(e,true));
+
+/* 터치: 짧게 탭하면 선택, 꾹 누르면 카드가 올라와서 미리 보기(손가락을 옆으로 밀면 다른 카드 보기), 떼면 선택 안 함
+   위로 밀면 끌어서 내기 (미리 보기 중에는 그 카드를 위로 밀면) */
 const TOUCH={id:null,t0:0,x:0,y:0,timer:null,peek:false,el:null,suppress:0};
 function setPeek(el){if(TOUCH.el===el)return;if(TOUCH.el)TOUCH.el.classList.remove('peek');TOUCH.el=el;if(el)el.classList.add('peek')}
 function toggleCard(id){curId=id;sel.has(id)?sel.delete(id):sel.add(id);sfx('pick');renderMe()}
@@ -334,12 +390,24 @@ $('#hand').addEventListener('pointerdown',e=>{
   const b=e.target.closest('.card');if(!b)return;
   seeNewCard(b);
   TOUCH.id=+b.dataset.id;TOUCH.t0=Date.now();TOUCH.x=e.clientX;TOUCH.y=e.clientY;TOUCH.peek=false;
+  DRAG.el=b;DRAG.on=false;
   clearTimeout(TOUCH.timer);
   TOUCH.timer=setTimeout(()=>{TOUCH.peek=true;setPeek(b);sfx('tick');if(navigator.vibrate)try{navigator.vibrate(8)}catch(_){}},300);
 });
 $('#hand').addEventListener('pointermove',e=>{
   if(e.pointerType!=='touch'||TOUCH.id==null)return;
-  if(!TOUCH.peek){if(Math.hypot(e.clientX-TOUCH.x,e.clientY-TOUCH.y)>12){clearTimeout(TOUCH.timer);TOUCH.timer=setTimeout(()=>{TOUCH.peek=true},0)}return}
+  if(DRAG.on){dragMove(e);return}
+  const dx=e.clientX-TOUCH.x,dy=e.clientY-TOUCH.y,up=-dy>Math.abs(dx);
+  if(!TOUCH.peek){
+    if(Math.hypot(dx,dy)>12){
+      clearTimeout(TOUCH.timer);
+      if(up&&DRAG.el){DRAG.x=TOUCH.x;DRAG.y=TOUCH.y;dragBegin(DRAG.el);dragMove(e);return}
+      TOUCH.timer=setTimeout(()=>{TOUCH.peek=true},0);
+    }
+    return;
+  }
+  // 미리 보기 중 위로 크게 밀면 보고 있는 카드로 끌기
+  if(TOUCH.el&&up&&-dy>40){DRAG.x=e.clientX;DRAG.y=e.clientY;dragBegin(TOUCH.el);return}
   // 올라온 카드가 손가락을 덮으므로 화면 좌표 대신 부채 가운데로부터의 가로 거리로 카드 고르기
   const cards=[...$('#hand').children];if(!cards.length)return;
   const r=$('#stage').getBoundingClientRect(),cx=r.left+r.width/2;
@@ -350,55 +418,14 @@ $('#hand').addEventListener('pointermove',e=>{
 function touchEnd(e,cancel){
   if(e.pointerType!=='touch'||TOUCH.id==null)return;
   clearTimeout(TOUCH.timer);
+  if(DRAG.on){setPeek(null);dragDrop(cancel);TOUCH.id=null;TOUCH.peek=false;TOUCH.suppress=Date.now();return}
+  DRAG.el=null;
   const quick=!TOUCH.peek&&Date.now()-TOUCH.t0<300&&Math.hypot(e.clientX-TOUCH.x,e.clientY-TOUCH.y)<=12;
   if(quick&&!cancel)toggleCard(TOUCH.id);
   setPeek(null);TOUCH.id=null;TOUCH.peek=false;TOUCH.suppress=Date.now();
 }
 $('#hand').addEventListener('pointerup',e=>touchEnd(e,false));
 $('#hand').addEventListener('pointercancel',e=>touchEnd(e,true));
-/* 마우스: 고른 카드를 잡고 끌어 올려 손패에서 완전히 떼어 놓으면 냄 (내기 버튼까지 가지 않아도 됨). 손패에 조금이라도 겹친 채 놓으면 취소 */
-const DRAG={el:null,x:0,y:0,on:false,rest:null,cards:[],suppress:0};
-function dragCards(){return [...$('#hand').children].filter(c=>c.classList.contains('sel'))}
-function dragClear(){for(const c of DRAG.cards){c.classList.remove('drag','go');c.style.removeProperty('--dx');c.style.removeProperty('--dy')}DRAG.el=null;DRAG.on=false;DRAG.cards=[]}
-/* 끌고 있는 카드가 손패(끌기 전 카드 자리 전체)와 한 점도 겹치지 않으면 true */
-function dragFree(){
-  const R=DRAG.rest;if(!R)return false;
-  return DRAG.cards.every(c=>{const b=c.getBoundingClientRect();return b.right<R.l||b.left>R.r||b.bottom<R.t||b.top>R.b});
-}
-$('#hand').addEventListener('pointerdown',e=>{
-  if(e.pointerType==='touch'||e.button!==0)return;
-  const b=e.target.closest('.card');if(!b||!b.classList.contains('sel'))return;
-  DRAG.el=b;DRAG.x=e.clientX;DRAG.y=e.clientY;DRAG.on=false;DRAG.cards=[];
-  try{b.setPointerCapture(e.pointerId)}catch(_){}
-});
-$('#hand').addEventListener('pointermove',e=>{
-  if(e.pointerType==='touch'||!DRAG.el)return;
-  const dx=e.clientX-DRAG.x,dy=e.clientY-DRAG.y;
-  if(!DRAG.on){
-    if(Math.hypot(dx,dy)<6)return;
-    const cs=[...$('#hand').children];let l=1e9,t=1e9,r=-1e9,bt=-1e9;
-    for(const c of cs){const q=c.getBoundingClientRect();l=Math.min(l,q.left);t=Math.min(t,q.top);r=Math.max(r,q.right);bt=Math.max(bt,q.bottom)}
-    DRAG.rest={l,t,r,b:bt};DRAG.cards=dragCards();DRAG.on=true;
-    for(const c of DRAG.cards)c.classList.add('drag');
-  }
-  const k=parseFloat($('#hand').style.getPropertyValue('--k'))||1;
-  for(const c of DRAG.cards){c.style.setProperty('--dx',(dx/k).toFixed(1)+'px');c.style.setProperty('--dy',(dy/k).toFixed(1)+'px')}
-  const go=dragFree();for(const c of DRAG.cards)c.classList.toggle('go',go);
-});
-function dragEnd(e,cancel){
-  if(e.pointerType==='touch'||!DRAG.el)return;
-  const was=DRAG.on,free=was&&!cancel&&dragFree();
-  dragClear();
-  if(!was)return;   // 움직이지 않았으면 그냥 누르기 (click에서 고르기 풀기)
-  DRAG.suppress=Date.now();
-  if(!free)return;   // 손패에 겹쳐 놓음: 취소
-  const pb=$('#btnPlay');
-  if(pb.hidden||pb.disabled){sfx('no');return}
-  G.play();
-}
-$('#hand').addEventListener('pointerup',e=>dragEnd(e,false));
-$('#hand').addEventListener('pointercancel',e=>dragEnd(e,true));
-$('#hand').addEventListener('lostpointercapture',e=>dragEnd(e,true));
 $('#hand').addEventListener('click',e=>{if(Date.now()-TOUCH.suppress<700||Date.now()-DRAG.suppress<300)return;const b=e.target.closest('.card');if(!b)return;const id=+b.dataset.id;curId=id;sel.has(id)?sel.delete(id):sel.add(id);sfx('pick');renderMe()});
 $('#btnPlay').addEventListener('click',()=>G.play());
 $('#btnPass').addEventListener('click',()=>G.pass());
