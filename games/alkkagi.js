@@ -752,9 +752,9 @@ function stones2D(pos){
       bw.push(`<circle cx="${X}" cy="${Y}" r=".24" fill="#8a5a32" stroke="#3b2a1f" stroke-width=".02"/><circle cx="${X}" cy="${Y}" r=".19" fill="#5a3416"/>`);
       for(let j=0;j<k;j++){const b=bowlSpots[j];bw.push(`<circle cx="${X+b.x*.42}" cy="${Y+b.z*.42}" r=".045" fill="${f}" stroke="#0c0c0e" stroke-width=".008"/>`)}}
     out.unshift(...bw);
-    if(!introOn()){const M=omMarks(pos),mk=[];   // 돌이 있다고 보는 점(흑·백 칸)과 놓을 수 있는 점(초록 빗금 칸), 판 위·알 아래
+    if(!introOn()){const M=omMarks(pos),mk=[];   // 돌이 있다고 보는 점(흑·백 칸)과 놓을 수 있는 곳(첫째 줄 초록 띠), 판 위·알 아래
       for(const [c,r,sd] of M.on){const [X,Y]=w2s(...gridXZ(c,r)),b=OS.co[sd]===1,h=PITCH*.44;mk.push(`<rect x="${X-h}" y="${Y-h}" width="${2*h}" height="${2*h}" rx=".04" fill="${b?'rgba(30,26,22,.32)':'rgba(255,255,255,.55)'}" stroke="${b?'rgba(30,26,22,.75)':'#fff'}" stroke-width=".016"/>`)}
-      for(const [c,r] of M.free){const [X,Y]=w2s(...gridXZ(c,r));const h=PITCH*.47;mk.push(`<rect x="${X-h}" y="${Y-h}" width="${2*h}" height="${2*h}" rx=".04" fill="rgba(47,174,78,.28)"/><rect x="${X-h}" y="${Y-h}" width="${2*h}" height="${2*h}" rx=".04" fill="url(#akHatchG)" stroke="#14632a" stroke-width=".016"/>`)}
+      if(M.strip!=null){const Y=w2s(0,M.strip)[1];mk.push(`<rect x="${-BW+.06}" y="${Y-PITCH/2}" width="${2*BW-.12}" height="${PITCH}" fill="rgba(47,174,78,.38)" stroke="#14632a" stroke-width=".016"/>`)}
       out.unshift(...mk)}
     if(myPlaceNow()){const top=-(BW-.06),h=(BW-.06)+(C0*PITCH-PITCH/2);out.unshift(`<rect x="${-BW+.06}" y="${top}" width="${2*BW-.12}" height="${h}" fill="url(#akHatch)" opacity=".32"/>`)}
     const ln=V.st==='over'&&OS.res&&OS.res.ln;
@@ -884,10 +884,9 @@ function ak3Build(){
      const mk=(map,n,sz,ord)=>Array.from({length:n},()=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(sz,sz),new THREE.MeshBasicMaterial({map,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.visible=false;m.renderOrder=ord;root.add(m);return m});
      const tb=sq('rgba(30,26,22,.32)','rgba(30,26,22,.75)'),tw=sq('rgba(255,255,255,.55)','rgba(255,255,255,.95)');
      Ak3.omOn=[mk(tb,2*OM_N,PITCH*.96,1),mk(tw,2*OM_N,PITCH*.96,1)];   // 돌이 있다고 보는 점 (흑·백), 판 위·알 아래
-     const cell=canvasTex(64,64,(c,w)=>{c.clearRect(0,0,w,w);c.save();c.beginPath();c.roundRect?c.roundRect(4,4,w-8,w-8,8):c.rect(4,4,w-8,w-8);c.clip();
-       c.fillStyle='rgba(47,174,78,.28)';c.fillRect(0,0,w,w);c.strokeStyle='rgba(30,150,60,.85)';c.lineWidth=7;for(let k=-w;k<=w;k+=w/3){c.beginPath();c.moveTo(k,w);c.lineTo(k+w,0);c.stroke()}c.restore();
-       c.strokeStyle='#14632a';c.lineWidth=4;c.beginPath();c.roundRect?c.roundRect(4,4,w-8,w-8,8):c.rect(4,4,w-8,w-8);c.stroke()});
-     Ak3.omFree=mk(cell,NL,PITCH*.96,1)}   // 놓을 수 있는 점: 그 칸에 초록 빗금 (빨간 빗금과 맞춤)
+     const SW=2*BW-.12,band=canvasTex(1024,64,(c,w,h)=>{c.clearRect(0,0,w,h);c.fillStyle='rgba(47,174,78,.38)';c.fillRect(0,0,w,h);c.strokeStyle='#14632a';c.lineWidth=5;c.strokeRect(2.5,2.5,w-5,h-5)});
+     const fm=new THREE.Mesh(new THREE.PlaneGeometry(SW,PITCH),new THREE.MeshBasicMaterial({map:band,transparent:true,depthWrite:false}));fm.rotation.x=-Math.PI/2;fm.visible=false;fm.renderOrder=1;root.add(fm);
+     Ak3.omFree=fm}   // 놓을 수 있는 곳: 내 첫째 줄을 따라 길게 하나 (빨간 빗금과 맞닿음)
     Ak3.winM=new THREE.Mesh(new THREE.BoxGeometry(1,.02,1),new THREE.MeshBasicMaterial({color:0xf2b632,transparent:true,opacity:.85,depthWrite:false}));Ak3.winM.visible=false;Ak3.winM.renderOrder=6;root.add(Ak3.winM);
     // 건널목 차단기: 판 틀 양끝(가운데 줄 끝)에 기둥, 기둥 위 축에서 검정·노랑 차단봉이 가운데 줄 위로 내려옴. 기둥 머리에 빨간 경고등 둘(번갈아 깜빡)
     {const XP=BW-.13,AH=.3,AL=XP-.045,AW=.06,AT=.04,tex=canvasTex(256,32,(g,W,Hc)=>{g.fillStyle='#f2c230';g.fillRect(0,0,W,Hc);g.fillStyle='#1d1b19';
@@ -979,12 +978,14 @@ function bowlCounts(pos){
   return n;
 }
 /* 오목 모드 표시: 지금 돌이 있다고 보는 줄 점(그리는 자리로 계산, 굴러가는 동안도 따라감)과 내가 놓을 수 있는 첫째 줄 빈 점 */
+/* 오목 모드 표시: 돌이 다 멈춘 뒤 돌이 있다고 보는 줄 점(on)과, 내가 놓을 차례면 첫째 줄 초록 띠(strip: 그 줄의 z) */
+const omMoving=()=>!!(Ak3.shot||FLK||(Ak3.pl&&Ak3.pl.some(Boolean))||(Ak3.cl&&Ak3.cl.some(Boolean)));
 function omMarks(pos){
+  const me=myIdx(),strip=myPlaceNow()?gridXZ(0,edgeRow(me))[1]:null;
+  if(omMoving())return {on:[],strip};
   const st=OS.st.map((s,i)=>{const q=pos[i]||s;return {x:q.x,z:q.z,s:s.s,u:s.u||q.inB?1:0,o:q.hide||q.y<TOP-.01||!onBoardXZ(q.x,q.z)?1:0}});
   const g=omGrid(st),on=[];for(let k=0;k<g.length;k++)if(g[k])on.push([k%NL,(k/NL)|0,g[k]-1]);
-  const me=myIdx(),free=[];
-  if(myPlaceNow()){const r=edgeRow(me);for(let c=0;c<NL;c++)if(canPlace(OS,me,c,r))free.push([c,r])}
-  return {on,free};
+  return {on,strip};
 }
 function ak3Bowls(pos){
   const on=!!(OS&&OS.om);
@@ -1079,10 +1080,10 @@ function ak3Place(now){
    const gh=Ak3.ghost;gh.g.visible=on&&!!GH;
    if(gh.g.visible){const [x,z]=gridXZ(GH.c,GH.r);gh.g.position.set(x,TOP+SH,z);gh.mat.color.set(OS.co[me]===1?0x26262a:0xf4efe3)}}
   ak3Bowls(pos);
-  {const M=OS.om&&V.st!=='wait'&&!IN.on3d?omMarks(pos):{on:[],free:[]},used=[0,0];
-   Ak3.omOn.forEach(a=>a.forEach(m=>{m.visible=false}));Ak3.omFree.forEach(m=>{m.visible=false});
+  {const M=OS.om&&V.st!=='wait'&&!IN.on3d?omMarks(pos):{on:[],strip:null},used=[0,0];
+   Ak3.omOn.forEach(a=>a.forEach(m=>{m.visible=false}));Ak3.omFree.visible=M.strip!=null;if(M.strip!=null)Ak3.omFree.position.set(0,TOP+.004,M.strip);
    for(const [c,r,sd] of M.on){const col=OS.co[sd]===1?0:1,m=Ak3.omOn[col][used[col]++];if(!m)continue;const [x,z]=gridXZ(c,r);m.position.set(x,TOP+.0035,z);m.visible=true}
-   M.free.forEach(([c,r],k)=>{const m=Ak3.omFree[k],[x,z]=gridXZ(c,r);m.position.set(x,TOP+.004,z);m.visible=true})}
+}
   // 오목: 이긴 줄 위에 금색 띠
   {const ln=V.st==='over'&&OS.res&&OS.res.ln,w=Ak3.winM;w.visible=!!(ln&&ln.length>1);
    if(w.visible){const [x0,z0]=gridXZ(...ln[0]),[x1,z1]=gridXZ(...ln[ln.length-1]),L=Math.hypot(x1-x0,z1-z0);
@@ -1387,7 +1388,7 @@ G.init=()=>{
 `;
   document.head.appendChild(css);
   elAk=document.createElement('div');elAk.id='ak';elAk.hidden=true;
-  elAk.innerHTML=`<div class="ak-bar"></div><div class="ak-row"><div class="ak-hint" aria-live="polite"></div></div><div class="ak-bd"><svg viewBox="${-VX} ${-VY} ${2*VX} ${2*VY}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="알까기 판"><defs><pattern id="akHatch" width=".23" height=".23" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".075" height=".23" fill="#d6281e"/><animateTransform attributeName="patternTransform" type="translate" from="0 0" to=".23 0" dur="2.6s" repeatCount="indefinite" additive="sum"/></pattern><pattern id="akHatchG" width=".07" height=".07" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><rect width=".025" height=".07" fill="rgba(30,150,60,.85)"/></pattern><pattern id="akBar" width=".15" height=".15" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".15" height=".15" fill="#f2c230"/><rect width=".075" height=".15" fill="#1d1b19"/></pattern></defs><g id="akB"></g><g id="akS"></g></svg></div>`;
+  elAk.innerHTML=`<div class="ak-bar"></div><div class="ak-row"><div class="ak-hint" aria-live="polite"></div></div><div class="ak-bd"><svg viewBox="${-VX} ${-VY} ${2*VX} ${2*VY}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="알까기 판"><defs><pattern id="akHatch" width=".23" height=".23" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".075" height=".23" fill="#d6281e"/><animateTransform attributeName="patternTransform" type="translate" from="0 0" to=".23 0" dur="2.6s" repeatCount="indefinite" additive="sum"/></pattern><pattern id="akBar" width=".15" height=".15" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".15" height=".15" fill="#f2c230"/><rect width=".075" height=".15" fill="#1d1b19"/></pattern></defs><g id="akB"></g><g id="akS"></g></svg></div>`;
   $('#stage').insertBefore(elAk,$('#fx'));
   elSvg=elAk.querySelector('svg');elMain=elSvg;elBar=elAk.querySelector('.ak-bar');elHint=elAk.querySelector('.ak-hint');
   // 당기기: 3D(캔버스)와 2D(SVG) 모두 누르기 → 끌기 → 놓기. 누른 채 화면 밖으로 끌어도 이어짐
