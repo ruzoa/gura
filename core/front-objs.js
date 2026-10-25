@@ -27,7 +27,7 @@ function frontHoloPiece(id){
     const at=canvasTex(128,186,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.fillStyle='#34404f';x.font='600 34px "IBM Plex Mono", monospace';x.textAlign='left';x.textBaseline='top';x.fillText('A',10,8);x.font='86px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('♠',w/2,h/2+8)});
     add(new THREE.BoxGeometry(.4,.58,.012),holoMat(0xffffff,at),-.1,.04,0,0,0,.12);
     const cm=holoMat(0xcc3a2e),cw=holoMat(0xf6f3ea);for(let k=0;k<4;k++){add(new THREE.CylinderGeometry(.12,.12,.045,20),k%2?cw:cm,.17,-.2+k*.05,.06)}}
-  else if(id==='alkkagi'&&GAMES.alkkagi&&GAMES.alkkagi.holoPiece){   // 흑돌과 튀어 오르는 백돌 (게임이 모양을 정하고 재질은 여기서)
+  else if(id==='alkkagi'&&GAMES.alkkagi&&GAMES.alkkagi.holoPiece){   // 풀차징된 손과 흑돌 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.alkkagi.holoPiece(c=>{const m=holoMat(c);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else add(new THREE.OctahedronGeometry(.25),holoMat(0xffffff));
   g.userData={mats};return g;
@@ -384,12 +384,12 @@ if(pv>.01)frontDrawList(t);
 function frontCanPlay(id){const g=gameOf(id);return !(g.maxHi&&V&&V.ps&&V.ps.length>g.maxHi)}
 function frontHoloId(){const n=GAME_IDS.length;return GAME_IDS[((FR.hpos%n)+n)%n]}
 function frontBrowse(on){
-  if(on===FR.browse)return;FR.browse=on;
+  if(on===FR.browse)return;FR.browse=on;FR.hdrag=null;
   if(on){seatPopClose();FR.hpos=Math.max(0,GAME_IDS.indexOf((V&&V.cfg&&V.cfg.game)||'gura'));FR.hra={v:FR.hpos,to:FR.hpos,from:FR.hpos,t0:0,ms:0};sfx('holoOn')}
   else sfx('holoOff');
   $('#stage').classList.toggle('holo',on);
 }
-function frontHoloStep(d){if(!FR.browse)return;FR.hpos+=d;sfx('holoTick')}
+function frontHoloStep(d){if(!FR.browse||FR.hdrag!=null)return;FR.hpos+=d;sfx('holoTick')}
 function frontHoloPick(){
   if(!FR.browse)return;const id=frontHoloId();
   if(!frontCanPlay(id)||mode!=='host'||!H||H.phase!=='wait'){sfx('no');return}
@@ -417,7 +417,7 @@ function frontHoloPose(t,wait){
   Hh.glow.material.opacity=(.35+.2*br)*glow;Hh.glow.scale.setScalar(.8+.5*br);Hh.glow.position.y=-.32+.35;
   {const a=Hh.dust.geometry.attributes.position,N=a.count;for(let i=0;i<N;i++){const f=((t/2800+i/N*1.618)%1),r=(.06+.3*f)*(.4+.6*((i*.37)%1)),an=i*2.4+t/2600;a.setXYZ(i,Math.sin(an)*r,.3+f*bh*1.05,Math.cos(an)*r)}a.needsUpdate=true;Hh.dust.material.opacity=.7*glow}
   const n=GAME_IDS.length,cur=Math.max(0,GAME_IDS.indexOf((V&&V.cfg&&V.cfg.game)||'gura'));
-  const rot=frontTween(FR.hra,FR.hpos,t,320),cy=.95;
+  const rot=FR.hdrag!=null?FR.hdrag:frontTween(FR.hra,FR.hpos,t,320),cy=.95;   // 미는 동안은 손을 그대로 따라감
   Hh.pieces.forEach((p,k)=>{
     // 고르는 중: 가운데 하나만 크게, 양옆에 이전·다음이 작게. 나머지는 숨음 (끝에서 처음으로 이어짐)
     let d=((k-rot)%n+n)%n;if(d>n/2)d-=n;const ad=Math.abs(d);
@@ -584,17 +584,39 @@ $('#frClip').addEventListener('click',()=>clipOpen());
 }
 $('#frPick').addEventListener('click',()=>frontHoloPick());
 $('#frPrev').addEventListener('click',()=>frontHoloStep(-1));$('#frNext').addEventListener('click',()=>frontHoloStep(1));
-{ // 홀로그램 넘기기: 밀거나(스와이프) 왼쪽·오른쪽을 누름. 위쪽 빈 곳을 누르면 닫음
-  const pad=$('#frPad');let sx=null,sy=0;
+{ // 홀로그램 넘기기: 밀면 말이 손을 따라 돌다가 놓으면 가까운 게임에 멈춤(빠르게 튕기면 하나 넘김), 왼쪽·오른쪽을 눌러도 넘김. 위쪽 빈 곳을 누르면 닫음
+  // 미는 것은 가운데 말(#frPick)·양옆 말 위에서 시작해도 되게 #front에서 먼저 받음. 밀었으면 그 누름은 클릭으로 치지 않음
+  const pad=$('#frPad'),fr=$('#front');let sx=null,sy=0,bx=null,by=0,drag=null,dragAt=0;
+  const stepPx=()=>{const a=$('#frPick').getBoundingClientRect(),b=$('#frNext').getBoundingClientRect(),d=Math.abs((b.left+b.width/2)-(a.left+a.width/2));return d>40?d:140};   // 이웃한 말 사이 화면 거리
+  const dragEnd=e=>{const d=drag;drag=null;bx=null;if(!d)return false;dragAt=clock();if(FR.hdrag==null)return true;
+    const dx=e?e.clientX-d.x0:0,v=FR.hdrag,fast=Math.abs(dx)>36&&clock()-d.t0<300;
+    let to=Math.round(v);if(fast&&to===d.from)to=d.from+(dx<0?1:-1);   // 짧고 빠르게 밀면 하나 넘김
+    FR.hdrag=null;FR.hra={v,from:v,to:v,t0:0,ms:0};if(to!==FR.hpos)sfx('holoTick');FR.hpos=to;return true};   // 놓은 자리에서 가까운 게임으로 미끄러짐
+  fr.addEventListener('pointerdown',e=>{bx=FR.browse?e.clientX:null;by=e.clientY;drag=null},true);
+  fr.addEventListener('pointermove',e=>{
+    if(bx==null||!FR.browse)return;const dx=e.clientX-bx,dy=e.clientY-by;
+    if(!drag){if(Math.abs(dx)<10||Math.abs(dx)<Math.abs(dy))return;drag={base:FR.hra.v,from:FR.hpos,px:stepPx(),t0:clock(),x0:bx};try{fr.setPointerCapture(e.pointerId)}catch(_){}}
+    FR.hdrag=drag.base-dx/drag.px;const r=Math.round(FR.hdrag);if(r!==FR.hpos){FR.hpos=r;sfx('holoTick')}   // 가운데 게임 이름·금지 표시도 따라 바뀜
+  },true);
+  const up=e=>{if(dragEnd(e.type==='pointercancel'?null:e)){sx=null;e.stopPropagation()}bx=null};
+  fr.addEventListener('pointerup',up,true);fr.addEventListener('pointercancel',up,true);
+  fr.addEventListener('click',e=>{if(clock()-dragAt<350){e.stopPropagation();e.preventDefault()}},true);
   pad.addEventListener('pointerdown',e=>{sx=e.clientX;sy=e.clientY});
   pad.addEventListener('pointerup',e=>{
     if(sx==null)return;const dx=e.clientX-sx,dy=e.clientY-sy;sx=null;
     if(!FR.browse){if(FR.rb.on)return;if(FR.list){if(Math.abs(dy)>36&&Math.abs(dy)>Math.abs(dx)){frontListPage(dy<0?-1:1);return}frontList(false);return}if(FR.leanOn){FR.leanOn=false;sfx('tick')}return}   // 숙여 보던 중 빈 곳을 누르면: 목록 판이면 키판으로, 아니면 다시 섬
-    if(Math.abs(dx)>36&&Math.abs(dx)>Math.abs(dy)){frontHoloStep(dx<0?1:-1);return}
     const r=pad.getBoundingClientRect(),x=(e.clientX-r.left)/r.width;
     if(frontOutside(e.clientX,e.clientY)){if(frontCanPlay(frontHoloId()))frontHoloPick();else frontBrowse(false);return}   // 탁자 밖 = 가운데 게임으로 정하고 닫음
     frontHoloStep(x<.5?-1:1);
   });
+  // 마우스 휠(터치패드 두 손가락 밀기도): 한 칸에 한 게임. 터치패드처럼 잘게 오는 값은 모아서, 너무 빨리 여러 개 넘어가지 않게
+  let wAcc=0,wAt=0,wStep=0;
+  document.addEventListener('wheel',e=>{
+    if(!FR.browse||mode!=='host'||drag)return;e.preventDefault();
+    const t=clock(),d=(Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY)*(e.deltaMode===1?33:e.deltaMode===2?400:1);
+    if(t-wAt>250||Math.sign(d)!==Math.sign(wAcc))wAcc=0;wAt=t;wAcc+=d;
+    if(Math.abs(wAcc)>=50&&t-wStep>140){frontHoloStep(wAcc>0?1:-1);wAcc=0;wStep=t}
+  },{passive:false});
 }
 document.addEventListener('keydown',e=>{   // 규칙 나무판: ↑↓ 판자 밀기, ←→ 판자 넘기기, Esc 뒤로
   if(!FR.rb.on||e.target.matches('input')||!$('#rulesOv').hidden||!$('#menu').hidden)return;
