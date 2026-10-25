@@ -18,7 +18,7 @@ function seatPopOpen(key,anchor){
       if(pickF&&isHost)h+=`<button type="button" data-sp="first:${i}">선 플레이어</button>`;
       if(!isHost&&+(V.cfg.spec??4)>0)h+=`<button type="button" data-sp="tospec">관전하기</button>`;
     }else if(isHost){
-      if(p.b)h+=`<div class="sp-lv">${BOT_LV.map((t,k)=>`<button type="button" data-sp="lv:${i}:${k}"${(p.lv??1)===k?' class="on"':''}>${t}</button>`).join('')}</div>`;
+      if(p.b&&!G.oneBotLv)h+=`<div class="sp-lv">${BOT_LV.map((t,k)=>`<button type="button" data-sp="lv:${i}:${k}"${(p.lv??1)===k?' class="on"':''}>${t}</button>`).join('')}</div>`;
       if(pickF)h+=`<button type="button" data-sp="first:${i}">선 플레이어</button>`;
       h+=`<button type="button" class="danger" data-sp="kick:${i}" data-name="${esc(p.n)}">내보내기</button>`;
     }else{sfx('no');return}
@@ -55,7 +55,7 @@ function waitSeatsHTML(){
   let h='';
   for(let k=0;k<Math.max(max,ps.length);k++){
     const p=ps[k];
-    if(p){const sub=p.hs?'방장':p.b?`봇 · ${BOT_LV[p.lv??1]}`:p.aw?'연결 끊김':'';
+    if(p){const sub=p.hs?'방장':p.b?(G.oneBotLv?'봇':`봇 · ${BOT_LV[p.lv??1]}`):p.aw?'연결 끊김':'';
       h+=`<div class="seat wseat${k===me?' mine':''}${p.b?' bot lv'+(p.lv??1):''}" data-w="${k}"><button type="button" data-seat="s${k}" aria-label="${esc(p.n)}${k===me?' (나)':''}">${k===fi?'<i class="fsel">선</i>':''}<span class="nm">${G.nameTag?G.nameTag(p,k):''}${esc(p.n)}</span>${sub?`<small>${esc(sub)}</small>`:''}</button>${k===me?'<button type="button" class="wemo" aria-label="이모티콘" title="이모티콘">😊</button>':''}</div>`}
     else h+=`<div class="seat wseat empty${me<0&&V.spec?' sitok':''}" data-w="${k}"><button type="button" data-seat="e${k}" aria-label="빈 자리"${me<0&&V.spec?'':' tabindex="-1"'}>${CHAIR_SVG}</button></div>`;   // 빈 자리: 빈 의자 점선 그림 (관전자만 눌러서 앉음)
   }
