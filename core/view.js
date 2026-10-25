@@ -304,6 +304,8 @@ buildSndSeg($('#mSnd'));buildSndSeg($('#segSnd'));syncSndSeg();
 const FIELD = {
   n: null, gust: 0, goal: 0, nextGust: 6, gustEnd: 0,
   LEVEL: 2.6,   // 평균 RMS 약 0.004: 재즈의 1/3쯤, 귀 기울여야 들리는 크기
+  PLEVEL: .75,  // 피아노가 나오는 동안 RMS 약 0.012: 카페 재즈와 같은 크기
+  pAt: 0, pEnd: 0, pLast: 0, notes: [],   // 피아노: 다음 곡 시작 시각, 지금 곡이 끝나는 시각, 마지막 박자 시각, 아직 안 친 음
   build(c, out) {
     const sr = c.sampleRate, len = sr * 4, buf = c.createBuffer(1, len, sr), d = buf.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
@@ -331,6 +333,9 @@ const FIELD = {
       n.rev = c.createConvolver(); n.rev.buffer = ir; n.wet = gain(.5);
       n.birds.connect(n.rev); n.rev.connect(n.wet); n.wet.connect(n.out);
     }
+    // 피아노 버스: 곡이 시작·끝날 때 천천히 커지고 작아짐. 새소리와 같은 잔향을 더 많이 걸어 들판에 울리는 느낌
+    n.piano = gain(0); n.piano.connect(n.out);
+    if (n.rev) { n.pianoRev = gain(.8); n.piano.connect(n.pianoRev); n.pianoRev.connect(n.rev) }
     this.n = n;
   },
   // 켜기·끄기: 바로 끊지 않고 천천히 커지고 작아짐
@@ -378,7 +383,8 @@ const FIELD = {
   step(c, t) {
     const n = this.n;
     // 바람은 가끔: 한 번 불면 2~4초, 1~2초에 걸쳐 잦아들고, 그친 뒤 조용한 틈을 두어 평균 15초마다
-    if (t >= this.nextGust) { this.goal = .35 + .45 * Math.random(); this.gustEnd = t + 2 + Math.random() * 2; this.nextGust = this.gustEnd + 5 - Math.log(1 - Math.random()) * 7 }
+    // 피아노가 나오는 동안은 바람 틈을 두 배로 벌려 겹치지 않게
+    if (t >= this.nextGust) { this.goal = .35 + .45 * Math.random(); this.gustEnd = t + 2 + Math.random() * 2; this.nextGust = this.gustEnd + (5 - Math.log(1 - Math.random()) * 7) * (t < this.pEnd ? 2 : 1) }
     if (t >= this.gustEnd) this.goal = 0;
     this.gust += (this.goal - this.gust) * (this.goal > this.gust ? .25 : .35);
     if (this.gust < .01) this.gust = 0;
@@ -393,7 +399,79 @@ const FIELD = {
     // 새·풀벌레는 바람과 상관없이 늘 가끔 울림 (바람이 없을 때도 들리게)
     if (Math.random() < .14) this.call(c, t + Math.random() * .4);
     if (Math.random() < .07) this.bug(c, t + Math.random() * .4);
-  }
+    this.pianoStep(c, t);
+  },
+
+  /* ----- 피아노: 마인크래프트(C418)처럼 가끔 잔잔한 한 곡 -----
+     들판에 들어오고 1~3분 뒤 첫 곡, 한 곡은 1~2분, 끝나면 5~10분 쉼. 곡은 매번 새로 만듦(생성형):
+     7·9음을 붙인 열린 화음을 하나에 5.5~7초씩 끌고, 그 위에 펜타토닉 3~5음 동기를 되풀이하다 가끔 한 음만 바꿈.
+     음 사이 간격은 조금씩 흔들어(rubato) 박자를 딱 맞추지 않음. 화음은 [베이스, [화음 음들]], 으뜸음에서 반음 수 */
+  PROG: [
+    [[0, [4, 7, 11, 14]], [-3, [0, 4, 7, 9]], [-7, [9, 11, 12, 16]], [-5, [7, 9, 12, 14]]],   // Imaj9 vi7 IVmaj7#11 Vsus
+    [[-7, [9, 11, 12, 16]], [0, [4, 7, 11, 14]], [-10, [6, 9, 14, 16]], [0, [4, 7, 11, 14]]], // IVmaj7#11 Imaj9 II(add9) Imaj9
+    [[0, [4, 7, 11, 14]], [-8, [4, 7, 11, 14]], [-7, [9, 11, 12, 16]], [0, [4, 7, 11, 14]]],  // Imaj9 iii7 IVmaj7#11 Imaj9
+    [[-3, [0, 4, 7, 9]], [-7, [9, 11, 12, 16]], [0, [4, 7, 11, 14]], [-5, [7, 9, 12, 14]]]    // vi7 IVmaj7#11 Imaj9 Vsus
+  ],
+  MEL: [12, 14, 16, 19, 21, 24, 26, 28],   // 멜로디: 한 옥타브 위 장조 펜타토닉 (어떤 화음 위에서도 부딪치지 않음)
+  // 피아노 한 음: 배음 4개(위로 갈수록 살짝 높게) + 살짝 어긋난 두 번째 현으로 맥놀이. 탁 친 뒤 빨리 한 번 줄고 길게 사라지며,
+  // 저역 필터가 내려가 갈수록 어두워짐. 낮은 음은 왼쪽, 높은 음은 오른쪽에서 조금
+  key(c, t, f, v, len) {
+    const g = c.createGain(), lp = c.createBiquadFilter();
+    lp.type = 'lowpass'; lp.Q.value = .3; lp.frequency.setValueAtTime(Math.min(6000, f * 7), t); lp.frequency.exponentialRampToValueAtTime(Math.max(250, f * 1.6), t + len * .6);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .006);
+    g.gain.setTargetAtTime(v * .35, t + .006, .25); g.gain.setTargetAtTime(0, t + .5, len / 4);
+    [[1, 1, 0], [1, .5, 3], [2, .45, 0], [3, .2, 0], [4, .1, 0]].forEach(([k, a, ct]) => {
+      const o = c.createOscillator(), og = c.createGain();
+      o.frequency.value = f * k * (1 + .0004 * k * k); o.detune.value = ct; og.gain.value = a / 2.25;
+      o.connect(og); og.connect(lp); o.start(t); o.stop(t + len + .1);
+    });
+    lp.connect(g);
+    if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = Math.max(-.5, Math.min(.5, Math.log2(f / 262) / 4)); g.connect(p); p.connect(this.n.piano) } else g.connect(this.n.piano);
+  },
+  // 곡 하나를 미리 정함: [시각, 반음, 세기, 길이] 목록
+  compose(t) {
+    const root = pick([-4, -2, 0, 2, 3]), prog = pick(this.PROG), total = prog.length * (3 + (Math.random() < .5)), cd = 5.5 + Math.random() * 1.5;
+    const R = (a) => a * (.85 + Math.random() * .3), out = [], motif = [];
+    for (let i = 3 + Math.floor(Math.random() * 3); i > 0; i--) motif.push(pick(this.MEL));
+    let at = t + 1.5;
+    for (let k = 0; k < total; k++) {
+      const [b, tones] = prog[k % prog.length], vel = .55 + .45 * Math.sin(Math.PI * (k + .5) / total);   // 가운데에서 가장 셈
+      out.push([at, root + b - 12, .05 * vel, 7]);
+      if (Math.random() < .4) out.push([at + .02, root + b, .03 * vel, 6]);
+      // 화음: 아래에서 위로 천천히 굴려 침 (2~4음)
+      let a = at + R(.5);
+      for (let i = 0, nT = 2 + Math.floor(Math.random() * 3); i < nT; i++) { out.push([a, root + tones[i], .028 * vel, 5]); a += R(.35 + Math.random() * .5) }
+      // 멜로디: 처음 두 화음은 반주만, 그다음부터 동기를 되풀이하며 가끔 한 음만 바꿈
+      if (k >= 2 && Math.random() < .75) {
+        if (Math.random() < .35) motif[Math.floor(Math.random() * motif.length)] = pick(this.MEL);
+        let m = at + R(cd * .3);
+        for (const s of motif) { if (m > at + cd - .3) break; out.push([m, root + s, .04 * vel, 3.5]); m += R(.6 + Math.random() * .6) }
+      }
+      at += R(cd);
+    }
+    // 끝: 으뜸화음을 여리게 길게 한 번, 조금 뒤 높은 음 하나
+    out.push([at, root - 12, .03, 8], [at + .4, root + 4, .018, 7], [at + .9, root + 7, .018, 7], [at + 1.5, root + 14, .018, 7], [at + 3.2, root + 24, .022, 5]);
+    this.notes = out.sort((x, y) => x[0] - y[0]); this.pEnd = at + 10;
+  },
+  pianoStep(c, t) {
+    const n = this.n;
+    // 처음 들어왔거나, 쉬는 동안(카페 배경·판정 연출 등) 시작 시각이 지나 버렸으면 1~3분 뒤로
+    if (!this.pAt || (t - this.pLast > 5 && t >= this.pAt && t >= this.pEnd)) this.pAt = t + 60 + Math.random() * 120;
+    this.pLast = t;
+    if (t >= this.pAt && t >= this.pEnd) {
+      this.compose(t);
+      this.pAt = this.pEnd + 300 + Math.random() * 300;
+      n.piano.gain.cancelScheduledValues(t); n.piano.gain.setTargetAtTime(this.PLEVEL, t, 1.2);   // 3~5초에 걸쳐 커짐
+      n.piano.gain.setTargetAtTime(0, this.pEnd - 5, 1.3);                              // 끝날 때도 천천히
+    }
+    // 앞으로 0.6초 안의 음만 침. 쉬는 동안(판정 연출 등) 지나간 음은 버림
+    while (this.notes.length && this.notes[0][0] < t + .6) {
+      const [at, s, v, len] = this.notes.shift();
+      if (at > t - .2) this.key(c, Math.max(at, t), 261.63 * Math.pow(2, s / 12), v, len);
+    }
+  },
+  // 콘솔에서 바로 들어 보기: FIELD.pianoNow()
+  pianoNow() { this.pAt = 1; this.pEnd = 0 }
 };
 
 /* ================= 카페 재즈 BGM (Swing Jazz Trio Sequencer, 배경이 카페일 때) ================= */
