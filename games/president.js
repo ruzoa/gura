@@ -763,7 +763,7 @@ G.init=()=>{
    혁명 곡은 평시 멜로디를 맨 뒤 음부터 거꾸로 배열하고 단조로 바꾼 곡입니다.
    혁명·반혁명이 나오면 곡이 테이프처럼 느려지다 멈추고, 듣던 소리를 0.75초 거꾸로 감은 뒤
    새 곡을 거울 위치에서 이어 틉니다. 11 백 동안에는 지금 곡을 그 자리에서 거꾸로 틀고 똑딱 소리를 겹칩니다.
-   대부호 방을 나가거나 다른 게임으로 바꾸면 멈추고, 공통 카페 재즈가 다시 나옵니다 (G.ownBgm). */
+   대부호 방을 나가거나 다른 게임으로 바꾸면 멈추고, 공통 배경음악(들판 소리·카페 재즈)이 다시 나옵니다 (G.ownBgm). */
 function bgmSynthLib() {
   'use strict';
 
@@ -1018,10 +1018,15 @@ function bgmSynthLib() {
 const SY=bgmSynthLib();
 const BG={
   on:false,data:{},buf:{},trim:null,cur:null,mode:'fwd',rv:false,tick:null,tickBuf:null,busyUntil:0,kick:false,lvl:-1,
-  TRIM:.32,   // 효과음보다 크지 않도록 맞춘 음량
-  TICK:.55,   // 11 백 똑딱 소리 음량 (곡 대비)
+  LEVEL:.0116,   // 곡마다 이 RMS로 맞춤 (공통 카페 재즈와 같은 크기)
+  TRIM:1,
+  TICK:.14,   // 11 백 똑딱 소리 음량 (곡 대비)
   render(){
-    const got=(m,L,R,sr,length)=>{this.data[m]={L,R,sr,length}};
+    const got=(m,L,R,sr,length)=>{
+      let q=0;for(let i=0;i<length;i++)q+=L[i]*L[i]+R[i]*R[i];
+      const k=q>0?this.LEVEL/Math.sqrt(q/(2*length)):1;for(let i=0;i<length;i++){L[i]*=k;R[i]*=k}
+      this.data[m]={L,R,sr,length};
+    };
     const here=()=>{for(const m of ['fwd','rev'])if(!this.data[m]){const b=SY.render(m);got(m,b.L,b.R,b.sr,b.length)}};
     try{
       const src='var SY=('+bgmSynthLib.toString()+')();onmessage=function(e){var b=SY.render(e.data);postMessage({m:e.data,L:b.L,R:b.R,sr:b.sr,length:b.length},[b.L.buffer,b.R.buffer]);};';
@@ -1135,7 +1140,7 @@ const BG={
     if(lv!==this.lvl){this.lvl=lv;this.trim.gain.setTargetAtTime(lv,SND.ctx.currentTime,.08)}
   }
 };
-G.ownBgm=()=>!!V;   // 대부호 방에 있으면 공통 카페 재즈를 쉼
+G.ownBgm=()=>!!V;   // 대부호 방에 있으면 공통 배경음악을 쉼
 if(typeof window!=='undefined'&&typeof Worker!=='undefined'&&typeof document!=='undefined'){
   BG.render();
   setInterval(()=>{try{BG.watch()}catch(e){}},250);

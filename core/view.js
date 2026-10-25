@@ -297,7 +297,85 @@ function buildSndSeg(box){
   box.addEventListener('click',e=>{const b=e.target.closest('button');if(b)setSound(b.dataset.v==='on')});
 }
 buildSndSeg($('#mSnd'));buildSndSeg($('#segSnd'));syncSndSeg();
-   /* ================= 카페 재즈 BGM (Swing Jazz Trio Sequencer) ================= */
+/* ================= 들판 BGM: 바람·풀 스치는 소리·새소리 (배경이 들판일 때) =================
+   바람은 긴 잡음을 낮은 필터로 걸러 계속 틀고, 몇 초마다 바람 세기(gust)를 바꿔 천천히 따라가게 함.
+   풀 소리는 높은 잡음을 바람 세기에 맞춰 잘게 떨리게, 새소리는 가끔 한 마리씩 좌우 아무 데서나 울림. */
+const FIELD = {
+  n: null, gust: .3, goal: .3, nextGoal: 0,
+  LEVEL: 2.2,   // 재즈와 비슷하게 들리도록 맞춘 음량 (조금 작게)
+  build(c, out) {
+    const sr = c.sampleRate, len = sr * 4, buf = c.createBuffer(1, len, sr), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const src = (off) => { const s = c.createBufferSource(); s.buffer = buf; s.loop = true; s.start(c.currentTime, off); return s };
+    const filt = (type, f, q) => { const b = c.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b };
+    const gain = (v) => { const g = c.createGain(); g.gain.value = v; return g };
+    const n = { out: gain(0) };
+    n.out.connect(out);
+    // 바람: 두 겹 저역 필터(웅-) + 공명 대역 필터(휘잉-)
+    n.lp1 = filt('lowpass', 500, .7); n.lp2 = filt('lowpass', 500, .7); n.wind = gain(.01);
+    src(0).connect(n.lp1); n.lp1.connect(n.lp2); n.lp2.connect(n.wind); n.wind.connect(n.out);
+    n.bp = filt('bandpass', 700, 7); n.whistle = gain(.002);
+    src(1.3).connect(n.bp); n.bp.connect(n.whistle); n.whistle.connect(n.out);
+    // 풀 스치는 소리: 높은 잡음
+    n.hp = filt('highpass', 2600, .5); n.lpR = filt('lowpass', 7000, .5); n.grass = gain(.003);
+    src(2.6).connect(n.hp); n.hp.connect(n.lpR); n.lpR.connect(n.grass); n.grass.connect(n.out);
+    // 새소리 버스: 멀리서 울리는 느낌으로 짧은 메아리
+    n.birds = gain(.6); n.birds.connect(n.out);
+    n.dl = c.createDelay(1); n.dl.delayTime.value = .17; n.fb = gain(.28); n.dlf = filt('lowpass', 3000, .5);
+    n.birds.connect(n.dl); n.dl.connect(n.dlf); n.dlf.connect(n.fb); n.fb.connect(n.dl); n.dlf.connect(n.out);
+    this.n = n;
+  },
+  // 켜기·끄기: 바로 끊지 않고 천천히 커지고 작아짐
+  set(c, on, out) {
+    if (!this.n) { if (!on) return; this.build(c, out) }
+    this.n.out.gain.setTargetAtTime(on ? this.LEVEL : 0, c.currentTime, on ? 1 : .4);
+  },
+  // 새 한 번 짹: f0→f1로 미끄러지는 짧은 소리
+  chirp(c, t, f0, f1, dur, vol, pan) {
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + Math.min(.012, dur * .3)); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g);
+    if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = pan; g.connect(p); p.connect(this.n.birds) } else g.connect(this.n.birds);
+    o.start(t); o.stop(t + dur + .02);
+  },
+  // 새 종류 몇 가지 (가까운 짹짹·휘파람·떨림 소리·먼 산비둘기)
+  call(c, t) {
+    const pan = Math.random() * 1.6 - .8, far = .45 + Math.random() * .55, r = Math.random(), j = (a) => a * (.94 + Math.random() * .12);
+    if (r < .38) {           // 짹짹: 짧은 소리 2~4번
+      const k = 2 + Math.floor(Math.random() * 3), f = j(3600);
+      for (let i = 0; i < k; i++) this.chirp(c, t + i * j(.11), f, f * .78, .055, .03 * far, pan);
+    } else if (r < .63) {    // 휘파람: 올라갔다 내려오는 소리
+      const f = j(2300);
+      this.chirp(c, t, f, f * 1.45, .2, .022 * far, pan);
+      this.chirp(c, t + .22, f * 1.45, f * 1.1, .14, .02 * far, pan);
+      if (Math.random() < .5) this.chirp(c, t + .45, f * 1.2, f * 1.5, .1, .016 * far, pan);
+    } else if (r < .85) {    // 떨림: 아주 짧은 소리를 빠르게 여러 번
+      const k = 8 + Math.floor(Math.random() * 8), f = j(4300);
+      for (let i = 0; i < k; i++) this.chirp(c, t + i * .045, f * (1 + .04 * Math.sin(i)), f * .9, .03, .016 * far * (1 - i / k * .5), pan);
+    } else {                 // 멀리서 산비둘기: 낮고 둥근 두 음
+      const f = j(620);
+      this.chirp(c, t, f, f * .95, .32, .02, pan * .5);
+      this.chirp(c, t + .45, f * .86, f * .8, .5, .018, pan * .5);
+    }
+  },
+  // 박자(약 0.43초)마다 한 번: 바람 세기를 따라가고 가끔 새가 울림
+  step(c, t) {
+    const n = this.n;
+    if (t >= this.nextGoal) { this.goal = Math.pow(Math.random(), 1.4); this.nextGoal = t + 3 + Math.random() * 5 }
+    this.gust += (this.goal - this.gust) * .12;
+    const g = this.gust;
+    n.wind.gain.setTargetAtTime(.014 + .02 * g, t, 1.2);
+    n.lp1.frequency.setTargetAtTime(260 + 650 * g, t, 1.5); n.lp2.frequency.setTargetAtTime(300 + 700 * g, t, 1.5);
+    n.bp.frequency.setTargetAtTime(520 + 520 * g, t, 2);
+    n.whistle.gain.setTargetAtTime(.0015 + .007 * g * g, t, 1.5);
+    // 풀은 바람이 불 때 잘게 사각거림
+    for (let i = 0; i < 4; i++) n.grass.gain.setTargetAtTime((.002 + .012 * g * g) * (.5 + Math.random()), t + i * .1, .05);
+    if (Math.random() < .11) this.call(c, t + Math.random() * .4);
+  }
+};
+
+/* ================= 카페 재즈 BGM (Swing Jazz Trio Sequencer, 배경이 카페일 때) ================= */
 const BGM = {
   timer: null,
   step: 0,
@@ -341,8 +419,12 @@ const BGM = {
       const c = SND.ctx;
 
       // 오디오가 켜져 있고, '구라!' 판정(reveal) 연출 중이 아닐 때만 연주
-      // 게임이 자기 배경음악을 틀고 있으면(대부호 방) 쉼
-      if (c && SND.on && SND.bgmVol > 0 && c.state === 'running' && !(V && V.st === 'reveal') && !(G.ownBgm && G.ownBgm())) {
+      // 게임이 자기 배경음악을 틀고 있으면(대부호 방) 쉼. 배경이 들판이면 들판 소리, 카페면 재즈
+      const ok = c && SND.on && SND.bgmVol > 0 && c.state === 'running' && !(V && V.st === 'reveal') && !(G.ownBgm && G.ownBgm());
+      const field = typeof GFX_ENV === 'undefined' || GFX_ENV !== 'cafe';
+      if (c && SND.bgm) FIELD.set(c, ok && field, SND.bgm);
+      if (ok && field) FIELD.step(c, c.currentTime + .03);
+      else if (ok) {
         const idx = this.step % 16;
         const bar = Math.floor(idx / 4); // 현재 마디 (0~3)
         const beat = idx % 4;            // 마디 내 박자 (0, 1, 2, 3)
