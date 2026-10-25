@@ -298,11 +298,11 @@ function buildSndSeg(box){
 }
 buildSndSeg($('#mSnd'));buildSndSeg($('#segSnd'));syncSndSeg();
 /* ================= 들판 BGM: 바람·풀 스치는 소리·새소리 (배경이 들판일 때) =================
-   평소엔 거의 조용하고, 바람은 가끔(평균 15초마다) 몇 초 동안 살랑 불었다 잦아듦(gust).
-   풀 소리는 바람이 불 때만 잘게 사각거리고, 새소리는 가끔 한 마리씩 좌우 아무 데서나 울림.
+   평소엔 거의 조용하고, 바람은 가끔(평균 15초마다) 2~4초 살랑 불었다 금방 잦아듦(gust).
+   풀 소리는 바람이 불 때만 잘게 사각거리고, 새소리·풀벌레는 가끔 좌우 아무 데서나 울리며 긴 잔향이 붙음.
    환경음이라 귀 기울여야 들리는 크기, 전체에 저역 필터를 걸어 고음을 깎음. */
 const FIELD = {
-  n: null, gust: 0, goal: 0, nextGust: 4, gustEnd: 0,
+  n: null, gust: 0, goal: 0, nextGust: 6, gustEnd: 0,
   LEVEL: 2.6,   // 평균 RMS 약 0.004: 재즈의 1/3쯤, 귀 기울여야 들리는 크기
   build(c, out) {
     const sr = c.sampleRate, len = sr * 4, buf = c.createBuffer(1, len, sr), d = buf.getChannelData(0);
@@ -320,10 +320,17 @@ const FIELD = {
     // 풀 스치는 소리: 높은 잡음
     n.hp = filt('highpass', 1100, .5); n.lpR = filt('lowpass', 2600, .5); n.grass = gain(.003);
     src(2.6).connect(n.hp); n.hp.connect(n.lpR); n.lpR.connect(n.grass); n.grass.connect(n.out);
-    // 새소리 버스: 멀리서 울리는 느낌으로 짧은 메아리
+    // 새·풀벌레 버스: 원음 + 긴 잔향(멀리 퍼지는 탁 트인 느낌). 잔향은 갈수록 고음이 빠지는 좌우 잡음으로 만듦
     n.birds = gain(.6); n.birds.connect(n.out);
-    n.dl = c.createDelay(1); n.dl.delayTime.value = .17; n.fb = gain(.28); n.dlf = filt('lowpass', 3000, .5);
-    n.birds.connect(n.dl); n.dl.connect(n.dlf); n.dlf.connect(n.fb); n.fb.connect(n.dl); n.dlf.connect(n.out);
+    if (c.createConvolver) {
+      const rl = Math.floor(sr * 2.6), pre = Math.floor(sr * .05), ir = c.createBuffer(2, rl, sr);
+      for (let ch = 0; ch < 2; ch++) {
+        const a = ir.getChannelData(ch); let y = 0;
+        for (let i = pre; i < rl; i++) { const u = (i - pre) / sr, k = .55 - .5 * Math.min(1, u / 1.6); y += k * (Math.random() * 2 - 1 - y); a[i] = y * Math.exp(-u / .55) }
+      }
+      n.rev = c.createConvolver(); n.rev.buffer = ir; n.wet = gain(.5);
+      n.birds.connect(n.rev); n.rev.connect(n.wet); n.wet.connect(n.out);
+    }
     this.n = n;
   },
   // 켜기·끄기: 바로 끊지 않고 천천히 커지고 작아짐
@@ -360,21 +367,28 @@ const FIELD = {
       this.chirp(c, t + .45, f * .86, f * .8, .5, .018, pan * .5);
     }
   },
+  // 풀벌레: 귀뚜라미처럼 '찌르르'(짧은 떨림 3번)를 몇 번 되풀이
+  bug(c, t) {
+    const pan = Math.random() * 1.8 - .9, f = 3700 + Math.random() * 500, k = 2 + Math.floor(Math.random() * 5), v = .007 + Math.random() * .006;
+    for (let j = 0; j < k; j++) for (let i = 0; i < 3; i++) this.chirp(c, t + j * .38 + i * .022, f, f * .98, .016, v, pan);
+  },
   // 박자(약 0.43초)마다 한 번: 바람 세기를 따라가고 가끔 새가 울림
   step(c, t) {
     const n = this.n;
-    // 바람은 가끔: 다음 바람까지 평균 15초(최소 6초), 한 번 불면 2~5초
-    if (t >= this.nextGust) { this.goal = .3 + .7 * Math.random(); this.gustEnd = t + 2 + Math.random() * 3; this.nextGust = t + 6 - Math.log(1 - Math.random()) * 9 }
+    // 바람은 가끔: 한 번 불면 2~4초, 1~2초에 걸쳐 잦아들고, 그친 뒤 조용한 틈을 두어 평균 15초마다
+    if (t >= this.nextGust) { this.goal = .3 + .7 * Math.random(); this.gustEnd = t + 2 + Math.random() * 2; this.nextGust = this.gustEnd + 5 - Math.log(1 - Math.random()) * 7 }
     if (t >= this.gustEnd) this.goal = 0;
-    this.gust += (this.goal - this.gust) * (this.goal > this.gust ? .2 : .1);
+    this.gust += (this.goal - this.gust) * (this.goal > this.gust ? .25 : .35);
+    if (this.gust < .01) this.gust = 0;
     const g = this.gust;
-    n.wind.gain.setTargetAtTime(.003 + .02 * g, t, 1.2);
+    n.wind.gain.setTargetAtTime(.0008 + .02 * g, t, .5);
     n.lp1.frequency.setTargetAtTime(260 + 650 * g, t, 1.5); n.lp2.frequency.setTargetAtTime(300 + 700 * g, t, 1.5);
     n.bp.frequency.setTargetAtTime(520 + 520 * g, t, 2);
-    n.whistle.gain.setTargetAtTime(.0004 + .004 * g * g, t, 1.5);
+    n.whistle.gain.setTargetAtTime(.0001 + .004 * g * g, t, .5);
     // 풀은 바람이 불 때 잘게 사각거림
-    for (let i = 0; i < 4; i++) n.grass.gain.setTargetAtTime((.0005 + .01 * g * g) * (.5 + Math.random()), t + i * .1, .05);
+    for (let i = 0; i < 4; i++) n.grass.gain.setTargetAtTime((.0001 + .01 * g * g) * (.5 + Math.random()), t + i * .1, .05);
     if (Math.random() < .11) this.call(c, t + Math.random() * .4);
+    if (Math.random() < .05) this.bug(c, t + Math.random() * .4);
   }
 };
 
