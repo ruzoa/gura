@@ -535,6 +535,7 @@ div.nickline b{font-family:var(--f-display);font-weight:400;font-size:20px}
 body.fs{padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);overflow:hidden;background:#3b2a1f}
 body.fs .wrap{max-width:none;height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));gap:0}
 body.fs .top{display:none}
+body.booting .stage>*{visibility:hidden}   /* 스크립트를 다 불러올 때까지 빈 탁자 자리만 (2D 로비·이름표가 먼저 보였다 바뀌지 않게) */
 body.fs .stage{flex:1;height:auto;min-height:240px;border:0;border-radius:0;box-shadow:none}
 body.fs .info{display:none}
 
