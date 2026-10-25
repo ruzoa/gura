@@ -198,7 +198,6 @@ const SFX={
   btnGo(){tone(110,.08,{type:'square',vol:.1});[523,784].forEach((f,k)=>tone(f,.16,{type:'triangle',vol:.12,at:.06+k*.08}))},
   rcPrint(n=1){for(let k=0;k<Math.min(n,3);k++){hiss(.2,{freq:3600,q:4,vol:.045,at:k*.22});for(let i=0;i<5;i++)tone(2600+((i*37)%5)*120,.012,{type:'square',vol:.018,at:k*.22+i*.035})}},   // 영수증 '지직'
   tableClear(){hiss(.5,{freq:3000,sweep:260,q:.7,vol:.16});tone(80,.3,{type:'triangle',vol:.22,slide:50,at:.05});[2093,2637,1760,2349,1976].forEach((f,k)=>tone(f,.07,{type:'triangle',vol:.05,at:.12+k*.045}));hiss(.12,{freq:4200,q:2,vol:.06,at:.14})},   // 상치우기: 휙 쓸어내림 + 쿵 + 그릇 달그락
-  stamp(){tone(90,.12,{type:'triangle',vol:.2});hiss(.08,{freq:700,q:.8,vol:.14})},   // 도장 쿵
   holoOn(){tone(330,.5,{vol:.07,slide:990,attack:.05});tone(1320,.4,{vol:.03,at:.25,attack:.1})},
   holoOff(){tone(880,.35,{vol:.05,slide:220})},
   holoTick(){tone(1560,.05,{vol:.05});tone(2340,.04,{vol:.025,at:.02})},
