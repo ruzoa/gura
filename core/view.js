@@ -298,26 +298,27 @@ function buildSndSeg(box){
 }
 buildSndSeg($('#mSnd'));buildSndSeg($('#segSnd'));syncSndSeg();
 /* ================= 들판 BGM: 바람·풀 스치는 소리·새소리 (배경이 들판일 때) =================
-   바람은 긴 잡음을 낮은 필터로 걸러 계속 틀고, 몇 초마다 바람 세기(gust)를 바꿔 천천히 따라가게 함.
-   풀 소리는 높은 잡음을 바람 세기에 맞춰 잘게 떨리게, 새소리는 가끔 한 마리씩 좌우 아무 데서나 울림. */
+   평소엔 거의 조용하고, 바람은 가끔(평균 15초마다) 몇 초 동안 살랑 불었다 잦아듦(gust).
+   풀 소리는 바람이 불 때만 잘게 사각거리고, 새소리는 가끔 한 마리씩 좌우 아무 데서나 울림.
+   환경음이라 귀 기울여야 들리는 크기, 전체에 저역 필터를 걸어 고음을 깎음. */
 const FIELD = {
-  n: null, gust: .3, goal: .3, nextGoal: 0,
-  LEVEL: 2.2,   // 재즈와 비슷하게 들리도록 맞춘 음량 (조금 작게)
+  n: null, gust: 0, goal: 0, nextGust: 4, gustEnd: 0,
+  LEVEL: 2.6,   // 평균 RMS 약 0.004: 재즈의 1/3쯤, 귀 기울여야 들리는 크기
   build(c, out) {
     const sr = c.sampleRate, len = sr * 4, buf = c.createBuffer(1, len, sr), d = buf.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     const src = (off) => { const s = c.createBufferSource(); s.buffer = buf; s.loop = true; s.start(c.currentTime, off); return s };
     const filt = (type, f, q) => { const b = c.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b };
     const gain = (v) => { const g = c.createGain(); g.gain.value = v; return g };
-    const n = { out: gain(0) };
-    n.out.connect(out);
+    const n = { out: gain(0), soft: filt('lowpass', 2400, .5) };
+    n.out.connect(n.soft); n.soft.connect(out);   // 고음을 깎아 부드럽게
     // 바람: 두 겹 저역 필터(웅-) + 공명 대역 필터(휘잉-)
     n.lp1 = filt('lowpass', 500, .7); n.lp2 = filt('lowpass', 500, .7); n.wind = gain(.01);
     src(0).connect(n.lp1); n.lp1.connect(n.lp2); n.lp2.connect(n.wind); n.wind.connect(n.out);
     n.bp = filt('bandpass', 700, 7); n.whistle = gain(.002);
     src(1.3).connect(n.bp); n.bp.connect(n.whistle); n.whistle.connect(n.out);
     // 풀 스치는 소리: 높은 잡음
-    n.hp = filt('highpass', 2600, .5); n.lpR = filt('lowpass', 7000, .5); n.grass = gain(.003);
+    n.hp = filt('highpass', 1100, .5); n.lpR = filt('lowpass', 2600, .5); n.grass = gain(.003);
     src(2.6).connect(n.hp); n.hp.connect(n.lpR); n.lpR.connect(n.grass); n.grass.connect(n.out);
     // 새소리 버스: 멀리서 울리는 느낌으로 짧은 메아리
     n.birds = gain(.6); n.birds.connect(n.out);
@@ -362,15 +363,17 @@ const FIELD = {
   // 박자(약 0.43초)마다 한 번: 바람 세기를 따라가고 가끔 새가 울림
   step(c, t) {
     const n = this.n;
-    if (t >= this.nextGoal) { this.goal = Math.pow(Math.random(), 1.4); this.nextGoal = t + 3 + Math.random() * 5 }
-    this.gust += (this.goal - this.gust) * .12;
+    // 바람은 가끔: 다음 바람까지 평균 15초(최소 6초), 한 번 불면 2~5초
+    if (t >= this.nextGust) { this.goal = .3 + .7 * Math.random(); this.gustEnd = t + 2 + Math.random() * 3; this.nextGust = t + 6 - Math.log(1 - Math.random()) * 9 }
+    if (t >= this.gustEnd) this.goal = 0;
+    this.gust += (this.goal - this.gust) * (this.goal > this.gust ? .2 : .1);
     const g = this.gust;
-    n.wind.gain.setTargetAtTime(.014 + .02 * g, t, 1.2);
+    n.wind.gain.setTargetAtTime(.003 + .02 * g, t, 1.2);
     n.lp1.frequency.setTargetAtTime(260 + 650 * g, t, 1.5); n.lp2.frequency.setTargetAtTime(300 + 700 * g, t, 1.5);
     n.bp.frequency.setTargetAtTime(520 + 520 * g, t, 2);
-    n.whistle.gain.setTargetAtTime(.0015 + .007 * g * g, t, 1.5);
+    n.whistle.gain.setTargetAtTime(.0004 + .004 * g * g, t, 1.5);
     // 풀은 바람이 불 때 잘게 사각거림
-    for (let i = 0; i < 4; i++) n.grass.gain.setTargetAtTime((.002 + .012 * g * g) * (.5 + Math.random()), t + i * .1, .05);
+    for (let i = 0; i < 4; i++) n.grass.gain.setTargetAtTime((.0005 + .01 * g * g) * (.5 + Math.random()), t + i * .1, .05);
     if (Math.random() < .11) this.call(c, t + Math.random() * .4);
   }
 };
