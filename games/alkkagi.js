@@ -1326,7 +1326,7 @@ G.render3D=t=>{if(Ak3.on)ak3Render(t);else if(T.ok&&!$('#stage').classList.conta
 G.holoPiece=(mk)=>{
   const g=new THREE.Group(),box=new THREE.Group();g.add(box);
   const K=1.7,b=new THREE.Mesh(new THREE.SphereGeometry(SR*K,24,14),mk(0x2a2a2a));b.scale.y=SH/SR;b.position.set(SR*(K-1)-.025,SH*K,0);box.add(b);   // 알은 손보다 크게(작으면 홀로그램에서 안 보임), 손끝 바로 앞에
-  const fit=()=>{box.position.set(0,0,0);box.scale.setScalar(1);box.updateMatrixWorld(true);   // 손까지 넣은 크기를 다른 말과 비슷하게, 가운데를 투사기 축에
+  const fit=()=>{box.position.set(0,0,0);box.scale.setScalar(1);g.matrixWorld.identity();box.updateMatrixWorld(true);   // 손까지 넣은 크기를 다른 말과 비슷하게, 가운데를 투사기 축에. 손은 g가 탁자에 놓인 뒤 늦게 붙으므로 g 자리·크기를 빼고 g 안 좌표로 잼
     const bb=new THREE.Box3().setFromObject(box),sz=bb.getSize(new THREE.Vector3()),c=bb.getCenter(new THREE.Vector3()),k=.62/Math.max(sz.x,sz.z,.4);
     box.scale.setScalar(k);box.position.set(-c.x*k,-c.y*k,-c.z*k)};
   fit();
