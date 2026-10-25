@@ -175,7 +175,7 @@ for(const floor of [0,1]){
   AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.4});
   ok(A.st[1].o&&!A.st[1].u,'knocked stone waits on felt during roll');eq(A.st[1].s,1,'owner unchanged during roll');
   roll();
-  if(!A.st[0].o){eq(A.st[1].u,1,'knocked stone to bowl');eq(A.st[1].s,floor?1:0,'owner after capture floor='+floor)}
+  if(!A.st[0].o){eq(A.st[1].u,1,'knocked stone to bowl');eq(A.st[1].s,floor?1:0,'owner after capture floor='+floor);eq(H.turn,0,'omok again after knock')}
   else fail('alkkagi omok capture setup');
 }
 /* 오목 판정: 상대가 만들어 준 오목도 승리, 동시 오목은 튕긴 사람 패배 */

@@ -327,7 +327,7 @@ G.roomSet=[
   {k:'turn',label:'제한 시간',unit:'초',lo:10,hi:120,step:5,desc:'시간이 지나면 차례가 넘어갑니다'}];
 G.ruleSet=[
   {k:'omok',label:'오목 모드',desc:'통에서 돌을 꺼내 첫째 줄에 놓고 튕겨, 판 위에 오목을 먼저 만들면 이깁니다. 떨어뜨린 상대 돌은 내 돌이 됩니다'},
-  {k:'again',label:'떨어뜨리면 한 번 더',desc:'상대 알을 떨어뜨리고 튕긴 내 알이 판에 남으면 한 번 더 튕깁니다 (오목 모드는 빼고)'},
+  {k:'again',label:'떨어뜨리면 한 번 더',desc:'상대 알을 떨어뜨리고 튕긴 내 알이 판에 남으면 한 번 더 튕깁니다 (오목 모드는 늘 켜짐)'},
   {k:'pickfirst',label:'선 직접 고르기',desc:'켜면 방장이 대기실에서 선(먼저 놓고 먼저 튕길 사람)을 고릅니다. 끄면 랜덤입니다'}];
 const nStones=c=>Math.max(1,Math.min(10,Math.round(+c.stones||5)));
 G.cfgChips=c=>`${+c.omok?'<span class="chip"><b>오목 모드</b></span>':`<span class="chip">알 <b>${nStones(c)}개</b></span>`}<span class="chip">제한 시간 <b>${+c.turn||30}초</b></span>${+c.omok?'':`<span class="chip">한 번 더 <b>${+c.again?'켜기':'끄기'}</b></span>`}<span class="chip">선 <b>${+c.pickfirst?'방장 선택':'랜덤'}</b></span>`;
@@ -394,7 +394,7 @@ function doShot(seat,i,a,p){
   A.cnt++;A.sid++;
   A.sh={id:A.sid,by:seat,i,a,p,tr:r.tr,nf:r.nf,ev:r.ev,of:r.of,dur:r.dur,t0:clock()};
   A.ph='roll';A.until=clock()+r.dur+450;A.aim=null;A.bp=null;H.botActAt=0;
-  A.next=!A.om&&+H.cfg.again&&kn>0&&!A.st[i].o?seat:other(seat);   // 한 번 더: 상대 알을 떨어뜨리고 튕긴 알이 판에 남음
+  A.next=(A.om?kn>0:+H.cfg.again&&kn>0&&!A.st[i].o)?seat:other(seat);   // 한 번 더: 상대 알을 떨어뜨리고 튕긴 알이 판에 남음 (오목 모드는 상대 돌을 떨어뜨리기만 하면)
   H.seatNote[seat]='';
   const nm=H.players[seat].name,parts=[];
   if(A.om){const n=f=>A.conv.filter(([k,ns])=>f(A.st[k].s,ns)).length,got=n((o,ns)=>ns===seat&&o!==seat),lost=n((o,ns)=>o===seat&&ns!==seat),back=n((o,ns)=>o===ns);   // 주인이 바뀌기 전 기록
@@ -977,13 +977,16 @@ function bowlCounts(pos){
   if(IN.on3d&&IN.fill!=null){const e=clock()-IN.t0,k=Math.max(0,Math.floor((e-IN.fill)/IN.gap));for(const s of [0,1])n[s]=Math.min(n[s],Math.ceil(k/2))}
   return n;
 }
-/* 오목 모드 표시: 지금 돌이 있다고 보는 줄 점(그리는 자리로 계산, 굴러가는 동안도 따라감)과 내가 놓을 수 있는 첫째 줄 빈 점 */
-/* 오목 모드 표시: 돌이 다 멈춘 뒤 돌이 있다고 보는 줄 점(on)과, 내가 놓을 차례면 첫째 줄 초록 띠(strip: 그 줄의 z) */
-const omMoving=()=>!!(Ak3.shot||FLK||(Ak3.pl&&Ak3.pl.some(Boolean))||(Ak3.cl&&Ak3.cl.some(Boolean)));
+/* 오목 모드 표시: 판 위에 멈춰 있는 돌이 있다고 보는 줄 점(on)과, 내가 놓을 차례면 첫째 줄 초록 띠(strip: 그 줄의 z).
+   움직이는 돌(그리는 자리가 OM_STILL ms 안에 바뀐 돌)과 놓고 아직 튕기지 않은 돌(fx)은 빼고 셈 */
+const OM_STILL=120,omPrev=[];
 function omMarks(pos){
-  const me=myIdx(),strip=myPlaceNow()?gridXZ(0,edgeRow(me))[1]:null;
-  if(omMoving())return {on:[],strip};
-  const st=OS.st.map((s,i)=>{const q=pos[i]||s;return {x:q.x,z:q.z,s:s.s,u:s.u||q.inB?1:0,o:q.hide||q.y<TOP-.01||!onBoardXZ(q.x,q.z)?1:0}});
+  const me=myIdx(),strip=myPlaceNow()?gridXZ(0,edgeRow(me))[1]:null,t=clock();
+  const st=OS.st.map((s,i)=>{const q=pos[i]||s,L=omPrev[i];
+    if(!L||Math.abs(L.x-q.x)+Math.abs(L.y-q.y)+Math.abs(L.z-q.z)>1e-4)omPrev[i]={x:q.x,y:q.y,z:q.z,t};
+    const mv=L?t-omPrev[i].t<OM_STILL:false;
+    return {x:q.x,z:q.z,s:s.s,u:s.u||q.inB||q.lift||q.fly||mv||i===OS.fx?1:0,o:q.hide||q.y<TOP-.01||!onBoardXZ(q.x,q.z)?1:0}});
+  omPrev.length=OS.st.length;
   const g=omGrid(st),on=[];for(let k=0;k<g.length;k++)if(g[k])on.push([k%NL,(k/NL)|0,g[k]-1]);
   return {on,strip};
 }
