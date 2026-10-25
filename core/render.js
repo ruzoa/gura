@@ -356,7 +356,50 @@ function touchEnd(e,cancel){
 }
 $('#hand').addEventListener('pointerup',e=>touchEnd(e,false));
 $('#hand').addEventListener('pointercancel',e=>touchEnd(e,true));
-$('#hand').addEventListener('click',e=>{if(Date.now()-TOUCH.suppress<700)return;const b=e.target.closest('.card');if(!b)return;const id=+b.dataset.id;curId=id;sel.has(id)?sel.delete(id):sel.add(id);sfx('pick');renderMe()});
+/* 마우스: 고른 카드를 잡고 끌어 올려 손패에서 완전히 떼어 놓으면 냄 (내기 버튼까지 가지 않아도 됨). 손패에 조금이라도 겹친 채 놓으면 취소 */
+const DRAG={el:null,x:0,y:0,on:false,rest:null,cards:[],suppress:0};
+function dragCards(){return [...$('#hand').children].filter(c=>c.classList.contains('sel'))}
+function dragClear(){for(const c of DRAG.cards){c.classList.remove('drag','go');c.style.removeProperty('--dx');c.style.removeProperty('--dy')}DRAG.el=null;DRAG.on=false;DRAG.cards=[]}
+/* 끌고 있는 카드가 손패(끌기 전 카드 자리 전체)와 한 점도 겹치지 않으면 true */
+function dragFree(){
+  const R=DRAG.rest;if(!R)return false;
+  return DRAG.cards.every(c=>{const b=c.getBoundingClientRect();return b.right<R.l||b.left>R.r||b.bottom<R.t||b.top>R.b});
+}
+$('#hand').addEventListener('pointerdown',e=>{
+  if(e.pointerType==='touch'||e.button!==0)return;
+  const b=e.target.closest('.card');if(!b||!b.classList.contains('sel'))return;
+  DRAG.el=b;DRAG.x=e.clientX;DRAG.y=e.clientY;DRAG.on=false;DRAG.cards=[];
+  try{b.setPointerCapture(e.pointerId)}catch(_){}
+});
+$('#hand').addEventListener('pointermove',e=>{
+  if(e.pointerType==='touch'||!DRAG.el)return;
+  const dx=e.clientX-DRAG.x,dy=e.clientY-DRAG.y;
+  if(!DRAG.on){
+    if(Math.hypot(dx,dy)<6)return;
+    const cs=[...$('#hand').children];let l=1e9,t=1e9,r=-1e9,bt=-1e9;
+    for(const c of cs){const q=c.getBoundingClientRect();l=Math.min(l,q.left);t=Math.min(t,q.top);r=Math.max(r,q.right);bt=Math.max(bt,q.bottom)}
+    DRAG.rest={l,t,r,b:bt};DRAG.cards=dragCards();DRAG.on=true;
+    for(const c of DRAG.cards)c.classList.add('drag');
+  }
+  const k=parseFloat($('#hand').style.getPropertyValue('--k'))||1;
+  for(const c of DRAG.cards){c.style.setProperty('--dx',(dx/k).toFixed(1)+'px');c.style.setProperty('--dy',(dy/k).toFixed(1)+'px')}
+  const go=dragFree();for(const c of DRAG.cards)c.classList.toggle('go',go);
+});
+function dragEnd(e,cancel){
+  if(e.pointerType==='touch'||!DRAG.el)return;
+  const was=DRAG.on,free=was&&!cancel&&dragFree();
+  dragClear();
+  if(!was)return;   // 움직이지 않았으면 그냥 누르기 (click에서 고르기 풀기)
+  DRAG.suppress=Date.now();
+  if(!free)return;   // 손패에 겹쳐 놓음: 취소
+  const pb=$('#btnPlay');
+  if(pb.hidden||pb.disabled){sfx('no');return}
+  G.play();
+}
+$('#hand').addEventListener('pointerup',e=>dragEnd(e,false));
+$('#hand').addEventListener('pointercancel',e=>dragEnd(e,true));
+$('#hand').addEventListener('lostpointercapture',e=>dragEnd(e,true));
+$('#hand').addEventListener('click',e=>{if(Date.now()-TOUCH.suppress<700||Date.now()-DRAG.suppress<300)return;const b=e.target.closest('.card');if(!b)return;const id=+b.dataset.id;curId=id;sel.has(id)?sel.delete(id):sel.add(id);sfx('pick');renderMe()});
 $('#btnPlay').addEventListener('click',()=>G.play());
 $('#btnPass').addEventListener('click',()=>G.pass());
 /* 키 설정 — 물리 키(e.code)로 저장해서 한/영 입력 상태와 상관없이 동작 */
