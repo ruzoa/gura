@@ -66,7 +66,7 @@ function frontStart(){
   if(!T.ok)return;
   FR.ok=true;frontNick();
   const v=mode==='lobby'?1:0,tw=x=>({v:x,to:x,from:x,t0:0,ms:0});
-  FR.stand=v;FR.sa=tw(v);FR.open=0;FR.oa=tw(0);FR.ma=tw(0);FR.kmode='menu';FR.sit=false;FR.dva=tw(0);FR.hla=tw(0);FR.hba=tw(0);FR.cla=tw(0);FR.hra=tw(0);FR.ka=tw(0);FR.pla=tw(0);FR.list=false;FR.rba=tw(0);FR.rb.on=false;FR.rb.chg=null;FR.la=tw(0);FR.sta=tw(0);FR.sha=tw(0);FR.arm=tw(0);FR.lean=0;
+  FR.stand=v;FR.sa=tw(v);FR.open=0;FR.oa=tw(0);FR.ma=tw(0);FR.kmode='menu';FR.sit=false;FR.dva=tw(0);FR.hla=tw(0);FR.hba=tw(0);FR.hra=tw(0);FR.ka=tw(0);FR.pla=tw(0);FR.list=false;FR.rba=tw(0);FR.rb.on=false;FR.rb.chg=null;FR.la=tw(0);FR.sta=tw(0);FR.sha=tw(0);FR.arm=tw(0);FR.lean=0;
   if(mode==='lobby')showView(lobbyView,false);
   const n=$('#resumeNote');if(n.textContent)$('#frNote').textContent=n.textContent;
 }

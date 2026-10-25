@@ -1,4 +1,4 @@
-/* index.html 공통 코드 · 홀로그램·구멍·클립보드·시작 버튼·카메라·타임머신·자판 동작·대기실 갱신. 파일 순서는 index.html의 <script src> 순서 */
+/* index.html 공통 코드 · 홀로그램·구멍·시작 버튼·카메라·타임머신·자판 동작·대기실 갱신. 파일 순서는 index.html의 <script src> 순서 */
 /* 홀로그램 말: 게임 속 물건 모양을 반투명하게 (밝게 더하지 않아서 밝은 펠트 위에서도 모양이 또렷). 가장자리만 주황빛 */
 function holoMat(color,map){
   return new THREE.ShaderMaterial({transparent:true,depthWrite:false,
@@ -65,23 +65,6 @@ function frontBuildHolo(TG){
    c.globalCompositeOperation='destination-out';c.fillStyle='rgba(0,0,0,.45)';for(let y=0;y<128;y+=5)c.fillRect(0,y,128,2);
    const nt=new THREE.CanvasTexture(nc);pieces.forEach(p=>{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:nt,transparent:true,depthTest:false,depthWrite:false,opacity:0}));sp.scale.setScalar(.62);sp.renderOrder=5;p.add(sp);p.userData.no=sp})}
   T.holo={g,base,lens,beam,car,pieces,glow,dust,hole};
-}
-/* 클립보드: 디스플레이 오른쪽. 종이에는 지금 게임 이름과 줄. 누르면 눈앞으로 날아와 2D 클립보드로 바뀜 */
-function frontBuildClip(TG){
-  const g=new THREE.Group(),cv=document.createElement('canvas');cv.width=256;cv.height=320;
-  const tex=new THREE.CanvasTexture(cv);tex.anisotropy=4;
-  const board=new THREE.Mesh(new THREE.BoxGeometry(.62,.03,.8),toon({color:0x8a5a34}));board.position.y=.015;board.castShadow=board.receiveShadow=true;g.add(board);hull(new THREE.BoxGeometry(.65,.06,.83),board,g);
-  const paper=new THREE.Mesh(new THREE.PlaneGeometry(.54,.68),new THREE.MeshBasicMaterial({map:tex}));paper.rotation.x=-Math.PI/2;paper.position.set(0,.032,.03);g.add(paper);
-  const clip=new THREE.Mesh(new THREE.BoxGeometry(.28,.05,.1),toon({color:0xb8bcc2,rim:.35}));clip.position.set(0,.05,-.34);g.add(clip);hull(new THREE.BoxGeometry(.3,.07,.12),clip,g);
-  const a=.36,r=4.12;g.position.set(Math.sin(a)*r,-.4,Math.cos(a)*r);g.rotation.y=a;TG.add(g);
-  T.clip={g,cv,tex,paper,key:'',home:new THREE.Vector3(Math.sin(a)*r,0,Math.cos(a)*r),homeQ:new THREE.Quaternion().setFromEuler(new THREE.Euler(0,a,0))};
-}
-function frontDrawClip(id){
-  const C=T.clip;if(!C||C.key===id)return;C.key=id;
-  const g=C.cv.getContext('2d'),W=C.cv.width,Hc=C.cv.height;
-  g.fillStyle='#fffcf5';g.fillRect(0,0,W,Hc);
-  g.strokeStyle='rgba(59,42,31,.25)';g.lineWidth=3;for(let y=50;y<Hc-20;y+=30){g.beginPath();g.moveTo(26,y);g.lineTo(W-26-(y%60?40:0),y);g.stroke()}
-  C.tex.needsUpdate=true;
 }
 /* 시작 버튼: 디스플레이 왼쪽 나무 띠에서 올라오는 둥근 빨간 버튼 (방장). 0.5초 누르고 있으면 시작 */
 function frontBuildStart(TG){
@@ -270,7 +253,7 @@ function frontTween(a,to,t,ms){
   a.v=a.ms>0?a.from+(a.to-a.from)*clamp01((t-a.t0)/a.ms):a.to;return a.v;
 }
 const frWaitV=()=>!!(V&&V.code&&V.st==='wait'&&(mode==='host'||mode==='guest'));
-/* 탁자 위 물건으로 대기실을 다룰 수 있으면 대기실 창 대신 이름표·디스플레이·클립보드·시작 버튼을 씀 */
+/* 탁자 위 물건으로 대기실을 다룰 수 있으면 대기실 창 대신 이름표·디스플레이·자판·시작 버튼을 씀 */
 const frTableUI=()=>!!(FR.ok&&frWaitV());
 function frontUpdate(t,dt){
   if(!FR.ok)return;
@@ -364,9 +347,8 @@ if(pv>.01)frontDrawList(t);
   if(key!==FR.boardKey){FR.boardKey=key;frontSetBoard(chars,spin)}
   frontDrawBoard(false);
   if(T.board){const cp=FR.clearHold?FR.clearP||0:0,bl=cp>0&&Math.floor((2*cp+7*cp*cp)*2)%2===1;T.board.screen.material.color.setScalar(bl?.3:1)}   // 상치우기를 누르는 동안 디스플레이가 점점 빨리 깜빡임
-  // 투사기·홀로그램, 클립보드, 시작 버튼
+  // 투사기·홀로그램, 시작 버튼
   frontHoloPose(t,wait);
-  frontClipPose(t,wait);
   if(T.startBtn){const S=T.startBtn,can=mode==='host'&&canStart(),want=wait&&host&&can&&FR.stand<.05&&!FR.browse&&!roomSetOpen;   // 시작할 수 있을 때만 구멍이 열리고 올라옴. 아니면 아무 흔적 없음
     // 구멍이 열림 → 버튼이 올라옴 (내려갈 때는 버튼 → 구멍)
     const hw=want||FR.sta.v>.02?1:0,hu=smooth(frontTween(FR.sha,hw,t,hw?260:220));S.hole.visible=hu>.01;S.hole.scale.setScalar(Math.max(.001,hu));
@@ -431,40 +413,6 @@ function frontHoloPose(t,wait){
   });
   Hh.lens.material.color.setHex(on?HOLO_C:0x6a4a2a);
 }
-/* 클립보드 자세: 탁자 위 ↔ (날아오는 중) ↔ 눈앞(2D 클립보드와 같은 자리·크기) */
-const _cq=window.THREE?new THREE.Quaternion():null,_cq2=window.THREE?new THREE.Quaternion():null,_cx=window.THREE?new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI/2):null;
-function clipFace(){   // 눈앞 자리: 화면 가운데, 2D 클립보드 폭과 같게 보이는 거리
-  const st=$('#stage'),W=st.clientWidth||1,Hh=st.clientHeight||1,px=Math.min(W-32,460);
-  const e0=T.cam.projectionMatrix.elements[0],D=.65*e0*W/2/px;
-  const dir=new THREE.Vector3(0,0,.5).unproject(T.cam).sub(T.cam.position).normalize();
-  return {p:T.cam.position.clone().addScaledVector(dir,D),q:T.cam.quaternion.clone().multiply(_cx)};
-}
-function frontClipPose(t,wait){
-  const C=T.clip;if(!C)return;
-  const cv0=frontTween(FR.cla,wait&&FR.dva.v>.6?1:0,t,wait?650:380),cu=cv0;   // 투사기가 올라온 뒤 하늘에서 떨어짐
-  if(FR.cla.to===1&&cv0>=1&&!FR.clipLand){FR.clipLand=1;sfx('paper')}if(FR.cla.to===0)FR.clipLand=0;
-  if(wait)frontDrawClip(V.cfg.game||'gura');
-  const f=FR.clipFly;let fu=0;
-  if(f){const x=clamp01((t-f.t0)/f.ms);fu=f.dir>0?smooth(x):1-smooth(x);if(x>=1&&f.dir<0)FR.clipFly=null}
-  else if(roomSetOpen&&wait)fu=1;
-  C.g.visible=cu>.01&&!(fu>=1&&roomSetOpen&&!(f&&f.dir>0&&clock()-f.t0<f.ms+60));   // 2D로 바뀌면 3D는 숨김
-  const home=_cv.copy(C.home),fall=1-cu;home.y=4.2*fall*fall+(cu>=1?0:0);   // 떨어질수록 빨라짐
-  if(fu<=0){C.g.position.copy(home);C.g.quaternion.copy(C.homeQ);if(fall>0){_cq2.setFromEuler(_ce.set(fall*.9,fall*2.2,fall*.5));C.g.quaternion.multiply(_cq2)}return}
-  const F=clipFace(),arc=Math.sin(fu*Math.PI)*.35;
-  C.g.position.lerpVectors(home,F.p,fu);C.g.position.y+=arc;
-  C.g.quaternion.copy(C.homeQ).slerp(F.q,fu);
-}
-const _cv=window.THREE?new THREE.Vector3():null,_ce=window.THREE?new THREE.Euler():null;
-function clipOpen(){
-  if(!frWaitV()||roomSetOpen||FR.clipFly)return;
-  seatPopClose();sfx('paper');FR.clipFly={t0:clock(),ms:380,dir:1};FR.clipRules=false;
-  setTimeout(()=>{if(!frWaitV())return;roomSetOpen=true;lastPanelHtml='';renderPanel()},360);
-}
-function clipClose(){
-  if(!roomSetOpen)return;
-  roomSetOpen=false;renderPanel();
-  if(FR.ok&&frWaitV()){FR.clipFly={t0:clock(),ms:380,dir:-1};sfx('paper')}
-}
 const _v3=window.THREE?new THREE.Vector3():null,_b3=window.THREE?new THREE.Box3():null;
 function frontRect(obj,W,Hh){
   _b3.setFromObject(obj);const box=_b3;let l=1e9,r=-1e9,tp=1e9,b=-1e9;
@@ -491,7 +439,7 @@ function frontLayout(lobby,wait,host,t){
   const front=lobby&&FR.sit&&FR.stand<.05&&!FR.warp&&!FR.spread&&!net.peer;   // 앉아서 상차리기·찾아가기를 고름
   el.classList.toggle('leaving',!(standing||front));$('#frFoot').hidden=!lobby;
   frontPut($('#frTable'),standing,standing?frontRect(T.felt.mat,W,Hh):null,10);
-  const seated=wait&&FR.stand<.05&&!FR.browse&&!roomSetOpen&&!FR.clipFly&&!FR.rb.on&&FR.rba.v<=.01;
+  const seated=wait&&FR.stand<.05&&!FR.browse&&!FR.rb.on&&FR.rba.v<=.01;
   const leaned=front&&FR.lean>.9,kpUp=T.keypad&&T.keypad.g.position.y>.02;
   // 숙이기 전: 디스플레이와 키판을 한 덩어리로 누르면 숙여서 봄
   for(const P of [T.hostPad,T.guestPad,T.sitPad]){const on=seated&&P.g.position.y>.025;P.keys.forEach((m,i)=>frontPut($('#'+P.id+i),on,on?frontRect(m,W,Hh):null,2,44,44))}
@@ -516,7 +464,6 @@ function frontLayout(lobby,wait,host,t){
   const hOk=seated&&host&&(FR.holoGlow||0)>.5;let hr=null;
   if(hOk){const cur=Math.max(0,GAME_IDS.indexOf(V.cfg.game||'gura'));hr=frontRect(T.holo.pieces[cur],W,Hh)}
   frontPut($('#frHolo'),hOk,hr,14,72,64);
-  frontPut($('#frClip'),seated&&FR.cla.v>=1,seated?frontRect(T.clip.g,W,Hh):null,8,56,56);
   frontPut($('#frStart'),seated&&host&&T.startBtn.g.position.y>-.22,seated&&host?frontRect(T.startBtn.g,W,Hh):null,10,60,56);
   // 고르는 중: 가운데 말을 누르면 확정, 양옆 말을 누르거나 밀면 넘김
   const pick=FR.browse&&host;
@@ -575,7 +522,6 @@ $('#frEye').addEventListener('click',()=>{hideCode=!hideCode;store('gura-hidecod
 $('#frLock').addEventListener('click',()=>{if(mode==='host'&&H&&H.online&&H.phase==='wait'){H.cfg={...H.cfg,pub:H.cfg.pub?0:1};sfx('lock');mark()}else sfx('no')});
 $('#frHolo').addEventListener('click',()=>{if(mode!=='host'){sfx('no');return}frontBrowse(!FR.browse)});
 $('#holoGame').addEventListener('click',()=>{if(mode!=='host'||!frWaitV()||FR.browse)return;frontBrowse(true)});   // 게임 이름을 눌러도 게임 고르기
-$('#frClip').addEventListener('click',()=>clipOpen());
 { // 시작 버튼: 0.5초 누르고 있으면 시작 (일찍 떼면 취소). 키보드 Enter·Space는 바로 시작
   const b=$('#frStart');
   b.addEventListener('pointerdown',e=>{if(mode!=='host')return;if(!canStart()){frontNeedSeats();return}FR.holdAt=clock();sfx('key');try{b.setPointerCapture(e.pointerId)}catch(_){}});
@@ -646,10 +592,9 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&FR.sit&&!FR.warp&&!net.peer){e.preventDefault();FR.sit=false;return}   // 일어섬
   if(e.key==='Enter'&&!FR.sit&&!FR.warp&&!net.peer&&document.activeElement===document.body){e.preventDefault();FR.sit=true}
 });
-document.addEventListener('keydown',e=>{   // 대기실: Esc로 클립보드·자리 메뉴 닫기
+document.addEventListener('keydown',e=>{   // 대기실: Esc로 자리 메뉴 닫기
   if(e.key!=='Escape'||!frTableUI()||e.target.matches('input'))return;
-  if(FR.pop!=null){e.preventDefault();seatPopClose();return}
-  if(roomSetOpen){e.preventDefault();clipClose()}
+  if(FR.pop!=null){e.preventDefault();seatPopClose()}
 });
 /* 탁자 밖(풀밭·하늘)을 누르면 의자를 빼듯 살짝 일어나고 디스플레이에 '떠나기' → 2.5초 안에 한 번 더 누르면 떠남. 탁자를 누르거나 기다리면 다시 앉음 (대기실만) */
 const _ray=window.THREE?new THREE.Raycaster():null,_gp=window.THREE?new THREE.Plane(new THREE.Vector3(0,1,0),0):null;

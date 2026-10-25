@@ -6,7 +6,7 @@
      디스플레이·키판을 누르면 숙여서 봄. 탁자 밖을 두 번 누르거나 Esc면 일어섬
    · 찾아가면 앉은 채로 타임머신(탁자가 떨리고 해·하늘·안개) → 도착하면 그 탁자, 못 가면 덜컹 + 디스플레이에 없음·만석·끊김
    · 대기실: 상차리기 버튼이 들어간 구멍에서 투사기가 올라와 홀로그램(위에서부터 탁자 이름·게임 이름·게임 말), 디스플레이(번호·눈·자물쇠),
-     이름표(자리), 시작 버튼, 클립보드(탁자 설정). 게임이 시작되면 모두 닫히거나 탁자 속으로
+     이름표(자리), 시작 버튼. 게임이 시작되면 모두 닫히거나 탁자 속으로
    FR.stand: 1 서서 봄 ↔ 0 앉음.  모든 연출은 시간 기준(frontTween).  WebGL이 없으면 예전 로비 창 */
 const FR_POOL='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const FR_WORD=new Set(['없음','만석','끊김']);
@@ -19,7 +19,7 @@ const PL_CW=832,PL_CH=1024,PL_Y0=52,PL_STEP=122,PL_RH=108,PL_RAIL=966;   // 목�
 const DSP={W:1.5,D:.5,Th:.05,Z:3.9};   // 디스플레이: 폭, 깊이, 두께, 경첩(먼 쪽 끝) 위치
 function frontBuild(){
   const TG=T.tableG;
-  frontBuildStumps();frontBuildDisplay(TG);frontBuildHolo(TG);frontBuildClip(TG);frontBuildStart(TG);rcptBuild(TG);
+  frontBuildStumps();frontBuildDisplay(TG);frontBuildHolo(TG);frontBuildStart(TG);rcptBuild(TG);
   FR.flaps=[0,1,2,3].map(()=>({ch:' ',to:' ',until:0,next:0}));
   frontDrawBoard(true);
 }

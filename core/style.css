@@ -315,71 +315,7 @@ body.rc3d .fsbtn.fs{right:10px}body.rc3d .fsbtn.cfg{right:58px}body.rc3d.nofs .f
 /* 시작 버튼: 누르고 있는 동안 둘레 고리가 참 */
 #frStart{border-radius:50%}
 #frStart::after{content:'';position:absolute;inset:4px;border-radius:50%;background:conic-gradient(rgba(255,250,240,.95) calc(var(--p,0)*360deg),transparent 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 6px),#000 calc(100% - 5px));mask:radial-gradient(farthest-side,transparent calc(100% - 6px),#000 calc(100% - 5px))}
-/* 탁자 설정 = 클립보드 (크기 고정). 바탕색은 바뀌지 않고 표시만 더해짐: 체크 ✔, 고른 것은 펜 동그라미, 확인은 도장 자국, 정해진 값과 다르면 글자에만 형광펜 */
 .panel[data-kind="roomset"]{padding:16px;background:rgba(59,42,31,.28)}
-.panel[data-kind="roomset"] .card-sheet.clipsheet{width:min(460px,100%);height:min(660px,100%);max-width:none;margin:auto}
-.card-sheet.clipsheet{background:#8a5a34;border:0;border-radius:16px;padding:34px 12px 12px;position:relative;display:flex;box-shadow:0 6px 0 #5c3a20,0 28px 44px -20px rgba(0,0,0,.55)}
-.card-sheet.clipsheet::before{content:'';position:absolute;top:9px;left:50%;width:132px;height:34px;margin-left:-66px;border-radius:9px;background:linear-gradient(#e4e7ea,#9aa1a8);box-shadow:0 3px 0 #6b7178,inset 0 2px 0 rgba(255,255,255,.7);z-index:2}
-.card-sheet.clipsheet::after{content:'';position:absolute;top:20px;left:50%;width:46px;height:10px;margin-left:-23px;border-radius:5px;background:#6b7178;z-index:3}
-.clipsheet .paper{flex:1;min-height:0;overflow-y:auto;background:#fffcf5 repeating-linear-gradient(transparent 0 29px,rgba(47,111,189,.14) 29px 30px);border-radius:3px;padding:22px 16px 18px 44px;display:flex;flex-direction:column;gap:8px;box-shadow:0 2px 0 rgba(0,0,0,.15);position:relative;transform-origin:50% 0}
-.clipsheet .paper::before{content:'';position:absolute;top:0;bottom:0;left:34px;border-left:2px solid rgba(204,58,46,.25)}
-.clipsheet .paper.ghost{position:absolute;top:34px;left:12px;right:12px;bottom:12px;overflow:hidden;pointer-events:none}
-.clipsheet .paper.ghost.fwd{z-index:3;animation:flipUp .45s ease-in forwards}
-.clipsheet .paper.ghost.back{z-index:0}
-.clipsheet .paper.down{z-index:2;animation:flipDown .45s ease-out}
-.clipsheet .rs-h b,.clipsheet .stp-t b,.clipsheet .rulehead,.clipsheet .pl-o b{font-family:var(--f-display);font-weight:400}
-.clipsheet .rs-seg,.clipsheet .stp{border-bottom:0}
-.clipsheet .rs-grid{grid-template-columns:1fr}
-.clipsheet .stp-b{border-radius:50%;background:transparent;border:2px solid var(--ink);box-shadow:none;font-family:var(--f-display);color:var(--ink)}
-.clipsheet .stp-v{background:transparent;border:0;border-bottom:2px solid var(--ink);border-radius:0;font-family:var(--f-display);font-size:20px;color:var(--ink)}
-.clipsheet .sw,.clipsheet .sw.on{width:30px;height:30px;border-radius:6px;background:transparent;border:2px solid var(--ink)}
-.clipsheet .sw i{display:none}
-.clipsheet .sw.on::after{content:'✔';position:absolute;inset:-6px 0 0 4px;font-size:26px;line-height:1;color:var(--ink);font-weight:700}
-.clipsheet .segrow .btn,.clipsheet .segrow .btn.btn-play,.clipsheet .segrow .btn.btn-sub{background:transparent;border:2px solid transparent;box-shadow:none;border-radius:999px;font-family:var(--f-display);font-size:16px;color:var(--ink)}
-.clipsheet .segrow .btn.btn-play{border-color:var(--ink);transform:rotate(-2deg)}
-/* 게임이 직접 그린 레버도 같은 종이 모양 */
-.clipsheet .plever{background:transparent;border:0;box-shadow:none;padding:0}
-.clipsheet .pl-knob{background:transparent;border:2px solid var(--ink);box-shadow:none;border-radius:999px;transform:translateX(calc(var(--p)*100%)) rotate(-2deg)}
-.clipsheet .pl-o,.clipsheet .pl-o.on{color:var(--ink)}
-.clipsheet .stp.pdiff-row{background:none;box-shadow:none}
-.clipsheet .pdiff,.clipsheet .pl-sum b.pdiff{color:inherit}
-/* 형광펜: 글자에만 */
-.clipsheet .hl,.clipsheet .pdiff,.clipsheet .pdiff-row .stp-t>b{background:linear-gradient(transparent 42%,rgba(255,226,64,.75) 42%,rgba(255,226,64,.75) 92%,transparent 92%);box-decoration-break:clone;-webkit-box-decoration-break:clone}
-.clipsheet .btn.hl,.clipsheet .segrow .btn.hl{background:linear-gradient(transparent 42%,rgba(255,226,64,.75) 42%,rgba(255,226,64,.75) 92%,transparent 92%) content-box}
-.clipsheet input.hl{background:linear-gradient(transparent 42%,rgba(255,226,64,.75) 42%,rgba(255,226,64,.75) 92%,transparent 92%)}
-/* 세부 설정 = 다음 쪽 (오른쪽 아래 접힌 모서리) */
-.clipsheet .pl-more{align-self:flex-end;margin-top:4px;padding:8px 12px 8px 22px;border:0;background:linear-gradient(135deg,transparent 50%,#e9dcc4 50%) right bottom/22px 22px no-repeat;font:400 15px var(--f-display);color:var(--muted)}
-.clipsheet .pl-more>span{display:none}
-.clipsheet .paper:not(.p2) .pl-more::after{content:' ↷'}
-.clipsheet .paper.p2>*:not(.pl-more):not(.pl-det):not(.pgno):not(.clip-title):not(.clip-turn){display:none}
-.clipsheet .clip-title{font:400 26px/1.15 var(--f-display);color:var(--ink);text-align:center;margin:-6px 0 2px;padding-bottom:4px;border-bottom:2px solid rgba(59,42,31,.35)}   /* 서류 제목: 지금 게임 이름 */
-.clipsheet .clip-sub{font:400 18px var(--f-display);color:var(--muted);text-align:center;margin-top:-4px}
-.clipsheet .paper.pr .rules{font-size:14.5px;line-height:1.55;color:var(--ink);gap:8px;padding-left:20px}
-.clipsheet .paper.pr .rules b{font-weight:700}
-.clipsheet .clip-turn{align-self:flex-end;flex:none;margin-top:4px;padding:8px 26px 8px 12px;border:0;background:linear-gradient(135deg,transparent 50%,#e9dcc4 50%) right bottom/22px 22px no-repeat;font:400 15px var(--f-display);color:var(--muted);cursor:pointer}   /* 접힌 모서리를 눌러 넘김 */
-.clipsheet .clip-turn.prev{margin-top:auto;align-self:flex-start;padding:8px 12px 8px 4px;background:none}
-.clipsheet .paper.p2 .pl-more{align-self:flex-start}
-.clipsheet .paper.p2 .clip-turn{order:10;margin-top:-37px}
-.clipsheet .paper.p2 .pl-more{order:9;font-size:0}
-.clipsheet .paper.p2 .pl-more::before{content:'↶ 앞 장';font-size:15px}
-.clipsheet .pgno{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font:400 12px var(--f-display);color:var(--muted)}
-.clipsheet .clip-end{margin-top:auto}
-.clipsheet .stp{position:relative;padding:5px 0}
-.clipsheet .stp-t{display:block}
-.clipsheet .stp-t>b{display:inline;cursor:help}
-.clipsheet .stp-t small,.clipsheet .rs-h small,.clipsheet .pl-o small,.clipsheet .pd-note,.clipsheet .cardinfo,.clipsheet .stp-u{display:none}
-.clipsheet .stp-t.tip small{display:block;position:absolute;left:-8px;top:100%;z-index:5;width:min(250px,80%);padding:8px 10px;background:#fff59d;color:var(--ink);font-size:12.5px;line-height:1.45;box-shadow:0 4px 10px -4px rgba(0,0,0,.35);transform:rotate(-1.5deg)}
-.clipsheet .stp-v{width:2.6em;padding:4px 0;flex:none}
-.clipsheet .pl-sum{min-height:1.6em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.clipsheet .btn-red[data-act="setclose"]{flex:none;position:relative;margin-left:auto;min-height:56px;padding:0 96px 6px 4px;border:0;border-bottom:2px solid rgba(59,42,31,.55);border-radius:0;background:transparent;color:var(--ink);box-shadow:none;font:400 20px var(--f-display);display:flex;align-items:flex-end}
-.clipsheet .btn-red[data-act="setclose"]::after{content:attr(data-n);position:absolute;right:10px;bottom:4px;width:66px;height:66px;display:grid;place-items:center;border:4px double var(--gura);border-radius:50%;color:var(--gura);font:400 19px var(--f-display);line-height:1;transform:rotate(-12deg);opacity:0;pointer-events:none}
-.clipsheet .btn-red[data-act="setclose"].stamped::after{animation:stampIn .26s ease-out forwards}   /* 누르면 서명란에 이름 도장이 쿵 */
-.clipsheet.ro .paper .stp-c,.clipsheet.ro .paper .segrow,.clipsheet.ro .paper .plever,.clipsheet.ro .paper [data-act^="tog:"],.clipsheet.ro .paper .linkbtn{pointer-events:none}
-.clipsheet.ro .stp-b{visibility:hidden}
-@keyframes clipIn{from{opacity:.2}to{opacity:1}}
-@keyframes flipUp{0%{transform:perspective(2200px) rotateX(0);filter:brightness(1);opacity:1}80%{filter:brightness(.8);opacity:1}100%{transform:perspective(2200px) rotateX(96deg);filter:brightness(.7);opacity:0}}
-@keyframes flipDown{0%{transform:perspective(2200px) rotateX(96deg);filter:brightness(.7);opacity:0}30%{opacity:1}100%{transform:perspective(2200px) rotateX(0);filter:brightness(1)}}
-@keyframes stampIn{0%{transform:scale(1.7) rotate(-12deg);opacity:0}70%{transform:scale(.92) rotate(-12deg);opacity:1}100%{transform:scale(1) rotate(-12deg);opacity:1}}
 @media (max-width:899px){.panel[data-kind="wait"] .setbtn span{display:none}.panel[data-kind="wait"] .vhead h2{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 .stage.holo .panel *{pointer-events:none}
 .stage .panel{transition:opacity .35s}

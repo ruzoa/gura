@@ -119,11 +119,8 @@ function showPanel(html,kind,opt){
   if(html===lastPanelHtml)return;
   const ae=document.activeElement,prevAct=ae&&p.contains(ae)&&ae.dataset?ae.dataset.act:null;
   const typing=ae&&ae.tagName==='INPUT'&&p.contains(ae)?{id:ae.id,v:ae.value,s:ae.selectionStart,e:ae.selectionEnd}:null;
-  p.dataset.kind=kind||'';const clip=kind==='roomset'&&frTableUI(),pb=$('#panelBody');pb.classList.toggle('clipsheet',clip);if(!clip)pb.classList.remove('ro');
-  const pg=clip?(opt&&opt.pg)||(html.includes('class="pl-det"')?2:1):1,tot=clip?(opt&&opt.tot)||(pg===2||html.includes('class="pl-more"')?2:1):1,turn=clip&&lastPanelKind==='roomset'&&FR.page&&FR.page!==pg,fwd=pg>(FR.page||1);if(clip)FR.page=pg;
-  const old=turn?pb.querySelector('.paper'):null,ghost=old?old.cloneNode(true):null,st0=old?old.scrollTop:0;
-  pb.innerHTML=clip?`<div class="paper${pg===2&&!(opt&&opt.rules)?' p2':''}${opt&&opt.rules?' pr':''}${turn&&!fwd?' down':''}">${html}${tot>1?`<span class="pgno">${pg}/${tot}</span>`:''}</div>`:html;
-  if(ghost){ghost.classList.add('ghost',fwd?'fwd':'back');ghost.classList.remove('down');pb.appendChild(ghost);ghost.scrollTop=st0;const np=pb.querySelector('.paper.down'),done=()=>ghost.remove();(fwd?ghost:np||ghost).addEventListener('animationend',done,{once:true});setTimeout(done,1500);sfx('paper')}lastPanelHtml=html;$('#panelBody').classList.toggle('min',kind==='wait'&&FR.sheetMin);$('#panelBody').classList.toggle('wide',kind==='roomset');
+  p.dataset.kind=kind||'';const pb=$('#panelBody');
+  pb.innerHTML=html;lastPanelHtml=html;$('#panelBody').classList.toggle('min',kind==='wait'&&FR.sheetMin);$('#panelBody').classList.toggle('wide',kind==='roomset');
   if(typing&&typing.id){const el=document.getElementById(typing.id);if(el){el.value=typing.v;el.focus();try{el.setSelectionRange(typing.s,typing.e)}catch(_){}lastPanelKind=kind||'';return}}
   let target=prevAct?p.querySelector(`[data-act="${prevAct}"]:not([disabled])`):null;
   if(!target&&kind!==lastPanelKind)target=p.querySelector('[data-auto]:not([disabled])');
@@ -168,7 +165,7 @@ function renderPanel(){
   if(!V||mode==='lobby'){if(mode==='lobby')hidePanel();return}
   const me=myIdx(),isHost=mode==='host';
   if(V.st==='wait'){
-    if(frTableUI()&&!roomSetOpen){hidePanel();return}   // 3D로 다 할 수 있으면 대기실 창 없음 (자리 = 이름표, 시작 = 빨간 버튼, 설정 = 클립보드)
+    if(frTableUI()){hidePanel();return}   // 3D로 다 할 수 있으면 대기실 창 없음 (자리 = 이름표, 시작 = 빨간 버튼, 설정 = 설정 판자)
     const max=+V.cfg.max;
     // 선 플레이어를 직접 고르는 방(방 설정의 '선 플레이어 직접 선택'): 고른 사람(없으면 방장)에 '선' 표시, 방장은 눌러서 바꿈
     const pickF=!!(G.firstPick&&+V.cfg.pickfirst);
@@ -192,28 +189,18 @@ function renderPanel(){
     const pubCtl=isHost?`<div class="pubsw"><span class="${pubOn?'on':''}">공개 탁자</span><button type="button" class="sw${pubOn?' on':''}" role="switch" aria-checked="${pubOn}" aria-label="공개 탁자" data-act="pub"><i></i></button></div>`
       :`<span class="pubtag${pubOn?' on':''}">${pubOn?'공개 탁자':'비공개 탁자'}</span>`;
     // 방장: 인원 수 다시 정하기 (지금 들어와 있는 사람보다 적게는 못 줄임)
-    if(roomSetOpen&&(isHost||frTableUI())){
-      const clipUI=frTableUI(),ro=!isHost;
+    if(roomSetOpen&&isHost){
       const c=V.cfg,minMax=Math.max(2,V.ps.length);
       const nowN=Math.max(2,V.ps.length),cardInfo=G.cardInfo(c,nowN);
-      const DEF={max:4,spec:4,...G.defaults},HL_SKIP=new Set(['max','spec','rounds','chips','turn','grace','tm','inc','stones']),hlv=(k,v)=>clipUI&&!HL_SKIP.has(k)&&DEF[k]!=null&&+DEF[k]!==+v;   // 규칙이 정해진 값과 다르면 항목 이름에 형광펜 (인원·시간·판 수 같은 양은 칠하지 않음)
-      const rules=G.ruleSet.filter(d=>!d.hidden).map(d=>{const on=!!(+c[d.k]);return `<div class="stp tg"><div class="stp-t"><b${clipUI&&+(DEF[d.k]||0)!==(on?1:0)?' class="hl"':''}>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="sw${on?' on':''}" role="switch" aria-checked="${on}" aria-label="${d.label}" data-act="tog:${d.k}"><i></i></button></div></div>`}).join('');
+      const rules=G.ruleSet.filter(d=>!d.hidden).map(d=>{const on=!!(+c[d.k]);return `<div class="stp tg"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="sw${on?' on':''}" role="switch" aria-checked="${on}" aria-label="${d.label}" data-act="tog:${d.k}"><i></i></button></div></div>`}).join('');
       const tooMany=GAME_IDS.filter(id=>GAMES[id].maxHi&&V.ps.length>GAMES[id].maxHi);   // 인원 제한이 있는 게임(쿼리도 4명)은 지금 인원이 넘으면 고를 수 없음
       const gpick=`<div class="rs-seg"><div class="rs-h"><b>게임</b><small>${esc(G.lead)}${tooMany.length?`<br>${tooMany.map(id=>`${esc(GAMES[id].name)}은(는) 최대 ${GAMES[id].maxHi}명`).join(', ')}까지 할 수 있습니다.`:''}</small></div><div class="segrow" role="radiogroup" aria-label="게임">${GAME_IDS.map(id=>`<button class="btn ${c.game===id?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${c.game===id}" data-act="game:${id}"${tooMany.includes(id)?' disabled':''}>${esc(GAMES[id].name)}</button>`).join('')}</div></div>`;
       const stepRow=d=>{const v=+(c[d.k]??cfg[d.k]),lo=d.k==='max'?minMax:d.k==='spec'?(Array.isArray(V.sv)?V.sv.length:0):d.lo;
-        return `<div class="stp"><div class="stp-t"><b${hlv(d.k,v)?' class="hl"':''}>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="stp-b" data-act="dec:${d.k}" aria-label="${d.label} 줄이기"${v<=lo?' disabled':''}>−</button><input class="txt stp-v" id="st_${d.k}" type="number" inputmode="numeric" min="${lo}" max="${d.hi}" step="${d.step}" value="${v}" aria-label="${d.label}"><span class="stp-u">${d.unit}</span><button type="button" class="stp-b" data-act="inc:${d.k}" aria-label="${d.label} 늘리기"${v>=d.hi?' disabled':''}>+</button></div></div>`};
+        return `<div class="stp"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="stp-b" data-act="dec:${d.k}" aria-label="${d.label} 줄이기"${v<=lo?' disabled':''}>−</button><input class="txt stp-v" id="st_${d.k}" type="number" inputmode="numeric" min="${lo}" max="${d.hi}" step="${d.step}" value="${v}" aria-label="${d.label}"><span class="stp-u">${d.unit}</span><button type="button" class="stp-b" data-act="inc:${d.k}" aria-label="${d.label} 늘리기"${v>=d.hi?' disabled':''}>+</button></div></div>`};
       const rows=roomSetOf(G).map(stepRow).join('');
       // 게임이 규칙 칸을 직접 그릴 수 있음 (G.settingsHTML: 대부호의 룰 레버). 없으면 −/+ 칸과 스위치를 차례로
       const body=G.settingsHTML?G.settingsHTML(c,{stepRow,common:COMMON_SET.map(d=>roomSetOf(G).find(x=>x.k===d.k))}):`<div class="rs-grid">${rows}</div>${rules?`<div class="rulehead">게임 규칙</div><div class="rs-grid tgs">${rules}</div>`:''}`;
-      const modeRow=G.noFast?'':`<div class="rs-seg"><div class="rs-h"><b${clipUI&&c.fast?' class="hl"':''}>게임 모드</b><small>${G.modeDesc[c.fast?1:0]}</small></div><div class="segrow" role="radiogroup" aria-label="게임 모드">${[0,1].map(v=>`<button class="btn ${(c.fast?1:0)===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${(c.fast?1:0)===v}" data-act="mode${v}">${OPT_LABEL.fast[v]}</button>`).join('')}</div></div>`;
-      if(clipUI){   // 클립보드: 맨 위 게임 이름, 맨 뒤 쪽은 게임 방법. 게임 고르기(홀로그램)·뒤로 버튼 없음. 바깥을 누르거나 Esc·도장으로 닫힘. 참가자는 읽기만
-        const det=body.includes('class="pl-det"'),more=det||body.includes('class="pl-more"'),tot=(more?2:1)+1,head=`<div class="clip-title">${esc(G.name)}</div>`;
-        if(FR.clipRules){showPanel(`${head}<div class="clip-sub">게임 방법</div>${G.rulesHTML||''}<button type="button" class="clip-turn prev" data-act="clipback">↶ 앞 장</button>`,'roomset',{pg:tot,tot,rules:1});$('#panelBody').classList.toggle('ro',ro);return}
-        const toRules=!more||det?`<button type="button" class="clip-turn" data-act="cliprules">게임 방법 ↷</button>`:'';
-        showPanel(`${head}${modeRow}${body}${ro?'':`<div class="row clip-end"><button class="btn btn-red" type="button" data-act="setclose" data-n="${esc(myNick().slice(0,3))}" data-auto>방장 확인</button></div>`}${toRules}`,'roomset',{pg:det?2:1,tot});
-        $('#panelBody').classList.toggle('ro',ro);
-        return;
-      }
+      const modeRow=G.noFast?'':`<div class="rs-seg"><div class="rs-h"><b>게임 모드</b><small>${G.modeDesc[c.fast?1:0]}</small></div><div class="segrow" role="radiogroup" aria-label="게임 모드">${[0,1].map(v=>`<button class="btn ${(c.fast?1:0)===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${(c.fast?1:0)===v}" data-act="mode${v}">${OPT_LABEL.fast[v]}</button>`).join('')}</div></div>`;
       showPanel(`<div class="vhead"><button type="button" class="back" data-act="setclose" aria-label="대기실로">←</button><h2>탁자 설정</h2></div>
         ${gpick}${modeRow}
         ${body}${cardInfo}
@@ -240,10 +227,6 @@ function renderPanel(){
   hidePanel();
 }
 $('#panel').addEventListener('click',e=>{
-  if($('#panel').dataset.kind==='roomset'&&$('#panelBody').classList.contains('clipsheet')){
-    if(!e.target.closest('.card-sheet')){clipClose();return}   // 클립보드 바깥을 누르면 닫힘
-    const tt=e.target.closest('.stp-t');if(tt&&tt.querySelector('small')){const on=!tt.classList.contains('tip');document.querySelectorAll('.clipsheet .stp-t.tip').forEach(x=>x.classList.remove('tip'));tt.classList.toggle('tip',on);return}   // 항목 이름을 누르면 설명 포스트잇
-  }
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act;
   if(a==='sheetmin'){FR.sheetMin=!FR.sheetMin;$('#panelBody').classList.toggle('min',FR.sheetMin);sfx('tick');return}
@@ -270,10 +253,7 @@ $('#panel').addEventListener('click',e=>{
     if(mode==='host'&&H&&H.phase==='wait'&&EG().firstPick&&H.cfg.pickfirst&&H.members[i]){H.firstName=H.members[i].name;sfx('tick');lastPanelHtml='';mark()}
     return}
   if(a==='setopen'){roomSetOpen=true;renderPanel();return}
-  if(a==='cliprules'||a==='clipback'){FR.clipRules=a==='cliprules';renderPanel();return}   // 클립보드 맨 뒤 쪽: 게임 방법
-  if(a==='setclose'){
-    if(b.closest('.clipsheet')){if(!b.classList.contains('stamped')){b.classList.add('stamped');sfx('stamp');setTimeout(clipClose,520)}return}   // 도장 쿵 → 클립보드가 탁자로
-    roomSetOpen=false;renderPanel();return}
+  if(a==='setclose'){roomSetOpen=false;renderPanel();return}
   if((a==='om:more'||a==='prmore')&&!H&&G.panelAct){G.panelAct(a,b);return}   // 참가자도 세부 설정 쪽은 넘겨 볼 수 있음
   if(/^(inc|dec):/.test(a)){if(e.detail!==0)return;const [op,k]=a.split(':');const d=roomSetOf(EG()).find(x=>x.k===k);if(d&&H)setRoomCfg(k,(+H.cfg[k])+(op==='inc'?d.step:-d.step));return}
   if(a==='pub'){if(mode==='host'&&H&&H.online){H.cfg={...H.cfg,pub:H.cfg.pub?0:1};mark()}return}
