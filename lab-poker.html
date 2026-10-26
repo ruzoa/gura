@@ -43,7 +43,7 @@ input[type=range]{flex:1;min-width:0;height:34px;accent-color:var(--acc)}
   <div id="viewBox"><div id="view"><iframe id="game" title="포커 미리보기"></iframe></div></div>
   <div id="side">
     <section>
-      <p class="cap">화면 크기 (각도·화각은 세로 화면에만 씁니다)</p>
+      <p class="cap">화면 크기 (각도·화각·거리는 세로 화면에만 씁니다)</p>
       <div class="chips" id="sizes"></div>
     </section>
     <section>
@@ -52,7 +52,9 @@ input[type=range]{flex:1;min-width:0;height:34px;accent-color:var(--acc)}
     </section>
     <section>
       <div class="row"><label for="el">각도</label><input type="range" id="el" min="30" max="90" step="1"><output id="elO"></output></div>
-      <div class="row"><label for="fov">화각</label><input type="range" id="fov" min="15" max="70" step="1"><output id="fovO"></output></div>
+      <div class="row"><label for="fl">화각</label><input type="range" id="fl" min="18" max="200" step="1"><output id="flO"></output></div>
+      <div class="row"><label for="d">거리</label><input type="range" id="d" min="5" max="40" step=".5"><output id="dO"></output></div>
+      <p class="cap" style="margin:4px 0 0">화각은 초점 거리(mm, 35mm 환산)입니다. 클수록 망원(좁게·납작하게)입니다.</p>
     </section>
     <div class="btns">
       <button class="btn main" id="restart">↻ 다시 시작</button>
@@ -65,9 +67,10 @@ input[type=range]{flex:1;min-width:0;height:34px;accent-color:var(--acc)}
 <script>
 const KEY='gura-lab-poker';
 const SIZES=[['휴대폰 세로',390,844],['작은 휴대폰',360,740],['태블릿 세로',768,1024],['휴대폰 가로',844,390],['PC',1440,900]];
-const DEF={size:0,n:6,el:60,fov:42};
+const DEF={size:0,n:6,el:60,fl:65,d:12.5};
 let S={...DEF};
 try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
+delete S.fov;for(const k in DEF)if(S[k]==null)S[k]=DEF[k];   // 예전 값(화각 도) 정리
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const $=s=>document.querySelector(s),fr=$('#game');
 
@@ -107,12 +110,12 @@ function start(){
   fr.src='index.html?lab='+Date.now();
 }
 function cam(){
-  $('#elO').textContent=S.el+'°';$('#fovO').textContent=S.fov+'°';
-  const w=fr.contentWindow;if(w&&w.GAMES&&w.GAMES.poker&&w.GAMES.poker.labCam)w.GAMES.poker.labCam({el:S.el,fov:S.fov});
+  $('#elO').textContent=S.el+'°';$('#flO').textContent=S.fl+'mm';$('#dO').textContent=S.d;
+  const w=fr.contentWindow;if(w&&w.GAMES&&w.GAMES.poker&&w.GAMES.poker.labCam)w.GAMES.poker.labCam({el:S.el,fl:S.fl,d:S.d});
 }
-for(const id of ['el','fov']){const r=$('#'+id);r.value=S[id];r.oninput=()=>{S[id]=+r.value;save();cam()}}
+for(const id of ['el','fl','d']){const r=$('#'+id);r.value=S[id];r.oninput=()=>{S[id]=+r.value;save();cam()}}
 $('#restart').onclick=start;
-$('#copy').onclick=()=>{const t=`PK_EL=${S.el},PK_FOV=${S.fov}`;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{$('#note').textContent='복사했습니다: '+t},()=>{$('#note').textContent=t})};
+$('#copy').onclick=()=>{const t=`PK_EL=${S.el},PK_FL=${S.fl},PK_D=${S.d}`;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{$('#note').textContent='복사했습니다: '+t},()=>{$('#note').textContent=t})};
 fit();cam();start();
 </script>
 </body>
