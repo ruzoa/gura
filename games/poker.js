@@ -531,7 +531,7 @@ const isWin=(B,i)=>!!(B.ph==='show'&&B.rs&&B.rs.won[i]>0&&B.rs.pots.some(p=>!p.r
 /* 정산 전 칩: 팟 칩이 도착하기 전에는 받은 만큼 빼고 보임 (결과가 연출을 앞지르지 않게) */
 const shownCh=(B,i)=>B.ph==='show'&&B.rs&&!V3.landed.has(i)&&T.ok&&ON?B.ch[i]-(B.rs.won[i]||0):B.ch[i];
 G.me=i=>{
-  $('#numpick').hidden=true;
+  $('#numpick').hidden=true;placeSide();
   const B=BV(),p=V.ps[i];if(!B||!p)return;
   const ch=shownCh(B,i);
   if(p.f){if(!p.sr)$('#meSub').innerHTML=V.st==='over'?`<b>${+p.f}위</b> · 칩 <b>${B.ch[i]}</b>개`:'칩이 떨어졌습니다. 남은 판을 지켜봅니다.';return}
@@ -566,34 +566,28 @@ const O={x:0,z:0};                     // 공용 카드 가운데 = 탁자 정�
 const BD_DX=.66,S_BD=.74,POT={x:0,z:.86},DECK={x:0,z:-.92};
 const MY={x:0,z:2.1},MYBET={x:0,z:1.44},BANK_Z=3.45,BANK_X=[-.75,-.25,.25,.75],CHIP_R=.2,CHIP_H=.052;   // 내 카드는 다른 사람과 같은 거리(둘레), 칩 더미는 펠트 밖 나무 띠 위 내 앞
 const CW=.62*1.2,CH=.9*1.2;            // 카드 폭·높이 (크기 1일 때)
-const S_ME=.82,S_OT=.58,S_SHOW=.7,RZ=2.25,TH_MAX=1.85;
+const S_ME=.82,S_OT=.58,S_SHOW=.7,RZ=2.25;
 let SP=new Map(),spKey='',RX=2.9;
-/* 다른 사람의 자리: 앉은 순서대로 맞은편 호를 따라 (내 오른쪽 사람부터). 관전 중이면 모두를 둘레에 */
+/* 다른 사람의 자리: 나를 아래(0°)로 두고 탁자 둘레를 인원 수만큼 똑같이 나눈 각도(360°/인원)에 앉은 순서대로. 관전 중이면 내 앞자리를 비움(seatAngle) */
 function arcPos(th,rx){return {x:O.x+Math.sin(th)*rx,z:O.z-Math.cos(th)*RZ}}
 function seatList(){const me=myIdx();return V.ps.map((_,i)=>i).filter(i=>i!==me).sort((a,b)=>seatAngle(a)-seatAngle(b))}
-function thetas(list){
-  const m=list.length,me=myIdx(),out=new Map();
-  if(me<0){list.forEach(i=>out.set(i,Math.PI-seatAngle(i)));return out}
-  const th=m<=1?0:Math.min(TH_MAX,.62*(m-1)),st=m>1?2*th/(m-1):0;
-  list.forEach((i,k)=>out.set(i,th-k*st));
-  return out;
-}
-/* 화면 폭에 맞춘 호의 가로 반지름: 가장 바깥 자리(카드 + 이름표)가 화면 안에 들어오게 */
-function fitRx(ths){
-  if(!T.ok||!T.cam)return 2.9;
-  const v=new THREE.Vector3();let worst=0;for(const th of ths.values())if(Math.abs(Math.sin(th))>Math.abs(Math.sin(worst)))worst=th;
-  for(let rx=2.95;rx>=1.3;rx-=.05){const p=arcPos(Math.abs(worst),rx);v.set(p.x+.55,0,p.z).project(T.cam);if(v.x<=.94)return rx}
+function thetas(list){const out=new Map();list.forEach(i=>out.set(i,Math.PI-seatAngle(i)));return out}
+/* 화면 폭에 맞춘 둘레의 가로 반지름: 모든 자리(카드 + 이름표)가 화면 안에 들어오게 (내 쪽 자리는 가까워 더 넓게 보이므로 모두 잼) */
+function fitRx(ths,cam){
+  if(!T.ok||!cam)return 2.9;
+  const v=new THREE.Vector3(),side=[...ths.values()].filter(th=>Math.abs(Math.sin(th))>.05),hw=seatHW()+.1;
+  for(let rx=2.95;rx>=1.3;rx-=.05)if(side.every(th=>{const p=arcPos(Math.abs(th),rx);v.set(p.x+hw,0,p.z).project(cam);return v.x<=.94}))return rx;
   return 1.3;
 }
 function layout(){
-  const me=myIdx(),st=$('#stage'),c=T.cam?T.cam.position:{x:0,y:0,z:0};
-  const key=V.ps.length+'|'+me+'|'+st.clientWidth+'x'+st.clientHeight+'|'+[c.x,c.y,c.z].map(x=>x.toFixed(1)).join(',');
-  if(key===spKey)return SP;spKey=key;
-  const list=seatList(),ths=thetas(list);RX=fitRx(ths);
+  const me=myIdx(),st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight,c=T.cam?T.cam.position:{x:0,y:0,z:0};
+  const key=V.ps.length+'|'+me+'|'+W+'x'+Hh+'|'+PK_EL+'|'+PK_FOV+'|'+[c.x,c.y,c.z].map(x=>x.toFixed(1)).join(',');
+  if(key===spKey)return SP;spKey=key;NAR=W<Hh;
+  const list=seatList(),ths=thetas(list);RX=fitRx(ths,T.ok&&T.cam?camTarget(W,Hh):null);
   SP=new Map();
   for(const i of list){
     const th=ths.get(i),p=arcPos(th,RX);
-    if(Math.abs(p.x-O.x)<BOARD_HX+.45&&p.z>O.z-.9)p.z=O.z-.9;   // 좁은 화면: 양옆 자리가 공용 카드 높이에 걸치면 공용 카드 위쪽으로
+    if(Math.abs(p.x-O.x)<BOARD_HX+seatHW()&&Math.abs(p.z-O.z)<.85)p.z=O.z-.9;   // 좁은 화면: 양옆 자리가 공용 카드 높이에 걸치면 공용 카드 위쪽으로
     const dx=O.x-p.x,dz=O.z-p.z,dl=Math.hypot(dx,dz)||1;
     SP.set(i,{x:p.x,z:p.z,th,ry:Math.atan2(-dx/dl,-dz/dl),ux:dx/dl,uz:dz/dl,   // 카드 위쪽이 탁자 중심을 향함
       bet:offBoard({x:p.x+dx/dl*.68,z:p.z+dz/dl*.68})});
@@ -603,12 +597,15 @@ function layout(){
   return SP;
 }
 const betPos=i=>(SP.get(i)||{bet:POT}).bet;
-/* 카드 자리: 나는 크게 두 장 나란히, 다른 사람은 작게 살짝 겹쳐. 공용 카드는 가운데 한 줄 */
+/* 카드 자리: 나는 크게 두 장 나란히, 다른 사람은 작게 살짝 겹쳐(세로 화면은 둘째 장이 첫 장의 왼쪽 위 숫자만 남기고 덮음). 공용 카드는 가운데 한 줄 */
+let NAR=false;   // 세로 화면 (layout에서 정함)
+const OVL=.38;   // 세로 화면에서 다른 사람 카드 두 장의 간격 (카드 폭 .62×크기에 곱함)
+const seatHW=()=>(CW*S_OT+.62*S_OT*(NAR?OVL:1.08))/2;   // 다른 사람 카드 두 장의 반폭
 function cardPose(seat,k,show){
   if(seat<0)return {x:O.x+(k-2)*BD_DX,y:.02,z:O.z,ry:0,s:S_BD};
   const S=SP.get(seat);if(!S)return {x:DECK.x,y:.4,z:DECK.z,ry:0,s:.4};
-  const s=S.me?S_ME:show?S_SHOW:S_OT,gap=.62*s*1.08,o=(k-.5)*gap,tx=-S.uz,tz=S.ux,inw=show&&!S.me?.32:0;   // 자리에서 본 옆으로 겹치지 않게 나란히(카드 폭 .62×크기). 펼친 카드는 크게, 안쪽으로
-  return {x:S.x+tx*o+S.ux*inw,y:.02,z:S.z+tz*o+S.uz*inw,ry:S.ry,s};
+  const ov=NAR&&!S.me&&!show,s=S.me?S_ME:show?S_SHOW:S_OT,gap=.62*s*(ov?OVL:1.08),o=(k-.5)*gap,tx=-S.uz,tz=S.ux,inw=show&&!S.me?.32:0;   // 자리에서 본 옆으로 겹치지 않게 나란히(카드 폭 .62×크기). 펼친 카드는 크게, 안쪽으로
+  return {x:S.x+tx*o+S.ux*inw,y:.02+(ov?k*.004:0),z:S.z+tz*o+S.uz*inw,ry:S.ry,s};
 }
 
 /* ---------- 3D ---------- */
@@ -724,7 +721,7 @@ function frameFlights(now){
 const _qa=window.THREE?new THREE.Quaternion():null,_qb=window.THREE?new THREE.Quaternion():null,_ax=window.THREE?{x:new THREE.Vector3(1,0,0),y:new THREE.Vector3(0,1,0)}:null;
 const wrapA=a=>{while(a>Math.PI)a-=2*Math.PI;while(a<=-Math.PI)a+=2*Math.PI;return a};
 function cardSet(e,to,ms,lift){
-  const T0=e.to;if(T0&&['x','y','z','ry','s','f','tl'].every(k=>Math.abs(T0[k]-to[k])<1e-4)&&!to.die===!T0.die)return;
+  const T0=e.to;if(T0&&['x','y','z','ry','s','f','tl'].every(k=>Math.abs(T0[k]-to[k])<1e-4)&&!to.die===!T0.die&&!to.hand===!T0.hand)return;
   e.to=to;if(!e.launched)return;
   e.tw={from:{...e.cur},to,t0:clock(),ms,lift};
 }
@@ -742,6 +739,7 @@ function cardStep(e,now){
   const ph=(1-c.f)*Math.PI,guard=Math.abs(Math.sin(ph))*CW*c.s*.5+Math.abs(Math.sin(c.tl))*CH*c.s*.5+.02;
   c.y=Math.max(A.y+(Bt.y-A.y)*q+Math.sin(k*Math.PI)*w.lift,guard);
   cardApply(e);
+  if(k>=1&&Bt.hand&&!e.inHand){e.inHand=true;e.g.visible=false;syncHand()}   // 손패에 닿으면 3D 카드는 숨기고 2D 손패에
   if(k>=1){e.tw=null;if(Bt.die){killCard(e.g);if(Bt.keep)e.gone=true;else V3.cards.delete(e.key)}}   // keep: 폴드한 카드는 사라져도 목록에 남겨 다시 만들지 않음
 }
 /* ---------- 펠트 무늬·덱·딜러 버튼 ---------- */
@@ -857,7 +855,8 @@ function sync3(v){
     if(e.gone&&!want.has(key)){V3.cards.delete(key);continue}
     if(want.has(key)||e.dying)continue;
     if(!e.launched){killCard(e.g);V3.cards.delete(key);continue}
-    e.dying=true;cardSet(e,{x:dk.x,y:.3,z:dk.z,ry:0,s:.4,f:0,tl:0,die:true},460,.3);
+    e.dying=true;if(e.inHand){e.inHand=false;e.g.visible=true}   // 내 카드는 손패 자리에서 다시 나타나 덱으로
+    cardSet(e,{x:dk.x,y:.3,z:dk.z,ry:0,s:.4,f:0,tl:0,die:true},460,.3);
   }
   // 처음 나누기: 스몰 블라인드부터 한 장씩 두 바퀴 (엔진과 같은 순서). 공용 카드는 모인 칩이 팟에 닿은 뒤 한 장씩
   const dealing=dealingV(),start=dealing?V.dealAt-(+v.dm||0):0,nOrd=Math.max(1,B.dor.length);
@@ -875,6 +874,7 @@ function sync3(v){
     }
     if(c.id>=0&&e.id!==c.id){e.g.children[0].material=faceMat(c.id);e.id=c.id}
     const P=cardPose(c.seat,c.k,c.id>=0&&c.seat!==me),folded=c.seat>=0&&B.st[c.seat]===1,up=c.id>=0&&!folded,L=c.id>=0&&lift.has(c.id)?.09:0;
+    if(c.seat===me&&c.seat>=0){cardSet(e,{...handPose(c.k),f:c.id>=0?1:0},300,.2);continue}   // 내 카드: 화면 아래 손패로 날아가 들어감
     if(folded&&c.seat!==me){cardSet(e,{x:dk.x+(c.k-.5)*.1,y:.05,z:dk.z,ry:.3*(c.k?1:-1),s:.4,f:0,tl:0,die:true,keep:true},420,.25);continue}   // 폴드한 카드는 덱 쪽으로 모음
     glow(e,!!L&&up);
     const flip=e.to&&e.to.f!==(up?1:0);
@@ -893,11 +893,84 @@ function frame3(now){
     if(!e.launched&&now>=e.at&&e.to){e.launched=true;e.g.visible=true;e.tw={from:{...e.cur},to:e.to,t0:now,ms:e.to.f?460:400,lift:.38};sfx('flick')}
     if(e.launched)cardStep(e,now);
   }
-  frameFlights(now);turnTimer(now);introFrame(now);
+  frameFlights(now);turnTimer(now);introFrame(now);syncHand();
   if(V3.bank){const a=now-V3.bounceAt;V3.bank.position.y=a>=0&&a<520?Math.abs(Math.sin(a/520*Math.PI*2))*.09*(1-a/520):0}
   if(ON&&BV()&&BV().ph==='show'&&V3.awarded!==BV().hn&&now>=V3.showAt)syncChips();
 }
-G.render3D=t=>{if(ON&&V3.root){frame3(t);T.timerBg.visible=T.timerArc.visible=false}T.r.render(T.scene,T.cam)};   // 남은 시간은 이름표 테두리와 베팅 칸 고리로 (자리 가장자리 고리는 숨김)
+/* ---------- 내 카드: 2D 손패 (다른 카드 게임처럼 화면 아래 가운데) ----------
+   3D 카드는 덱에서 화면 아래(손패 자리 앞)로 날아가 닿으면 숨고 2D 손패에 나타남. 새 판이면 그 자리에서 다시 나타나 덱으로 */
+let elHand=null;
+const handK=()=>{const st=$('#stage'),W=st.clientWidth,Hs=st.clientHeight||W;return Math.max(Hs<600?.8:1,Math.min(1.8,Math.min(Hs/677,W/460)))};   // 공통 손패와 같은 크기
+const HAND_W=104,HAND_H=112;   // 손패가 차지하는 폭·높이(크기 1일 때, 카드 60×88 두 장 + 아래 여백). 카메라는 이만큼 화면 아래를 비워 둠
+const handPose=k=>({x:(k-.5)*.4,y:.5,z:BANK_Z+.75,ry:0,s:.6,tl:0,hand:true});
+const handOn=()=>{const B=BV(),me=myIdx();return !!(B&&T.ok&&gameOn()&&me>=0&&!V.ps[me].f)};
+function syncHand(){
+  if(!elHand)return;
+  const B=BV(),me=myIdx(),on=handOn()&&B.hn>0,ids=[];
+  if(on)(B.hc[me]||[]).forEach((id,k)=>{const e=V3.cards.get(B.hn+':'+me+':'+k);if(id>=0&&e&&e.inHand)ids.push(id)});
+  const fold=on&&B.st[me]===1,lift=on?liftSet(B):new Set(),key=ids.map(id=>id+(lift.has(id)?'w':'')).join(',')+'|'+fold;
+  if(elHand.dataset.k!==key){elHand.innerHTML=ids.map(id=>cardEl(id).replace('class="card pkc"','class="card pkc'+(lift.has(id)?' win':'')+'"')).join('');elHand.dataset.k=key;elHand.classList.toggle('fold',fold)}
+  elHand.hidden=!ids.length;elHand.style.setProperty('--k',handK());
+}
+/* 손패 옆(넓으면)이나 위(좁으면)에 내 정보 칸·버튼: 공통 layoutFan과 같은 규칙 (공통 손패는 비어 있어 구석으로 보내므로 여기서 고침) */
+function placeSide(){
+  const st=$('#stage');if(!handOn())return;
+  const W=st.clientWidth,Hs=st.clientHeight,k=handK(),hw=HAND_W*k,hh=HAND_H*k;
+  const pc=W>=900&&Hs>=600&&!(window.matchMedia&&matchMedia('(pointer:coarse)').matches),aS=pc?Math.max(1,Math.min(1.3,k*.8)):1;
+  const aW=($('#actions').offsetWidth||0)*aS,mW=$('#me').offsetWidth||0,side=Math.max(mW,aW)+24,wide=W-hw>=2*side+16;
+  let aR=14,mL=12;if(pc&&wide){aR=Math.max(14,Math.round(W/2-hw/2-28-aW));mL=Math.max(12,Math.round(W/2-hw/2-28-mW))}
+  st.style.setProperty('--actR',aR+'px');st.style.setProperty('--plateL',mL+'px');st.style.setProperty('--actS',aS);
+  st.style.setProperty('--plateB',(wide?14:Math.round(hh)+60)+'px');st.style.setProperty('--actB',(wide?14:Math.round(hh))+'px');
+}
+
+/* ---------- 카메라: 가로 화면은 공통 카메라 그대로, 세로 화면은 더 위에서(PK_EL) 내려다보며 펠트 폭에 맞춤 (위아래 빈 곳이 줄어듦) ----------
+   크기·각도가 바뀌거나 게임이 시작되면 그때 보이던 카메라에서 미끄러지듯 옮김 */
+let PK_EL=60,PK_FOV=42;   // 세로 화면 카메라 각도(도, 공통 37)·화각(도, 공통 42: 작으면 멀리서 납작하게). 테스트룸(lab-poker.html)에서 바꿔 봄
+G.labCam=o=>{if(o.el!=null)PK_EL=+o.el;if(o.fov!=null)PK_FOV=+o.fov;spKey=''};
+const PC={cam:null,tgt:null,on:false,key:'',t0:0,dur:0,fp:null,fq:null,fm:null};
+function camTarget(w,h){
+  const c=PC.tgt||(PC.tgt=new THREE.PerspectiveCamera(42,1,.1,100));
+  const v=new THREE.Vector3(),tn=(x,y,z)=>{v.set(x,y,z).applyMatrix4(c.matrixWorldInverse);return [v.x/-v.z,v.y/-v.z]};
+  const r=myIdx()>=0?Math.min(.35,HAND_H*handK()/h):0;   // 화면 아래 손패 몫
+  let hx=0,top=-9,bot=9;
+  if(w>=h){   // 가로: 공통 카메라에서 위쪽은 그대로, 내 칩 더미가 손패 위로 오게 필요한 만큼만 멀리
+    c.position.copy(T.cam.position);c.quaternion.copy(T.cam.quaternion);c.updateMatrixWorld();
+    const m=T.cam.projectionMatrix.elements;hx=1/m[0];top=(m[9]+1)/m[5];bot=(m[9]-1)/m[5];
+    const need=top-tn(0,0,BANK_Z+.35)[1];let S=top-bot;
+    if(need>S*(1-r)){S=need/(1-r);hx*=S/(top-bot)}
+    bot=top-S;
+  }else{   // 세로: 더 위에서 펠트 전체를 화면 폭에 (위아래 빈 곳이 줄어듦)
+    const EL=PK_EL*Math.PI/180,D=12.5*Math.tan(21*Math.PI/180)/Math.tan(PK_FOV*Math.PI/360),tz=.2;
+    c.position.set(0,D*Math.sin(EL),tz+D*Math.cos(EL));c.lookAt(0,0,tz);c.updateMatrixWorld();
+    const fit=(x,y,z,side)=>{const [a,b]=tn(x,y,z);if(side)hx=Math.max(hx,Math.abs(a));top=Math.max(top,b);bot=Math.min(bot,b)};
+    for(let k=0;k<36;k++){const a=k/36*Math.PI*2;fit(Math.sin(a)*3.3,0,Math.cos(a)*3.3,1)}   // 펠트 전체가 화면 폭에
+    fit(0,.4,-3.1);fit(-1,.3,BANK_Z+.3);fit(1,.3,BANK_Z+.3);   // 맞은편 이름표, 내 칩 더미
+    hx*=1.04;const need=(top-bot)/(1-r)*w/h/2;if(need>hx)hx=need;
+    const S=2*hx*h/w,ex=S*(1-r)-(top-bot);top+=ex/2;bot=top-S;
+  }
+  const n=c.near,f=c.far;c.projectionMatrix.makePerspective(-hx*n,hx*n,top*n,bot*n,n,f);c.projectionMatrixInverse.copy(c.projectionMatrix).invert();
+  return c;
+}
+function pkCamFrame(now){
+  const st=$('#stage'),w=st.clientWidth,h=st.clientHeight,tg=camTarget(w,h);
+  if(!PC.cam){PC.cam=new THREE.PerspectiveCamera(42,1,.1,100);PC.fp=new THREE.Vector3();PC.fq=new THREE.Quaternion();PC.fm=new THREE.Matrix4()}
+  const c=PC.cam,key=w+'x'+h+'|'+PK_EL+'|'+PK_FOV+'|'+(myIdx()>=0);
+  if(!PC.on||key!==PC.key){   // 지금 보이던 카메라(시작이면 공통 카메라)에서 출발
+    const s=PC.on?c:T.cam;PC.fp.copy(s.position);PC.fq.copy(s.quaternion);PC.fm.copy(s.projectionMatrix);
+    PC.dur=PC.on?350:900;PC.t0=now;PC.on=true;PC.key=key;
+  }
+  const k0=Math.min(1,(now-PC.t0)/PC.dur),k=k0*k0*(3-2*k0);
+  c.position.copy(PC.fp).lerp(tg.position,k);c.quaternion.copy(PC.fq).slerp(tg.quaternion,k);c.updateMatrixWorld();
+  const a=PC.fm.elements,b=tg.projectionMatrix.elements,m=c.projectionMatrix.elements;for(let j=0;j<16;j++)m[j]=a[j]+(b[j]-a[j])*k;
+  c.projectionMatrixInverse.copy(c.projectionMatrix).invert();
+  return c;
+}
+const gameOn=()=>ON&&V3.root&&(V.st==='play'||V.st==='over');
+const CAM=()=>gameOn()&&PC.on&&PC.cam?PC.cam:T.cam;   // 지금 그리는 카메라 (이름표·누르기 계산용)
+G.render3D=t=>{
+  if(ON&&V3.root){frame3(t);T.timerBg.visible=T.timerArc.visible=false}
+  if(gameOn())T.r.render(T.scene,pkCamFrame(performance.now()));else{PC.on=false;T.r.render(T.scene,T.cam)}
+};   // 남은 시간은 이름표 테두리와 베팅 칸 고리로 (자리 가장자리 고리는 숨김)
 /* 공통 코드가 다른 사람 자리에 카드 더미를 놓는데(손패 표시 1장) 포커는 카드를 펠트에 펼치므로 숨김 */
 G.field3D=v=>{
   if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=false});
@@ -959,7 +1032,7 @@ function seatTags(B){
     const S=SP.get(i);
     if(on3&&S&&!S.me){
       const shw=B.hc[i]&&B.hc[i].some(x=>x>=0),q=cardPose(i,0,shw),half=CH*q.s/2+.07;   // 카드 바로 위(화면 위쪽)에
-      v3.set(S.x+(shw?S.ux*.32:0),.03,Math.min(S.z,q.z)-half).project(T.cam);
+      v3.set(S.x+(shw?S.ux*.32:0),.03,Math.min(S.z,q.z)-half).project(CAM());
       const w=el.offsetWidth,hh=el.offsetHeight;
       put.push({el,w,h:hh,x:Math.max(w/2+6,Math.min(W-w/2-6,(v3.x+1)/2*W)),y:(1-v3.y)/2*Hh-hh/2});   // 이름표 아래 끝이 카드 바깥쪽에 닿게
     }
@@ -1000,6 +1073,7 @@ G.leave=()=>{
   ON=false;if(typeof T!=='undefined'&&T.ok)clear3D();
   const st=$('#stage');if(st)st.classList.remove('pk');
   const pass=$('#btnPass'),gb=$('#btnGura');if(pass){setTxt(pass,'패스');pass.hidden=false}if(gb){setTxt(gb,'구라!');gb.hidden=true}
+  if(elHand){elHand.hidden=true;elHand.innerHTML='';elHand.dataset.k=''}
   if(elBet)elBet.hidden=true;if(el2d){el2d.hidden=true;el2d.innerHTML='';el2d.dataset.k=''}
   document.querySelectorAll('#labels .seat .pkt').forEach(x=>x.remove());document.querySelectorAll('#labels .seat.pk-fold').forEach(x=>x.classList.remove('pk-fold'));
   if(typeof T!=='undefined'&&T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
@@ -1010,7 +1084,7 @@ const _ray=window.THREE?new THREE.Raycaster():null,_pl=window.THREE?new THREE.Pl
 function chipAt(e){
   if(!ON||!T.ok||!BV()||myIdx()<0||!V3.bank)return null;
   const r=$('#cv').getBoundingClientRect();if(!r.width)return null;
-  _ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},T.cam);
+  _ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},CAM());
   if(!_ray.ray.intersectPlane(_pl,_hit))return null;
   const n=V3.bank.userData.n;
   for(let k=0;k<4;k++)if(n[k]&&Math.hypot(_hit.x-BANK_X[k],_hit.z-(BANK_Z+.1))<.27)return {d:DEN[k]};
@@ -1042,6 +1116,12 @@ G.init=()=>{
 @media (max-width:480px){#pkBet{bottom:128px;gap:6px;padding:7px 8px}#pkBet .pk-chip{width:44px;height:44px;font-size:13px}#pkBet .pk-amt{min-width:72px}#pkBet .pk-amt b{font-size:22px;min-width:48px}}
 #pk2d{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);z-index:5;display:flex;flex-direction:column;gap:6px;width:min(560px,calc(100% - 20px));max-height:calc(100% - 210px);overflow:auto;pointer-events:none}
 #pk2d[hidden]{display:none}
+#pkHand{position:absolute;left:50%;bottom:0;display:flex;align-items:flex-end;z-index:6;pointer-events:none;transform:translateX(-50%) scale(var(--k,1));transform-origin:50% 100%;padding-bottom:14px}
+#pkHand[hidden]{display:none}
+#pkHand .card{transition:transform .2s,filter .2s,opacity .2s}#pkHand .card+.card{margin-left:-16px}
+#pkHand .card:first-child{transform:rotate(-5deg)}#pkHand .card:last-child:not(:first-child){transform:rotate(5deg)}
+#pkHand .card.win{outline:3px solid #e8b130;outline-offset:-1px;translate:0 -12px}
+#pkHand.fold .card{filter:grayscale(.75) brightness(.9);opacity:.6}
 #pk2d .r2{display:grid;grid-template-columns:96px auto 1fr;align-items:center;gap:8px;padding:5px 10px;border-radius:12px;background:#fffaf0;border:1px solid var(--line-strong)}
 #pk2d .r2.bd{background:#2f7550;color:#f4ead9;min-height:60px}
 #pk2d .r2.me{box-shadow:0 0 0 2px var(--mustard)}#pk2d .r2.on{border-color:var(--mustard-edge)}#pk2d .r2.fold{opacity:.55}
@@ -1055,6 +1135,7 @@ G.init=()=>{
 #pk2d .pk-d{display:inline-block;font-size:10px;font-weight:700;line-height:1;padding:3px 5px 2px;border-radius:99px;margin-right:4px;background:#fffaf0;color:#3b2a1f;border:1.5px solid #3b2a1f}
 `;
   document.head.appendChild(css);
+  elHand=document.createElement('div');elHand.id='pkHand';elHand.hidden=true;elHand.setAttribute('aria-label','내 카드');$('#stage').insertBefore(elHand,$('#fx'));
   el2d=document.createElement('div');el2d.id='pk2d';el2d.hidden=true;el2d.setAttribute('aria-live','polite');$('#stage').insertBefore(el2d,$('#fx'));
   elBet=document.createElement('div');elBet.id='pkBet';elBet.hidden=true;elBet.setAttribute('role','group');elBet.setAttribute('aria-label','레이즈');
   elBet.innerHTML=`<button type="button" class="pk-chip" data-add="10" aria-label="10개 더">10</button><button type="button" class="pk-chip c50" data-add="50" aria-label="50개 더">50</button><button type="button" class="pk-chip c100" data-add="100" aria-label="100개 더">100</button><div class="pk-amt"><b aria-live="polite">0</b><button type="button" class="pk-clr" data-clr aria-label="모두 빼기" title="모두 빼기">✕</button></div><button type="button" class="pk-chip all" data-all aria-label="가진 칩 모두">올인</button>`;

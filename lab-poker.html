@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>테스트룸 · 포커 카메라</title>
+<style>
+:root{--bg:#10170f;--panel:#1a241a;--line:#2d3b2c;--fg:#e8efe4;--dim:#93a38f;--acc:#f2c14e}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,'Noto Sans KR',sans-serif}
+main{max-width:980px;margin:0 auto;padding:10px 12px calc(24px + env(safe-area-inset-bottom))}
+h1{font-size:15px;margin:2px 0 8px;color:var(--dim);font-weight:600}
+.nav{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.nav a{color:var(--dim);text-decoration:none;border:1px solid var(--line);border-radius:18px;padding:5px 12px;font-size:13px}
+.nav a.on{background:var(--acc);color:#1a1405;border-color:var(--acc);font-weight:700}
+.wrap{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+/* 미리보기: 고른 화면 크기 그대로의 게임(index.html)을 줄여서 보여 줌 */
+#viewBox{flex:1 1 360px;min-width:0;display:flex;justify-content:center}
+#view{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:10px;background:#000}
+#view iframe{position:absolute;left:0;top:0;border:0;transform-origin:0 0}
+#side{flex:0 1 340px;min-width:0;width:100%}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.row{display:flex;align-items:center;gap:10px;margin:8px 0}
+.row>label{flex:0 0 56px;color:var(--dim);font-size:13px}
+.row>output{flex:0 0 48px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+input[type=range]{flex:1;min-width:0;height:34px;accent-color:var(--acc)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:#0f180f;color:var(--fg);border-radius:18px;padding:7px 12px;font:inherit;font-size:14px;cursor:pointer}
+.chip.on{background:var(--acc);color:#1a1405;border-color:var(--acc);font-weight:700}
+.cap{color:var(--dim);font-size:13px;margin:0 0 6px}
+.btns{display:flex;gap:8px}
+.btn{flex:1;border:0;border-radius:10px;padding:13px 8px;font:inherit;font-weight:700;cursor:pointer;background:#2b3a2a;color:var(--fg)}
+.btn.main{flex:2;background:var(--acc);color:#1a1405}
+#note{color:var(--dim);font-size:12px;margin-top:8px;min-height:18px}
+</style>
+</head>
+<body>
+<main>
+<nav class="nav"><a href="lab.html">첫 차례 룰렛</a><a href="lab-icon.html">아이콘 찍기</a><a href="lab-hand.html">알까기 손</a><a href="lab-poker.html" class="on">포커 카메라</a></nav>
+<h1>테스트룸 · 포커 카메라 <span style="font-weight:400">(메인에 연결되지 않은 연습용 화면입니다)</span></h1>
+<div class="wrap">
+  <div id="viewBox"><div id="view"><iframe id="game" title="포커 미리보기"></iframe></div></div>
+  <div id="side">
+    <section>
+      <p class="cap">화면 크기 (각도·화각은 세로 화면에만 씁니다)</p>
+      <div class="chips" id="sizes"></div>
+    </section>
+    <section>
+      <p class="cap">인원 (나 + 봇)</p>
+      <div class="chips" id="ns"></div>
+    </section>
+    <section>
+      <div class="row"><label for="el">각도</label><input type="range" id="el" min="30" max="90" step="1"><output id="elO"></output></div>
+      <div class="row"><label for="fov">화각</label><input type="range" id="fov" min="15" max="70" step="1"><output id="fovO"></output></div>
+    </section>
+    <div class="btns">
+      <button class="btn main" id="restart">↻ 다시 시작</button>
+      <button class="btn" id="copy">값 복사</button>
+    </div>
+    <div id="note"></div>
+  </div>
+</div>
+</main>
+<script>
+const KEY='gura-lab-poker';
+const SIZES=[['휴대폰 세로',390,844],['작은 휴대폰',360,740],['태블릿 세로',768,1024],['휴대폰 가로',844,390],['PC',1440,900]];
+const DEF={size:0,n:6,el:60,fov:42};
+let S={...DEF};
+try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const $=s=>document.querySelector(s),fr=$('#game');
+
+function chips(box,list,get,set){
+  box.innerHTML='';
+  list.forEach((t,i)=>{const b=document.createElement('button');b.className='chip';b.textContent=t;b.onclick=()=>{set(i);draw()};box.appendChild(b)});
+  const draw=()=>[...box.children].forEach((b,i)=>b.classList.toggle('on',i===get()));
+  draw();
+}
+chips($('#sizes'),SIZES.map(s=>s[0]),()=>S.size,i=>{S.size=i;save();fit()});
+chips($('#ns'),[2,3,4,5,6,7,8].map(n=>n+'명'),()=>S.n-2,i=>{S.n=i+2;save();start()});
+
+/* 미리보기 크기: 고른 화면 크기를 남은 자리에 맞춰 줄임 */
+function fit(){
+  const [,w,h]=SIZES[S.size]||SIZES[0],box=$('#viewBox');
+  const aw=box.clientWidth||w,ah=Math.max(320,innerHeight-(innerWidth<760?260:40)),k=Math.min(1,aw/w,ah/h);
+  fr.style.width=w+'px';fr.style.height=h+'px';fr.style.transform=`scale(${k})`;
+  $('#view').style.width=Math.round(w*k)+'px';$('#view').style.height=Math.round(h*k)+'px';
+}
+addEventListener('resize',fit);
+
+/* 게임 안에서: 혼자(오프라인) 포커 탁자를 차리고 봇을 앉혀 바로 시작 */
+function start(){
+  $('#note').textContent='불러오는 중입니다…';
+  fr.onload=()=>{
+    const w=fr.contentWindow;let tries=0;
+    const go=()=>{
+      let ok=false;try{ok=!!(w.GAMES&&w.GAMES.poker&&w.eval('typeof hostNew==="function"&&typeof T!=="undefined"&&T.ok!==undefined'))}catch(e){}
+      if(!ok){if(tries++<80)return setTimeout(go,100);$('#note').textContent='게임을 불러오지 못했습니다.';return}
+      let prev=null;try{prev=localStorage.getItem('gura-game')}catch(e){}
+      w.eval(`cfg.gi=GAME_IDS.indexOf('poker');mode='host';hostNew(false,'0000','테스트룸');H.cfg.max=8;enterRoom();for(let k=1;k<${S.n};k++)hostAddBot(true);mark();hostStart();`);
+      try{if(prev==null)localStorage.removeItem('gura-game');else localStorage.setItem('gura-game',prev)}catch(e){}   // 실제 게임의 마지막 고른 게임은 그대로
+      cam();$('#note').textContent='';
+    };
+    go();
+  };
+  fr.src='index.html?lab='+Date.now();
+}
+function cam(){
+  $('#elO').textContent=S.el+'°';$('#fovO').textContent=S.fov+'°';
+  const w=fr.contentWindow;if(w&&w.GAMES&&w.GAMES.poker&&w.GAMES.poker.labCam)w.GAMES.poker.labCam({el:S.el,fov:S.fov});
+}
+for(const id of ['el','fov']){const r=$('#'+id);r.value=S[id];r.oninput=()=>{S[id]=+r.value;save();cam()}}
+$('#restart').onclick=start;
+$('#copy').onclick=()=>{const t=`PK_EL=${S.el},PK_FOV=${S.fov}`;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{$('#note').textContent='복사했습니다: '+t},()=>{$('#note').textContent=t})};
+fit();cam();start();
+</script>
+</body>
+</html>
