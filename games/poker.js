@@ -566,23 +566,17 @@ const O={x:0,z:0};                     // 공용 카드 가운데 = 탁자 정�
 const BD_DX=.66,S_BD=.74,POT={x:0,z:.86},DECK={x:0,z:-.92};
 const MY={x:0,z:2.1},MYBET={x:0,z:1.44},BANK_Z=3.45,BANK_X=[-.75,-.25,.25,.75],CHIP_R=.2,CHIP_H=.052;   // 내 카드는 다른 사람과 같은 거리(둘레), 칩 더미는 펠트 밖 나무 띠 위 내 앞
 const CW=.62*1.2,CH=.9*1.2;            // 카드 폭·높이 (크기 1일 때)
-const S_ME=.82,S_OT=.58,S_SHOW=.7,RZ=2.25,TH_MAX=1.85;
+const S_ME=.82,S_OT=.58,S_SHOW=.7,RZ=2.25;
 let SP=new Map(),spKey='',RX=2.9;
-/* 다른 사람의 자리: 앉은 순서대로 맞은편 호를 따라 (내 오른쪽 사람부터). 관전 중이면 모두를 둘레에 */
+/* 다른 사람의 자리: 나를 아래(0°)로 두고 탁자 둘레를 인원 수만큼 똑같이 나눈 각도(360°/인원)에 앉은 순서대로. 관전 중이면 내 앞자리를 비움(seatAngle) */
 function arcPos(th,rx){return {x:O.x+Math.sin(th)*rx,z:O.z-Math.cos(th)*RZ}}
 function seatList(){const me=myIdx();return V.ps.map((_,i)=>i).filter(i=>i!==me).sort((a,b)=>seatAngle(a)-seatAngle(b))}
-function thetas(list){
-  const m=list.length,me=myIdx(),out=new Map();
-  if(me<0){list.forEach(i=>out.set(i,Math.PI-seatAngle(i)));return out}
-  const th=m<=1?0:Math.min(TH_MAX,.62*(m-1)),st=m>1?2*th/(m-1):0;
-  list.forEach((i,k)=>out.set(i,th-k*st));
-  return out;
-}
-/* 화면 폭에 맞춘 호의 가로 반지름: 가장 바깥 자리(카드 + 이름표)가 화면 안에 들어오게 */
+function thetas(list){const out=new Map();list.forEach(i=>out.set(i,Math.PI-seatAngle(i)));return out}
+/* 화면 폭에 맞춘 둘레의 가로 반지름: 모든 자리(카드 + 이름표)가 화면 안에 들어오게 (내 쪽 자리는 가까워 더 넓게 보이므로 모두 잼) */
 function fitRx(ths){
   if(!T.ok||!T.cam)return 2.9;
-  const v=new THREE.Vector3();let worst=0;for(const th of ths.values())if(Math.abs(Math.sin(th))>Math.abs(Math.sin(worst)))worst=th;
-  for(let rx=2.95;rx>=1.3;rx-=.05){const p=arcPos(Math.abs(worst),rx);v.set(p.x+.55,0,p.z).project(T.cam);if(v.x<=.94)return rx}
+  const v=new THREE.Vector3(),side=[...ths.values()].filter(th=>Math.abs(Math.sin(th))>.05);
+  for(let rx=2.95;rx>=1.3;rx-=.05)if(side.every(th=>{const p=arcPos(Math.abs(th),rx);v.set(p.x+.55,0,p.z).project(T.cam);return v.x<=.94}))return rx;
   return 1.3;
 }
 function layout(){
@@ -593,7 +587,7 @@ function layout(){
   SP=new Map();
   for(const i of list){
     const th=ths.get(i),p=arcPos(th,RX);
-    if(Math.abs(p.x-O.x)<BOARD_HX+.45&&p.z>O.z-.9)p.z=O.z-.9;   // 좁은 화면: 양옆 자리가 공용 카드 높이에 걸치면 공용 카드 위쪽으로
+    if(Math.abs(p.x-O.x)<BOARD_HX+.45&&Math.abs(p.z-O.z)<.85)p.z=O.z-.9;   // 좁은 화면: 양옆 자리가 공용 카드 높이에 걸치면 공용 카드 위쪽으로
     const dx=O.x-p.x,dz=O.z-p.z,dl=Math.hypot(dx,dz)||1;
     SP.set(i,{x:p.x,z:p.z,th,ry:Math.atan2(-dx/dl,-dz/dl),ux:dx/dl,uz:dz/dl,   // 카드 위쪽이 탁자 중심을 향함
       bet:offBoard({x:p.x+dx/dl*.68,z:p.z+dz/dl*.68})});
