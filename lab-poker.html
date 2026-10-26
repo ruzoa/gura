@@ -67,7 +67,7 @@ input[type=range]{flex:1;min-width:0;height:34px;accent-color:var(--acc)}
 <script>
 const KEY='gura-lab-poker';
 const SIZES=[['휴대폰 세로',390,844],['작은 휴대폰',360,740],['태블릿 세로',768,1024],['휴대폰 가로',844,390],['PC',1440,900]];
-const DEF={size:0,n:6,el:60,fl:65,d:12.5};
+const DEF={size:0,n:6,el:60,fl:50,d:6.5};
 let S={...DEF};
 try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
 delete S.fov;for(const k in DEF)if(S[k]==null)S[k]=DEF[k];   // 예전 값(화각 도) 정리

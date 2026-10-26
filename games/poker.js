@@ -925,7 +925,7 @@ function placeSide(){
 
 /* ---------- 카메라: 가로 화면은 공통 카메라 그대로, 세로 화면은 더 위에서(PK_EL) 내려다봄 (위아래 빈 곳이 줄어듦) ----------
    크기·각도가 바뀌거나 게임이 시작되면 그때 보이던 카메라에서 미끄러지듯 옮김 */
-let PK_EL=60,PK_FL=65,PK_D=12.5;   // 세로 화면 카메라 각도(도, 공통 37)·초점 거리(mm, 클수록 망원)·거리. 테스트룸(lab-poker.html)에서 바꿔 봄
+let PK_EL=60,PK_FL=50,PK_D=6.5;   // 세로 화면 카메라 각도(도, 공통 37)·초점 거리(mm, 클수록 망원)·거리. 테스트룸(lab-poker.html)에서 바꿔 봄
 G.labCam=o=>{if(o.el!=null)PK_EL=+o.el;if(o.fl!=null)PK_FL=+o.fl;if(o.d!=null)PK_D=+o.d;spKey=''};
 const PC={cam:null,tgt:null,on:false,key:'',t0:0,dur:0,fp:null,fq:null,fm:null};
 function camTarget(w,h){
