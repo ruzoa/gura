@@ -93,7 +93,7 @@ const handName=b=>b.cat===8&&Math.floor(b.v/15**4)%15===14?'로열 플러시':HA
 Object.assign(G,{eval5,best,handName});
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 같은 수의 칩으로 시작해서, 정한 판 수를 마쳤을 때 칩이 가장 많은 사람이 이깁니다. 칩을 다 잃으면 탈락합니다</li><li><b>카드</b> : 모두 카드 2장을 받고, 가운데에 공용 카드 5장이 차례로 펼쳐집니다. 내 카드 2장과 공용 카드 5장 중 가장 좋은 5장으로 겨룹니다</li><li><b>블라인드</b> : 딜러 버튼(D) 왼쪽 사람이 스몰 블라인드, 그다음 사람이 빅 블라인드(두 배)를 먼저 겁니다. 버튼은 판마다 왼쪽으로 옮깁니다. 둘이서 할 때는 버튼이 스몰 블라인드입니다</li><li><b>베팅</b> : 카드를 받은 뒤(프리플랍), 공용 카드 3장(플랍), 4번째(턴), 5번째(리버)를 펼친 뒤 한 바퀴씩 겁니다. <b>체크</b>는 더 걸지 않고 넘김, <b>콜</b>은 앞사람만큼 맞춤, <b>레이즈</b>는 더 올림, <b>폴드</b>는 이번 판을 포기합니다</li><li><b>레이즈</b> : 내 앞의 칩 더미를 누르면 그 칩이 베팅 칸으로 가고, 베팅 칸을 누르면 돌아옵니다. 칩을 올리지 않고 [레이즈]를 누르면 가장 적게 올립니다. 최소 레이즈는 바로 앞에서 올린 만큼이고, 가진 칩을 모두 거는 <b>올인</b>은 언제든 됩니다 (노 리밋)</li><li><b>쇼다운</b> : 리버까지 남은 사람은 카드를 펼쳐 가장 좋은 사람이 팟을 가져갑니다. 같으면 나눕니다. 올인한 사람은 자기가 건 만큼만 겨루고, 그보다 더 걸린 칩(사이드 팟)은 나머지 사람끼리 겨룹니다</li><li><b>족보</b> (높은 것부터) : 스트레이트 플러시 · 포카드 · 풀 하우스 · 플러시 · 스트레이트 · 트리플 · 투 페어 · 원 페어 · 하이 카드. A는 가장 높고, A-2-3-4-5 스트레이트에서만 1로 씁니다</li><li><b>시간 초과</b> : 체크할 수 있으면 체크, 아니면 폴드입니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 같은 수의 칩으로 시작해서, 정한 판 수를 마쳤을 때 칩이 가장 많은 사람이 이깁니다. 칩을 다 잃으면 탈락합니다</li><li><b>카드</b> : 모두 카드 2장을 받고, 가운데에 공용 카드 5장이 차례로 펼쳐집니다. 내 카드 2장과 공용 카드 5장 중 가장 좋은 5장으로 겨룹니다</li><li><b>블라인드</b> : 딜러 버튼(D) 왼쪽 사람이 스몰 블라인드, 그다음 사람이 빅 블라인드(두 배)를 먼저 겁니다. 버튼은 판마다 왼쪽으로 옮깁니다. 둘이서 할 때는 버튼이 스몰 블라인드입니다</li><li><b>베팅</b> : 카드를 받은 뒤(프리플랍), 공용 카드 3장(플랍), 4번째(턴), 5번째(리버)를 펼친 뒤 한 바퀴씩 겁니다. <b>체크</b>는 더 걸지 않고 넘김, <b>콜</b>은 앞사람만큼 맞춤, <b>레이즈</b>는 더 올림, <b>폴드</b>는 이번 판을 포기합니다</li><li><b>내 카드</b> : 탁자 위에 엎어져 있습니다. 마우스를 올리거나 손가락을 대면 귀퉁이가 들려 숫자가 보이고, 카드 위에 무늬와 숫자가 떠오릅니다</li><li><b>손짓</b> : 내 카드를 위로 밀면 <b>폴드</b>, 내 앞의 탁자를 두 번 두드리면 <b>체크</b>, 베팅 칸의 칩을 앞으로 밀면 <b>콜</b>입니다. 내 앞의 칩 더미를 누르면 그 칩이 베팅 칸으로 가고(베팅 칸을 누르면 돌아옴), 콜할 만큼보다 많이 올리고 밀면 <b>레이즈</b>입니다. 최소 레이즈는 바로 앞에서 올린 만큼이고, 가진 칩을 모두 거는 <b>올인</b>은 언제든 됩니다 (노 리밋)</li><li><b>쇼다운</b> : 리버까지 남은 사람은 카드를 펼쳐 가장 좋은 사람이 팟을 가져갑니다. 같으면 나눕니다. 올인한 사람은 자기가 건 만큼만 겨루고, 그보다 더 걸린 칩(사이드 팟)은 나머지 사람끼리 겨룹니다</li><li><b>족보</b> (높은 것부터) : 스트레이트 플러시 · 포카드 · 풀 하우스 · 플러시 · 스트레이트 · 트리플 · 투 페어 · 원 페어 · 하이 카드. A는 가장 높고, A-2-3-4-5 스트레이트에서만 1로 씁니다</li><li><b>시간 초과</b> : 체크할 수 있으면 체크, 아니면 폴드입니다</li></ol>';
 G.modeDesc=['정한 판 수까지','정한 판 수까지'];
 G.noFast=true;
 G.oneBotLv=true;   // 봇은 쉬움 하나뿐: 대기실에서 난이도를 고르지 않음
@@ -531,7 +531,7 @@ const isWin=(B,i)=>!!(B.ph==='show'&&B.rs&&B.rs.won[i]>0&&B.rs.pots.some(p=>!p.r
 /* 정산 전 칩: 팟 칩이 도착하기 전에는 받은 만큼 빼고 보임 (결과가 연출을 앞지르지 않게) */
 const shownCh=(B,i)=>B.ph==='show'&&B.rs&&!V3.landed.has(i)&&T.ok&&ON?B.ch[i]-(B.rs.won[i]||0):B.ch[i];
 G.me=i=>{
-  $('#numpick').hidden=true;placeSide();
+  $('#numpick').hidden=true;
   const B=BV(),p=V.ps[i];if(!B||!p)return;
   const ch=shownCh(B,i);
   if(p.f){if(!p.sr)$('#meSub').innerHTML=V.st==='over'?`<b>${+p.f}위</b> · 칩 <b>${B.ch[i]}</b>개`:'칩이 떨어졌습니다. 남은 판을 지켜봅니다.';return}
@@ -609,7 +609,7 @@ function cardPose(seat,k,show){
 }
 
 /* ---------- 3D ---------- */
-const V3={toBet:0,toBank:0,cards:new Map(),flights:[],piles:new Map(),pot:null,potAmt:-1,potPend:0,bank:null,rings:new Map(),ringsKey:'',arc:null,arcQ:-1,arcSeat:-2,root:null,deck:null,btn:null,btnAt:null,hk:-1,awarded:-1,landed:new Set(),felt:null,mats:null,bounceAt:-1e9,lift:new Set()};
+const V3={toBet:0,toBank:0,cards:new Map(),flights:[],piles:new Map(),pot:null,potAmt:-1,potPend:0,bank:null,rings:new Map(),ringsKey:'',arc:null,arcQ:-1,arcSeat:-2,root:null,deck:null,btn:null,btnAt:null,hk:-1,awarded:-1,landed:new Set(),felt:null,mats:null,bounceAt:-1e9,lift:new Set(),knocks:[]};
 function chipMats(){
   if(V3.mats)return V3.mats;
   const geo=new THREE.CylinderGeometry(CHIP_R,CHIP_R,CHIP_H,28);
@@ -721,7 +721,7 @@ function frameFlights(now){
 const _qa=window.THREE?new THREE.Quaternion():null,_qb=window.THREE?new THREE.Quaternion():null,_ax=window.THREE?{x:new THREE.Vector3(1,0,0),y:new THREE.Vector3(0,1,0)}:null;
 const wrapA=a=>{while(a>Math.PI)a-=2*Math.PI;while(a<=-Math.PI)a+=2*Math.PI;return a};
 function cardSet(e,to,ms,lift){
-  const T0=e.to;if(T0&&['x','y','z','ry','s','f','tl'].every(k=>Math.abs(T0[k]-to[k])<1e-4)&&!to.die===!T0.die&&!to.hand===!T0.hand)return;
+  const T0=e.to;if(T0&&['x','y','z','ry','s','f','tl'].every(k=>Math.abs(T0[k]-to[k])<1e-4)&&!to.die===!T0.die)return;
   e.to=to;if(!e.launched)return;
   e.tw={from:{...e.cur},to,t0:clock(),ms,lift};
 }
@@ -739,7 +739,6 @@ function cardStep(e,now){
   const ph=(1-c.f)*Math.PI,guard=Math.abs(Math.sin(ph))*CW*c.s*.5+Math.abs(Math.sin(c.tl))*CH*c.s*.5+.02;
   c.y=Math.max(A.y+(Bt.y-A.y)*q+Math.sin(k*Math.PI)*w.lift,guard);
   cardApply(e);
-  if(k>=1&&Bt.hand&&!e.inHand){e.inHand=true;e.g.visible=false;syncHand()}   // 손패에 닿으면 3D 카드는 숨기고 2D 손패에
   if(k>=1){e.tw=null;if(Bt.die){killCard(e.g);if(Bt.keep)e.gone=true;else V3.cards.delete(e.key)}}   // keep: 폴드한 카드는 사라져도 목록에 남겨 다시 만들지 않음
 }
 /* ---------- 펠트 무늬·덱·딜러 버튼 ---------- */
@@ -821,6 +820,7 @@ function clear3D(){
   if(V3.arc){killG(V3.arc);V3.arc=null}
   killG(V3.root);V3.root=null;V3.deck=V3.btn=null;V3.btnAt=null;
   V3.hk=-1;V3.awarded=-1;V3.landed.clear();V3.toBet=V3.toBank=0;spKey='';IN.on=false;
+  for(const k of V3.knocks)killG(k.m);V3.knocks=[];GS.id=null;GS.kind='';GS.back=null;PEEK.on=PEEK.hover=false;PEEK.from=PEEK.to=0;
   useFelt(false);
 }
 /* 쇼다운: 이긴 사람의 5장을 살짝 들어 올리고 금색 테두리 (카드 뒤에 조금 큰 판) */
@@ -855,7 +855,7 @@ function sync3(v){
     if(e.gone&&!want.has(key)){V3.cards.delete(key);continue}
     if(want.has(key)||e.dying)continue;
     if(!e.launched){killCard(e.g);V3.cards.delete(key);continue}
-    e.dying=true;if(e.inHand){e.inHand=false;e.g.visible=true}   // 내 카드는 손패 자리에서 다시 나타나 덱으로
+    e.dying=true;
     cardSet(e,{x:dk.x,y:.3,z:dk.z,ry:0,s:.4,f:0,tl:0,die:true},460,.3);
   }
   // 처음 나누기: 스몰 블라인드부터 한 장씩 두 바퀴 (엔진과 같은 순서). 공용 카드는 모인 칩이 팟에 닿은 뒤 한 장씩
@@ -864,18 +864,18 @@ function sync3(v){
   for(const [key,c] of want){
     let e=V3.cards.get(key);
     if(e&&e.gone)continue;
-    if(!e&&c.seat>=0&&c.seat!==me&&B.st[c.seat]===1)continue;   // 이미 폴드한 사람의 카드는 새로 만들지 않음 (늦게 들어온 사람)
+    if(!e&&c.seat>=0&&B.st[c.seat]===1)continue;   // 이미 폴드한 사람의 카드는 새로 만들지 않음 (늦게 들어온 사람)
     if(!e){
       const g=makeCard(new THREE.Vector3(dk.x,.4,dk.z),Math.PI/2,0,.4);g.userData.man=true;g.visible=false;
       let at=now;
       if(c.seat>=0&&dealing){const pos=Math.max(0,B.dor.indexOf(c.seat));at=start+250+(c.k*nOrd+pos)*DEAL_PER}
       else if(c.seat<0){const pv=PV&&PV.pk&&PV.pk.hn===B.hn?PV.pk:null;at=now+(pv&&pv.bet.some(b=>b>0)?COLLECT_MS:0)+(B.op&&pv&&!pv.op?OPEN_MS:0)+bdNew*170;bdNew++}   // 모인 칩이 팟에 닿고, 카드를 펼친 뒤
       e={key,g,id:null,at,launched:false,cur:{x:dk.x,y:.42,z:dk.z,ry:0,s:.4,f:0,tl:0},to:null,tw:null};V3.cards.set(key,e);
+      if(c.seat===me)bendable(e);
     }
     if(c.id>=0&&e.id!==c.id){e.g.children[0].material=faceMat(c.id);e.id=c.id}
-    const P=cardPose(c.seat,c.k,c.id>=0&&c.seat!==me),folded=c.seat>=0&&B.st[c.seat]===1,up=c.id>=0&&!folded,L=c.id>=0&&lift.has(c.id)?.09:0;
-    if(c.seat===me&&c.seat>=0){cardSet(e,{...handPose(c.k),f:c.id>=0?1:0},300,.2);continue}   // 내 카드: 화면 아래 손패로 날아가 들어감
-    if(folded&&c.seat!==me){cardSet(e,{x:dk.x+(c.k-.5)*.1,y:.05,z:dk.z,ry:.3*(c.k?1:-1),s:.4,f:0,tl:0,die:true,keep:true},420,.25);continue}   // 폴드한 카드는 덱 쪽으로 모음
+    const mine=c.seat===me&&c.seat>=0,P=cardPose(c.seat,c.k,c.id>=0&&!mine),folded=c.seat>=0&&B.st[c.seat]===1,up=c.id>=0&&!folded&&(!mine||myShown(B)),L=c.id>=0&&lift.has(c.id)?.09:0;   // 내 카드는 펼칠 때까지 엎어 둠
+    if(folded){cardSet(e,{x:dk.x+(c.k-.5)*.1,y:.05,z:dk.z,ry:.3*(c.k?1:-1),s:.4,f:0,tl:0,die:true,keep:true},420,.25);continue}   // 폴드한 카드는 덱 쪽으로 모음
     glow(e,!!L&&up);
     const flip=e.to&&e.to.f!==(up?1:0);
     cardSet(e,{x:P.x,y:P.y+L+(folded?-.01:0),z:P.z-(L?.06:0),ry:P.ry,s:P.s*(folded?.88:1),f:up?1:0,tl:0},flip?420:300,flip?.32:.14);
@@ -893,36 +893,149 @@ function frame3(now){
     if(!e.launched&&now>=e.at&&e.to){e.launched=true;e.g.visible=true;e.tw={from:{...e.cur},to:e.to,t0:now,ms:e.to.f?460:400,lift:.38};sfx('flick')}
     if(e.launched)cardStep(e,now);
   }
-  frameFlights(now);turnTimer(now);introFrame(now);syncHand();
+  frameFlights(now);turnTimer(now);introFrame(now);myCardsFrame(now);knockFrame(now);
+  {const me=myIdx(),P=V3.piles.get(me);if(P&&P.g&&!P.flying)P.g.position.z=betPos(me).z+gestDz(now,'bet')}   // 앞으로 미는 베팅 칩
   if(V3.bank){const a=now-V3.bounceAt;V3.bank.position.y=a>=0&&a<520?Math.abs(Math.sin(a/520*Math.PI*2))*.09*(1-a/520):0}
   if(ON&&BV()&&BV().ph==='show'&&V3.awarded!==BV().hn&&now>=V3.showAt)syncChips();
 }
-/* ---------- 내 카드: 2D 손패 (다른 카드 게임처럼 화면 아래 가운데) ----------
-   3D 카드는 덱에서 화면 아래(손패 자리 앞)로 날아가 닿으면 숨고 2D 손패에 나타남. 새 판이면 그 자리에서 다시 나타나 덱으로 */
-let elHand=null;
-const handK=()=>{const st=$('#stage'),W=st.clientWidth,Hs=st.clientHeight||W;return Math.max(Hs<600?.8:1,Math.min(1.8,Math.min(Hs/677,W/460)))};   // 공통 손패와 같은 크기
-const HAND_W=104,HAND_H=112;   // 손패가 차지하는 폭·높이(크기 1일 때, 카드 60×88 두 장 + 아래 여백). 카메라는 이만큼 화면 아래를 비워 둠
-const handPose=k=>({x:(k-.5)*.4,y:.5,z:BANK_Z+.75,ry:0,s:.6,tl:0,hand:true});
-const handOn=()=>{const B=BV(),me=myIdx();return !!(B&&T.ok&&gameOn()&&me>=0&&!V.ps[me].f)};
-function syncHand(){
-  if(!elHand)return;
-  const B=BV(),me=myIdx(),on=handOn()&&B.hn>0,ids=[];
-  if(on)(B.hc[me]||[]).forEach((id,k)=>{const e=V3.cards.get(B.hn+':'+me+':'+k);if(id>=0&&e&&e.inHand)ids.push(id)});
-  const fold=on&&B.st[me]===1,lift=on?liftSet(B):new Set(),key=ids.map(id=>id+(lift.has(id)?'w':'')).join(',')+'|'+fold;
-  if(elHand.dataset.k!==key){elHand.innerHTML=ids.map(id=>cardEl(id).replace('class="card pkc"','class="card pkc'+(lift.has(id)?' win':'')+'"')).join('');elHand.dataset.k=key;elHand.classList.toggle('fold',fold)}
-  elHand.hidden=!ids.length;elHand.style.setProperty('--k',handK());
+/* ---------- 내 카드: 탁자 위에 엎어 둠 ----------
+   마우스를 올리거나 손가락을 대면 가까운 귀퉁이만 휘어 올라가 숫자가 보이고, 카드 위 공중에 무늬와 숫자가 뜸.
+   휘기: 카드 판을 잘게 나눠 앞면 오른쪽 아래 귀퉁이(엎으면 내 쪽 왼쪽 귀퉁이)에서 PEEK_L 안쪽을 둥글게 말아 올림 */
+const PEEK_L=.42,PEEK_A=2.1,PEEK_MS=200,PU={x:.31/Math.hypot(.31,.52),y:-.52/Math.hypot(.31,.52)},PEEK_D=PU.x*.31-PU.y*.45;
+function bendable(e){
+  const ch=e.g.children;
+  for(let j=0;j<3;j++){const o=ch[j].geometry.parameters,geo=new THREE.PlaneGeometry(o.width,o.height,8,12);geo.userData.base=Float32Array.from(geo.attributes.position.array);ch[j].geometry=geo;ch[j].frustumCulled=false}
+  e.bend=0;
 }
-/* 손패 옆(넓으면)이나 위(좁으면)에 내 정보 칸·버튼: 공통 layoutFan과 같은 규칙 (공통 손패는 비어 있어 구석으로 보내므로 여기서 고침) */
-function placeSide(){
-  const st=$('#stage');if(!handOn())return;
-  const W=st.clientWidth,Hs=st.clientHeight,k=handK(),hw=HAND_W*k,hh=HAND_H*k;
-  const pc=W>=900&&Hs>=600&&!(window.matchMedia&&matchMedia('(pointer:coarse)').matches),aS=pc?Math.max(1,Math.min(1.3,k*.8)):1;
-  const aW=($('#actions').offsetWidth||0)*aS,mW=$('#me').offsetWidth||0,side=Math.max(mW,aW)+24,wide=W-hw>=2*side+16;
-  let aR=14,mL=12;if(pc&&wide){aR=Math.max(14,Math.round(W/2-hw/2-28-aW));mL=Math.max(12,Math.round(W/2-hw/2-28-mW))}
-  st.style.setProperty('--actR',aR+'px');st.style.setProperty('--plateL',mL+'px');st.style.setProperty('--actS',aS);
-  st.style.setProperty('--plateB',(wide?14:Math.round(hh)+60)+'px');st.style.setProperty('--actB',(wide?14:Math.round(hh))+'px');
+function bendCard(e,p){
+  if(e.bend==null||Math.abs(e.bend-p)<1e-3)return;e.bend=p;
+  const th=PEEK_A*p,R=th>1e-3?PEEK_L/th:0;
+  e.g.children.forEach((m,j)=>{
+    const geo=m.geometry,b=geo.userData.base;if(!b)return;
+    const a=geo.attributes.position.array,sx=j===1?-1:1;   // 뒷면은 y축으로 돌려 붙였으므로 x·z를 뒤집어 계산 (카드 그룹 좌표에서 휨)
+    for(let v=0;v<a.length;v+=3){
+      const x=b[v]*sx,y=b[v+1],t=PU.x*x+PU.y*y-(PEEK_D-PEEK_L);
+      let nx=x,ny=y,nz=0;
+      if(R&&t>0){const an=t/R,d=R*Math.sin(an)-t;nx+=PU.x*d;ny+=PU.y*d;nz=-R*(1-Math.cos(an))}   // 그룹 -z = 엎은 카드의 위쪽
+      a[v]=nx*sx;a[v+1]=ny;a[v+2]=nz*sx;
+    }
+    geo.attributes.position.needsUpdate=true;
+  });
+}
+const myShown=B=>{const me=myIdx();return me>=0&&(B.ph==='show'&&B.rs?B.rs.show.includes(me):!!B.op&&B.st[me]!==1)};
+const myCards=()=>{const B=BV(),me=myIdx();if(!B||me<0||!B.hn)return [];return [0,1].map(k=>V3.cards.get(B.hn+':'+me+':'+k)).filter(e=>e&&e.launched&&!e.dying&&!e.gone)};
+/* 엿보기 정도: 시작 시각과 지금 시각으로 (연출 길이는 시간으로) */
+const PEEK={on:false,from:0,to:0,t0:0,hover:false};
+const peekVal=now=>PEEK.from+(PEEK.to-PEEK.from)*smooth((now-PEEK.t0)/PEEK_MS);
+function canPeek(){const B=BV(),me=myIdx();return !!(B&&me>=0&&B.st[me]!==1&&!myShown(B)&&myCards().some(e=>!e.tw))}
+let elPeek=null;
+function myCardsFrame(now){
+  const want=(PEEK.hover||GS.kind==='card')&&canPeek();
+  if(want!==PEEK.on){PEEK.from=peekVal(now);PEEK.to=want?1:0;PEEK.t0=now;PEEK.on=want;if(want)tone(1800,.03,{type:'triangle',vol:.03})}
+  const p=peekVal(now),cs=myCards(),dz=gestDz(now,'card');
+  for(const e of cs){if(e.tw){bendCard(e,0);continue}bendCard(e,p);cardApply(e);e.g.position.z+=dz}
+  // 공중에 뜬 무늬·숫자
+  if(!elPeek)return;
+  const B=BV(),me=myIdx(),ids=B&&me>=0?(B.hc[me]||[]).filter(x=>x>=0):[],on=p>.02&&ids.length&&cs.length;
+  if(!on){if(!elPeek.hidden)elPeek.hidden=true;return}
+  const key=ids.join(',');if(elPeek.dataset.k!==key){elPeek.innerHTML=ids.map(id=>`<b style="--rc:${SUIT_COL[suitOf(id)]}">${RK[rkOf(id)]}<i>${SUITS[suitOf(id)]}</i></b>`).join('');elPeek.dataset.k=key}
+  const v=new THREE.Vector3(MY.x,.6+.25*p,MY.z-.25+dz).project(CAM()),st=$('#stage');
+  elPeek.hidden=false;elPeek.style.left=((v.x+1)/2*st.clientWidth)+'px';elPeek.style.top=((1-v.y)/2*st.clientHeight)+'px';
+  elPeek.style.opacity=p.toFixed(3);elPeek.style.setProperty('--ps',(.8+.2*p).toFixed(3));
 }
 
+/* ---------- 손짓 ----------
+   내 카드를 위(탁자 가운데 쪽)로 밀면 폴드, 내 앞 탁자를 두 번 두드리면 체크, 베팅 칸의 칩을 앞으로 밀면 콜·레이즈
+   (올린 칩이 콜할 만큼보다 많으면 레이즈, 아니면 콜). 칩 더미를 누르면 칩 하나가 베팅 칸으로, 베팅 칸을 누르면 돌아옴 */
+const GS={id:null,kind:'',d:0,sx:0,sy:0,hz:0,dz:0,moved:false,back:null,tapAt:-1e9,tx:0,ty:0};
+const FOLD_DZ=.5,PUSH_DZ=.4,TAP_PX=10,DBL_MS=450;
+function tablePt(e){
+  if(!ON||!T.ok||!BV())return null;
+  const r=$('#cv').getBoundingClientRect();if(!r.width)return null;
+  _ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},CAM());
+  return _ray.ray.intersectPlane(_pl,_hit)?_hit:null;
+}
+/* 누른 자리: card(내 카드) | bet(내 베팅 칸) | bank(내 칩 더미, d = 칩 종류) | table(내 앞 펠트) */
+function zoneAt(e){
+  const me=myIdx();if(me<0||!V.ps[me]||V.ps[me].f)return null;
+  const h=tablePt(e);if(!h)return null;
+  const n=V3.bank?V3.bank.userData.n:[0,0,0,0];
+  for(let k=0;k<4;k++)if(n[k]&&Math.hypot(h.x-BANK_X[k],h.z-(BANK_Z+.1))<.27)return {kind:'bank',d:DEN[k],h};
+  if(Math.hypot(h.x-MYBET.x,h.z-MYBET.z)<.34)return {kind:'bet',h};
+  const hw=.62*S_ME*1.08/2+.62*S_ME/2+.04,hh=.9*S_ME/2+.04;
+  if(myCards().length&&Math.abs(h.x-MY.x)<hw&&Math.abs(h.z-MY.z)<hh)return {kind:'card',h};
+  if(h.z>1.05&&Math.hypot(h.x,h.z)<3.05)return {kind:'table',h};
+  return null;
+}
+/* 끌던 물건의 앞뒤 어긋남: 끄는 중이면 그대로, 놓으면 시간에 맞춰 제자리로 */
+function gestDz(now,kind){
+  if(GS.kind===kind)return GS.dz;
+  const b=GS.back;if(!b||b.kind!==kind)return 0;
+  const k=smooth((now-b.t0)/180);if(k>=1){GS.back=null;return 0}
+  return b.dz*(1-k);
+}
+function gestDown(e){
+  if(!ON||e.button>0)return;
+  const z=zoneAt(e);if(!z)return;
+  Object.assign(GS,{id:e.pointerId,kind:z.kind,d:z.d||0,sx:e.clientX,sy:e.clientY,hz:z.h.z,dz:0,moved:false,back:null});
+  if(z.kind==='card'&&e.pointerType!=='mouse')PEEK.hover=false;
+  try{$('#cv').setPointerCapture(e.pointerId)}catch(_){}
+}
+function gestMove(e){
+  if(!ON)return;
+  if(GS.id!==e.pointerId){   // 마우스를 올려 둠: 내 카드면 엿보기, 누를 수 있는 곳이면 손가락 모양
+    if(e.pointerType!=='mouse')return;
+    const z=zoneAt(e),k=z&&z.kind;PEEK.hover=k==='card';
+    const c=k==='card'?'grab':k==='bank'&&canStage()?'pointer':k==='bet'&&myMode()==='act'?'grab':'';
+    const cv=$('#cv');if(cv.style.cursor!==c)cv.style.cursor=c;return;
+  }
+  if(Math.hypot(e.clientX-GS.sx,e.clientY-GS.sy)>TAP_PX)GS.moved=true;
+  if(GS.moved&&(GS.kind==='card'||GS.kind==='bet')){const h=tablePt(e);if(h)GS.dz=Math.max(-1.1,Math.min(0,h.z-GS.hz))}
+}
+function gestUp(e,cancel){
+  if(GS.id!==e.pointerId)return;
+  const kind=GS.kind,dz=GS.dz,tap=!GS.moved&&!cancel;
+  GS.id=null;GS.kind='';GS.back=dz?{kind,dz,t0:clock()}:null;
+  if(cancel)return;
+  if(kind==='card'){if(dz<-FOLD_DZ)gestFold();return}
+  if(kind==='bet'){if(dz<-PUSH_DZ)gestPush();else if(tap)takeChip();return}
+  if(kind==='bank'){if(tap)addChip(GS.d);return}
+  if(kind==='table'&&tap){
+    const t=clock(),dbl=t-GS.tapAt<DBL_MS&&Math.hypot(e.clientX-GS.tx,e.clientY-GS.ty)<60;
+    GS.tapAt=dbl?-1e9:t;GS.tx=e.clientX;GS.ty=e.clientY;
+    tone(dbl?520:440,.04,{type:'triangle',vol:.06});
+    if(dbl)gestCheck(tablePt(e));
+  }
+}
+function gestFold(){
+  if(myMode()!=='act'||!myReady()||busy()){sfx('no');return}
+  const b=GS.back,cs=myCards();GS.back=null;
+  if(b)for(const e of cs)e.cur.z+=b.dz;   // 민 자리에서 덱으로 감
+  send({t:'fold'});
+  setTimeout(()=>{for(const e of cs)if(!e.tw&&!e.dying&&!e.gone&&e.to)e.tw={from:{...e.cur},to:e.to,t0:clock(),ms:220,lift:0}},1200);   // 폴드가 받아들여지지 않았으면 제자리로
+}
+function gestCheck(h){
+  const R=myRange();
+  if(myMode()!=='act'||!myReady()||busy()||!R||R.need>0){sfx('no');return}
+  if(h)knock(h.x,h.z);
+  send({t:'call'});
+}
+/* 베팅 칸의 칩을 앞으로 밂: 올린 칩이 콜할 만큼보다 많으면 레이즈, 아니면(올린 칩이 없어도) 콜 */
+function gestPush(){
+  const R=myRange();
+  if(myMode()!=='act'||!myReady()||busy()||!R){sfx('no');return}
+  if(betAmt()>R.need){const r=raiseTarget();if(!r||!r.R.open||r.bad){sfx('no');return}sfxChip(3);send(r.all?{t:'raise',all:1}:{t:'raise',a:r.to});return}
+  if(R.need<=0){sfx('no');return}   // 걸 칩이 없으면 체크는 두드리기로
+  sfxChip(2);send({t:'call'});
+}
+/* 두드린 자리에 퍼지는 고리 */
+function knock(x,z){
+  const m=ringMesh(.12,.16,0xfffaf0,.8);m.position.set(x,.025,z);T.scene.add(m);
+  const t0=clock();V3.knocks.push({m,t0});
+}
+function knockFrame(now){
+  for(const k of [...V3.knocks]){const a=(now-k.t0)/420;if(a>=1){killG(k.m);V3.knocks.splice(V3.knocks.indexOf(k),1);continue}const s=1+a*2.2;k.m.scale.set(s,s,1);k.m.material.opacity=.8*(1-a)}
+}
 /* ---------- 카메라: 가로 화면은 공통 카메라 그대로, 세로 화면은 더 위에서(PK_EL) 내려다봄 (위아래 빈 곳이 줄어듦) ----------
    크기·각도가 바뀌거나 게임이 시작되면 그때 보이던 카메라에서 미끄러지듯 옮김 */
 let PK_EL=60,PK_FL=50,PK_D=6.5,PK_Y=0;   // 세로 화면 카메라 각도(도, 공통 37)·초점 거리(mm, 클수록 망원)·거리·위아래(카메라 위쪽으로 옮김, +면 탁자가 화면 아래로). 테스트룸(lab-poker.html)에서 바꿔 봄
@@ -931,7 +1044,7 @@ const PC={cam:null,tgt:null,on:false,key:'',t0:0,dur:0,fp:null,fq:null,fm:null};
 function camTarget(w,h){
   const c=PC.tgt||(PC.tgt=new THREE.PerspectiveCamera(42,1,.1,100));
   const v=new THREE.Vector3(),tn=(x,y,z)=>{v.set(x,y,z).applyMatrix4(c.matrixWorldInverse);return [v.x/-v.z,v.y/-v.z]};
-  const r=myIdx()>=0?Math.min(.35,HAND_H*handK()/h):0;   // 화면 아래 손패 몫
+  const r=myIdx()>=0?Math.min(.2,(w>=h?16:60)/h):0;   // 화면 아래 내 정보 칸 몫
   let hx=0,top=-9,bot=9;
   if(w>=h){   // 가로: 공통 카메라에서 위쪽은 그대로, 내 칩 더미가 손패 위로 오게 필요한 만큼만 멀리
     c.position.copy(T.cam.position);c.quaternion.copy(T.cam.quaternion);c.updateMatrixWorld();
@@ -1071,7 +1184,7 @@ G.leave=()=>{
   ON=false;if(typeof T!=='undefined'&&T.ok)clear3D();
   const st=$('#stage');if(st)st.classList.remove('pk');
   const pass=$('#btnPass'),gb=$('#btnGura');if(pass){setTxt(pass,'패스');pass.hidden=false}if(gb){setTxt(gb,'구라!');gb.hidden=true}
-  if(elHand){elHand.hidden=true;elHand.innerHTML='';elHand.dataset.k=''}
+  if(elPeek){elPeek.hidden=true;elPeek.innerHTML='';elPeek.dataset.k=''}
   if(elBet)elBet.hidden=true;if(el2d){el2d.hidden=true;el2d.innerHTML='';el2d.dataset.k=''}
   document.querySelectorAll('#labels .seat .pkt').forEach(x=>x.remove());document.querySelectorAll('#labels .seat.pk-fold').forEach(x=>x.classList.remove('pk-fold'));
   if(typeof T!=='undefined'&&T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
@@ -1079,16 +1192,6 @@ G.leave=()=>{
 };
 /* 칩 누르기: 내 칩 더미 → 베팅 칸, 베팅 칸 → 돌려받기 */
 const _ray=window.THREE?new THREE.Raycaster():null,_pl=window.THREE?new THREE.Plane(new THREE.Vector3(0,1,0),-.12):null,_hit=window.THREE?new THREE.Vector3():null;
-function chipAt(e){
-  if(!ON||!T.ok||!BV()||myIdx()<0||!V3.bank)return null;
-  const r=$('#cv').getBoundingClientRect();if(!r.width)return null;
-  _ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},CAM());
-  if(!_ray.ray.intersectPlane(_pl,_hit))return null;
-  const n=V3.bank.userData.n;
-  for(let k=0;k<4;k++)if(n[k]&&Math.hypot(_hit.x-BANK_X[k],_hit.z-(BANK_Z+.1))<.27)return {d:DEN[k]};
-  if(Math.hypot(_hit.x-MYBET.x,_hit.z-MYBET.z)<.38)return {bet:1};
-  return null;
-}
 G.init=()=>{
   const css=document.createElement('style');
   css.textContent=`
@@ -1101,7 +1204,6 @@ G.init=()=>{
 .stage.pk .seat.pk-fold{opacity:.62}
 .pk-me{font-weight:700}
 .myplate .me-sub em.w{font-style:normal;font-family:var(--f-num);font-weight:700;color:#2c7d47}
-@media (max-width:480px){.stage.pk .myplate{bottom:72px;max-width:calc(100% - 24px)}}
 #pkBet{position:absolute;left:50%;bottom:calc(var(--plateB,14px) + 62px);transform:translateX(-50%);z-index:8;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:18px;background:rgba(255,250,240,.94);border:1.5px solid var(--line-strong);box-shadow:0 4px 12px -4px rgba(59,42,31,.45)}
 #pkBet[hidden]{display:none}
 #pkBet .pk-amt{display:flex;align-items:center;gap:4px;min-width:84px;justify-content:center}
@@ -1114,12 +1216,14 @@ G.init=()=>{
 @media (max-width:480px){#pkBet{bottom:128px;gap:6px;padding:7px 8px}#pkBet .pk-chip{width:44px;height:44px;font-size:13px}#pkBet .pk-amt{min-width:72px}#pkBet .pk-amt b{font-size:22px;min-width:48px}}
 #pk2d{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);z-index:5;display:flex;flex-direction:column;gap:6px;width:min(560px,calc(100% - 20px));max-height:calc(100% - 210px);overflow:auto;pointer-events:none}
 #pk2d[hidden]{display:none}
-#pkHand{position:absolute;left:50%;bottom:0;display:flex;align-items:flex-end;z-index:6;pointer-events:none;transform:translateX(-50%) scale(var(--k,1));transform-origin:50% 100%;padding-bottom:14px}
-#pkHand[hidden]{display:none}
-#pkHand .card{transition:transform .2s,filter .2s,opacity .2s}#pkHand .card+.card{margin-left:-16px}
-#pkHand .card:first-child{transform:rotate(-5deg)}#pkHand .card:last-child:not(:first-child){transform:rotate(5deg)}
-#pkHand .card.win{outline:3px solid #e8b130;outline-offset:-1px;translate:0 -12px}
-#pkHand.fold .card{filter:grayscale(.75) brightness(.9);opacity:.6}
+#pkPeek{position:absolute;z-index:6;pointer-events:none;display:flex;gap:8px;transform:translate(-50%,-100%) scale(var(--ps,1));transform-origin:50% 100%}
+#pkPeek[hidden]{display:none}
+#pkPeek b{display:flex;align-items:baseline;gap:2px;padding:4px 10px 5px;border-radius:12px;background:rgba(255,252,245,.92);border:1.5px solid #e3d4bb;box-shadow:0 8px 16px -8px rgba(59,42,31,.55);color:var(--rc);font-family:var(--f-num);font-size:28px;font-weight:700;line-height:1;animation:pkFloat 2.4s ease-in-out infinite}
+#pkPeek b+b{animation-delay:-1.2s}
+#pkPeek b i{font-style:normal;font-family:sans-serif;font-size:24px}
+@keyframes pkFloat{0%,100%{translate:0 0}50%{translate:0 -5px}}
+.stage.pk #actions{display:none}
+.stage.pk #cv{touch-action:none}
 #pk2d .r2{display:grid;grid-template-columns:96px auto 1fr;align-items:center;gap:8px;padding:5px 10px;border-radius:12px;background:#fffaf0;border:1px solid var(--line-strong)}
 #pk2d .r2.bd{background:#2f7550;color:#f4ead9;min-height:60px}
 #pk2d .r2.me{box-shadow:0 0 0 2px var(--mustard)}#pk2d .r2.on{border-color:var(--mustard-edge)}#pk2d .r2.fold{opacity:.55}
@@ -1133,7 +1237,7 @@ G.init=()=>{
 #pk2d .pk-d{display:inline-block;font-size:10px;font-weight:700;line-height:1;padding:3px 5px 2px;border-radius:99px;margin-right:4px;background:#fffaf0;color:#3b2a1f;border:1.5px solid #3b2a1f}
 `;
   document.head.appendChild(css);
-  elHand=document.createElement('div');elHand.id='pkHand';elHand.hidden=true;elHand.setAttribute('aria-label','내 카드');$('#stage').insertBefore(elHand,$('#fx'));
+  elPeek=document.createElement('div');elPeek.id='pkPeek';elPeek.hidden=true;elPeek.setAttribute('aria-label','내 카드');$('#stage').insertBefore(elPeek,$('#fx'));
   el2d=document.createElement('div');el2d.id='pk2d';el2d.hidden=true;el2d.setAttribute('aria-live','polite');$('#stage').insertBefore(el2d,$('#fx'));
   elBet=document.createElement('div');elBet.id='pkBet';elBet.hidden=true;elBet.setAttribute('role','group');elBet.setAttribute('aria-label','레이즈');
   elBet.innerHTML=`<button type="button" class="pk-chip" data-add="10" aria-label="10개 더">10</button><button type="button" class="pk-chip c50" data-add="50" aria-label="50개 더">50</button><button type="button" class="pk-chip c100" data-add="100" aria-label="100개 더">100</button><div class="pk-amt"><b aria-live="polite">0</b><button type="button" class="pk-clr" data-clr aria-label="모두 빼기" title="모두 빼기">✕</button></div><button type="button" class="pk-chip all" data-all aria-label="가진 칩 모두">올인</button>`;
@@ -1146,8 +1250,9 @@ G.init=()=>{
   });
   $('#btnGura').addEventListener('click',()=>{if(ON)doMove('raise')});
   const cv=$('#cv');
-  cv.addEventListener('click',e=>{if(!ON)return;const h=chipAt(e);if(!h)return;if(!canStage()){if(myMode()==='act')sfx('no');return}if(h.d)addChip(h.d);else takeChip()});
-  cv.addEventListener('pointermove',e=>{if(!ON)return;const h=e.pointerType==='mouse'&&canStage()?chipAt(e):null;const c=h?'pointer':'';if(cv.style.cursor!==c)cv.style.cursor=c});
+  cv.addEventListener('pointerdown',gestDown);cv.addEventListener('pointermove',gestMove);
+  cv.addEventListener('pointerup',e=>gestUp(e,false));cv.addEventListener('pointercancel',e=>gestUp(e,true));
+  cv.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')PEEK.hover=false});
 };
 
 (window.GAMES=window.GAMES||{}).poker=G;
