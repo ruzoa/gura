@@ -581,9 +581,9 @@ function fitRx(ths,cam){
 }
 function layout(){
   const me=myIdx(),st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight,c=T.cam?T.cam.position:{x:0,y:0,z:0};
-  const key=V.ps.length+'|'+me+'|'+W+'x'+Hh+'|'+PK_EL+'|'+PK_FL+'|'+PK_D+'|'+PK_Y+'|'+[c.x,c.y,c.z].map(x=>x.toFixed(1)).join(',');
+  const key=V.ps.length+'|'+me+'|'+W+'x'+Hh+'|'+[c.x,c.y,c.z].map(x=>x.toFixed(1)).join(',');
   if(key===spKey)return SP;spKey=key;NAR=W<Hh;
-  const list=seatList(),ths=thetas(list);RX=fitRx(ths,T.ok&&T.cam?camTarget(W,Hh):null);
+  const list=seatList(),ths=thetas(list);RX=fitRx(ths,T.ok&&T.cam?camTarget():null);
   SP=new Map();
   for(const i of list){
     const th=ths.get(i),p=arcPos(th,RX);
@@ -1036,36 +1036,19 @@ function knock(x,z){
 function knockFrame(now){
   for(const k of [...V3.knocks]){const a=(now-k.t0)/420;if(a>=1){killG(k.m);V3.knocks.splice(V3.knocks.indexOf(k),1);continue}const s=1+a*2.2;k.m.scale.set(s,s,1);k.m.material.opacity=.8*(1-a)}
 }
-/* ---------- 카메라: 가로 화면은 공통 카메라 그대로, 세로 화면은 더 위에서(PK_EL) 내려다봄 (위아래 빈 곳이 줄어듦) ----------
-   크기·각도가 바뀌거나 게임이 시작되면 그때 보이던 카메라에서 미끄러지듯 옮김 */
-let PK_EL=60,PK_FL=50,PK_D=6.5,PK_Y=0;   // 세로 화면 카메라 각도(도, 공통 37)·초점 거리(mm, 클수록 망원)·거리·위아래(카메라 위쪽으로 옮김, +면 탁자가 화면 아래로). 테스트룸(lab-poker.html)에서 바꿔 봄
-G.labCam=o=>{if(o.el!=null)PK_EL=+o.el;if(o.fl!=null)PK_FL=+o.fl;if(o.d!=null)PK_D=+o.d;if(o.y!=null)PK_Y=+o.y;spKey=''};
+/* ---------- 카메라: 공통 카메라(T.cam)와 똑같은 위치·각도·화각 (가로·세로 화면 모두) ----------
+   크기가 바뀌거나 게임이 시작되면 그때 보이던 카메라에서 미끄러지듯 옮김. 좁은 화면은 공통 카메라처럼 양옆이 잘리고, 자리 폭은 fitRx가 보이는 범위에 맞춤 */
 const PC={cam:null,tgt:null,on:false,key:'',t0:0,dur:0,fp:null,fq:null,fm:null};
-function camTarget(w,h){
+function camTarget(){
   const c=PC.tgt||(PC.tgt=new THREE.PerspectiveCamera(42,1,.1,100));
-  const v=new THREE.Vector3(),tn=(x,y,z)=>{v.set(x,y,z).applyMatrix4(c.matrixWorldInverse);return [v.x/-v.z,v.y/-v.z]};
-  const r=myIdx()>=0?Math.min(.2,(w>=h?16:60)/h):0;   // 화면 아래 내 정보 칸 몫
-  let hx=0,top=-9,bot=9;
-  if(w>=h){   // 가로: 공통 카메라에서 위쪽은 그대로, 내 칩 더미가 손패 위로 오게 필요한 만큼만 멀리
-    c.position.copy(T.cam.position);c.quaternion.copy(T.cam.quaternion);c.updateMatrixWorld();
-    const m=T.cam.projectionMatrix.elements;hx=1/m[0];top=(m[9]+1)/m[5];bot=(m[9]-1)/m[5];
-    const need=top-tn(0,0,BANK_Z+.35)[1];let S=top-bot;
-    if(need>S*(1-r)){S=need/(1-r);hx*=S/(top-bot)}
-    bot=top-S;
-  }else{   // 세로: 더 위에서(PK_EL) 거리 PK_D, 초점 거리 PK_FL(35mm 환산: 화면 폭 = 36mm, 클수록 망원). 탁자 가운데가 손패 위 칸의 가운데에 오게
-    const EL=PK_EL*Math.PI/180,D=PK_D,tz=.2;
-    c.position.set(0,D*Math.sin(EL),tz+D*Math.cos(EL));c.lookAt(0,0,tz);
-    if(PK_Y)c.position.addScaledVector(v.set(0,1,0).applyQuaternion(c.quaternion),PK_Y);   // 보는 방향은 그대로 화면 위아래로 옮김
-    c.updateMatrixWorld();
-    hx=18/PK_FL;const S=2*hx*h/w;top=S*(1-r)/2;bot=top-S;
-  }
-  const n=c.near,f=c.far;c.projectionMatrix.makePerspective(-hx*n,hx*n,top*n,bot*n,n,f);c.projectionMatrixInverse.copy(c.projectionMatrix).invert();
+  c.position.copy(T.cam.position);c.quaternion.copy(T.cam.quaternion);c.updateMatrixWorld();
+  c.projectionMatrix.copy(T.cam.projectionMatrix);c.projectionMatrixInverse.copy(T.cam.projectionMatrixInverse);
   return c;
 }
 function pkCamFrame(now){
-  const st=$('#stage'),w=st.clientWidth,h=st.clientHeight,tg=camTarget(w,h);
+  const st=$('#stage'),w=st.clientWidth,h=st.clientHeight,tg=camTarget();
   if(!PC.cam){PC.cam=new THREE.PerspectiveCamera(42,1,.1,100);PC.fp=new THREE.Vector3();PC.fq=new THREE.Quaternion();PC.fm=new THREE.Matrix4()}
-  const c=PC.cam,key=w+'x'+h+'|'+PK_EL+'|'+PK_FL+'|'+PK_D+'|'+PK_Y+'|'+(myIdx()>=0);
+  const c=PC.cam,key=w+'x'+h+'|'+(myIdx()>=0);
   if(!PC.on||key!==PC.key){   // 지금 보이던 카메라(시작이면 공통 카메라)에서 출발
     const s=PC.on?c:T.cam;PC.fp.copy(s.position);PC.fq.copy(s.quaternion);PC.fm.copy(s.projectionMatrix);
     PC.dur=PC.on?350:900;PC.t0=now;PC.on=true;PC.key=key;

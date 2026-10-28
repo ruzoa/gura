@@ -207,21 +207,19 @@ function resize3D(){
   // 테이블 위 카드 크기 (모든 화면 같음)
   {const ck=1.2;if(T.geo&&ck!==T.cardK){const f=ck/(T.cardK||1);T.geo.scale(f,f,1);T.olGeo.scale(f,f,1);T.cardK=ck}}
   // 카메라 = 테이블 앞에 앉은 내 눈. 눈의 위치와 각도는 어떤 화면에서도 똑같고, 화면은 창문처럼 보이는 범위만 달라짐
-  //  · 기준: 맞은편 자리 위로 화면 높이의 20%만큼 테이블 너머(배경)가 보이고, 화면 맨 아래는 내 쪽 테이블 끝
+  //  · 기준: 맞은편 자리 위로 화면 높이의 10%만큼 테이블 너머(배경)가 보이고, 화면 맨 아래는 내 쪽 테이블 끝
   //  · 가로로 긴 화면: 위아래 범위는 기준 그대로, 양옆이 더 보임
-  //  · 세로로 긴 화면: 위아래 범위는 기준 그대로, 양옆이 덜 보임 (양옆 사람 자리는 잘릴 수 있음)
+  //  · 세로로 긴 화면: 위아래 범위는 기준 그대로, 양옆이 덜 보임 (양옆 사람 자리는 잘릴 수 있음). 아래쪽을 늘려 가로를 맞추지 않고 그냥 잘라 보임
   T.cam.clearViewOffset();
   const EL=37*Math.PI/180,DIST=12.5,tgt=new THREE.Vector3(0,0,.4);
   T.cam.position.set(0,tgt.y+DIST*Math.sin(EL),tgt.z+DIST*Math.cos(EL));T.cam.lookAt(tgt);T.cam.updateMatrixWorld();
   const tn=p=>{const v=p.clone().applyMatrix4(T.cam.matrixWorldInverse);return [v.x/-v.z,v.y/-v.z]};
   const tFar=tn(new THREE.Vector3(0,.35,-4.05))[1],tNear=tn(new THREE.Vector3(0,0,4.9))[1];
-  const top=(tFar-.2*tNear)/.8;let bot=tNear;
-  // 꼭 보여야 하는 것: 맞은편 자리(가운데 위), 가운데 노란 점선, 내 자리(아래). 양옆 사람 자리는 화면이 좁으면 잘려도 됨(이름표는 화면 끝에 붙어 보임)
-  // → 위아래 범위가 어떤 화면에서도 같아서 테이블이 멀어지지 않음. 점선 원마저 안 들어가는 아주 좁은 화면만 그만큼 넓힘
-  const hxFit=tn(new THREE.Vector3(2.15,0,0))[0]*(1+2*12/w);
+  const top=(tFar-.1*tNear)/.9,bot=tNear;
+  // 양옆 사람 자리와 점선 원은 화면이 좁으면 잘려도 됨(이름표는 화면 끝에 붙어 보임)
+  // → 위아래 범위가 어떤 화면에서도 같아서 테이블이 멀어지지 않고, 아래쪽 빈 곳도 늘지 않음
   T.seatKey=(V&&V.ps?V.ps.length:0)+':'+myIdx();
-  let hx=(w/h)*(top-bot)/2;
-  if(hx<hxFit){hx=hxFit;bot=top-2*hx*h/w}
+  const hx=(w/h)*(top-bot)/2;
   const nr=T.cam.near,fr=T.cam.far;
   T.cam.projectionMatrix.makePerspective(-hx*nr,hx*nr,top*nr,bot*nr,nr,fr);T.cam.projectionMatrixInverse.copy(T.cam.projectionMatrix).invert();
   if(T.scene&&T.scene.fog){const d=T.cam.position.length();T.scene.fog.near=d+5;T.scene.fog.far=d+22}
