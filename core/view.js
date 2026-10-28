@@ -449,13 +449,15 @@ const FIELD = {
     const ao = c.createOscillator(), ag = c.createGain();   // 칠 때 잠깐 나는 높은 배음
     ao.type = 'sine'; ao.frequency.value = f * (f > 500 ? 2.004 : 3.007);
     ag.gain.setValueAtTime(.0001, t); ag.gain.linearRampToValueAtTime(pk * .22 * B, t + .004); ag.gain.exponentialRampToValueAtTime(.0001, t + .28);
-    ao.connect(ag); ag.connect(sf); ao.start(t); ao.stop(t + .32);
+    // 높은 배음·해머 소리는 자기 크기 곡선이 따로 있으므로 ng(현 소리 곡선)를 거치지 않고 mix로 바로 감. ng를 거치면 세기가 두 번 곱해져 거의 안 들림
+    const mix = c.createGain();
+    ao.connect(ag); ag.connect(mix); ao.start(t); ao.stop(t + .32);
     const hs = c.createBufferSource(), hf = c.createBiquadFilter(), hg = c.createGain();   // 해머 소리
     hs.buffer = n.hammer; hf.type = 'bandpass'; hf.frequency.value = Math.min(f * 2.5, 1800); hf.Q.value = 1.8;
     hg.gain.setValueAtTime(pk * .35 * B, t); hg.gain.exponentialRampToValueAtTime(.0001, t + .035);
-    hs.connect(hf); hf.connect(hg); hg.connect(ng); hs.start(t);
-    sf.connect(ng);
-    if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = Math.max(-.5, Math.min(.5, Math.log2(f / 262) / 4)); ng.connect(p); p.connect(n.body) } else ng.connect(n.body);
+    hs.connect(hf); hf.connect(hg); hg.connect(mix); hs.start(t);
+    sf.connect(ng); ng.connect(mix);
+    if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = Math.max(-.5, Math.min(.5, Math.log2(f / 262) / 4)); mix.connect(p); p.connect(n.body) } else mix.connect(n.body);
   },
   // 한 번 나올 때 칠 음 전체를 미리 정함: [시각, 반음, 세기] 목록
   compose(t) {
