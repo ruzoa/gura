@@ -299,11 +299,11 @@ buildSndSeg($('#mSnd'));buildSndSeg($('#segSnd'));syncSndSeg();
 /* ================= 들판 BGM: 바람·풀 스치는 소리·새소리 (배경이 들판일 때) =================
    평소엔 거의 조용하고, 바람은 가끔(평균 15초마다) 2~4초 살랑 불었다 금방 잦아듦(gust).
    풀 소리는 바람이 불 때만 잘게 사각거리고, 새소리·풀벌레는 가끔 좌우 아무 데서나 울리며 긴 잔향이 붙음.
-   환경음이라 귀 기울여야 들리는 크기, 전체에 저역 필터를 걸어 고음을 깎음. */
+   환경음이라 귀 기울여야 들리는 크기, 전체에 저역 필터를 걸어 고음을 깎음(피아노 직접 소리만 빼고). */
 const FIELD = {
   n: null, gust: 0, goal: 0, nextGust: 6, gustEnd: 0,
   LEVEL: 2.6,   // 평균 RMS 약 0.004: 재즈의 1/3쯤, 귀 기울여야 들리는 크기
-  PLEVEL: .75,  // 피아노가 나오는 동안 RMS 약 0.012: 카페 재즈와 같은 크기
+  PLEVEL: .1,   // 피아노가 나오는 동안 평균 RMS 약 0.01(가장 센 1초 구간 약 0.018): 카페 재즈와 같은 크기
   pAt: 0, pEnd: 0, pLast: 0, notes: [],   // 피아노: 다음 곡 시작 시각, 지금 곡이 끝나는 시각, 마지막 박자 시각, 아직 안 친 음
   build(c, out) {
     const sr = c.sampleRate, len = sr * 4, buf = c.createBuffer(1, len, sr), d = buf.getChannelData(0);
@@ -332,15 +332,27 @@ const FIELD = {
       n.rev = c.createConvolver(); n.rev.buffer = ir; n.wet = gain(.5);
       n.birds.connect(n.rev); n.rev.connect(n.wet); n.wet.connect(n.out);
     }
-    // 피아노 버스: 곡이 시작·끝날 때 천천히 커지고 작아짐. 새소리와 같은 잔향을 더 많이 걸어 들판에 울리는 느낌
-    n.piano = gain(0); n.piano.connect(n.out);
-    if (n.rev) { n.pianoRev = gain(.8); n.piano.connect(n.pianoRev); n.pianoRev.connect(n.rev) }
+    // 피아노 버스: 곡이 시작·끝날 때 천천히 커지고 작아짐.
+    // 새소리 쪽 저역 필터(n.soft)를 거치면 건반 치는 소리와 해머 소리가 깎여 오르골처럼 둔해지므로,
+    // 직접 소리(n.pOut)는 그 필터를 건너뛰어 곧장 내보냄(켜기·끄기는 set()이 n.pOut도 같이 함). 잔향만 새소리와 같은 길로 보내 들판에 울리는 느낌
+    n.piano = gain(0); n.pOut = gain(0); n.piano.connect(n.pOut); n.pOut.connect(out);
+    // 소리통 울림: 240Hz 근처를 조금 도드라지게 해 몸통 있는 소리로
+    n.body = filt('peaking', 240, 1.2); n.body.gain.value = 3.5; n.body.connect(n.piano);
+    if (n.rev) { n.pianoRev = gain(1); n.piano.connect(n.pianoRev); n.pianoRev.connect(n.rev) }
+    // 피아노 음색 재료: 배음 12개짜리 파형 하나와 해머 소리 잡음 하나를 한 번만 만들어 모든 음이 나눠 씀
+    const wr = new Float32Array(13), wi = new Float32Array(13);
+    [0, 1, .55, .32, .2, .12, .08, .04, .025, .015, .008, .004, .002].forEach((a, i) => { wi[i] = a });
+    n.wave = c.createPeriodicWave(wr, wi);
+    const hl = Math.floor(sr * .045), hb = c.createBuffer(1, hl, sr), hd = hb.getChannelData(0);
+    for (let i = 0; i < hl; i++) hd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / hl, 3.5);
+    n.hammer = hb;
     this.n = n;
   },
   // 켜기·끄기: 바로 끊지 않고 천천히 커지고 작아짐
   set(c, on, out) {
     if (!this.n) { if (!on) return; this.build(c, out) }
     this.n.out.gain.setTargetAtTime(on ? this.LEVEL : 0, c.currentTime, on ? 1 : .4);
+    this.n.pOut.gain.setTargetAtTime(on ? this.LEVEL : 0, c.currentTime, on ? 1 : .4);   // 피아노 직접 소리도 같이
   },
   // 새 한 번 짹: f0→f1로 미끄러지는 짧은 소리. 탁 치고 줄어드는 모양이면 실로폰처럼 들리므로
   // 크기는 부드럽게 올랐다 내려가고(언덕 모양), wob이면 음이 빠르게 떨려(wr Hz) 새 목소리처럼 거칠어짐
@@ -401,56 +413,68 @@ const FIELD = {
     this.pianoStep(c, t);
   },
 
-  /* ----- 피아노: 마인크래프트(C418)처럼 가끔 잔잔한 한 곡 -----
-     들판에 들어오고 1~3분 뒤 첫 곡, 한 곡은 1~2분, 끝나면 5~10분 쉼. 곡은 매번 새로 만듦(생성형):
-     7·9음을 붙인 열린 화음을 하나에 5.5~7초씩 끌고, 그 위에 펜타토닉 3~5음 동기를 되풀이하다 가끔 한 음만 바꿈.
-     음 사이 간격은 조금씩 흔들어(rubato) 박자를 딱 맞추지 않음. 화음은 [베이스, [화음 음들]], 으뜸음에서 반음 수 */
-  PROG: [
-    [[0, [4, 7, 11, 14]], [-3, [0, 4, 7, 9]], [-7, [9, 11, 12, 16]], [-5, [7, 9, 12, 14]]],   // Imaj9 vi7 IVmaj7#11 Vsus
-    [[-7, [9, 11, 12, 16]], [0, [4, 7, 11, 14]], [-10, [6, 9, 14, 16]], [0, [4, 7, 11, 14]]], // IVmaj7#11 Imaj9 II(add9) Imaj9
-    [[0, [4, 7, 11, 14]], [-8, [4, 7, 11, 14]], [-7, [9, 11, 12, 16]], [0, [4, 7, 11, 14]]],  // Imaj9 iii7 IVmaj7#11 Imaj9
-    [[-3, [0, 4, 7, 9]], [-7, [9, 11, 12, 16]], [0, [4, 7, 11, 14]], [-5, [7, 9, 12, 14]]]    // vi7 IVmaj7#11 Imaj9 Vsus
+  /* ----- 피아노: 마인크래프트(C418)처럼 가끔 잔잔한 몇 마디 -----
+     들판에 들어오고 1~3분 뒤 첫 연주, 한 번에 5~8개 프레이즈(약 40~70초), 끝나면 3~6분 쉼.
+     프레이즈(PHR)는 손으로 쓴 7개: 낮은 음 몇 개를 굴려 치고, 높은 음 하나를 얹고, 한참 쉼. 바로 앞과 같은 것은 안 고르고,
+     음 사이 간격과 세기는 조금씩 흔들어(rubato) 사람이 치는 듯하게. 가끔(40%) 높은 음을 한 번 더. 프레이즈 사이는 4~6.8초 쉼.
+     iv = 프레이즈 시작에서 그 음까지 초, vel = 세기(0~1) */
+  PHR: [
+    { notes: ['C3', 'G3', 'D4', 'E4', 'B4', 'G4'], iv: [0, .16, .34, .52, 1.25, 2.1], vel: [.45, .38, .42, .48, .55, .32] },
+    { notes: ['G3', 'D4', 'F#4', 'A4', 'B4', 'E5', 'D5'], iv: [0, .07, .14, .22, 1.1, 1.85, 2.6], vel: [.42, .35, .38, .42, .52, .48, .35] },
+    { notes: ['E3', 'B3', 'F#4', 'G4', 'D5', 'B4', 'A4'], iv: [0, .18, .38, .95, 1.9, 2.6, 3.4], vel: [.4, .35, .42, .48, .52, .38, .3] },
+    { notes: ['B5', 'A5', 'G5', 'D5', 'E5'], iv: [0, .15, .32, .85, 1.45], vel: [.48, .38, .32, .28, .42] },
+    { notes: ['F3', 'C4', 'E4', 'G4', 'B4', 'A4'], iv: [0, .2, .42, .65, 1.5, 2.3], vel: [.42, .38, .42, .45, .5, .35] },
+    { notes: ['D5', 'E5', 'G5', 'A5', 'B5', 'G5'], iv: [0, .11, .23, .36, .95, 1.7], vel: [.35, .38, .42, .48, .52, .3] },
+    { notes: ['A3', 'E4', 'G4', 'C5', 'B4', 'D4', 'A4'], iv: [0, .14, .28, .9, 1.55, 2.3, 2.45], vel: [.42, .38, .4, .5, .4, .38, .35] }
   ],
-  MEL: [12, 14, 16, 19, 21, 24, 26, 28],   // 멜로디: 한 옥타브 위 장조 펜타토닉 (어떤 화음 위에서도 부딪치지 않음)
-  // 피아노 한 음: 배음 4개(위로 갈수록 살짝 높게) + 살짝 어긋난 두 번째 현으로 맥놀이. 탁 친 뒤 빨리 한 번 줄고 길게 사라지며,
-  // 저역 필터가 내려가 갈수록 어두워짐. 낮은 음은 왼쪽, 높은 음은 오른쪽에서 조금
-  key(c, t, f, v, len) {
-    const g = c.createGain(), lp = c.createBiquadFilter();
-    lp.type = 'lowpass'; lp.Q.value = .3; lp.frequency.setValueAtTime(Math.min(6000, f * 7), t); lp.frequency.exponentialRampToValueAtTime(Math.max(250, f * 1.6), t + len * .6);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .006);
-    g.gain.setTargetAtTime(v * .35, t + .006, .25); g.gain.setTargetAtTime(0, t + .5, len / 4);
-    [[1, 1, 0], [1, .5, 3], [2, .45, 0], [3, .2, 0], [4, .1, 0]].forEach(([k, a, ct]) => {
+  BRIGHT: .9,   // 건반 밝기: .5 먹먹한 밤 피아노 ~ 1.5 맑은 낮 피아노
+  // 음 이름 → 가운데 도(C4)에서 반음 수
+  semi(nm) { const m = /^([A-G])(#?)(\d)$/.exec(nm); return { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[m[1]] + (m[2] ? 1 : 0) + 12 * (m[3] - 4) },
+  // 피아노 한 음: 현 3개(조금씩 어긋나 맥놀이) + 위 배음이 살짝 먼저 사라지는 '핑' + 해머가 현을 치는 잡음.
+  // 세게 칠수록 처음에 밝고, 지나면서 저역 필터가 내려가 어두워지며, 낮은 음일수록 길게 울림. 낮은 음은 왼쪽, 높은 음은 오른쪽에서 조금
+  key(c, t, f, vel) {
+    const n = this.n, B = this.BRIGHT, rel = f < 250 ? 5.2 : f < 500 ? 4 : 2.8, pk = Math.pow(vel, 1.3) * .55;
+    const sf = c.createBiquadFilter(); sf.type = 'lowpass'; sf.Q.value = .7;
+    sf.frequency.setValueAtTime(Math.min(f * (5.5 + vel * 5) * B, 12000), t);
+    sf.frequency.exponentialRampToValueAtTime(Math.max(f * 1.8 * B, 280), t + .35);
+    sf.frequency.exponentialRampToValueAtTime(Math.max(f * 1.05, 160), t + rel);
+    const ng = c.createGain();   // 탁 치고 빨리 한 번 줄었다가 길게 사라짐
+    ng.gain.setValueAtTime(.0001, t); ng.gain.linearRampToValueAtTime(pk, t + .0045);
+    ng.gain.exponentialRampToValueAtTime(pk * .42, t + .18); ng.gain.exponentialRampToValueAtTime(.0001, t + rel);
+    [-2.2, .4, 2.4].forEach(ct => {
       const o = c.createOscillator(), og = c.createGain();
-      o.frequency.value = f * k * (1 + .0004 * k * k); o.detune.value = ct; og.gain.value = a / 2.25;
-      o.connect(og); og.connect(lp); o.start(t); o.stop(t + len + .1);
+      o.setPeriodicWave(n.wave); o.frequency.value = f; o.detune.value = ct + Math.random() * .8 - .4; og.gain.value = .5;
+      o.connect(og); og.connect(sf); o.start(t); o.stop(t + rel + .05);
     });
-    lp.connect(g);
-    if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = Math.max(-.5, Math.min(.5, Math.log2(f / 262) / 4)); g.connect(p); p.connect(this.n.piano) } else g.connect(this.n.piano);
+    const ao = c.createOscillator(), ag = c.createGain();   // 칠 때 잠깐 나는 높은 배음
+    ao.type = 'sine'; ao.frequency.value = f * (f > 500 ? 2.004 : 3.007);
+    ag.gain.setValueAtTime(.0001, t); ag.gain.linearRampToValueAtTime(pk * .22 * B, t + .004); ag.gain.exponentialRampToValueAtTime(.0001, t + .28);
+    ao.connect(ag); ag.connect(sf); ao.start(t); ao.stop(t + .32);
+    const hs = c.createBufferSource(), hf = c.createBiquadFilter(), hg = c.createGain();   // 해머 소리
+    hs.buffer = n.hammer; hf.type = 'bandpass'; hf.frequency.value = Math.min(f * 2.5, 1800); hf.Q.value = 1.8;
+    hg.gain.setValueAtTime(pk * .35 * B, t); hg.gain.exponentialRampToValueAtTime(.0001, t + .035);
+    hs.connect(hf); hf.connect(hg); hg.connect(ng); hs.start(t);
+    sf.connect(ng);
+    if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = Math.max(-.5, Math.min(.5, Math.log2(f / 262) / 4)); ng.connect(p); p.connect(n.body) } else ng.connect(n.body);
   },
-  // 곡 하나를 미리 정함: [시각, 반음, 세기, 길이] 목록
+  // 한 번 나올 때 칠 음 전체를 미리 정함: [시각, 반음, 세기] 목록
   compose(t) {
-    const root = pick([-4, -2, 0, 2, 3]), prog = pick(this.PROG), total = prog.length * (3 + (Math.random() < .5)), cd = 5.5 + Math.random() * 1.5;
-    const R = (a) => a * (.85 + Math.random() * .3), out = [], motif = [];
-    for (let i = 3 + Math.floor(Math.random() * 3); i > 0; i--) motif.push(pick(this.MEL));
-    let at = t + 1.5;
-    for (let k = 0; k < total; k++) {
-      const [b, tones] = prog[k % prog.length], vel = .55 + .45 * Math.sin(Math.PI * (k + .5) / total);   // 가운데에서 가장 셈
-      out.push([at, root + b - 12, .05 * vel, 7]);
-      if (Math.random() < .4) out.push([at + .02, root + b, .03 * vel, 6]);
-      // 화음: 아래에서 위로 천천히 굴려 침 (2~4음)
-      let a = at + R(.5);
-      for (let i = 0, nT = 2 + Math.floor(Math.random() * 3); i < nT; i++) { out.push([a, root + tones[i], .028 * vel, 5]); a += R(.35 + Math.random() * .5) }
-      // 멜로디: 처음 두 화음은 반주만, 그다음부터 동기를 되풀이하며 가끔 한 음만 바꿈
-      if (k >= 2 && Math.random() < .75) {
-        if (Math.random() < .35) motif[Math.floor(Math.random() * motif.length)] = pick(this.MEL);
-        let m = at + R(cd * .3);
-        for (const s of motif) { if (m > at + cd - .3) break; out.push([m, root + s, .04 * vel, 3.5]); m += R(.6 + Math.random() * .6) }
-      }
-      at += R(cd);
+    const out = [], N = 5 + Math.floor(Math.random() * 4);
+    let at = t + 2, last = -1, lastAt = at;
+    for (let i = 0; i < N; i++) {
+      let k; do { k = Math.floor(Math.random() * this.PHR.length) } while (k === last && this.PHR.length > 1);
+      last = k;
+      const ph = this.PHR[k]; let end = 0;
+      ph.notes.forEach((nm, j) => {
+        const dt = Math.max(0, ph.iv[j] + Math.random() * .06 - .03);
+        end = Math.max(end, dt);
+        out.push([at + dt, this.semi(nm), Math.min(.85, Math.max(.2, ph.vel[j] + Math.random() * .1 - .05))]);
+      });
+      if (Math.random() < .4) { end += 1 + Math.random() * .6; out.push([at + end, this.semi(pick(['D5', 'E5', 'G5', 'A5', 'B5'])), .28]) }
+      lastAt = at + end;
+      at += end + 4 + Math.random() * 2.8;
     }
-    // 끝: 으뜸화음을 여리게 길게 한 번, 조금 뒤 높은 음 하나
-    out.push([at, root - 12, .03, 8], [at + .4, root + 4, .018, 7], [at + .9, root + 7, .018, 7], [at + 1.5, root + 14, .018, 7], [at + 3.2, root + 24, .022, 5]);
-    this.notes = out.sort((x, y) => x[0] - y[0]); this.pEnd = at + 10;
+    this.notes = out.sort((x, y) => x[0] - y[0]); this.pEnd = lastAt + 9;
   },
   pianoStep(c, t) {
     const n = this.n;
@@ -459,14 +483,14 @@ const FIELD = {
     this.pLast = t;
     if (t >= this.pAt && t >= this.pEnd) {
       this.compose(t);
-      this.pAt = this.pEnd + 300 + Math.random() * 300;
+      this.pAt = this.pEnd + 180 + Math.random() * 180;   // 끝나고 3~6분 쉼
       n.piano.gain.cancelScheduledValues(t); n.piano.gain.setTargetAtTime(this.PLEVEL, t, 1.2);   // 3~5초에 걸쳐 커짐
-      n.piano.gain.setTargetAtTime(0, this.pEnd - 5, 1.3);                              // 끝날 때도 천천히
+      n.piano.gain.setTargetAtTime(0, this.pEnd - 6, 1.5);                              // 끝날 때도 천천히
     }
     // 앞으로 0.6초 안의 음만 침. 쉬는 동안(판정 연출 등) 지나간 음은 버림
     while (this.notes.length && this.notes[0][0] < t + .6) {
-      const [at, s, v, len] = this.notes.shift();
-      if (at > t - .2) this.key(c, Math.max(at, t), 261.63 * Math.pow(2, s / 12), v, len);
+      const [at, s, v] = this.notes.shift();
+      if (at > t - .2) this.key(c, Math.max(at, t), 261.63 * Math.pow(2, s / 12), v);
     }
   },
   // 콘솔에서 바로 들어 보기: FIELD.pianoNow()
