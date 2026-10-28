@@ -43,7 +43,7 @@
   <section class="stage" id="stage" aria-label="게임 테이블">
     <canvas id="cv"></canvas>
     <div class="dim" id="dim"></div>
-    <div class="nogl" id="nogl" hidden>3D 화면을 불러오지 못했습니다. 게임은 그대로 할 수 있습니다.</div>
+    <div class="nogl" id="nogl" hidden>3D 화면을 불러오지 못했습니다.</div>
     <div class="front" id="front" hidden>
       <h1 class="fr-title" id="frTitle">탁자하나</h1>
       <div class="fr-pad off" id="frPad" aria-hidden="true"></div>
@@ -81,7 +81,7 @@
       <label class="menu-vol" title="배경음악"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span class="mv-t">배경음악</span><input type="range" id="mBgm" min="0" max="100" step="5" aria-label="배경음악 음량"><b id="mBgmV"></b></label>
       <div class="menu-bg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.5"/></svg><span class="mv-t">배경</span><div class="seg bgseg" id="mBg"></div></div>
       <div class="menu-bg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.3 1.8 3.5 1.8 3.5-1.8 3.5-1.8"/><line x1="9" y1="9.5" x2="9.01" y2="9.5"/><line x1="15" y1="9.5" x2="15.01" y2="9.5"/></svg><span class="mv-t">이모티콘</span><div class="seg emoseg" id="mEmo"></div></div>
-      <div class="menu-bg" id="mDblRow" title="쿼리도·오목: 고른 자리를 한 번 더 누르면 [놓기] 없이 바로 둡니다"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11V5a2 2 0 0 1 4 0v6"/><path d="M13 9a2 2 0 0 1 4 0v4a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-3l-2-4a2 2 0 0 1 3-2l2 2"/></svg><span class="mv-t">두 번 놓기</span><div class="seg dblseg" id="mDbl"></div></div>
+      <div class="menu-bg" id="mDblRow" title="자리를 한 번 더 누르면 바로 둡니다"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11V5a2 2 0 0 1 4 0v6"/><path d="M13 9a2 2 0 0 1 4 0v4a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-3l-2-4a2 2 0 0 1 3-2l2 2"/></svg><span class="mv-t">두 번 놓기</span><div class="seg dblseg" id="mDbl"></div></div>
       <div class="menu-row">
         <button type="button" class="mbtn" id="mRules" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg><span>게임 방법</span></button>
       </div>
@@ -160,7 +160,7 @@
         <input class="txt code" id="inCode" maxlength="4" placeholder="탁자 번호" autocomplete="off" aria-label="탁자 번호">
         <button class="btn btn-play" id="btnJoinCode" type="button">참가</button>
       </div>
-      <p class="note" id="netNote">비공개 탁자는 친구에게 받은 4자리 번호로 찾아갑니다.</p>
+      <p class="note" id="netNote">비공개 탁자는 4자리 번호로 입장 가능합니다.</p>
     </div>
 
     <div class="view" data-view="settings" hidden>
@@ -176,7 +176,7 @@
       <div class="field"><span class="fl">소리</span><div class="seg sndseg" id="segSnd"></div></div>
       <div class="field"><span class="fl">배경</span><div class="seg bgseg" id="segBg"></div></div>
       <div class="field"><span class="fl">이모티콘</span><div class="seg emoseg" id="segEmo"></div></div>
-      <div class="field"><span class="fl">두 번 눌러 놓기</span><small>쿼리도·오목: 고른 자리를 한 번 더 누르면 [놓기] 없이 바로 둡니다</small><div class="seg dblseg" id="segDbl"></div></div>
+      <div class="field"><span class="fl">두 번 눌러 놓기</span><small>자리를 한 번 더 누르면 바로 둡니다</small><div class="seg dblseg" id="segDbl"></div></div>
       <div class="field"><span class="fl">조작</span><div class="row"><button class="btn btn-sub" id="btnKeysLobby" type="button">키 설정 열기</button></div></div>
     </div>
   </div>
