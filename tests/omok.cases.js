@@ -330,7 +330,7 @@ globalThis.playOutO=playOutO;
  eq(T.canMove({b,R,cnt:n*n-1},1),false,'only cell left is forbidden -> cannot move');
  eq(T.canMove({b,R,cnt:n*n-1},2),true,'white can take it');
 }
-/* 선 플레이어 직접 선택: 방장이 대기실에서 고른 사람(H.firstName)이 선, 안 골랐으면 방장, 끄면 랜덤 */
+/* 선 플레이어 선택: 방장이 대기실에서 고른 사람(H.firstName)이 선, 안 골랐으면 방장, 무작위면 랜덤 */
 {hostNew(false,'t','t');H.cfg={...cfgFor('omok'),pickfirst:1,op:0,game:'omok'};
  H.members=[{name:'가',bot:false,conn:null,host:true},{name:'나',bot:false,conn:null,host:false}];
  H.firstName='나';hostStart();eq(H.o.A,1,'picked first player is A');eq(H.o.co[1],1,'picked first is black');

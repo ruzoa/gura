@@ -56,8 +56,8 @@ function hostStart(){
   else if(EG().introMs){H.dealAgain=again?1:0;H.fp=EG().firstPick?(H.cfg.pickfirst?-1:DicePick.pickRolls(H.members.length)):0;beginDeal(introLen(EG(),again,H.fp))}   // 카드가 없는 게임의 시작 연출 (야추다이스·쿼리도·포커: 카메라 이동·준비·첫 차례 주사위). fp: 주사위를 던질 횟수(방장이 정함, -1이면 방장이 직접 고른 선)
 }
 /* 카드 섞고 나누는 연출 동안(DEAL_MS)은 제한 시간·봇·행동을 멈춤. 화면 쪽 연출은 dealStart3D
-   카드가 없는 게임은 G.introMs만큼 같은 방식으로 멈추고, 화면 쪽은 G.intro(시작 시각, {total, again})가 그림
-   G.introMs는 숫자, 또는 바로 시작(again)이면 다른 길이를 돌려주는 함수 */
+   카드가 없는 게임은 G.introMs만큼 같은 방식으로 멈추고, 화면 쪽은 G.intro(시작 시각, {total, again, rolls, seed})가 그림
+   G.introMs는 숫자, 또는 (바로 시작 again, 주사위 던질 횟수 rolls)에 따라 길이를 돌려주는 함수 */
 /* ===== 첫 차례 주사위 공통 실행부 (게임 연출 안에서 쓰는 도구, 계산은 dicepick.js)
    쓰는 법: 게임에 G.firstPick=true를 두고 G.introMs=(again,rolls)=>시작 전 연출 ms + DicePick.totalFor(rolls) + 여유.
    G.intro(t0,{rolls,seed})에서 ctl=firstPick(주사위 시작 시각, {seats,first,rolls,seed}) →
