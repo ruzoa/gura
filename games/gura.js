@@ -389,15 +389,15 @@ function renderPileNum(){
   if(rn!=null&&rn!==lastPileNum){$('#pileNumV').textContent=rankLabel(rn);el.style.setProperty('--rc',RANK_COLORS[rn-1]);el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop')}
   lastPileNum=rn;
 }
-/* 선언 자음 세로 휠 */
+/* 선언 자음 가로 휠: 고른 자음 + 양옆 하나씩 (왼쪽 = 이전 자음) */
+const WH_W=52;   // 칸 너비(px). core/style.css의 .np 너비와 같게
 function renderWheel(){
-  const order=wheelOrder(),np=$('#numpick'),cur=chosenNum()||order[order.length>>1],rows=3;   // 고른 자음 + 위아래 하나씩
+  const order=wheelOrder(),np=$('#numpick'),cur=chosenNum()||order[order.length>>1];
   const idx=Math.max(0,order.indexOf(cur));
   if(!np.querySelector('.wh-list')){
-    np.innerHTML=`<span class="wh-t">선언할 자음</span><button type="button" class="wh-arrow" data-step="1" aria-label="이전 자음">▲<small>${esc(keyLabel(KEYS.numUp))}</small></button><div class="wh-view"><ul class="wh-list">${order.map(k=>`<li><button type="button" class="np" data-n="${k}" style="--rc:${RANK_COLORS[k-1]}" aria-label="${rankLabel(k)}"><span class="wl">${rankLabel(k)}</span></button></li>`).join('')}</ul></div><button type="button" class="wh-arrow" data-step="-1" aria-label="다음 자음">▼<small>${esc(keyLabel(KEYS.numDown))}</small></button>`;
+    np.innerHTML=`<span class="wh-t">선언할 자음</span><button type="button" class="wh-arrow" data-step="1" aria-label="이전 자음" title="${esc(keyLabel(KEYS.numUp))}">◀</button><div class="wh-view"><ul class="wh-list">${order.map(k=>`<li><button type="button" class="np" data-n="${k}" style="--rc:${RANK_COLORS[k-1]}" aria-label="${rankLabel(k)}"><span class="wl">${rankLabel(k)}</span></button></li>`).join('')}</ul></div><button type="button" class="wh-arrow" data-step="-1" aria-label="다음 자음" title="${esc(keyLabel(KEYS.numDown))}">▶</button>`;
   }
-  np.style.setProperty('--rows',rows);
-  np.querySelector('.wh-list').style.transform=`translateY(${((rows-1)/2-idx)*40}px)`;
+  np.querySelector('.wh-list').style.transform=`translateX(${(1-idx)*WH_W}px)`;
   np.querySelectorAll('.np').forEach(b=>b.classList.toggle('on',+b.dataset.n===cur));
   np.querySelectorAll('.wh-arrow').forEach(a=>a.disabled=(+a.dataset.step>0?idx<=0:idx>=order.length-1));
 }
@@ -541,8 +541,8 @@ const GLOW={on:[],geo:null,mat:null,raf:0},_gRay=window.THREE?new THREE.Raycaste
 function glowMake(){
   if(GLOW.mat)return true;if(!window.THREE||!T.ok)return false;
   const k=T.cardK||1;
-  GLOW.geo=new THREE.PlaneGeometry(.80*k,1.14*k);
-  GLOW.mat=new THREE.MeshBasicMaterial({color:0xf2b632,map:canvasTex(128,180,(g,w,h)=>{g.lineWidth=14;g.strokeStyle='#fff';g.shadowColor='#fff';g.shadowBlur=14;rr(g,18,18,w-36,h-36,16);g.stroke()}),transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide});
+  GLOW.geo=new THREE.PlaneGeometry(.70*k,.98*k);   // 카드(.62×.9)와 먹선(.665×.945) 바로 바깥에 얇은 선 하나
+  GLOW.mat=new THREE.MeshBasicMaterial({color:0xf2b632,map:canvasTex(128,180,(g,w,h)=>{g.lineWidth=4;g.strokeStyle='#fff';rr(g,2,2,w-4,h-4,16);g.stroke()}),transparent:true,opacity:.5,depthWrite:false,side:THREE.DoubleSide});   // 깊이 판정을 켜서 위에서 보이는 부분만 빛남
   return true;
 }
 function glowSync(){
@@ -551,7 +551,7 @@ function glowSync(){
   for(const c of GLOW.on)if(!want.includes(c)&&c.userData.glow){c.remove(c.userData.glow);c.userData.glow=null}
   if(want.length&&glowMake())for(const c of want)if(!c.userData.glow){const m=new THREE.Mesh(GLOW.geo,GLOW.mat);m.renderOrder=40;c.add(m);c.userData.glow=m}
   GLOW.on=want;
-  if(want.length&&!GLOW.raf){const loop=()=>{if(!GLOW.on.length){GLOW.raf=0;return}GLOW.mat.opacity=.55+.45*Math.sin(clock()/170);GLOW.raf=requestAnimationFrame(loop)};GLOW.raf=requestAnimationFrame(loop)}
+  if(want.length&&!GLOW.raf){const loop=()=>{if(!GLOW.on.length){GLOW.raf=0;return}GLOW.mat.opacity=.5+.25*Math.sin(clock()/260);GLOW.raf=requestAnimationFrame(loop)};GLOW.raf=requestAnimationFrame(loop)}
 }
 function topCardAt(e){
   if(!_gRay||!T.ok||!GLOW.on.length)return false;
@@ -571,9 +571,9 @@ G.leave=()=>{
 /* 처음 한 번: 휠·구라! 버튼 */
 G.init=()=>{
   const w=$('#numpick');let acc=0,ty=null;
-  w.addEventListener('wheel',e=>{e.preventDefault();acc+=e.deltaY;if(Math.abs(acc)>=40){stepNum(acc<0?1:-1);acc=0}},{passive:false});
-  w.addEventListener('touchstart',e=>{ty=e.touches[0].clientY},{passive:true});
-  w.addEventListener('touchmove',e=>{if(ty==null)return;const dy=e.touches[0].clientY-ty;if(Math.abs(dy)>=26){stepNum(dy>0?1:-1);ty=e.touches[0].clientY}},{passive:true});
+  w.addEventListener('wheel',e=>{e.preventDefault();acc+=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY;if(Math.abs(acc)>=40){stepNum(acc<0?1:-1);acc=0}},{passive:false});
+  w.addEventListener('touchstart',e=>{ty=e.touches[0].clientX},{passive:true});
+  w.addEventListener('touchmove',e=>{if(ty==null)return;const dx=e.touches[0].clientX-ty;if(Math.abs(dx)>=26){stepNum(dx>0?1:-1);ty=e.touches[0].clientX}},{passive:true});
   w.addEventListener('touchend',()=>{ty=null});
   w.addEventListener('click',e=>{const a=e.target.closest('.wh-arrow');if(a){stepNum(+a.dataset.step)}});
   w.addEventListener('click',e=>{const b=e.target.closest('.np');if(!b)return;pickNum=+b.dataset.n;renderMe()});

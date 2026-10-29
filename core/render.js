@@ -94,7 +94,7 @@ function layoutFan(){
     aR=Math.max(14,Math.round(W/2-hv-gap-aW));mL=Math.max(12,Math.round(W/2-hv-gap-mW));
   }
   st.style.setProperty('--actR',aR+'px');st.style.setProperty('--plateL',mL+'px');st.style.setProperty('--actS',aS);
-  st.style.setProperty('--plateB',(wide||!n?14:fh+66)+'px');
+  st.style.setProperty('--plateB',(wide||!n?14:fh+(st.classList.contains('gmid')?132:66))+'px');   // gmid(구라!): 버튼 줄(버튼+자음 휠)이 높아서 내 정보 칸은 그 위
   st.style.setProperty('--actB',(wide||!n?14:fh+6)+'px');
   st.style.setProperty('--midB',(n?fh+6:14)+'px');   // 손패 바로 위 가운데(구라!의 패스·자음·구라! 줄)
   if(fh!==lastFanH){lastFanH=fh;T.fanH=fh;if(T.ok)resize3D()}

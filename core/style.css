@@ -538,30 +538,32 @@ body.kb .fan .card.cur{z-index:70!important}
 .myplate .me-time:empty{display:none}
 .myplate .bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:transparent}
 
-/* 선언 자음 고르기: 세로 휠 (W 위 = 이전 자음, S 아래 = 다음 자음) */
-.numwheel{position:absolute;left:12px;top:50%;transform:translateY(-58%);display:flex;flex-direction:column;align-items:center;gap:3px;background:rgba(255,250,240,.96);border:1.5px solid var(--mustard-edge);border-radius:var(--r-md);padding:5px 6px;box-shadow:0 3px 0 rgba(110,69,38,.25);z-index:8;user-select:none;touch-action:none}
-.numwheel .wh-t{font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
-.numwheel .wh-arrow{width:100%;border:none;background:var(--well);border-radius:var(--r-xs);padding:2px 0;font-size:12px;line-height:1;color:var(--ink);display:flex;justify-content:center;gap:4px;align-items:center}
+/* 선언 자음 고르기: 가로 휠 (왼쪽 = 이전 자음, 오른쪽 = 다음 자음) */
+.numwheel{position:absolute;left:12px;top:50%;transform:translateY(-58%);display:flex;align-items:center;gap:4px;background:rgba(255,250,240,.96);border:1.5px solid var(--mustard-edge);border-radius:var(--r-md);padding:3px 5px;box-shadow:0 3px 0 rgba(110,69,38,.25);z-index:8;user-select:none;touch-action:none}
+.numwheel .wh-t{font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap;margin-right:2px}
+.numwheel .wh-arrow{flex:none;width:26px;height:36px;border:none;background:var(--well);border-radius:var(--r-xs);padding:0;font-size:12px;line-height:1;color:var(--ink);display:flex;justify-content:center;align-items:center}
 .numwheel .wh-arrow:disabled{opacity:.35;cursor:default}
-.numwheel .wh-arrow small{font-family:var(--f-num);font-size:10px;color:var(--muted)}
-.numwheel .wh-view{position:relative;height:calc(var(--rows,3) * 40px);width:68px;overflow:hidden;border-radius:var(--r-sm)}
-.numwheel .wh-view::before{content:"";position:absolute;left:0;right:0;top:50%;height:40px;margin-top:-20px;border:2.5px solid var(--mustard);border-radius:var(--r-sm);background:rgba(242,182,50,.16);pointer-events:none;z-index:1}
-.numwheel .wh-view::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(var(--panel),rgba(255,250,240,0) 30%,rgba(255,250,240,0) 70%,var(--panel));z-index:2}
-.numwheel .wh-list{list-style:none;margin:0;padding:0;transition:transform .16s ease-out}
-.numwheel .np{all:unset;box-sizing:border-box;height:40px;width:68px;display:flex;align-items:center;gap:6px;padding:0 8px;cursor:pointer;font-family:var(--f-num);font-weight:600;font-size:15px;color:var(--rc)}
-.numwheel .np{justify-content:center}
-.numwheel .np .wl{font-family:var(--f-display);font-size:26px;font-weight:400;line-height:1}
-.numwheel .np .ws{font-size:11px;color:var(--muted);font-weight:500}
+/* 가로 휠: 고른 자음 + 양옆 하나씩(어둡게). 칸 너비 52px (games/gura.js의 WH_W와 같게) */
+.numwheel .wh-view{position:relative;height:40px;width:156px;overflow:hidden;border-radius:var(--r-sm)}
+.numwheel .wh-view::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:52px;margin-left:-26px;border:2.5px solid var(--mustard);border-radius:var(--r-sm);background:rgba(242,182,50,.16);pointer-events:none;z-index:1}
+.numwheel .wh-view::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,var(--panel),rgba(255,250,240,0) 30%,rgba(255,250,240,0) 70%,var(--panel));z-index:2}
+.numwheel .wh-list{list-style:none;margin:0;padding:0;display:flex;width:max-content;transition:transform .16s ease-out}
+.numwheel .np{all:unset;box-sizing:border-box;height:40px;width:52px;flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:var(--f-num);font-weight:600;font-size:15px;color:var(--rc);opacity:.4;transition:opacity .16s}
+.numwheel .np.on{opacity:1}
+.numwheel .np .wl{font-family:var(--f-display);font-size:22px;font-weight:400;line-height:1}
 .numwheel .np.on .wl{font-size:30px}
 .numwheel .np:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
-/* 구라!: 손패 바로 위 정중앙에 [패스] [선언 자음] [구라!]. 내기 버튼은 없음(끌어서 냄, 키는 그대로).
-   자음 칸이 없는 차례에도 자리는 남겨 두어 버튼이 움직이지 않음 */
-.stage.gmid .actions{left:50%;right:auto;bottom:var(--midB,14px);transform:translateX(-50%) scale(var(--actS,1));transform-origin:50% 100%;align-items:flex-end;gap:10px;pointer-events:none}
+/* 구라!: 손패 바로 위 정중앙. 윗줄 [패스] [구라!], 그 아래(버튼과 손패 사이)에 가로 자음 휠. 내기 버튼은 없음(끌어서 냄, 키는 그대로).
+   자음 칸이 없는 차례에도 자리는 남겨 두어 버튼이 움직이지 않음. 버튼은 손에 잘 잡히게 크게 */
+.stage.gmid .actions{display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"p g" "w w";gap:8px 10px;width:min(300px,calc(100% - 24px));left:50%;right:auto;bottom:var(--midB,14px);transform:translateX(-50%) scale(var(--actS,1));transform-origin:50% 100%;pointer-events:none}
 .stage.gmid .actions .act,.stage.gmid .actions .numwheel{pointer-events:auto}
-.stage.gmid .actions .act{flex:none;min-width:88px}
+.stage.gmid .actions .act{min-width:0;height:60px;font-size:23px;padding:0 8px}
+.stage.gmid .actions .act-gura{font-size:25px}
+.stage.gmid #btnPass{grid-area:p}
+.stage.gmid #btnGura{grid-area:g}
 .stage.gmid #btnPlay{display:none}
-.stage.gmid .actions .numwheel{position:static;left:auto;top:auto;transform:none;min-width:83px;flex:none}
-.stage.gmid .actions .numwheel[hidden]{display:flex!important;visibility:hidden;pointer-events:none;height:56px;padding:0;border-width:0;box-shadow:none}
+.stage.gmid .actions .numwheel{grid-area:w;justify-self:center;position:static;left:auto;top:auto;transform:none;height:46px;box-sizing:border-box}
+.stage.gmid .actions .numwheel[hidden]{display:flex!important;visibility:hidden;pointer-events:none}
 
 /* 필드 위 지금 자음 */
 .pilenum{position:absolute;z-index:6;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:56px;height:76px;padding:0 8px;background:rgba(255,252,245,.72);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:.88;border:3px solid var(--rc,var(--ink));border-top-width:7px;border-radius:12px;box-shadow:0 4px 0 var(--rc,var(--ink)),0 12px 22px -10px rgba(59,42,31,.55);pointer-events:none;z-index:4;transition:border-color .2s}
