@@ -150,7 +150,7 @@ function frontPoses(w,h){
 /* 고개 돌리기: 탁자 양옆이 화면에 다 안 보이는 좁은 화면에서, 앉은 눈이 제자리에서 좌우로 고개를 돎(VW.yaw). 양옆이 다 보이면 못 돌림(VW.max=0).
    탁자 끝까지만: 탁자 가장자리가 화면 가장자리에 닿을 때까지(frontPoses가 VW.max를 잼). 마우스는 오른쪽 버튼 드래그, 터치는 두 손가락 드래그.
    고정 버튼(#btnCam)을 켜면 정중앙으로 돌아오고(VW.ty=0) 돌리기가 막힘. 판 확대·서서 보기와 겹칠 때는 weight로 서서히 0 */
-const VW={yaw:0,ty:0,max:0,lock:false,drag:null,t:0},_vq=window.THREE?new THREE.Quaternion():null,_vY=window.THREE?new THREE.Vector3(0,1,0):null;
+const VW={yaw:0,ty:0,max:0,lock:false,drag:null,t:0,sens:Math.max(20,Math.min(300,+(store('gura-cam-sens')||100)||100))},_vq=window.THREE?new THREE.Quaternion():null,_vY=window.THREE?new THREE.Vector3(0,1,0):null;
 function viewStep(t){
   const dt=Math.min(.1,Math.max(0,(t-VW.t)/1000));VW.t=t;
   VW.ty=VW.lock?0:Math.max(-VW.max,Math.min(VW.max,VW.ty));
@@ -668,7 +668,7 @@ $('#cv').addEventListener('click',e=>{
 /* 카메라 돌리기 입력: 마우스 오른쪽 드래그, 터치 두 손가락 드래그 (한 손가락은 게임이 씀). 고정이면 무시 */
 {
   const st=$('#stage'),tp=new Map(),mid=()=>{let x=0,y=0;for(const q of tp.values()){x+=q.x;y+=q.y}return {x:x/tp.size,y:y/tp.size}};
-  const move=dx=>{VW.ty=Math.max(-VW.max,Math.min(VW.max,VW.ty+dx*.005))};   // 오른쪽으로 끌면 장면이 따라 오른쪽으로 → 고개는 왼쪽
+  const move=dx=>{VW.ty=Math.max(-VW.max,Math.min(VW.max,VW.ty+dx*.005*VW.sens/100))};   // 오른쪽으로 끌면 장면이 따라 오른쪽으로 → 고개는 왼쪽
   st.addEventListener('pointerdown',e=>{
     if(!FR.camOk||VW.lock)return;
     if(e.pointerType==='mouse'){if(e.button!==2)return;VW.drag={id:e.pointerId,x:e.clientX,y:e.clientY};try{st.setPointerCapture(e.pointerId)}catch(_){}return}
@@ -688,5 +688,8 @@ $('#cv').addEventListener('click',e=>{
     const tt=on?'카메라 고정 풀기':'카메라 정중앙으로 고정';bc.title=tt;bc.setAttribute('aria-label',tt);
   }
   bc.addEventListener('click',()=>{setCamLock(!VW.lock);sfx(VW.lock?'key':'pick')});
+  const camS=()=>{for(const id of ['#mCamS','#inCamS'])$(id).value=VW.sens;$('#mCamSV').textContent=$('#camSV').textContent=VW.sens+'%'};   // 설정 → 카메라 감도 (드래그 거리당 도는 양, gura-cam-sens)
+  for(const id of ['#mCamS','#inCamS'])$(id).addEventListener('input',e=>{VW.sens=+e.target.value;store('gura-cam-sens',String(VW.sens));camS()});
+  camS();
   setCamLock(false);
 }
