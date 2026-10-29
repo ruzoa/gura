@@ -627,4 +627,4 @@ body.kb .fan .card.cur{z-index:70!important}
 /* 터치 화면에서는 키보드 키 표시 숨김 */
 @media (hover:none) and (pointer:coarse){.act small{display:none}}
 
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* '움직임 줄이기' 설정으로 움직임을 끄지 않음(공통 원칙). 예전 전체 끄기 규칙 때문에 그 설정을 켠 PC에서 손패 카드가 뚝뚝 끊겨 보였음 */

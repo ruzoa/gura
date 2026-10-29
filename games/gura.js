@@ -391,13 +391,19 @@ function renderPileNum(){
 }
 /* 선언 자음 가로 휠: 고른 자음 + 양옆 하나씩 (왼쪽 = 이전 자음) */
 const WH_W=52;   // 자음 칸 너비(px). G.init의 CSS가 이 값으로 칸·보이는 창 너비를 정함
+/* 세로 화면(.gport)이면 자음 휠을 버튼 옆에 세로로 세움 */
+const WH_H=40;
+function syncPort(){const st=$('#stage'),p=st.clientHeight>st.clientWidth;if(st.classList.contains('gport')!==p){st.classList.toggle('gport',p);midKey='';return true}return false}
 function renderWheel(){
+  syncPort();
+  const port=$('#stage').classList.contains('gport');
   const order=wheelOrder(),np=$('#numpick'),cur=chosenNum()||order[order.length>>1];
   const idx=Math.max(0,order.indexOf(cur));
   if(!np.querySelector('.wh-list')){
     np.innerHTML=`<span class="wh-t">선언할 자음</span><button type="button" class="wh-arrow" data-step="1" aria-label="이전 자음" title="${esc(keyLabel(KEYS.numUp))}">◀</button><div class="wh-view"><ul class="wh-list">${order.map(k=>`<li><button type="button" class="np" data-n="${k}" style="--rc:${RANK_COLORS[k-1]}" aria-label="${rankLabel(k)}"><span class="wl">${rankLabel(k)}</span></button></li>`).join('')}</ul></div><button type="button" class="wh-arrow" data-step="-1" aria-label="다음 자음" title="${esc(keyLabel(KEYS.numDown))}">▶</button>`;
   }
-  np.querySelector('.wh-list').style.transform=`translateX(${(1-idx)*WH_W}px)`;
+  np.querySelector('.wh-list').style.transform=port?`translateY(${(1-idx)*WH_H}px)`:`translateX(${(1-idx)*WH_W}px)`;
+  np.querySelectorAll('.wh-arrow').forEach(a=>{const t=+a.dataset.step>0?(port?'▲':'◀'):(port?'▼':'▶');if(a.textContent!==t)a.textContent=t});
   np.querySelectorAll('.np').forEach(b=>b.classList.toggle('on',+b.dataset.n===cur));
   np.querySelectorAll('.wh-arrow').forEach(a=>a.disabled=(+a.dataset.step>0?idx<=0:idx>=order.length-1));
 }
@@ -425,7 +431,6 @@ function playFx(v){
   // 이펙트가 떠 있는 동안 같은 자리의 '지금' 자음 카드는 숨겼다가, 끝나면 다시 튀어나옴
   const pn=$('#pileNum');pn.classList.add('held');clearTimeout(pileHoldTimer);
   pileHoldTimer=setTimeout(()=>{pn.classList.remove('held');pn.classList.remove('pop');void pn.offsetWidth;pn.classList.add('pop')},1950);
-  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)setTimeout(()=>d.remove(),1800);
 }
 /* 새 상태를 받았을 때 (그리기 전 / 그린 뒤) */
 G.preView=()=>{
@@ -481,11 +486,13 @@ G.me=(i,h)=>{
 let midKey='';
 function midLayout(){
   const st=$('#stage');if(!st.classList.contains('gmid'))return;
+  if(syncPort()&&$('#numpick').querySelector('.wh-list'))renderWheel();
   const fh=+T.fanH||0,n=$('#hand').children.length,side=(st.style.getPropertyValue('--plateB')||'').trim()==='14px';
-  const ah=$('#actions').offsetHeight||0,aS=+st.style.getPropertyValue('--actS')||1;
+  // 세로 화면은 휠이 버튼 옆(오른쪽)에 세로로 서므로 내 정보 칸은 버튼 높이만큼만 위로
+  const port=st.classList.contains('gport'),ah=(port?$('#btnPass').offsetHeight:$('#actions').offsetHeight)||0,aS=+st.style.getPropertyValue('--actS')||1;
   const midB=n?fh+6:14,plateB=side||!n?14:Math.round(midB+ah*aS+10);
   const pu=side||!n?0:(FAN.up||0);   // 손패 위에 놓인 내 정보 칸은 카드가 올라오는 만큼 같이(.fanhot)
-  const key=midB+':'+plateB+':'+pu;if(key===midKey)return;midKey=key;
+  const key=midB+':'+plateB+':'+pu+':'+port;if(key===midKey)return;midKey=key;
   st.style.setProperty('--gMidB',midB+'px');st.style.setProperty('--gPlateB',plateB+'px');st.style.setProperty('--gPlateUp',pu+'px');
 }
 G.afterFan=midLayout;   // 손패가 모서리 위치에 맞춰 다시 놓이면(창 크기·카메라 변화) 버튼 줄도 다시 맞춤
@@ -584,7 +591,7 @@ G.leave=()=>{
   lastPileN=-1;lastPileNum=null;
   for(const c of GLOW.on)if(c.userData.glow){c.remove(c.userData.glow);c.userData.glow=null}
   GLOW.on=[];const cv=$('#cv');if(cv)cv.style.cursor='';
-  const st=$('#stage');st.insertBefore($('#numpick'),$('#me'));st.style.removeProperty('--gMidB');st.style.removeProperty('--gPlateB');st.style.removeProperty('--gPlateUp');midKey='';
+  const st=$('#stage');st.insertBefore($('#numpick'),$('#me'));st.style.removeProperty('--gMidB');st.style.removeProperty('--gPlateB');st.style.removeProperty('--gPlateUp');st.classList.remove('gport');midKey='';
 };
 /* 처음 한 번: 휠·구라! 버튼 */
 G.init=()=>{
@@ -608,18 +615,32 @@ G.init=()=>{
 .stage.gmid .numwheel .wh-arrow{flex:none;width:24px;height:36px;padding:0}
 .stage.gmid .numwheel .wh-view{height:40px;width:${WH_W*3}px}
 .stage.gmid .numwheel .wh-view::before{top:0;bottom:0;left:50%;right:auto;height:auto;width:${WH_W}px;margin:0 0 0 -${WH_W/2}px}
-.stage.gmid .numwheel .wh-view::after{background:linear-gradient(90deg,var(--panel),rgba(255,250,240,0) 30%,rgba(255,250,240,0) 70%,var(--panel))}
+/* 반투명: 뒤 테이블이 비쳐 보이게. 양 끝 흐림은 판 색 덮개 대신 마스크로 */
+.stage.gmid .numwheel{background:rgba(255,250,240,.58);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:0 2px 8px -3px rgba(59,42,31,.35)}
+.stage.gmid .numwheel .wh-arrow{background:rgba(59,42,31,.1)}
+.stage.gmid .numwheel .wh-view::after{display:none}
+.stage.gmid .numwheel .wh-view{-webkit-mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent)}
 .stage.gmid .numwheel .wh-list{display:flex;width:max-content}
 .stage.gmid .numwheel .np{width:${WH_W}px;flex:none;padding:0;opacity:.4;transition:opacity .16s}
 .stage.gmid .numwheel .np.on{opacity:1}
 .stage.gmid .numwheel .np .wl{font-size:22px}
 .stage.gmid .numwheel .np.on .wl{font-size:30px}
+/* 세로 화면: [패스] [구라!] [휠] 한 줄, 휠은 세로로 3칸 보이게 서서 버튼 줄 위로 솟음 */
+.stage.gmid.gport .actions{grid-template-columns:1fr 1fr auto;grid-template-areas:"p g w";align-items:end;width:min(380px,calc(100% - 16px))}
+.stage.gmid.gport .numwheel{flex-direction:column;height:auto;width:68px;gap:3px;padding:4px 4px 5px}   /* 폭 고정: 내 차례가 아니라 휠이 비어도 버튼 폭이 그대로 */
+.stage.gmid.gport .numwheel .wh-t{margin:0;font-size:10px}
+.stage.gmid.gport .numwheel .wh-arrow{width:100%;height:22px}
+.stage.gmid.gport .numwheel .wh-view{width:58px;height:${WH_H*3}px;-webkit-mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent)}
+.stage.gmid.gport .numwheel .wh-view::before{left:0;right:0;top:50%;bottom:auto;width:auto;height:${WH_H}px;margin:-${WH_H/2}px 0 0 0}
+.stage.gmid.gport .numwheel .wh-list{display:block;width:auto}
+.stage.gmid.gport .numwheel .np{width:58px;height:${WH_H}px}
 `;
   document.head.appendChild(css);
   const w=$('#numpick');let acc=0,ty=null;
   w.addEventListener('wheel',e=>{e.preventDefault();acc+=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY;if(Math.abs(acc)>=40){stepNum(acc<0?1:-1);acc=0}},{passive:false});
-  w.addEventListener('touchstart',e=>{ty=e.touches[0].clientX},{passive:true});
-  w.addEventListener('touchmove',e=>{if(ty==null)return;const dx=e.touches[0].clientX-ty;if(Math.abs(dx)>=26){stepNum(dx>0?1:-1);ty=e.touches[0].clientX}},{passive:true});
+  const tp=e=>$('#stage').classList.contains('gport')?e.touches[0].clientY:e.touches[0].clientX;   // 세로 휠은 위아래로 밀기
+  w.addEventListener('touchstart',e=>{ty=tp(e)},{passive:true});
+  w.addEventListener('touchmove',e=>{if(ty==null)return;const dx=tp(e)-ty;if(Math.abs(dx)>=26){stepNum(dx>0?1:-1);ty=tp(e)}},{passive:true});
   w.addEventListener('touchend',()=>{ty=null});
   w.addEventListener('click',e=>{const a=e.target.closest('.wh-arrow');if(a){stepNum(+a.dataset.step)}});
   w.addEventListener('click',e=>{const b=e.target.closest('.np');if(!b)return;pickNum=+b.dataset.n;renderMe()});
