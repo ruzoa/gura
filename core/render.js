@@ -69,7 +69,7 @@ function layoutFan(){
   // 카드 간격: 폭 전체를 쓰되 최대 40 (모서리 글자가 다 보이는 간격). 손패 배치는 버튼 위치와 상관없이 정해짐
   // PC(넓고 높은 화면)에서는 버튼을 조금 키움(손패가 커지는 만큼, 최대 1.3배). 손패와 버튼이 같이 커져야 눌러야 할 곳이 작아 보이지 않음
   const pc=W>=900&&Hs>=600&&!(window.matchMedia&&matchMedia('(pointer:coarse)').matches),aS=pc?Math.max(1,Math.min(1.3,k*.8)):1;
-  const aW=(st.classList.contains('gmid')?0:($('#actions').offsetWidth||0))*aS,mW=$('#me').offsetWidth||0;   // gmid(구라!): 버튼 줄이 손패 위 가운데라 옆자리를 쓰지 않음
+  const aW=($('#actions').offsetWidth||0)*aS,mW=$('#me').offsetWidth||0;
   const side=Math.max(mW,aW)+24;
   let step=n>1?Math.min(40,(Math.max(150,(W-24)/k)-60)/(n-1)):0;step=Math.max(step,9);
   // 손패 양옆에 내 정보·버튼이 들어갈 자리가 있으면 옆(화면 아래 구석)에, 없으면 손패 위에. 바뀌어도 손패·테이블은 그대로
@@ -94,9 +94,8 @@ function layoutFan(){
     aR=Math.max(14,Math.round(W/2-hv-gap-aW));mL=Math.max(12,Math.round(W/2-hv-gap-mW));
   }
   st.style.setProperty('--actR',aR+'px');st.style.setProperty('--plateL',mL+'px');st.style.setProperty('--actS',aS);
-  st.style.setProperty('--plateB',(wide||!n?14:fh+(st.classList.contains('gmid')?132:66))+'px');   // gmid(구라!): 버튼 줄(버튼+자음 휠)이 높아서 내 정보 칸은 그 위
+  st.style.setProperty('--plateB',(wide||!n?14:fh+66)+'px');
   st.style.setProperty('--actB',(wide||!n?14:fh+6)+'px');
-  st.style.setProperty('--midB',(n?fh+6:14)+'px');   // 손패 바로 위 가운데(구라!의 패스·자음·구라! 줄)
   if(fh!==lastFanH){lastFanH=fh;T.fanH=fh;if(T.ok)resize3D()}
 }
 window.addEventListener('resize',()=>{if(V)layoutFan()});

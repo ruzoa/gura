@@ -46,7 +46,7 @@ G.drawFace=function(g,w,h,id){
 };
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 손에 든 카드를 먼저 털어낸 사람이 <b>승리</b>합니다</li><li><b>시작</b> : 첫 번째 플레이어가 자음 하나를 정하고 1장 이상 <b>뒷면으로</b> 냅니다</li><li><b>진행</b> : 돌아가며 해당 자음 카드를 뒷면으로 내거나 <b>패스</b>합니다</li><li><b>구라!</b> : 정해진 자음이 아닌 다른 카드를 낸 것 같다면 누구든 <b>구라!</b>를 외칠 수 있습니다</li><li><b>판정</b> : <b>거짓</b>이면 카드를 낸 사람이, <b>진짜</b>면 구라!를 외친 사람이 쌓인 카드를 전부 가져갑니다</li><li><b>패스</b> : 만약 모든 플레이어가 패스를 하면 쌓인 카드는 버려집니다.</li><li><b>별카드</b> : 모든 자음으로 인정됩니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 손에 든 카드를 먼저 털어낸 사람이 <b>승리</b>합니다</li><li><b>시작</b> : 첫 번째 플레이어가 자음 하나를 정하고 1장 이상 <b>뒷면으로</b> 냅니다</li><li><b>진행</b> : 돌아가며 해당 자음 카드를 뒷면으로 내거나 <b>패스</b>합니다. 카드는 골라서 탁자 쪽으로 끌어 놓으면 냅니다</li><li><b>구라!</b> : 정해진 자음이 아닌 다른 카드를 낸 것 같다면 누구든 <b>구라!</b>를 외칠 수 있습니다. 직전에 낸 카드(테두리가 빛나는 카드)를 누르거나 구라! 버튼을 누릅니다. 다음 사람이 카드를 내기 전까지는 패스가 나와도 외칠 수 있습니다(마지막 카드는 다음 사람이 패스하면 탈출)</li><li><b>판정</b> : <b>거짓</b>이면 카드를 낸 사람이, <b>진짜</b>면 구라!를 외친 사람이 쌓인 카드를 전부 가져갑니다</li><li><b>패스</b> : 만약 모든 플레이어가 패스를 하면 쌓인 카드는 버려집니다.</li><li><b>별카드</b> : 모든 자음으로 인정됩니다</li></ol>';
 G.modeDesc=['꼴찌가 나올 때까지','1등이 나오면 끝'];
 G.defaults={jokers:2,maxn:14,grace:3,turn:30};
 G.roomSet=[
@@ -69,8 +69,8 @@ G.noEmotes=[];
 G.keys={gura:'KeyF',numUp:'KeyW',numDown:'KeyS'};
 G.keyActions=[
   {a:'gura',n:'구라!',d:'직전에 낸 카드를 의심합니다'},
-  {a:'numUp',n:'선언 자음 이전',d:'라운드를 시작할 때 선언할 자음을 이전 자음(위)으로 바꿉니다'},
-  {a:'numDown',n:'선언 자음 다음',d:'라운드를 시작할 때 선언할 자음을 다음 자음(아래)으로 바꿉니다'}];
+  {a:'numUp',n:'선언 자음 이전',d:'라운드를 시작할 때 선언할 자음을 이전 자음(왼쪽)으로 바꿉니다'},
+  {a:'numDown',n:'선언 자음 다음',d:'라운드를 시작할 때 선언할 자음을 다음 자음(오른쪽)으로 바꿉니다'}];
 
 /* ---------- 방장 엔진 (규칙 처리) ---------- */
 const REVEAL_PAUSE=1000;   // 구라! 외친 뒤 카드를 펼치기 전까지 잠깐 뜸 들이기
@@ -390,7 +390,7 @@ function renderPileNum(){
   lastPileNum=rn;
 }
 /* 선언 자음 가로 휠: 고른 자음 + 양옆 하나씩 (왼쪽 = 이전 자음) */
-const WH_W=52;   // 칸 너비(px). core/style.css의 .np 너비와 같게
+const WH_W=52;   // 자음 칸 너비(px). G.init의 CSS가 이 값으로 칸·보이는 창 너비를 정함
 function renderWheel(){
   const order=wheelOrder(),np=$('#numpick'),cur=chosenNum()||order[order.length>>1];
   const idx=Math.max(0,order.indexOf(cur));
@@ -474,7 +474,19 @@ G.me=(i,h)=>{
   const np=$('#numpick'),lead=V.st==='play'&&V.t===i&&activeV(i)&&V.rn==null;
   np.hidden=!lead;
   if(lead)renderWheel();else np.innerHTML='';
+  midLayout();
 };
+/* 버튼 줄(손패 바로 위 가운데)과 내 정보 칸의 높이. 공통 layoutFan이 정한 손패 높이(T.fanH)와 내 정보 칸 자리(--plateB)를 보고 맞춤
+   공통 코드는 건드리지 않고 구라! 화면 클래스(.gmid)에서만 쓰는 변수(--gMidB·--gPlateB)로 */
+let midKey='';
+function midLayout(){
+  const st=$('#stage');if(!st.classList.contains('gmid'))return;
+  const fh=+T.fanH||0,n=$('#hand').children.length,side=(st.style.getPropertyValue('--plateB')||'').trim()==='14px';
+  const ah=$('#actions').offsetHeight||0,aS=+st.style.getPropertyValue('--actS')||1;
+  const midB=n?fh+6:14,plateB=side||!n?14:Math.round(midB+ah*aS+10);
+  const key=midB+':'+plateB;if(key===midKey)return;midKey=key;
+  st.style.setProperty('--gMidB',midB+'px');st.style.setProperty('--gPlateB',plateB+'px');
+}
 G.buttons=()=>{
   const play=$('#btnPlay'),pass=$('#btnPass');
   const ready=myReady(),num=chosenNum(),k=sel.size;
@@ -486,7 +498,7 @@ G.buttons=()=>{
   if($('#playSub').textContent!==sub)$('#playSub').textContent=sub;
   pass.disabled=!(ready&&V.rn!=null);
 };
-G.live=()=>{const can=canShoutV(),gb=$('#btnGura');if(gb.disabled===can){gb.disabled=!can;gb.classList.toggle('ready',can)}
+G.live=()=>{midLayout();const can=canShoutV(),gb=$('#btnGura');if(gb.disabled===can){gb.disabled=!can;gb.classList.toggle('ready',can)}
   if(!!GLOW.on.length!==!!can)glowSync()};   // 맨 위 카드 테두리는 구라!를 외칠 수 있을 때만
 G.play=()=>{
   if(!myReady()||!sel.size)return;const num=chosenNum();if(num==null)return;
@@ -560,16 +572,46 @@ function topCardAt(e){
   return _gRay.intersectObjects(GLOW.on.map(c=>c.userData.glow).filter(Boolean),false).length>0;
 }
 /* 이 게임으로 바뀔 때 / 다른 게임으로 바뀔 때 */
-G.enter=()=>{$('#btnGura').hidden=false;$('#stage').classList.add('gmid')};
+G.enter=()=>{
+  $('#btnGura').hidden=false;$('#stage').classList.add('gmid');
+  $('#actions').appendChild($('#numpick'));midKey='';   // 선언 자음 휠을 버튼 줄 안으로 (나갈 때 원래 자리로)
+};
 G.leave=()=>{
   for(const id of ['#pileNum','#pileCount','#verdict','#numpick'])$(id).hidden=true;
   $('#numpick').innerHTML='';$('#btnGura').hidden=true;$('#stage').classList.remove('revealing','gmid');$('#fx').innerHTML='';
   lastPileN=-1;lastPileNum=null;
   for(const c of GLOW.on)if(c.userData.glow){c.remove(c.userData.glow);c.userData.glow=null}
   GLOW.on=[];const cv=$('#cv');if(cv)cv.style.cursor='';
+  const st=$('#stage');st.insertBefore($('#numpick'),$('#me'));st.style.removeProperty('--gMidB');st.style.removeProperty('--gPlateB');midKey='';
 };
 /* 처음 한 번: 휠·구라! 버튼 */
 G.init=()=>{
+  /* 구라! 화면(.gmid)에서만: 손패 바로 위 가운데에 윗줄 [패스] [구라!], 그 아래(버튼과 손패 사이)에 가로 자음 휠.
+     내기 버튼은 숨김(끌어서 냄, 키는 그대로). 자음 칸이 없는 차례에도 자리를 남겨 버튼이 움직이지 않음 */
+  const css=document.createElement('style');
+  css.textContent=`
+.stage.gmid .actions{display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"p g" "w w";gap:8px 10px;width:min(320px,calc(100% - 20px));left:50%;right:auto;bottom:var(--gMidB,14px);transform:translateX(-50%) scale(var(--actS,1));transform-origin:50% 100%;pointer-events:none}
+.stage.gmid .myplate{bottom:var(--gPlateB,var(--plateB,14px))}
+.stage.gmid .actions .act,.stage.gmid .actions .numwheel{pointer-events:auto}
+.stage.gmid .actions .act{flex:none;min-width:0;height:60px;font-size:23px;padding:0 8px}
+.stage.gmid .actions .act-gura{font-size:25px}
+.stage.gmid #btnPass{grid-area:p}
+.stage.gmid #btnGura{grid-area:g}
+.stage.gmid #btnPlay{display:none}
+.stage.gmid .numwheel{grid-area:w;justify-self:center;position:static;left:auto;top:auto;transform:none;flex-direction:row;align-items:center;gap:4px;height:46px;box-sizing:border-box;padding:3px 5px}
+.stage.gmid .numwheel[hidden]{display:flex!important;visibility:hidden;pointer-events:none}
+.stage.gmid .numwheel .wh-t{display:block;margin-right:2px}
+.stage.gmid .numwheel .wh-arrow{flex:none;width:24px;height:36px;padding:0}
+.stage.gmid .numwheel .wh-view{height:40px;width:${WH_W*3}px}
+.stage.gmid .numwheel .wh-view::before{top:0;bottom:0;left:50%;right:auto;height:auto;width:${WH_W}px;margin:0 0 0 -${WH_W/2}px}
+.stage.gmid .numwheel .wh-view::after{background:linear-gradient(90deg,var(--panel),rgba(255,250,240,0) 30%,rgba(255,250,240,0) 70%,var(--panel))}
+.stage.gmid .numwheel .wh-list{display:flex;width:max-content}
+.stage.gmid .numwheel .np{width:${WH_W}px;flex:none;padding:0;opacity:.4;transition:opacity .16s}
+.stage.gmid .numwheel .np.on{opacity:1}
+.stage.gmid .numwheel .np .wl{font-size:22px}
+.stage.gmid .numwheel .np.on .wl{font-size:30px}
+`;
+  document.head.appendChild(css);
   const w=$('#numpick');let acc=0,ty=null;
   w.addEventListener('wheel',e=>{e.preventDefault();acc+=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY;if(Math.abs(acc)>=40){stepNum(acc<0?1:-1);acc=0}},{passive:false});
   w.addEventListener('touchstart',e=>{ty=e.touches[0].clientX},{passive:true});
