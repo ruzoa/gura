@@ -85,12 +85,12 @@ function markNewCards(){document.querySelectorAll('#hand .card').forEach(c=>c.cl
 
 /* ================= 소리 (Web Audio로 직접 합성, 파일 없음) ================= */
 const volOf=(k,d)=>{const v=+store(k);return store(k)!=null&&v>=0&&v<=100?v:d};
-const SND={ctx:null,master:null,fx:null,bgm:null,noise:null,on:store('gura-sound')!=='off',vol:volOf('gura-vol',70),bgmVol:volOf('gura-bgm-vol',50),fxMute:store('gura-vol-mute')==='1',bgmMute:store('gura-bgm-mute')==='1'};   // 음소거는 음량을 그대로 두고 아이콘으로만 켬·끔
+const SND={ctx:null,master:null,fx:null,bgm:null,noise:null,on:store('gura-sound')!=='off',vol:volOf('gura-vol',70),bgmVol:volOf('gura-bgm-vol',50),masterVol:volOf('gura-master-vol',100),fxMute:store('gura-vol-mute')==='1',bgmMute:store('gura-bgm-mute')==='1'};   // 음소거는 음량을 그대로 두고 아이콘으로만 켬·끔
 function audioOn(){
   if(!SND.ctx){
     const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
     try{SND.ctx=new AC()}catch(e){return null}
-    SND.master=SND.ctx.createGain();SND.master.gain.value=.55;SND.master.connect(SND.ctx.destination);
+    SND.master=SND.ctx.createGain();SND.master.gain.value=.55*SND.masterVol/100;SND.master.connect(SND.ctx.destination);
     SND.fx=SND.ctx.createGain();SND.fx.gain.value=SND.vol/100;SND.fx.connect(SND.master);
     SND.bgm=SND.ctx.createGain();SND.bgm.gain.value=SND.bgmVol/100;SND.bgm.connect(SND.master);
     const len=SND.ctx.sampleRate*.6,buf=SND.ctx.createBuffer(1,len,SND.ctx.sampleRate),d=buf.getChannelData(0);
@@ -287,15 +287,8 @@ function showBubble(i,html,life,kind){
   setTimeout(()=>b.remove(),(life||2200)+500);   // 윈도우 '애니메이션 효과 끄기' 등으로 애니메이션이 안 돌 때 대비
   box.appendChild(b);
 }
-/* 소리 끄기·켜기: 설정(게임 중 메뉴·로비 설정)에서만. 스위치 원칙대로 왼쪽 끄기, 오른쪽 켜기 */
-function syncSndSeg(){document.querySelectorAll('.sndseg button').forEach(b=>{const on=(b.dataset.v==='on')===SND.on;b.setAttribute('aria-pressed',on);b.setAttribute('aria-checked',on)})}
-function setSound(on){if(on===SND.on)return;SND.on=on;store('gura-sound',on?'on':'off');syncSndSeg();if(on){audioOn();setTimeout(()=>sfx('pick'),30)}}
-function buildSndSeg(box){
-  box.setAttribute('role','radiogroup');box.setAttribute('aria-label','소리');
-  box.innerHTML='<button type="button" role="radio" data-v="off">끄기</button><button type="button" role="radio" data-v="on">켜기</button>';
-  box.addEventListener('click',e=>{const b=e.target.closest('button');if(b)setSound(b.dataset.v==='on')});
-}
-buildSndSeg($('#mSnd'));buildSndSeg($('#segSnd'));syncSndSeg();
+/* 소리 끄기·켜기: 설정의 '소리' 아이콘을 누르면 음소거(SND.on), 슬라이더는 전체 음량(SND.masterVol). applyVol이 화면을 맞춤 */
+function setSound(on){if(on===SND.on)return;SND.on=on;store('gura-sound',on?'on':'off');if(typeof applyVol==='function')applyVol();if(on){audioOn();setTimeout(()=>sfx('pick'),30)}}
 /* ================= 들판 BGM: 바람·풀 스치는 소리·새소리 (배경이 들판일 때) =================
    평소엔 거의 조용하고, 바람은 가끔(평균 15초마다) 2~4초 살랑 불었다 금방 잦아듦(gust).
    풀 소리는 바람이 불 때만 잘게 사각거리고, 새소리·풀벌레는 가끔 좌우 아무 데서나 울리며 긴 잔향이 붙음.

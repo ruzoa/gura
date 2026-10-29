@@ -632,8 +632,10 @@ $('#btnNickSave').addEventListener('click',()=>closeNickEdit(true));
 $('#inNick').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();closeNickEdit(true)}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeNickEdit(false)}});
 /* 음량 */
 function applyVol(){
+  if(SND.master)SND.master.gain.value=.55*SND.masterVol/100;
   if(SND.fx)SND.fx.gain.value=(SND.fxMute?0:SND.vol)/100;if(SND.bgm)SND.bgm.gain.value=(SND.bgmMute?0:SND.bgmVol)/100;
-  document.querySelectorAll('.mv-ic').forEach(b=>{const m=b.dataset.ch==='fx'?SND.fxMute:SND.bgmMute;b.classList.toggle('muted',m);b.setAttribute('aria-pressed',m);b.closest('.menu-vol').classList.toggle('muted',m)});   // 아이콘 누름 = 음소거(음량은 그대로)
+  document.querySelectorAll('.mv-ic').forEach(b=>{const m=b.dataset.ch==='all'?!SND.on:b.dataset.ch==='fx'?SND.fxMute:SND.bgmMute;b.classList.toggle('muted',m);b.setAttribute('aria-pressed',m);b.closest('.menu-vol').classList.toggle('muted',m)});   // 아이콘 누름 = 음소거(음량은 그대로)
+  $('#masterV').textContent=SND.masterVol+'%';$('#inMaster').value=SND.masterVol;$('#mMaster').value=SND.masterVol;$('#mMasterV').textContent=SND.masterVol+'%';
   $('#volV').textContent=SND.vol+'%';$('#inVol').value=SND.vol;$('#mVol').value=SND.vol;$('#mVolV').textContent=SND.vol+'%';
   $('#bgmV').textContent=SND.bgmVol+'%';$('#inBgm').value=SND.bgmVol;$('#mBgm').value=SND.bgmVol;$('#mBgmV').textContent=SND.bgmVol+'%';
 }
@@ -642,8 +644,13 @@ $('#mVol').addEventListener('input',e=>{SND.vol=+e.target.value;store('gura-vol'
 $('#mVol').addEventListener('change',()=>{audioOn();sfx('pick')});
 $('#inVol').addEventListener('input',e=>{SND.vol=+e.target.value;store('gura-vol',String(SND.vol));if(SND.fxMute){SND.fxMute=false;store('gura-vol-mute','0')}applyVol()});
 $('#inVol').addEventListener('change',()=>{audioOn();sfx('pick')});
+for(const id of ['#mMaster','#inMaster']){
+  $(id).addEventListener('input',e=>{SND.masterVol=+e.target.value;store('gura-master-vol',String(SND.masterVol));if(!SND.on)setSound(true);applyVol()});   // 움직이면 음소거 풀림
+  $(id).addEventListener('change',()=>{audioOn();sfx('pick')});
+}
 document.querySelectorAll('.mv-ic').forEach(b=>b.addEventListener('click',e=>{
-  e.preventDefault();const fx=b.dataset.ch==='fx';
+  e.preventDefault();if(b.dataset.ch==='all'){setSound(!SND.on);applyVol();return}
+  const fx=b.dataset.ch==='fx';
   if(fx){SND.fxMute=!SND.fxMute;store('gura-vol-mute',SND.fxMute?'1':'0')}else{SND.bgmMute=!SND.bgmMute;store('gura-bgm-mute',SND.bgmMute?'1':'0')}
   applyVol();audioOn();
   if(fx&&!SND.fxMute)sfx('pick');if(!fx&&!SND.bgmMute&&SND.bgmVol>0&&typeof BGM!=='undefined')BGM.start();

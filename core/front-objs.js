@@ -479,7 +479,7 @@ function frontLayout(lobby,wait,host,t){
   frontPut($('#frRbWin'),rbUp,rbUp?frontRect(T.rb.win,W,Hh):null,0,40,40);
   frontPut($('#frRbX'),rbUp,rbUp?frontRect(T.rb.xk,W,Hh):null,10,48,48);
   frontPut($('#frRbBack'),rbUp&&FR.rb.mode==='game'&&!!FR.rb.fromList,rbUp?frontRect(T.rb.bk,W,Hh):null,10,48,48);
-  for(let k=0;k<RB_PG;k++){const b=T.rb.pgs[k],el=$('#frRbPg'+k),on=rbUp&&b.m.visible&&!FR.rb.chg;frontPut(el,on,on?frontRect(b.m,W,Hh):null,6,40,40);if(on&&el.dataset.l!==b.lab){el.dataset.l=b.lab;const L2=b.lab[0]==='⚙'?(b.lab[1]==='+'?'세부 설정':'탁자 설정'):'규칙 '+b.lab+'쪽';el.setAttribute('aria-label',L2);el.title=L2}}
+  for(let k=0;k<RB_PG;k++){const b=T.rb.pgs[k],el=$('#frRbPg'+k),on=rbUp&&b.m.visible&&!FR.rb.chg;frontPut(el,on,on?frontRect(b.m,W,Hh):null,6,40,40);if(on&&el.dataset.l!==b.lab){el.dataset.l=b.lab;const L2=b.lab==='🎲'?'게임 설정':b.lab[0]==='⚙'?'탁자 설정':'규칙 '+b.lab+'쪽';el.setAttribute('aria-label',L2);el.title=L2}}
   rbLayoutSet(rbUp&&FR.rb.mode==='game'&&!!FR.rb.set&&FR.rb.pg<rbNSet()&&!FR.rb.chg,W,Hh);if(!rbUp)rbTag(null);
   frontPut($('#frRbLever'),rbUp&&FR.rb.mode==='game',rbUp?frontRect(T.rb.lever.g,W,Hh):null,10,56,64);
   st.classList.toggle('rbopen',FR.rba.v>.01);

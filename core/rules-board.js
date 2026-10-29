@@ -1,8 +1,8 @@
 /* index.html 공통 코드 · 규칙 나무판·설정 판자. 파일 순서는 index.html의 <script src> 순서 */
 /* ===== 규칙 나무판: 글자를 인두로 지진 판자 (게임 규칙 키·탁자 설정·규칙 키) =====
    공개 탁자 목록 판과 같은 틈에서 양쪽 기둥(거치대) 사이로 판자가 올라옴. 첫 화면은 게임 목록 판자 → 줄을 누르면 그 게임,
-   대기실은 설정 판자(⚙ 탁자 설정, ⚙+ 세부 설정)부터 열리고 레버로 넘기면 규칙 판자(1, 2, 3…)가 이어짐.
-   왼쪽 기둥의 놋쇠 단추(⚙·⚙+·숫자)를 누르면 그 판자로 바로. 오른쪽 기둥 레버 = 다음 판자, ✕ = 닫기, 왼쪽 기둥 위 ← = 목록으로(목록에서 들어왔을 때만).
+   대기실은 설정 판자(⚙ 탁자 설정, 🎲 게임 설정)부터 열리고 레버로 넘기면 규칙 판자(1, 2, 3…)가 이어짐.
+   왼쪽 기둥의 놋쇠 단추(⚙·🎲·숫자)를 누르면 그 판자로 바로. 오른쪽 기둥 레버 = 다음 판자, ✕ = 닫기, 왼쪽 기둥 위 ← = 목록으로(목록에서 들어왔을 때만).
    한 항목이 길면 판자가 길어지고, 위아래로 밀면(휠·↑↓) 판자째 틈에서 올라오고 들어감(글자만 움직이지 않음).
    세로로 긴 화면(휴대폰)은 판자를 세로로 길게(`rbFit`) 하고 설정 줄을 두 줄(이름 / 장치)로 그려 장치를 크게 */
 const RB={L:1.6,W:1.3,CW:832,PX:640,MX:58,TOP:58,BOT:96,FB:42,LH:60,GAP:30,ROWS:7,RY0:190,RSTEP:112,RH:96,tall:false};   // 판자 크기, 글자 크기, 줄 간격(px), 목록 줄
@@ -22,7 +22,7 @@ function frontBuildRules(TG){
   // 닫기: 오른쪽 기둥 위 ✕, 뒤로: 왼쪽 기둥 위 ← (목록에서 들어온 규칙일 때만)
   const [xk,xkO]=knob(knobTex(x=>{x.lineWidth=16;x.beginPath();x.moveTo(-26,-26);x.lineTo(26,26);x.moveTo(26,-26);x.lineTo(-26,26);x.stroke()}),px,1);
   const [bk,bkO]=knob(knobTex(x=>{x.lineWidth=15;x.beginPath();x.moveTo(28,0);x.lineTo(-12,0);x.stroke();x.beginPath();x.moveTo(-34,0);x.lineTo(-8,-26);x.lineTo(-8,26);x.closePath();x.fill()}),-px,1);
-  // 쪽 단추: 왼쪽 기둥 앞면의 둥근 놋쇠 단추. ⚙ 탁자 설정, ⚙+ 세부 설정, 숫자 = 규칙 판자. 지금 판자는 밝고 눌려 들어감
+  // 쪽 단추: 왼쪽 기둥 앞면의 둥근 놋쇠 단추. ⚙ 탁자 설정, 🎲 게임 설정, 숫자 = 규칙 판자. 지금 판자는 밝고 눌려 들어감
   const pgs=[];
   for(let k=0;k<RB_PG;k++){const cvp=document.createElement('canvas');cvp.width=cvp.height=128;const tx=new THREE.CanvasTexture(cvp);
     const mOn=toon({color:0xffffff,map:tx,rim:.35}),side=toon({color:0x8a6a3c,rim:.2});
@@ -151,28 +151,29 @@ function rbBurn(g,draw){g.save();g.shadowColor='rgba(100,45,10,.55)';g.shadowBlu
 /* 설정 판자: 항목 이름은 지진 글자, 장치는 판자에 박힌 나무·놋쇠
    숫자 = 플립 칸 + 나무 ◀▶(숫자 칸 왼쪽 절반을 눌러도 −, 오른쪽 절반은 +), 켜기·끄기 = 홈 속 놋쇠 손잡이(왼쪽 끄기·오른쪽 켜기),
    고르기 = 새긴 선택지 아래 홈을 미끄러지는 놋쇠 못. 방장만 바꿈(참가자는 금지 소리). 정해진 값과 다른 규칙은 이름 옆 붉은 인두 점.
-   ⚙ 탁자 설정: 게임 모드·인원·시간 같은 공통 항목. ⚙+ 세부 설정: 게임이 G.boardSet(c)로 넘긴 규칙 항목
+   ⚙ 탁자 설정: 관전 인원 같은 탁자 공통 항목. 🎲 게임 설정: 게임 모드·게임별 값·규칙(G.boardSet 포함)
    (맨 위 묶음 레버(대부호·오목) → 바꾸면 아래 항목이 한꺼번에 미끄러짐. 항목마다 act(v)가 패널 동작 문자열을 돌려주면 G.panelAct, 'tog:k'면 toggleRule) */
 const RS={CX:774,X0:0};
-function rbSetItems(){
+function rbSetItems(){   // main = 탁자 설정(관전 인원 등 탁자 공통), det = 게임 설정(게임 모드·게임별 값·규칙·G.boardSet)
   if(!V||!V.cfg)return {main:[],det:[]};
   const g=G,c=V.cfg,main=[],det=[];
   const D={max:4,spec:4,...g.defaults},skip=new Set(['max','spec','rounds','chips','turn','grace','tm','inc','stones']);
   const off=(k,v)=>!skip.has(k)&&D[k]!=null&&+D[k]!==+v;
-  if(!g.noFast){const v=+c.fast?1:0;main.push({kind:'choice',k:'fast',label:'게임 모드',opts:OPT_LABEL.fast,desc:(g.modeDesc||MODE_DESC).map((d,i)=>`${OPT_LABEL.fast[i]}: ${d}`).join('<br>'),v,diff:!!v,act:o=>'mode'+o})}
+  const common=new Set(COMMON_SET.map(d=>d.k));
+  if(!g.noFast){const v=+c.fast?1:0;det.push({kind:'choice',k:'fast',label:'게임 모드',opts:OPT_LABEL.fast,desc:(g.modeDesc||MODE_DESC).map((d,i)=>`${OPT_LABEL.fast[i]}: ${d}`).join('<br>'),v,diff:!!v,act:o=>'mode'+o})}
   for(const d of roomSetOf(g))if(!d.lever&&d.k!=='max'){   // 최대 인원은 의자 추가·빼기 키로 바꾸므로 판자에서 뺌
-    const v=+(c[d.k]??0);main.push({kind:'num',...d,v,diff:off(d.k,v)})}
+    const v=+(c[d.k]??0);(common.has(d.k)?main:det).push({kind:'num',...d,v,diff:off(d.k,v)})}
   if(g.boardSet)det.push(...g.boardSet(c));
-  else for(const d of g.ruleSet)if(!d.hidden){const v=+c[d.k]?1:0;main.push({kind:'tog',...d,v,diff:off(d.k,v),act:()=>'tog:'+d.k})}
+  else for(const d of g.ruleSet)if(!d.hidden){const v=+c[d.k]?1:0;det.push({kind:'tog',...d,v,diff:off(d.k,v),act:()=>'tog:'+d.k})}
   return {main,det};
 }
 function rbRowH(it){const two=RB.tall?it.kind!=='tog':it.kind==='choice'&&(it.opts.length>2||it.opts.join('').length>8);return {two,h:two?(RB.tall?206:150):(RB.tall?120:96),gap:RB.tall?16:16}}
-/* 판자 나누기: [{title, rows:[{it,y,two,h}]}]. ⚙ 묶음 다음에 ⚙+ 묶음은 새 판자부터 */
+/* 판자 나누기: [{title, rows:[{it,y,two,h}]}]. ⚙ 탁자 설정 묶음 다음에 🎲 게임 설정 묶음은 새 판자부터 */
 function rbSetPlanks(){
   const S=FR.rb,sets=rbSetItems(),key=JSON.stringify([V&&V.cfg,G.id,RB.L,mode,(V&&V.ps||[]).length,(V&&V.sv||[]).length]);
   if(rbSetPlanks.c&&rbSetPlanks.c.key===key)return rbSetPlanks.c.v;
   const H0=Math.round(RB.L*RB.PX),out=[];
-  for(const [grp,items,title] of [['main',sets.main,'탁자 설정'],['det',sets.det,'세부 설정']]){
+  for(const [grp,items,title] of [['main',sets.main,'탁자 설정'],['det',sets.det,'게임 설정']]){
     if(!items.length)continue;
     let cur={grp,title,rows:[]},y=RB.tall?200:178;
     for(const it of items){const {two,h,gap}=rbRowH(it);
@@ -288,12 +289,15 @@ function rbDraw(t){
 }
 function rbPages(){return FR.rb.mode==='list'?1:rbNSet()+rbPlanks(FR.rb.gid).length}
 function rbLen(){const S=FR.rb;if(S.mode==='list'||S.pg<rbNSet())return RB.L;const p=rbPlanks(S.gid)[S.pg-rbNSet()];return p?p.px/RB.PX:RB.L}
-/* 쪽 단추 그림: ⚙ / ⚙+ / 숫자 (원통 윗면이 90도 돌아 보여서 미리 반대로 돌려 그림) */
-function rbPgLabel(k,nS){if(k<nS){const P=rbSetPlanks()[k];return P.grp==='main'?(k&&!P.title?'⚙'+(k+1):'⚙'):'⚙+'}return String(k-nS+1)}
+/* 쪽 단추 그림: ⚙ / 🎲 / 숫자 (원통 윗면이 90도 돌아 보여서 미리 반대로 돌려 그림) */
+function rbPgLabel(k,nS){if(k<nS){const P=rbSetPlanks()[k];return P.grp==='main'?'⚙':'🎲'}return String(k-nS+1)}
 function rbPgPaint(b,lab,lit){
   const g=b.cv.getContext('2d');g.setTransform(1,0,0,1,0,0);g.fillStyle=lit?'#f2d08a':'#b8925a';g.fillRect(0,0,128,128);
   g.translate(64,64);g.rotate(-Math.PI/2);g.strokeStyle=g.fillStyle=lit?'#3b1d0b':'#4a2c14';
-  if(lab[0]==='⚙'){const plus=lab.length>1&&lab[1]==='+',cx=plus?-10:0,cy=plus?6:0,R=plus?28:34;
+  if(lab==='🎲'){   // 게임 설정: 주사위
+    g.lineWidth=11;g.lineJoin='round';rr(g,-34,-34,68,68,14);g.stroke();
+    for(const [x,y] of [[-16,-16],[16,16],[0,0],[16,-16],[-16,16]]){g.beginPath();g.arc(x,y,7,0,7);g.fill()}}
+  else if(lab[0]==='⚙'){const plus=lab.length>1&&lab[1]==='+',cx=plus?-10:0,cy=plus?6:0,R=plus?28:34;
     g.save();g.translate(cx,cy);g.lineWidth=plus?11:13;for(let a=0;a<8;a++){g.rotate(Math.PI/4);g.beginPath();g.moveTo(0,-R+4);g.lineTo(0,-R-10);g.stroke()}
     g.beginPath();g.arc(0,0,R-8,0,7);g.lineWidth=plus?10:12;g.stroke();g.beginPath();g.arc(0,0,plus?6:8,0,7);g.fill();g.restore();
     if(plus){g.lineWidth=12;g.lineCap='round';g.beginPath();g.moveTo(26,-40);g.lineTo(26,-12);g.moveTo(12,-26);g.lineTo(40,-26);g.stroke()}}
