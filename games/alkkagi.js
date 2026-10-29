@@ -343,7 +343,7 @@ G.roomSet=[
   {k:'stones',label:'알 개수',unit:'개',lo:1,hi:10,step:1,desc:'한 사람이 가지고 시작하는 알 수입니다 (오목 모드는 제한 없음)'},
   {k:'turn',label:'제한 시간',unit:'초',lo:10,hi:120,step:5,desc:'시간이 지나면 차례가 넘어갑니다'}];
 G.ruleSet=[
-  {k:'omok',label:'오목 모드',desc:'2명. 내 차례에 아무 점에 돌을 놓거나 내 돌을 튕겨, 판 위에 오목을 먼저 만들면 이깁니다. 돌 수 제한·뺏기는 없습니다'},
+  {k:'omok',label:'오목 모드',boardLabel:'게임 모드',named:['클래식','오목'],desc:'2명. 내 차례에 아무 점에 돌을 놓거나 내 돌을 튕겨, 판 위에 오목을 먼저 만들면 이깁니다. 돌 수 제한·뺏기는 없습니다'},
   {k:'again',label:'떨어뜨리면 한 번 더',desc:'다른 사람의 알을 떨어뜨리고 튕긴 내 알이 판에 남으면 한 번 더 튕깁니다 (오목 모드는 상대 돌을 떨어뜨리기만 하면)'},
   {k:'pickfirst',pick:1,label:'선 플레이어',desc:'선택: 방장이 대기실에서 선(먼저 놓고 먼저 튕길 사람)을 고릅니다. 무작위: 랜덤으로 정합니다'}];
 const nStones=c=>Math.max(1,Math.min(10,Math.round(+c.stones||5)));
