@@ -136,13 +136,10 @@ function padIcon(g,k){   // 192×128 칸에 그림 (상·의자 그림은 사용
   else if(k==='chairDn'){stump(78,52,36,46);L(15,140,70,180,70)}
   else if(k==='join'||k==='sit'){L(11,122,24,146,24,146,104,122,104);L(11,40,64,116,64);L(11,92,40,118,64,92,88)}
   else if(k==='leave'){L(11,70,24,46,24,46,104,70,104);L(11,72,64,148,64);L(11,124,40,150,64,124,88)}   // 문틀 밖으로 나가는 화살표
-  else if(k==='rset'){   // 탁자 설정·규칙: 펼친 두루마리 + 톱니바퀴
-    g.save();g.lineWidth=7;
-    rr(g,34,30,92,72,4);g.stroke();   // 종이
-    g.beginPath();g.ellipse(80,26,50,9,0,0,7);g.stroke();g.beginPath();g.ellipse(80,106,50,9,0,0,7);g.stroke();   // 위아래 말린 끝
-    L(6,52,50,108,50);L(6,52,66,100,66);L(6,52,82,86,82);   // 글줄
-    g.translate(134,84);g.fillStyle=bg;g.beginPath();g.arc(0,0,36,0,7);g.fill();g.fillStyle=ink;   // 톱니 자리 비우기
-    g.lineWidth=9;for(let a=0;a<8;a++){g.rotate(Math.PI/4);g.beginPath();g.moveTo(0,-20);g.lineTo(0,-31);g.stroke()}g.beginPath();g.arc(0,0,20,0,7);g.stroke();g.beginPath();g.arc(0,0,6,0,7);g.fill();g.restore()}
+  else if(k==='rset'){   // 탁자 설정: 톱니바퀴
+    g.save();g.translate(96,64);g.lineWidth=12;
+    for(let a=0;a<8;a++){g.rotate(Math.PI/4);g.beginPath();g.moveTo(0,-28);g.lineTo(0,-46);g.stroke()}
+    g.lineWidth=11;g.beginPath();g.arc(0,0,29,0,7);g.stroke();g.beginPath();g.arc(0,0,9,0,7);g.fill();g.restore()}
   else if(k==='rules'){   // 펼친 책
     L(8,96,30,96,108);L(8,96,30,72,20,40,22,40,100,72,98,96,108);L(8,96,30,120,20,152,22,152,100,120,98,96,108);
     L(5,52,42,82,46);L(5,52,58,82,62);L(5,52,74,82,78);L(5,110,46,140,42);L(5,110,62,140,58);L(5,110,78,140,74)}

@@ -81,7 +81,7 @@ buildBgSeg($('#segBg'));buildBgSeg($('#mBg'));
 function syncEmoSeg(){document.querySelectorAll('.emoseg button').forEach(b=>{const on=(b.dataset.v==='off')===emoOff;b.setAttribute('aria-pressed',on);b.setAttribute('aria-checked',on)})}
 function buildEmoSeg(box){
   box.setAttribute('role','radiogroup');box.setAttribute('aria-label','다른 사람 이모티콘');
-  box.innerHTML='<button type="button" role="radio" data-v="on">보기</button><button type="button" role="radio" data-v="off">끄기</button>';
+  box.innerHTML='<button type="button" role="radio" data-v="off">끄기</button><button type="button" role="radio" data-v="on">보기</button>';
   box.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const off=b.dataset.v==='off';if(off===emoOff)return;
     emoOff=off;store('gura-emo-off',off?'1':'0');if(off){$('#bubbles').querySelectorAll('.bubble.soft,.bubble.q').forEach(x=>x.remove());if(T&&T.bubbles)T.bubbles.filter(b=>b.kind==='q').forEach(killBubble)}syncEmoSeg();sfx('tick')});
 }

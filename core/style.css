@@ -87,6 +87,12 @@ body.nofs .fsbtn.cfg{right:58px}
 .menu-row{display:flex;gap:8px}
 .menu-vol{display:flex;align-items:center;gap:8px;padding:2px 2px}
 .menu-vol svg{width:20px;height:20px;flex:none}
+.mv-ic{flex:none;display:grid;place-items:center;width:24px;height:24px;margin:-2px;padding:0;border:0;border-radius:8px;background:none;color:inherit;cursor:pointer}
+.mv-ic:hover{background:var(--well)}
+.mv-ic .mslash{display:none}
+.mv-ic.muted{color:var(--muted)}
+.mv-ic.muted .mslash{display:inline}
+.menu-vol.muted input{opacity:.4}
 .menu-vol input{flex:1;accent-color:var(--gura);height:26px}
 .menu-vol .mv-t,.menu-bg .mv-t{font-size:12px;font-weight:600;color:var(--muted);width:62px;flex:none;white-space:nowrap}
 .menu-bg{display:flex;align-items:center;gap:8px;padding:2px 2px}

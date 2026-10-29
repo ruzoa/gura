@@ -85,7 +85,7 @@ function markNewCards(){document.querySelectorAll('#hand .card').forEach(c=>c.cl
 
 /* ================= 소리 (Web Audio로 직접 합성, 파일 없음) ================= */
 const volOf=(k,d)=>{const v=+store(k);return store(k)!=null&&v>=0&&v<=100?v:d};
-const SND={ctx:null,master:null,fx:null,bgm:null,noise:null,on:store('gura-sound')!=='off',vol:volOf('gura-vol',70),bgmVol:volOf('gura-bgm-vol',50)};
+const SND={ctx:null,master:null,fx:null,bgm:null,noise:null,on:store('gura-sound')!=='off',vol:volOf('gura-vol',70),bgmVol:volOf('gura-bgm-vol',50),fxMute:store('gura-vol-mute')==='1',bgmMute:store('gura-bgm-mute')==='1'};   // 음소거는 음량을 그대로 두고 아이콘으로만 켬·끔
 function audioOn(){
   if(!SND.ctx){
     const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
@@ -544,7 +544,7 @@ const BGM = {
 
       // 오디오가 켜져 있고, '구라!' 판정(reveal) 연출 중이 아닐 때만 연주
       // 게임이 자기 배경음악을 틀고 있으면(대부호 방) 쉼. 배경이 들판이면 들판 소리, 카페면 재즈
-      const ok = c && SND.on && SND.bgmVol > 0 && c.state === 'running' && !(V && V.st === 'reveal') && !(G.ownBgm && G.ownBgm());
+      const ok = c && SND.on && !SND.bgmMute && SND.bgmVol > 0 && c.state === 'running' && !(V && V.st === 'reveal') && !(G.ownBgm && G.ownBgm());
       const field = typeof GFX_ENV === 'undefined' || GFX_ENV !== 'cafe';
       if (c && SND.bgm) FIELD.set(c, ok && field, SND.bgm);
       if (ok && field) FIELD.step(c, c.currentTime + .03);

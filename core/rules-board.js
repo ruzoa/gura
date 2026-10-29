@@ -160,7 +160,8 @@ function rbSetItems(){
   const D={max:4,spec:4,...g.defaults},skip=new Set(['max','spec','rounds','chips','turn','grace','tm','inc','stones']);
   const off=(k,v)=>!skip.has(k)&&D[k]!=null&&+D[k]!==+v;
   if(!g.noFast){const v=+c.fast?1:0;main.push({kind:'choice',k:'fast',label:'게임 모드',opts:OPT_LABEL.fast,desc:(g.modeDesc||MODE_DESC).map((d,i)=>`${OPT_LABEL.fast[i]}: ${d}`).join('<br>'),v,diff:!!v,act:o=>'mode'+o})}
-  for(const d of roomSetOf(g))if(!d.lever){const v=+(c[d.k]??0);main.push({kind:'num',...d,v,diff:off(d.k,v)})}
+  for(const d of roomSetOf(g))if(!d.lever&&d.k!=='max'){   // 최대 인원은 의자 추가·빼기 키로 바꾸므로 판자에서 뺌
+    const v=+(c[d.k]??0);main.push({kind:'num',...d,v,diff:off(d.k,v)})}
   if(g.boardSet)det.push(...g.boardSet(c));
   else for(const d of g.ruleSet)if(!d.hidden){const v=+c[d.k]?1:0;main.push({kind:'tog',...d,v,diff:off(d.k,v),act:()=>'tog:'+d.k})}
   return {main,det};
@@ -226,7 +227,7 @@ function rbDrawSet(g,idx,t){
         g.fillStyle=down?'#9a6838':'#b07a45';rr(g,p.x,c.cy-bh/2+(down?4:0),p.w,bh,12);g.fill();
         g.strokeStyle='rgba(60,30,10,.6)';g.lineWidth=3;g.stroke();
         g.fillStyle=dis?'rgba(59,29,11,.3)':'#3b1d0b';const mx=p.x+p.w/2,my=c.cy+(down?4:0),s=a==='dec'?-1:1,ts=row.two?(T2?24:18):14;
-        g.beginPath();g.moveTo(mx+ts*s,my);g.lineTo(mx-ts*.7*s,my-ts*1.15);g.lineTo(mx-ts*.7*s,my+ts*1.15);g.closePath();g.fill()}
+        const bl=ts*2.1,bt=ts*.6;rr(g,mx-bl/2,my-bt/2,bl,bt,bt/2);g.fill();if(s>0)rr(g,mx-bt/2,my-bl/2,bt,bl,bt/2),g.fill()}   // − / +
       const C=c.cells,str=String(v).padStart(C.nd,' '),fk=(t-A.flip)/180,mid=fk>=0&&fk<1;if(mid)busy=true;
       for(let d=0;d<C.nd;d++){const x=C.x+d*(C.w+C.gap),fh=C.h,y0=c.cy-fh/2;
         g.fillStyle='#16100c';rr(g,x,y0,C.w,fh,8);g.fill();g.fillStyle='#231a14';rr(g,x,y0,C.w,fh/2,8);g.fill();g.fillRect(x,y0+fh/2-8,C.w,8);
@@ -361,6 +362,7 @@ function rbTag(it,x,y){
   const fr=$('#front').getBoundingClientRect();el.style.left=Math.round(Math.max(8,Math.min(x,fr.width-Math.min(300,fr.width*.8)-8)))+'px';el.style.top=Math.round(y)+'px';el.classList.remove('swing');void el.offsetWidth;el.classList.add('swing');
   clearTimeout(rbTag.tm);rbTag.tm=setTimeout(()=>{el.hidden=true},6000);sfx('paper');
 }
+document.addEventListener('pointerdown',e=>{const el=$('#rbTag');if(!el||el.hidden||e.target.closest('#rbTag'))return;el.hidden=true},true);   // 꼬리표 바깥을 누르면 닫힘 (이름을 다시 누르면 새로 걸림)
 /* 판자 그림 좌표 → 화면 좌표 */
 const _rbv=window.THREE?new THREE.Vector3():null;
 function rbScreen(xpx,ypx,W,Hh){const P=T.rb,len=P.plank.scale.y,hpx=len*RB.PX;_rbv.set((xpx/RB.CW-.5)*RB.W,.5-ypx/hpx,.045);P.plank.localToWorld(_rbv);_rbv.project(T.cam);return [(_rbv.x+1)/2*W,(1-_rbv.y)/2*Hh]}

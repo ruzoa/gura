@@ -503,6 +503,25 @@ function frontNeedSeats(){
   sfx('no');document.querySelectorAll('#labels .wseat.empty').forEach(el=>{el.classList.remove('need');void el.offsetWidth;el.classList.add('need')});
 }
 function frontNick(){$('#frNickV').textContent=myNick()}
+/* 첫 화면 닉네임: 이름표를 누르면 입력칸으로 바뀌고, Enter·바깥 누르기로 저장, Esc로 취소 */
+{
+  const b=$('#frNick'),inp=$('#frNickIn');
+  const done=ok=>{
+    if(inp.hidden)return;
+    if(ok){const v=inp.value.trim().slice(0,10)||'나';$('#inNick').value=v;saveNick();const s=$('#nickShow');if(s)s.textContent=v;document.querySelectorAll('.nickShow2').forEach(e=>e.textContent=v)}
+    inp.hidden=true;b.hidden=false;frontNick();
+  };
+  b.addEventListener('click',()=>{
+    if(mode!=='lobby')return;
+    inp.value=myNick();b.hidden=true;inp.hidden=false;inp.focus();inp.select();sfx('tick');
+  });
+  inp.addEventListener('keydown',e=>{
+    e.stopPropagation();
+    if(e.key==='Enter'){e.preventDefault();done(true)}
+    else if(e.key==='Escape'){e.preventDefault();done(false)}
+  });
+  inp.addEventListener('blur',()=>done(true));
+}
 $('#frTable').addEventListener('click',()=>{if(mode!=='lobby'||FR.warp||net.peer)return;FR.sit=true;sfx('tick')});
 /* 탁자 이름: 홀로그램 맨 위. 방장이 누르면 바로 고침 */
 $('#holoTitle').addEventListener('click',()=>{
