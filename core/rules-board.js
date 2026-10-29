@@ -145,14 +145,14 @@ function rbWood(g,w,h,seed){
 function rbCarve(g,txt,x,y,size,align){g.font=`${size}px ${RB_HEAD}`;g.textAlign=align;g.textBaseline='alphabetic';g.fillStyle='rgba(255,226,180,.75)';g.fillText(txt,x,y+3);g.fillStyle='#2a160a';g.fillText(txt,x,y)}
 function rbBurn(g,draw){g.save();g.shadowColor='rgba(100,45,10,.55)';g.shadowBlur=5;g.fillStyle='#3b1d0b';draw();g.restore()}
 /* 설정 판자: 항목 이름은 지진 글자, 장치는 판자에 박힌 나무·놋쇠
-   숫자 = 플립 칸 + 나무 ◀▶(숫자 칸 왼쪽 절반을 눌러도 −, 오른쪽 절반은 +), 켜기·끄기 = 스위치(파인 홈 + 동그란 놋쇠 손잡이: 왼쪽 끝 끄기·홈 어두움, 오른쪽 끝 켜기·홈 밝음, 손잡이 왼쪽 홈이 밝아짐),
-   고르기(양쪽 다 이름이 있는 선택) = 플립 칸(왼쪽 절반 이전 값·오른쪽 절반 다음 값, 처음·끝은 이어 돎). 방장만 바꿈(참가자는 금지 소리). 정해진 값과 다른 규칙은 이름 옆 붉은 인두 점.
+   숫자 = 플립 칸 + 나무 ◀▶(숫자 칸 왼쪽 절반을 눌러도 −, 오른쪽 절반은 +), 켜기·끄기 = 스위치(판자에 파낸 홈 + 동그란 놋쇠 손잡이: 왼쪽 끝 끄기·홈은 그늘진 나무, 오른쪽 끝 켜기·홈은 꿀빛, 손잡이 왼쪽 홈이 밝아짐),
+   고르기(양쪽 다 이름이 있는 선택) = 플립 칸(왼쪽 절반 이전 값·오른쪽 절반 다음 값, 처음·끝은 이어 돎, 눌러도 값이 그대로인 칸(묶음과 같은 커스텀)은 건너뜀). 방장만 바꿈(참가자는 금지 소리). 정해진 값과 다른 규칙은 이름 옆 붉은 인두 점.
    ⚙ 탁자 설정: 관전 인원 같은 탁자 공통 항목. 🎲 게임 설정: 게임 모드·게임별 값·규칙(G.boardSet 포함)
    (맨 위 묶음 플립(대부호·오목의 규칙) → 바꾸면 아래 항목이 한꺼번에 바뀜. 항목마다 act(v)가 패널 동작 문자열을 돌려주면 G.panelAct, 'tog:k'면 toggleRule) */
 const RS={CX:774,X0:0};
-function rbSetItems(){   // main = 탁자 설정(관전 인원 등 탁자 공통), det = 게임 설정(게임 모드·게임별 값·규칙·G.boardSet)
-  if(!V||!V.cfg)return {main:[],det:[]};
-  const g=G,c=V.cfg,main=[],det=[];
+function rbSetItems(c0){   // c0: 이 방 설정으로 계산(없으면 지금 화면 V.cfg). main = 탁자 설정(관전 인원 등 탁자 공통), det = 게임 설정(게임 모드·게임별 값·규칙·G.boardSet)
+  if(!c0&&(!V||!V.cfg))return {main:[],det:[]};
+  const g=G,c=c0||V.cfg,main=[],det=[];
   const D={max:4,spec:4,...g.defaults},skip=new Set(['max','spec','rounds','chips','turn','grace','tm','inc','stones']);
   const off=(k,v)=>!skip.has(k)&&D[k]!=null&&+D[k]!==+v;
   const common=new Set(COMMON_SET.map(d=>d.k));
@@ -204,8 +204,8 @@ function rbCtl(row){
   }else if(it.kind==='tog'){const w=T2?190:150;o.sw={x:R-w,w,h:T2?66:52};o.parts=[{a:'tog',x:R-w-40,w:w+40}]}
   else{   // 고르기: 플립 칸 하나. 왼쪽 절반을 누르면 이전 값, 오른쪽 절반은 다음 값(처음·끝은 이어 돎)
     const nch=Math.max(1,...it.opts.map(x=>String(x).length)),capW=row.two?R-L0:Math.round((R-L0)*.55);
-    let fs=row.two?(T2?50:40):(T2?44:38);while(fs>24&&nch*fs+96>capW)fs-=2;
-    const w=Math.max(170,Math.min(capW,nch*fs+96)),x=row.two?Math.round((L0+R)/2-w/2):R-w;
+    let fs=row.two?(T2?50:40):(T2?44:38);while(fs>24&&nch*fs+56>capW)fs-=2;
+    const w=Math.max(row.two?Math.round((R-L0)*.5):150,Math.min(capW,nch*fs+56)),x=row.two?Math.round((L0+R)/2-w/2):R-w;   // 세로 화면(두 줄)은 플립 칸 폭을 맞춤
     o.cell={x,w,h:T2?108:84,fs};o.parts=[{a:'prev',x,w:w/2},{a:'next',x:x+w/2,w:w/2}]}
   o.name={x:L0,w:row.two?R-L0:(Math.min(...o.parts.map(p=>p.x),o.btn?o.btn.dec.x:1e9)-L0-16)};
   return o;
@@ -242,25 +242,25 @@ function rbDrawSet(g,idx,t){
         const ch=str[d];if(ch&&ch!==' '){g.save();g.fillStyle='#f6ecd8';g.textAlign='center';g.textBaseline='middle';g.font=`${Math.round(fh*.76)}px "Black Han Sans","Jua",sans-serif`;
           if(mid){g.translate(x+C.w/2,y0+fh/2+3);g.scale(1,Math.abs(Math.cos(fk*Math.PI))*.8+.2);g.globalAlpha=.85;g.fillText(fk<.5?String(A.from).padStart(C.nd,' ')[d]||'':ch,0,0)}else g.fillText(ch,x+C.w/2,y0+fh/2+3);g.restore()}}
       if(it.unit)rbBurn(g,()=>{g.font=`${T2?46:40}px ${RB_BODY}`;g.textAlign='left';g.textBaseline='middle';g.fillText(it.unit,c.unit[0],c.unit[1]+3)});
-    }else if(it.kind==='tog'){   // 스위치: 파인 홈 + 동그란 놋쇠 손잡이. 손잡이 왼쪽 홈은 밝고 오른쪽은 어두움(오른쪽 끝 = 켜짐 = 홈 전체 밝음)
+    }else if(it.kind==='tog'){   // 스위치: 판자에 파낸 홈 + 동그란 놋쇠 손잡이. 손잡이 왼쪽 홈은 밝고(꿀빛) 오른쪽은 어두움(그늘진 나무) → 오른쪽 끝 = 켜짐 = 홈 전체 밝음
       const S2=c.sw,gx=S2.x,gw=S2.w,gh=S2.h,gy=c.cy-gh/2,p=A.from+(v-A.from)*e,m=5,kr=gh/2-m,kx=gx+m+kr+(gw-2*(m+kr))*p,lit=kx+(kr+m)*(2*p-1);
+      g.fillStyle='rgba(255,235,200,.35)';rr(g,gx-2,gy+2,gw+4,gh+2,gh/2+2);g.fill();   // 파낸 자리 아래쪽 밝은 턱
       g.save();rr(g,gx,gy,gw,gh,gh/2);g.clip();
-      g.fillStyle='#1b100a';g.fillRect(gx,gy,gw,gh);   // 어두운 홈
-      if(lit>gx){const lg=g.createLinearGradient(0,gy,0,gy+gh);lg.addColorStop(0,'#f7cf63');lg.addColorStop(1,'#d99a22');g.fillStyle=lg;g.fillRect(gx,gy,lit-gx,gh);   // 밝은 쪽
-        g.shadowColor='rgba(255,196,70,.9)';g.shadowBlur=14;g.fillStyle='rgba(255,226,140,.55)';g.fillRect(lit-3,gy+4,3,gh-8);g.shadowBlur=0}
-      const sh=g.createLinearGradient(0,gy,0,gy+gh*.5);sh.addColorStop(0,'rgba(0,0,0,.55)');sh.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=sh;g.fillRect(gx,gy,gw,gh*.5);   // 파인 홈 안쪽 위 그림자
-      g.restore();g.strokeStyle='rgba(30,14,5,.85)';g.lineWidth=4;rr(g,gx,gy,gw,gh,gh/2);g.stroke();
-      const grd=g.createRadialGradient(kx-kr*.35,c.cy-kr*.4,kr*.15,kx,c.cy,kr+2);grd.addColorStop(0,'#f6dc9c');grd.addColorStop(1,'#a77b3e');
-      g.fillStyle='rgba(0,0,0,.45)';g.beginPath();g.arc(kx+2,c.cy+4,kr,0,7);g.fill();g.fillStyle=grd;g.beginPath();g.arc(kx,c.cy,kr,0,7);g.fill();g.strokeStyle='#5a3a1c';g.lineWidth=3;g.stroke();
+      const dk=g.createLinearGradient(0,gy,0,gy+gh);dk.addColorStop(0,'#4a2610');dk.addColorStop(1,'#6b3a19');g.fillStyle=dk;g.fillRect(gx,gy,gw,gh);   // 어두운 홈: 그늘진 나무
+      g.strokeStyle='rgba(30,12,4,.25)';g.lineWidth=2;for(let q=1;q<4;q++){g.beginPath();g.moveTo(gx,gy+gh*q/4+Math.sin(q*2.1)*2);g.lineTo(gx+gw,gy+gh*q/4-Math.sin(q*1.3)*2);g.stroke()}   // 홈 바닥 나뭇결
+      if(lit>gx){const lg=g.createLinearGradient(0,gy,0,gy+gh);lg.addColorStop(0,'#e7a948');lg.addColorStop(1,'#f6cf7c');g.fillStyle=lg;g.fillRect(gx,gy,lit-gx,gh);   // 밝은 홈: 꿀빛
+        const gl=g.createRadialGradient(lit,c.cy,2,lit,c.cy,gh*.9);gl.addColorStop(0,'rgba(255,236,170,.55)');gl.addColorStop(1,'rgba(255,236,170,0)');g.fillStyle=gl;g.fillRect(gx,gy,lit-gx,gh)}
+      const sh=g.createLinearGradient(0,gy,0,gy+gh*.55);sh.addColorStop(0,'rgba(40,16,4,.6)');sh.addColorStop(1,'rgba(40,16,4,0)');g.fillStyle=sh;g.fillRect(gx,gy,gw,gh*.55);   // 파낸 홈 위쪽 그늘
+      g.restore();g.strokeStyle='rgba(70,32,10,.75)';g.lineWidth=3;rr(g,gx,gy,gw,gh,gh/2);g.stroke();
+      const grd=g.createRadialGradient(kx-kr*.35,c.cy-kr*.4,kr*.15,kx,c.cy,kr+2);grd.addColorStop(0,'#f6dc9c');grd.addColorStop(.7,'#c2924f');grd.addColorStop(1,'#8f6430');
+      g.fillStyle='rgba(40,16,4,.45)';g.beginPath();g.arc(kx+2,c.cy+4,kr,0,7);g.fill();g.fillStyle=grd;g.beginPath();g.arc(kx,c.cy,kr,0,7);g.fill();g.strokeStyle='#5a3a1c';g.lineWidth=3;g.stroke();
+      g.strokeStyle='rgba(90,58,28,.5)';g.lineWidth=2;g.beginPath();g.arc(kx,c.cy,kr*.55,0,7);g.stroke();   // 놋쇠 단추처럼 안쪽 테
     }else{   // 고르기: 플립 칸 (누르면 값이 넘어감)
       const C=c.cell,y0=c.cy-C.h/2,fk=(t-A.at)/200,mid=fk>=0&&fk<1;if(mid)busy=true;
       g.fillStyle='#16100c';rr(g,C.x,y0,C.w,C.h,10);g.fill();g.fillStyle='#231a14';rr(g,C.x,y0,C.w,C.h/2,10);g.fill();g.fillRect(C.x,y0+C.h/2-8,C.w,8);
       g.fillStyle='rgba(0,0,0,.55)';g.fillRect(C.x,y0+C.h/2-1.5,C.w,3);
-      g.fillStyle='rgba(246,236,216,.28)';const ty=C.h*.16,tx=C.h*.14;   // 양끝 ◀ ▶ 표시
-      g.beginPath();g.moveTo(C.x+12+tx,c.cy-ty);g.lineTo(C.x+12,c.cy);g.lineTo(C.x+12+tx,c.cy+ty);g.fill();
-      g.beginPath();g.moveTo(C.x+C.w-12-tx,c.cy-ty);g.lineTo(C.x+C.w-12,c.cy);g.lineTo(C.x+C.w-12-tx,c.cy+ty);g.fill();
       g.save();g.fillStyle='#f6ecd8';g.textAlign='center';g.textBaseline='middle';g.font=`${C.fs}px "Black Han Sans","Jua",sans-serif`;
-      g.beginPath();g.rect(C.x+12+tx+4,y0,C.w-2*(12+tx+4),C.h);g.clip();
+      g.beginPath();g.rect(C.x+10,y0,C.w-20,C.h);g.clip();
       g.translate(C.x+C.w/2,c.cy+3);if(mid){g.scale(1,Math.abs(Math.cos(fk*Math.PI))*.8+.2);g.globalAlpha=.85}
       g.fillText(String(it.opts[mid&&fk<.5?A.from:v]??''),0,0);g.restore();
     }
@@ -366,7 +366,10 @@ function rbSetAct(k,a){
   FR.rb.press={k,a,at:clock()};
   if(it.kind==='num'){const v=it.v,nv=v+(a==='inc'?it.step:-it.step);if((a==='dec'&&v<=rbLo(it))||(a==='inc'&&v>=it.hi)){sfx('no');return false}setRoomCfg(k,nv);sfx('flap');return true}
   if(it.kind==='tog'){rbRun(it.act(it.v?0:1));sfx('lock');return}
-  if(a==='prev'||a==='next'){const n=it.opts.length,o=(it.v+(a==='next'?1:n-1))%n;if(o===it.v)return;rbRun(it.act(o));sfx('flap')}   // 처음·끝은 이어 돎
+  if(a==='prev'||a==='next'){   // 처음·끝은 이어 돎. 눌렀는데 값이 그대로면(커스텀이 묶음과 같아 되돌아옴 등) 한 칸 더 넘김
+    const n=it.opts.length,d=a==='next'?1:n-1,now=()=>{const x=rbSetItems(H.cfg);return ([...x.main,...x.det].find(y=>y.k===k)||{}).v};
+    for(let s2=1;s2<n;s2++){const o=(it.v+d*s2)%n;rbRun(it.act(o));if(now()!==it.v){sfx('flap');return}}
+    return}
 }
 const RBH={timer:null};
 function rbHoldStop(){clearTimeout(RBH.timer);RBH.timer=null}
