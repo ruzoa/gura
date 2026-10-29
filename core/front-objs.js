@@ -670,8 +670,9 @@ $('#cv').addEventListener('click',e=>{
 /* 고개 돌리기 입력: 탁자 바깥(위쪽 배경·탁자 가장자리 바깥)에서 시작한 한 손가락(마우스는 왼쪽 버튼) 드래그. 탁자 위는 게임이 쓰므로 건드리지 않음.
    놓으면 1초 뒤 천천히 정중앙으로 돌아옴 (viewStep). 끌고 난 뒤 생기는 click은 탁자 밖 누르기(떠나기)로 치지 않음(VW.movedAt) */
 {
-  const st=$('#stage'),rc=new THREE.Raycaster(),pl=new THREE.Plane(new THREE.Vector3(0,1,0),0),pt=new THREE.Vector3();
-  const outside=e=>{const r=st.getBoundingClientRect();rc.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},T.cam);return !rc.ray.intersectPlane(pl,pt)||Math.hypot(pt.x,pt.z)>4.94}   // 탁자 바깥을 눌렀는지
+  // three.js를 못 불러온 기기(2D 화면)에서도 아래 설정(카메라 감도)은 붙어야 하므로 THREE가 없으면 고개 돌리기만 끔
+  const st=$('#stage'),H3=!!window.THREE,rc=H3?new THREE.Raycaster():null,pl=H3?new THREE.Plane(new THREE.Vector3(0,1,0),0):null,pt=H3?new THREE.Vector3():null;
+  const outside=e=>{if(!rc||!T.cam)return false;const r=st.getBoundingClientRect();rc.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},T.cam);return !rc.ray.intersectPlane(pl,pt)||Math.hypot(pt.x,pt.z)>4.94}   // 탁자 바깥을 눌렀는지
   const move=dx=>{VW.ty=Math.max(-VW.max,Math.min(VW.max,VW.ty+dx*.005*VW.sens/100))};   // 오른쪽으로 끌면 장면이 따라 오른쪽으로 → 고개는 왼쪽
   st.addEventListener('pointerdown',e=>{
     if(!FR.camOk||(e.pointerType==='mouse'&&e.button!==0)||(e.target.id!=='cv'&&e.target!==st)||!outside(e))return;
