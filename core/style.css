@@ -506,9 +506,12 @@ body.fs .info{display:none}
 body.kb .card.cur.match::after{top:-28px}
 .fan .card.sel{--ly:-30px}
 /* 가리키면(마우스 올림·터치 닿음) 살짝만 올라오고(.hov) 나머지 카드는 JS가 --sp로 벌려 줌(applySpread). 터치로 꾹 누르면 크게 올라와서 손가락에 안 가림(.peek) */
-.fan.hot .card{--hl:-5px}
-.fan .card.hov{--hl:-14px}   /* 가리킨 카드는 다른 카드보다 조금 더 */
-.fan.hot .card.faded,.fan .card.hov.faded,.fan .card.hov.peek{--hl:0px}
+.fan.hot .card{--hl:calc(-1 * var(--hot,0px))}   /* 가리키면 모든 카드가 화면 안으로 다 올라옴(--hot은 layoutFan이 정함) */
+.fan.hot .card.hov{--hl:calc(-1 * var(--hot,0px) - 10px)}   /* 가리킨 카드는 조금 더 */
+.fan.hot .card.hov.faded,.fan.hot .card.hov.peek{--hl:calc(-1 * var(--hot,0px))}
+.actions,.myplate{transition:bottom .16s ease-out}
+.stage.fanhot .actions{bottom:calc(var(--actB,14px) + var(--fanUpA,0px))}
+.stage.fanhot .myplate{bottom:calc(var(--plateB,14px) + var(--fanUpA,0px))}
 .fan .card.peek{--ly:-34px;z-index:90!important;transition:transform .12s ease-out}
 .fan .card.sel.peek{--ly:-58px}
 @media (hover:none) and (pointer:coarse){

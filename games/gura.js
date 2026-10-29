@@ -484,8 +484,9 @@ function midLayout(){
   const fh=+T.fanH||0,n=$('#hand').children.length,side=(st.style.getPropertyValue('--plateB')||'').trim()==='14px';
   const ah=$('#actions').offsetHeight||0,aS=+st.style.getPropertyValue('--actS')||1;
   const midB=n?fh+6:14,plateB=side||!n?14:Math.round(midB+ah*aS+10);
-  const key=midB+':'+plateB;if(key===midKey)return;midKey=key;
-  st.style.setProperty('--gMidB',midB+'px');st.style.setProperty('--gPlateB',plateB+'px');
+  const pu=side||!n?0:(FAN.up||0);   // 손패 위에 놓인 내 정보 칸은 카드가 올라오는 만큼 같이(.fanhot)
+  const key=midB+':'+plateB+':'+pu;if(key===midKey)return;midKey=key;
+  st.style.setProperty('--gMidB',midB+'px');st.style.setProperty('--gPlateB',plateB+'px');st.style.setProperty('--gPlateUp',pu+'px');
 }
 G.afterFan=midLayout;   // 손패가 모서리 위치에 맞춰 다시 놓이면(창 크기·카메라 변화) 버튼 줄도 다시 맞춤
 G.buttons=()=>{
@@ -583,7 +584,7 @@ G.leave=()=>{
   lastPileN=-1;lastPileNum=null;
   for(const c of GLOW.on)if(c.userData.glow){c.remove(c.userData.glow);c.userData.glow=null}
   GLOW.on=[];const cv=$('#cv');if(cv)cv.style.cursor='';
-  const st=$('#stage');st.insertBefore($('#numpick'),$('#me'));st.style.removeProperty('--gMidB');st.style.removeProperty('--gPlateB');midKey='';
+  const st=$('#stage');st.insertBefore($('#numpick'),$('#me'));st.style.removeProperty('--gMidB');st.style.removeProperty('--gPlateB');st.style.removeProperty('--gPlateUp');midKey='';
 };
 /* 처음 한 번: 휠·구라! 버튼 */
 G.init=()=>{
@@ -593,6 +594,8 @@ G.init=()=>{
   css.textContent=`
 .stage.gmid .actions{display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"w w" "p g";gap:8px 10px;width:min(320px,calc(100% - 20px));left:50%;right:auto;bottom:var(--gMidB,14px);transform:translateX(-50%) scale(var(--actS,1));transform-origin:50% 100%;pointer-events:none}
 .stage.gmid .myplate{bottom:var(--gPlateB,var(--plateB,14px))}
+.stage.gmid.fanhot .actions{bottom:calc(var(--gMidB,14px) + var(--fanUp,0px))}
+.stage.gmid.fanhot .myplate{bottom:calc(var(--gPlateB,var(--plateB,14px)) + var(--gPlateUp,0px))}
 .stage.gmid .actions .act,.stage.gmid .actions .numwheel{pointer-events:auto}
 .stage.gmid .actions .act{flex:none;min-width:0;height:60px;font-size:23px;padding:0 8px}
 .stage.gmid .actions .act-gura{font-size:25px}

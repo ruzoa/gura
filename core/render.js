@@ -60,7 +60,7 @@ function renderMe(){
   renderButtons();
 }
 /* 부채꼴 배치: 카드마다 아래쪽 먼 점을 축으로 조금씩 회전 */
-const FAN={n:0,stepPx:20,half:30,R:600,k:1,S:0,zoneH:0},FOC={i:-1};
+const FAN={n:0,stepPx:20,half:30,R:600,k:1,S:0,zoneH:0,up:0},FOC={i:-1};
 let lastFanH=-1;
 function layoutFan(){
   const fan=$('#hand'),st=$('#stage'),cards=[...fan.children],n=cards.length;
@@ -95,6 +95,9 @@ function layoutFan(){
   // 카드 아래 위치(--b): 모서리 걸치기는 가운데 카드의 가운데 높이(44)가 테이블 모서리(화면 아래에서 T.edgeB px 위)에 오게. 양 끝은 drop/2만큼 아래, 가운데는 drop/2만큼 위
   const eb=edge?T.edgeB:0,bb=edge?eb/k-44+drop/2:(coarse?2:10)+drop;
   fan.style.setProperty('--R',R+'px');fan.style.setProperty('--k',k);fan.style.setProperty('--b',bb.toFixed(1)+'px');
+  // 가리키면 모든 카드가 화면 안으로 다 올라옴: 가장 낮은 양 끝 카드의 아래 모서리까지 화면 아래에서 6px 위로 (카드 기준 px)
+  const hot=edge&&n?Math.max(0,Math.ceil(drop+30*Math.sin(half)+6-bb)):0;
+  fan.style.setProperty('--hot',hot+'px');FAN.up=Math.round(hot*k);
   const fh=n?Math.round(edge?eb+(44+drop/2+(coarse?24:46))*k:(88+drop+(coarse?24:46))*k):0;
   FAN.zoneH=fh;
   fan.style.setProperty('--fh',(fh/k)+'px');
@@ -105,20 +108,24 @@ function layoutFan(){
     const hv=((R+44)*Math.sin(half)+30*Math.cos(half)+88*Math.sin(half))*k,gap=28;   // 손패 반폭(양 끝 카드가 기운 만큼 포함)
     aR=Math.max(14,Math.round(W/2-hv-gap-aW));mL=Math.max(12,Math.round(W/2-hv-gap-mW));
   }
+  // 손패 위에 놓인 버튼·내 정보는 카드가 올라오는 만큼 같이 올라감(.fanhot). 손패 옆에 놓였으면 그대로
+  st.style.setProperty('--fanUp',FAN.up+'px');st.style.setProperty('--fanUpA',(wide?0:FAN.up)+'px');
   st.style.setProperty('--actR',aR+'px');st.style.setProperty('--plateL',mL+'px');st.style.setProperty('--actS',aS);
   st.style.setProperty('--plateB',(wide||!n?14:fh+66)+'px');
   st.style.setProperty('--actB',(wide||!n?14:fh+6)+'px');
   if(fh!==lastFanH){lastFanH=fh;T.fanH=fh;if(T.ok)resize3D()}
-  if(FOC.i>=n)FOC.i=-1;
+  if(FOC.i>=n||!S)FOC.i=-1;   // 다른 게임으로 바뀌었거나 카드가 줄면 벌어짐 해제
+  // 키보드 커서(A·D)로 고르는 중이면 커서 카드를 가리킨 것으로 → 모서리에 걸쳐 반쯤 숨은 카드도 다 올라와 읽힘
+  else if(document.body.classList.contains('kb')&&curId!=null){const j=cards.findIndex(c=>+c.dataset.id===curId);if(j>=0)FOC.i=j}
   applySpread();   // 손패가 다시 만들어지거나 크기가 바뀌어도 벌어짐 상태를 그대로 이어서 적용
   if(typeof G!=='undefined'&&G&&G.afterFan)G.afterFan();
 }
-/* 손패 벌어짐: 가리킨 카드(FOC.i)는 제자리에서 살짝만 올라오고, 왼쪽 카드는 왼쪽으로 오른쪽 카드는 오른쪽으로 모두 벌어짐
+/* 손패 벌어짐: 가리키면 모든 카드가 화면 안으로 다 올라오고(--hot) 가리킨 카드(FOC.i)는 10px 더, 왼쪽 카드는 왼쪽으로 오른쪽 카드는 오른쪽으로 모두 벌어짐
    가까운 카드일수록 더 벌어지고(독처럼) 멀리 있는 카드도 조금은 벌어짐. 모서리 글자가 가린 카드를 읽을 수 있게 하는 것이 목적.
    가리키는 카드는 벌어지기 전 '원래 자리' 가로 위치(fanIdxAt)로 정함 → 카드가 움직여도 경계에서 떨리지 않음 */
 function applySpread(){
   const cards=[...$('#hand').children],f=FOC.i;
-  $('#hand').classList.toggle('hot',f>=0);   // 가리키면 모든 카드가 살짝 올라옴
+  $('#hand').classList.toggle('hot',f>=0);$('#stage').classList.toggle('fanhot',f>=0);   // 가리키면 모든 카드가 화면 안으로 올라옴
   cards.forEach((c,j)=>{
     const d=j-f;
     if(f<0||d===0){c.style.removeProperty('--sp');c.classList.toggle('hov',f>=0&&d===0);return}
@@ -354,7 +361,6 @@ const DRAG={el:null,x:0,y:0,on:false,rest:null,cards:[],off:[],one:null,gt:0,sup
 function dragClear(){clearTimeout(DRAG.gt);for(const c of DRAG.cards){c.classList.remove('drag','gath','go');for(const v of ['--dx','--dy','--ra'])c.style.removeProperty(v)}DRAG.el=null;DRAG.on=false;DRAG.cards=[];DRAG.off=[];DRAG.one=null}
 /* 끌기 시작: 끄는 카드는 기울기를 펴고 잡은 카드 옆으로 촘촘하게 모임(잡은 카드는 손 아래 그대로) */
 function dragBegin(b){
-  setFocus(-1);
   const cs=[...$('#hand').children];let l=1e9,t=1e9,r=-1e9,bt=-1e9;
   for(const c of cs){const q=c.getBoundingClientRect();l=Math.min(l,q.left);t=Math.min(t,q.top);r=Math.max(r,q.right);bt=Math.max(bt,q.bottom)}
   DRAG.rest={l,t,r,b:bt};DRAG.on=true;
@@ -424,12 +430,15 @@ $('#hand').addEventListener('pointerover',e=>{if(e.pointerType!=='touch')seeNewC
 /* 마우스: 카드에 올리면 그 카드 기준으로 벌어짐. 한 번 올리면 손패 띠(카드가 놓인 가로·세로 범위)를 벗어날 때까지 이어짐(카드 사이 틈·벌어진 틈에서 풀리지 않게) */
 document.addEventListener('pointermove',e=>{
   if(e.pointerType==='touch')return;
-  if(!FAN.n||!FAN.S||DRAG.el||DRAG.on){if(FOC.i>=0)setFocus(-1);return}
+  if(!FAN.n||!FAN.S){if(FOC.i>=0)setFocus(-1);return}
+  if(DRAG.el||DRAG.on)return;   // 누르고 있거나 끄는 동안은 올라온 그대로 (끌기 자리 재기가 흔들리지 않게)
   const t=e.target,onCard=!!(t&&t.closest&&t.closest('#hand .card'));
+  // 올라온 동안 손패 위·옆의 버튼·자음 휠·내 정보로 옮겨 가면 그대로 둠 → 버튼이 내려가며 마우스에서 달아나지 않음
+  if(FOC.i>=0&&t&&t.closest&&t.closest('#actions,#numpick,#me'))return;
   if(FOC.i<0&&!onCard)return;
   const st=$('#stage').getBoundingClientRect(),cx=st.left+st.width/2;
   const halfW=(FAN.n-1)*FAN.stepPx/2+FAN.half+FAN.S*1.7+6;
-  const inZone=e.clientY>=st.bottom-FAN.zoneH&&e.clientY<=st.bottom&&Math.abs(e.clientX-cx)<=halfW&&!(t&&t.closest&&t.closest('button,.panel,#me,#actions'));
+  const inZone=e.clientY>=st.bottom-FAN.zoneH-(FOC.i>=0?FAN.up:0)&&e.clientY<=st.bottom&&Math.abs(e.clientX-cx)<=halfW&&!(t&&t.closest&&t.closest('button,.panel'));
   if(!onCard&&!inZone){setFocus(-1);return}
   setFocus(fanIdxAt(e.clientX));
 });
