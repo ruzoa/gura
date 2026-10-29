@@ -391,9 +391,12 @@ function renderPileNum(){
 }
 /* 선언 자음 가로 휠: 고른 자음 + 양옆 하나씩 (왼쪽 = 이전 자음) */
 const WH_W=52;   // 자음 칸 너비(px). G.init의 CSS가 이 값으로 칸·보이는 창 너비를 정함
-/* 세로 화면(.gport)이면 자음 휠을 버튼 옆에 세로로 세움 */
+/* 세로 화면(.gport)이면 자음 휠을 화면 오른쪽 가운데에 세로로 세움 */
 const WH_H=40;
-function syncPort(){const st=$('#stage'),p=st.clientHeight>st.clientWidth;if(st.classList.contains('gport')!==p){st.classList.toggle('gport',p);midKey='';return true}return false}
+/* 세로 화면에서는 휠을 버튼 줄 밖(화면 오른쪽 가운데)으로 꺼내고, 아니면 버튼 줄 안으로 */
+function syncPort(){const st=$('#stage'),p=st.clientHeight>st.clientWidth,np=$('#numpick'),home=p?st:$('#actions');
+  if(np.parentNode!==home){if(p)st.insertBefore(np,$('#me'));else home.appendChild(np)}
+  if(st.classList.contains('gport')!==p){st.classList.toggle('gport',p);midKey='';return true}return false}
 function renderWheel(){
   syncPort();
   const port=$('#stage').classList.contains('gport');
@@ -488,12 +491,10 @@ function midLayout(){
   const st=$('#stage');if(!st.classList.contains('gmid'))return;
   if(syncPort()&&$('#numpick').querySelector('.wh-list'))renderWheel();
   const fh=+T.fanH||0,n=$('#hand').children.length,side=(st.style.getPropertyValue('--plateB')||'').trim()==='14px';
-  // 세로 화면은 휠이 버튼 옆(오른쪽)에 세로로 서므로 내 정보 칸은 버튼 높이만큼만 위로
-  const port=st.classList.contains('gport'),ah=(port?$('#btnPass').offsetHeight:$('#actions').offsetHeight)||0,aS=+st.style.getPropertyValue('--actS')||1;
+  const port=st.classList.contains('gport'),ah=$('#actions').offsetHeight||0,aS=+st.style.getPropertyValue('--actS')||1;
   const midB=n?fh+6:14,plateB=side||!n?14:Math.round(midB+ah*aS+10);
-  const pu=side||!n?0:(FAN.up||0);   // 손패 위에 놓인 내 정보 칸은 카드가 올라오는 만큼 같이(.fanhot)
-  const key=midB+':'+plateB+':'+pu+':'+port;if(key===midKey)return;midKey=key;
-  st.style.setProperty('--gMidB',midB+'px');st.style.setProperty('--gPlateB',plateB+'px');st.style.setProperty('--gPlateUp',pu+'px');
+  const key=midB+':'+plateB+':'+port;if(key===midKey)return;midKey=key;
+  st.style.setProperty('--gMidB',midB+'px');st.style.setProperty('--gPlateB',plateB+'px');
 }
 G.afterFan=midLayout;   // 손패가 모서리 위치에 맞춰 다시 놓이면(창 크기·카메라 변화) 버튼 줄도 다시 맞춤
 G.buttons=()=>{
@@ -591,7 +592,7 @@ G.leave=()=>{
   lastPileN=-1;lastPileNum=null;
   for(const c of GLOW.on)if(c.userData.glow){c.remove(c.userData.glow);c.userData.glow=null}
   GLOW.on=[];const cv=$('#cv');if(cv)cv.style.cursor='';
-  const st=$('#stage');st.insertBefore($('#numpick'),$('#me'));st.style.removeProperty('--gMidB');st.style.removeProperty('--gPlateB');st.style.removeProperty('--gPlateUp');st.classList.remove('gport');midKey='';
+  const st=$('#stage');st.insertBefore($('#numpick'),$('#me'));st.style.removeProperty('--gMidB');st.style.removeProperty('--gPlateB');st.classList.remove('gport');midKey='';
 };
 /* 처음 한 번: 휠·구라! 버튼 */
 G.init=()=>{
@@ -601,8 +602,6 @@ G.init=()=>{
   css.textContent=`
 .stage.gmid .actions{display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"w w" "p g";gap:8px 10px;width:min(320px,calc(100% - 20px));left:50%;right:auto;bottom:var(--gMidB,14px);transform:translateX(-50%) scale(var(--actS,1));transform-origin:50% 100%;pointer-events:none}
 .stage.gmid .myplate{bottom:var(--gPlateB,var(--plateB,14px))}
-.stage.gmid.fanhot .actions{bottom:calc(var(--gMidB,14px) + var(--fanUp,0px))}
-.stage.gmid.fanhot .myplate{bottom:calc(var(--gPlateB,var(--plateB,14px)) + var(--gPlateUp,0px))}
 .stage.gmid .actions .act,.stage.gmid .actions .numwheel{pointer-events:auto}
 .stage.gmid .actions .act{flex:none;min-width:0;height:60px;font-size:23px;padding:0 8px}
 .stage.gmid .actions .act-gura{font-size:25px}
@@ -625,9 +624,10 @@ G.init=()=>{
 .stage.gmid .numwheel .np.on{opacity:1}
 .stage.gmid .numwheel .np .wl{font-size:22px}
 .stage.gmid .numwheel .np.on .wl{font-size:30px}
-/* 세로 화면: [패스] [구라!] [휠] 한 줄, 휠은 세로로 3칸 보이게 서서 버튼 줄 위로 솟음 */
-.stage.gmid.gport .actions{grid-template-columns:1fr 1fr auto;grid-template-areas:"p g w";align-items:end;width:min(380px,calc(100% - 16px))}
-.stage.gmid.gport .numwheel{flex-direction:column;height:auto;width:68px;gap:3px;padding:4px 4px 5px}   /* 폭 고정: 내 차례가 아니라 휠이 비어도 버튼 폭이 그대로 */
+/* 세로 화면: 버튼 줄은 [패스] [구라!]만, 휠은 화면 오른쪽 가운데에 세로로 3칸 */
+.stage.gmid.gport .actions{grid-template-areas:"p g"}
+.stage.gmid.gport .numwheel{position:absolute;left:auto;right:8px;top:50%;transform:translateY(-50%);pointer-events:auto}
+.stage.gmid.gport .numwheel{flex-direction:column;height:auto;width:68px;gap:3px;padding:4px 4px 5px}   /* 폭 고정: 내 차례가 아니라 휠이 비어도 자리가 그대로 */
 .stage.gmid.gport .numwheel .wh-t{margin:0;font-size:10px}
 .stage.gmid.gport .numwheel .wh-arrow{width:100%;height:22px}
 .stage.gmid.gport .numwheel .wh-view{width:58px;height:${WH_H*3}px;-webkit-mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent)}
