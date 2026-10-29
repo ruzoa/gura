@@ -680,8 +680,12 @@ function d3Build(){
     const b1=new THREE.Mesh(new THREE.TorusGeometry(.57,.045,10,48),D3.band);b1.rotation.x=Math.PI/2;b1.position.y=.84;
     const b2=new THREE.Mesh(new THREE.TorusGeometry(.5,.035,10,48),toon({color:0xd9a441,rim:.2}));b2.rotation.x=Math.PI/2;b2.position.y=.13;
     cup.add(body,hl,b1,b2);
-    {const rim=new THREE.Mesh(new THREE.TorusGeometry(.61,.065,10,48),new THREE.MeshBasicMaterial({color:0xffd75a,transparent:true,opacity:0,depthWrite:false}));   // 오래 가만히 있으면 컵 테두리가 빛남 (굴리라는 힌트)
-     rim.rotation.x=Math.PI/2;rim.position.y=1.02;rim.visible=false;cup.add(rim);D3.rim=rim}
+    // 오래 가만히 있으면 컵 윤곽 전체가 빛남 (굴리라는 힌트): 외곽선(hl)처럼 뒤집은 껍질을 두 겹 더 크게 씌워, 어느 쪽에서 봐도 컵 둘레 전체에 빛 띠가 보임
+    {const glow=(off,col)=>{
+       const g=new THREE.LatheGeometry(prof.slice(0,6).map(v=>V2(v.x+off,v.y+(v.y>.9?off*.7:-off*.7))),48);
+       const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:col,side:THREE.BackSide,transparent:true,opacity:0,depthWrite:false}));
+       m.renderOrder=3;m.visible=false;cup.add(m);return m};
+     D3.rim=[glow(.075,0xffe27a),glow(.15,0xffc23a)]}
     cup.scale.setScalar(CUP_K);root.add(cup);
     D3.cup={g:cup,p:CUP_REST.slice(),q:Q_ID,tw:null};
     cup.position.set(...CUP_REST);
@@ -991,8 +995,8 @@ function d3Info(t){
   const R=D3.rim;
   if(R){
     const on=cupGlow();
-    if(on){const k=.5+.5*Math.sin(t/260);R.material.opacity=.4+.6*k;R.scale.setScalar(1+.05*k);R.visible=true;D3.dirty=true}
-    else if(R.visible){R.visible=false;D3.dirty=true}
+    if(on){const k=.5+.5*Math.sin(t/260);R[0].material.opacity=.55+.45*k;R[1].material.opacity=.15+.35*k;R.forEach(m=>{m.visible=true});D3.dirty=true}
+    else if(R[0].visible){R.forEach(m=>{m.visible=false});D3.dirty=true}
   }
 }
 /* 내 차례에 굴릴 수 있는데 한참 아무것도 안 하면 컵 테두리가 빛남 */
@@ -1348,7 +1352,7 @@ G.leave=()=>{
   if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
   if(D3.root)D3.root.visible=false;
   D3.on=false;A.tn=-1;A.st='idle';if(elYz)elYz.classList.remove('yz3');
-  $('#btnPass').hidden=false;
+  $('#btnPass').hidden=false;$('#btnPlay').hidden=false;   // 기록하기 버튼을 숨겼으니 다른 게임의 '내기' 버튼을 되살림
   if(elYz){elYz.hidden=true;lastTurn='';lastDice='';lastRoll='';lastBoard='';lastHint=''}
 };
 /* 처음 한 번: 주사위와 점수판 화면 만들기 */
@@ -1469,11 +1473,12 @@ G.init=()=>{
 #yz.yz3 .yz-roll{width:auto;min-width:112px;height:56px;padding:4px 14px;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 /* 기록하기 버튼은 없음(점수 칸을 두 번 누름). 점수 종이가 아래로 내려오는 좁은 화면에서만 그 자리에 굴리기 버튼, 넓은 화면(종이가 오른쪽)은 버튼 없이 컵을 누름 */
 .stage.yz #btnPlay{display:none}
-.stage.yz #yzRoll2{display:none;--face:var(--gura);--edge:var(--gura-edge);--ink-on:var(--gura-ink);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#yzRoll2{display:none}   /* 공통 버튼 줄(#actions)에 넣은 야추 전용 버튼: 다른 게임에서는 늘 숨김 */
+.stage.yz #yzRoll2{--face:var(--gura);--edge:var(--gura-edge);--ink-on:var(--gura-ink);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .stage.yz #yzRoll2 b{font-weight:400}
 .stage.yz #yzRoll2.down{transform:translateY(4px) scale(.97);box-shadow:0 0 0 3px var(--mustard)}
 #yz.yz3 .yz-roll{display:none}   /* 3D에서는 왼쪽 굴리기 버튼 없음 (2D 화면은 그대로) */
-@media (max-width:819px){.stage.yz3d #yzRoll2{display:flex}}
+@media (max-width:819px){.stage.yz.yz3d #yzRoll2{display:flex}}
 @media (min-width:820px){.stage.yz3d .actions{display:none}}
 #yz .yz-cup{position:absolute;display:none;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;pointer-events:auto}
 #yz.yz3 .yz-cup{display:block}
@@ -1526,7 +1531,7 @@ G.init=()=>{
     for(const ev of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(ev,()=>{if(D3.on)d3Release()});
     el.addEventListener('contextmenu',e=>{if(D3.on)e.preventDefault()});
   };
-  bindRoll(elRoll,true);bindRoll(elRoll2,true);bindRoll(elCup,false);
+  bindRoll(elRoll,true);bindRoll(elRoll2,true);bindRoll(elCup,true);
   addEventListener('keyup',e=>{if(D3.on&&typeof KEYS!=='undefined'&&e.code===KEYS.yroll)d3Release()});
   addEventListener('blur',()=>{if(D3.on)d3Release()});
   if(window.ResizeObserver){const ro=new ResizeObserver(()=>{D3.layDirty=true});[$('#stage'),elLeft,elRoll,elHint].forEach(x=>ro.observe(x))}
