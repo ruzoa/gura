@@ -11,6 +11,18 @@ function hostNew(online,code,title){
   const gid=GAME_IDS[cfg.gi]||'gura';store('gura-game',gid);
   H={online,code,title,cfg:{...cfgFor(gid),fast:cfg.fast&&!gameOf(gid).noFast?1:0,pub:cfg.pub?1:0},phase:'wait',members:[{name:myNick(),bot:false,conn:null,host:true}],specs:[],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
 }
+/* 대기실 자리 번호: 사람·봇마다 m.seat(0~최대 인원-1, 서로 다름). 없거나 겹치거나 범위 밖이면 빈 자리 중 가장 앞 번호로. 게임이 시작되면 자리 번호 순서대로 앉음 */
+function fixSeats(){
+  const max=Math.max(+H.cfg.max||0,H.members.length),used=new Set();
+  for(const m of H.members){if(Number.isInteger(m.seat)&&m.seat>=0&&m.seat<max&&!used.has(m.seat))used.add(m.seat);else m.seat=undefined}
+  for(const m of H.members)if(m.seat==null){let k=0;while(used.has(k))k++;m.seat=k;used.add(k)}
+}
+/* 자리 옮기기: {t:'seat',to:k} 빈 자리 k로 / {t:'swap',with:i} i번 사람(봇 포함)과 자리를 바꿈 */
+function hostMoveSeat(i,a){
+  if(!H||H.phase!=='wait')return;const m=H.members[i];if(!m)return;fixSeats();
+  if(a.t==='seat'){const k=+a.to;if(!Number.isInteger(k)||k<0||k>=Math.max(+H.cfg.max||0,H.members.length)||H.members.some(x=>x.seat===k))return;m.seat=k;mark();return}
+  const o=H.members[+a.with];if(!o||o===m)return;const t=m.seat;m.seat=o.seat;o.seat=t;mark();
+}
 function hostAddBot(force){
   if(!force&&(H.phase!=='wait'||H.members.length>=H.cfg.max))return;
   const used=new Set(H.members.map(m=>m.name));
@@ -33,6 +45,7 @@ function hostStart(){
   if(!H||(H.phase!=='wait'&&H.phase!=='over'))return;
   const again=H.phase==='over';   // 결과 화면에서 '바로 시작': 시작 연출을 짧게 하는 게임이 있음 (G.introMs(again))
   H.members=H.members.filter(m=>!m.away);   // 대기실에서 끊긴 채인 사람은 빼고 시작
+  fixSeats();H.members.sort((x,y)=>x.seat-y.seat);   // 대기실에서 앉은 자리 순서대로
   if(H.members.length<minPlayers(EG(),H.cfg))return;   // 최소 인원이 안 되면 시작하지 않음 (봇을 자동으로 넣지 않음)
   H.players=H.members.map(m=>({name:m.name,bot:m.bot,lv:m.bot?(m.lv??1):null,conn:m.conn,cid:m.cid||'',host:m.host,hand:[],finished:false,rank:null}));
   EG().engine.start();   // 카드 나누기·첫 차례는 게임마다 다름
@@ -113,6 +126,7 @@ function botEmote(seat,k,delay){setTimeout(()=>{if(H&&H.players[seat]&&H.players
 function hostAct(seat,a){
   if(!H||!a||typeof a!=='object')return;
   if(a.t==='emo'){hostEmote(seat,String(a.k||''));return}
+  if((a.t==='seat'||a.t==='swap')&&H.phase==='wait'){hostMoveSeat(seat,a);return}
   if(H.phase==='wait'||dealing())return;   // 카드를 나누는 동안은 기다림
   EG().engine.act(seat,a);   // 내기·패스·항복 등은 게임 규칙대로
 }
@@ -163,7 +177,7 @@ function snapFor(you){
   if(H.emos&&H.emos.length)s.em=H.emos;
   if(H.specs&&H.specs.length)s.sv=H.specs.map(x=>x.name);
   s.mc=H.members.length;
-  if(H.phase==='wait'){s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0,lv:m.bot?(m.lv??1):undefined}));if(H.firstName)s.fn=H.firstName;if(EG().engine.waitSnap)EG().engine.waitSnap(s);return s}   // waitSnap: 대기실에도 게임별 값 (대부호의 계급)
+  if(H.phase==='wait'){fixSeats();s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0,lv:m.bot?(m.lv??1):undefined,st:m.seat}));if(H.firstName)s.fn=H.firstName;if(EG().engine.waitSnap)EG().engine.waitSnap(s);return s}   // waitSnap: 대기실에도 게임별 값 (대부호의 계급)
   s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=p.surrendered==='time'?2:p.deserter?3:1;if(p.away)o.aw=1;if(p.deserter)o.dz=1;if(i===you)o.h=p.hand.slice();return o});
   s.t=H.turn;
   if(H.dealUntil>t){s.dk=Math.round(H.dealUntil-t);s.di=H.dealId;s.dm=H.dealMs||0;if(H.dealAgain)s.dg=1;if(H.fp)s.fp=H.fp}   // 카드를 나누는 중 (남은 ms, fp: 첫 차례 룰렛의 빠른 칸 수)

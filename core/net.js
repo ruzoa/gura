@@ -31,7 +31,7 @@ function hostConn(conn){
     }
     if(d.t==='out'){conn.__out=true;return}   // '탁자 떠나기'를 누름: 곧 닫히는 연결을 탈주로 처리
     {const sp=specOf(conn);
-     if(sp){if(d.t==='join')hostJoinSpec(conn);return}}   // 관전자는 이모티콘을 보낼 수 없음
+     if(sp){if(d.t==='join')hostJoinSpec(conn,d.seat);return}}   // 관전자는 이모티콘을 보낼 수 없음
     if(d.t==='spec'){hostToSpec(conn);return}
     hostAct(seatOfConn(conn),d);
   });
@@ -82,10 +82,12 @@ function hostToSpec(conn){   // 대기실의 참가자 → 관전
   const m=H.members.splice(i,1)[0];H.specs.push({name:m.name,cid:m.cid||'',conn});
   addLog(`${m.name} 관전으로 이동`,'sys');mark();
 }
-function hostJoinSpec(conn){   // 관전 → 참가 (대기실이나 게임이 끝난 뒤 빈 자리가 있을 때)
+function hostJoinSpec(conn,seat){   // 관전 → 참가 (대기실이나 게임이 끝난 뒤 빈 자리가 있을 때)
   if(!H||(H.phase!=='wait'&&H.phase!=='over'))return;
   const k=(H.specs||[]).findIndex(x=>x.conn===conn);if(k<0||H.members.length>=H.cfg.max)return;
-  const sp=H.specs.splice(k,1)[0];H.members.push({name:sp.name,bot:false,conn,cid:sp.cid,host:false});
+  const sp=H.specs.splice(k,1)[0],nm={name:sp.name,bot:false,conn,cid:sp.cid,host:false};
+  if(H.phase==='wait'&&Number.isInteger(seat)&&seat>=0&&seat<H.cfg.max&&!H.members.some(x=>x.seat===seat))nm.seat=seat;   // 고른 빈 자리에 앉음
+  H.members.push(nm);
   addLog(H.phase==='over'?`${sp.name} 다음 판 참가`:`${sp.name} 참가`,'sys');mark();
 }
 function hostKickSpec(k){

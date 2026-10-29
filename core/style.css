@@ -56,10 +56,10 @@ button:disabled{cursor:not-allowed}
 .seat{overflow:visible}
 .seat .nm[data-nk]{cursor:pointer;pointer-events:auto}
 .seat.muted .nm{opacity:.55}
-.nickpop{position:absolute;z-index:6;display:flex;flex-direction:column;gap:8px;padding:10px 12px;min-width:176px;border-radius:var(--r-md);border:1.5px solid var(--line-strong);background:rgba(255,250,240,.97);box-shadow:0 8px 20px rgba(60,30,10,.3)}
-.nickpop[hidden]{display:none}
-.nickpop b{font-size:14px}
-.nickpop .np-r{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted)}
+.seat .emob{position:absolute;left:100%;top:50%;margin:-14px 0 0 6px;width:28px;height:28px;border-radius:50%;border:1.5px solid var(--line-strong);background:rgba(255,250,240,.96);padding:0;font-size:15px;line-height:1;pointer-events:auto;cursor:pointer;box-shadow:0 2px 0 var(--line)}
+.seat .emob.left{left:auto;right:100%;margin:-14px 6px 0 0}
+.seat .emob.off{background:var(--well);filter:grayscale(1)}
+.seat .emob.off::after{content:"";position:absolute;left:5px;right:5px;top:50%;height:2px;background:#b3261e;transform:rotate(-45deg)}
 .seat .ring{position:absolute;left:-30px;top:50%;width:26px;height:26px;margin-top:-13px;transform:rotate(-90deg);display:none}
 body.no3d .seat.on .ring{display:block}
 .ring circle{fill:none;stroke-width:4}
@@ -255,13 +255,6 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .stage.holo #frPick,.stage.holo #frPrev,.stage.holo #frNext{touch-action:pan-y}   /* 게임 고르기: 말 위에서 옆으로 밀어도 브라우저가 가로채지 않게 */
 .fr-hot:focus-visible{outline:3px dashed var(--mustard);outline-offset:2px}
 .fr-hot.off{pointer-events:none;visibility:hidden}
-.bbar{position:absolute;z-index:3;display:flex;gap:10px;transform:translateX(-50%);pointer-events:auto}
-.bbar.off{pointer-events:none;visibility:hidden}
-.bbar button{width:48px;height:48px;padding:0;display:grid;place-items:center;border-radius:50%;border:2.5px solid #5a3a1c;background:radial-gradient(circle at 35% 30%,#e0bf86,#b8925a 70%);color:#4a2c14;font-size:20px;line-height:1;box-shadow:0 4px 0 #5a3a1c,0 6px 10px rgba(40,20,5,.35);cursor:pointer;-webkit-tap-highlight-color:transparent}
-.bbar button svg{width:24px;height:24px}
-.bbar button:active{transform:translateY(3px);box-shadow:0 1px 0 #5a3a1c}
-.bbar button[hidden]{display:none}
-.bbar button:focus-visible{outline:3px dashed var(--mustard);outline-offset:2px}
 .fr-foot{position:absolute;left:0;right:0;bottom:14px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 16px}
 .fr-nick{pointer-events:auto;display:flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:999px;border:1.5px solid var(--line-strong);background:rgba(255,250,240,.94);box-shadow:0 3px 0 rgba(110,69,38,.25);font-size:15px}
 .fr-nick small{color:var(--muted);font-size:13px}

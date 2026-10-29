@@ -20,7 +20,7 @@ function useGame(id){
   renderKeys();
 }
 let newCards=new Set();
-let emoSeen=-1,emoMuted=new Set(),emoOff=store('gura-emo-off')==='1';
+let emoSeen=-1,emoMuted=new Set(),emoOff=false;   // 이모티콘은 사람마다 끄고 켬(emoMuted), 한꺼번에 끄는 설정은 없음
 function emoteHTML(em){return em.q?'<span class="bt">구라<span class="qm">?</span></span>':em.e?`<span class="be">${em.e}</span>`:`<span class="bt${em.t.length>2?' sm':''}">${esc(em.t)}</span>`}
 function showNewEmotes(v,pv){
   const list=Array.isArray(v.em)?v.em:[];
@@ -68,32 +68,27 @@ $('#emoPad').addEventListener('click',e=>{
 });
 document.addEventListener('click',e=>{if(!$('#emoPad').hidden&&!e.target.closest('#emoPad')&&!e.target.closest('#btnEmo')&&!e.target.closest('.emo-open')&&!e.target.closest('.wemo'))closeEmoPad()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#emoPad').hidden)closeEmoPad()});
-/* 이름표(닉네임)를 누르면 그 사람 설정 창: 그 사람 이모티콘 보기/끄기 */
-function nickPopClose(){const el=$('#nickPop');if(el&&!el.hidden){el.hidden=true;el.dataset.i=''}}
-function nickPopOpen(nm){
-  const i=+nm.dataset.nk,p=V&&V.ps&&V.ps[i];if(!p)return;
-  let el=$('#nickPop');if(!el){el=document.createElement('div');el.id='nickPop';el.className='nickpop';el.setAttribute('role','dialog');$('#stage').appendChild(el)}
-  if(!el.hidden&&el.dataset.i===String(i)){nickPopClose();return}
-  const mu=emoMuted.has(p.n);
-  el.innerHTML=`<b>${esc(p.n)}</b><div class="np-r"><span>이모티콘</span><div class="seg" role="radiogroup" aria-label="${esc(p.n)} 이모티콘"><button type="button" role="radio" data-v="off" aria-checked="${mu}" aria-pressed="${mu}">끄기</button><button type="button" role="radio" data-v="on" aria-checked="${!mu}" aria-pressed="${!mu}">보기</button></div></div>`;
-  el.dataset.i=i;el.hidden=false;
-  const st=$('#stage').getBoundingClientRect(),r=nm.getBoundingClientRect(),w=el.offsetWidth||190;
-  el.style.left=Math.round(Math.max(8,Math.min(st.width-w-8,r.left-st.left+r.width/2-w/2)))+'px';el.style.top=Math.round(r.bottom-st.top+8)+'px';
-  sfx('tick');
+/* 닉네임(이름표)을 누르면 옆에 이모지 버튼이 나오고, 그 버튼을 누르면 그 사람 이모티콘 끄기·켜기. 다른 곳을 누르면 버튼이 들어감 */
+function seatNoOf(i){const p=V&&V.ps&&V.ps[i];return p&&p.st!=null?p.st:i}   // 대기실 자리 번호 (없으면 순서)
+function mySeatNo(){const me=myIdx();return me<0?-1:seatNoOf(me)}
+let nickOpen=null;   // 이모지 버튼이 나와 있는 사람 이름
+function emoMuteToggle(name){   // 그 사람 이모티콘 끄기·켜기. 켜져 있던 말풍선도 지움. 지금 끈 상태면 true
+  const mu=!emoMuted.has(name);mu?emoMuted.add(name):emoMuted.delete(name);
+  const i=V&&V.ps?V.ps.findIndex(p=>p.n===name):-1;
+  if(mu&&i>=0){$('#bubbles').querySelectorAll(`.bubble.soft[data-i="${i}"],.bubble.q[data-i="${i}"]`).forEach(x=>x.remove());if(T&&T.bubbles)T.bubbles.filter(x=>x.i===i&&x.kind==='q').forEach(killBubble)}
+  sfx('tick');return mu;
 }
-$('#labels').addEventListener('click',e=>{const nm=e.target.closest('.seat .nm[data-nk]');if(nm)nickPopOpen(nm)});
-$('#labels').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.seat .nm[data-nk]')){e.preventDefault();nickPopOpen(e.target)}});
-document.addEventListener('click',e=>{if(!e.target.closest('#nickPop')&&!e.target.closest('.seat .nm[data-nk]'))nickPopClose()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')nickPopClose()});
-document.addEventListener('click',e=>{
-  const b=e.target.closest('#nickPop .seg button');if(!b||!V||!V.ps)return;const i=+$('#nickPop').dataset.i,p=V.ps[i];if(!p)return;
-  const mu=b.dataset.v==='off';if(mu===emoMuted.has(p.n))return;
-  mu?emoMuted.add(p.n):emoMuted.delete(p.n);
-  b.parentNode.querySelectorAll('button').forEach(x=>{const on=(x.dataset.v==='off')===mu;x.setAttribute('aria-pressed',on);x.setAttribute('aria-checked',on)});
-  document.querySelectorAll(`.seat[data-i="${i}"]`).forEach(s2=>s2.classList.toggle('muted',mu));
-  if(mu){$('#bubbles').querySelectorAll(`.bubble.soft[data-i="${i}"],.bubble.q[data-i="${i}"]`).forEach(x=>x.remove());if(T&&T.bubbles)T.bubbles.filter(x=>x.i===i&&x.kind==='q').forEach(killBubble)}
-  sfx('tick');
+$('#labels').addEventListener('click',e=>{
+  const eb=e.target.closest('.seat .emob[data-emob]');
+  if(eb||e.target.closest('.seat .nm[data-nk]'))e.nkHit=true;   // 다시 그리면 눌린 칸이 사라지므로 '바깥 누르기'가 아님을 이벤트에 표시
+  if(eb){const p=V&&V.ps&&V.ps[+eb.dataset.emob];if(p){emoMuteToggle(p.n);renderLabels()}return}
+  const nm=e.target.closest('.seat .nm[data-nk]');if(!nm)return;
+  const p=V&&V.ps&&V.ps[+nm.dataset.nk];if(!p)return;
+  nickOpen=nickOpen===p.n?null:p.n;sfx('tick');renderLabels();
 });
+$('#labels').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.seat .nm[data-nk]')){e.preventDefault();e.target.click()}});
+document.addEventListener('click',e=>{if(nickOpen!=null&&!e.nkHit){nickOpen=null;renderLabels()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&nickOpen!=null){nickOpen=null;renderLabels()}});
 function showTaken(ids){newCards=new Set(ids);markNewCards();sfx('sweep')}
 function seeNewCard(el){if(!el||!el.classList.contains('newcard'))return;newCards.delete(+el.dataset.id);el.classList.remove('newcard')}
 function markNewCards(){document.querySelectorAll('#hand .card').forEach(c=>c.classList.toggle('newcard',newCards.has(+c.dataset.id)))}

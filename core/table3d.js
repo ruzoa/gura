@@ -77,15 +77,6 @@ function buildBgSeg(box){
   box.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&b.dataset.v!==GFX_ENV){setEnv(b.dataset.v);sfx('tick')}});
 }
 buildBgSeg($('#segBg'));buildBgSeg($('#mBg'));
-/* 다른 사람 이모티콘 보기/끄기 (게임 중 메뉴와 로비 설정이 서로 연동) */
-function syncEmoSeg(){document.querySelectorAll('.emoseg button').forEach(b=>{const on=(b.dataset.v==='off')===emoOff;b.setAttribute('aria-pressed',on);b.setAttribute('aria-checked',on)})}
-function buildEmoSeg(box){
-  box.setAttribute('role','radiogroup');box.setAttribute('aria-label','다른 사람 이모티콘');
-  box.innerHTML='<button type="button" role="radio" data-v="off">끄기</button><button type="button" role="radio" data-v="on">보기</button>';
-  box.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const off=b.dataset.v==='off';if(off===emoOff)return;
-    emoOff=off;store('gura-emo-off',off?'1':'0');if(off){$('#bubbles').querySelectorAll('.bubble.soft,.bubble.q').forEach(x=>x.remove());if(T&&T.bubbles)T.bubbles.filter(b=>b.kind==='q').forEach(killBubble)}syncEmoSeg();sfx('tick')});
-}
-buildEmoSeg($('#segEmo'));buildEmoSeg($('#mEmo'));syncEmoSeg();
 /* 두 번 눌러 놓기 (개인 설정, 쿼리도·오목): 같은 자리를 한 번 더 누르면 [놓기] 없이 바로 둠. 기본 켜기. 메뉴·로비 설정에 언제나 보임 */
 let dblTap=store('gura-dbltap')!=='0';
 function syncDblSeg(){document.querySelectorAll('.dblseg button').forEach(b=>{const on=(b.dataset.v==='on')===dblTap;b.setAttribute('aria-pressed',on);b.setAttribute('aria-checked',on)})}

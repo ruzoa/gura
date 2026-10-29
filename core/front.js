@@ -38,7 +38,7 @@ function frontStumps(t,dt,lobby,wait){
   if(!T.stumps)return;
   let angs=[];
   if(lobby||!V||!V.ps)angs=[0];   // 첫 화면: 내가 앉을 자리에 의자 하나
-  else if(wait){const wN=Math.max(+(V.cfg&&V.cfg.max)||0,V.ps.length),me=myIdx(),wB=me>=0?me:0;for(let k=0;k<wN;k++)angs.push(((k-wB+wN)%wN+(me<0?.5:0))*Math.PI*2/wN)}
+  else if(wait){const wN=Math.max(+(V.cfg&&V.cfg.max)||0,V.ps.length),me=myIdx(),wB=me>=0?mySeatNo():0;for(let k=0;k<wN;k++)angs.push(((k-wB+wN)%wN+(me<0?.5:0))*Math.PI*2/wN)}
   else angs=V.ps.map((_,i)=>seatAngle(i));
   const f=1-Math.exp(-Math.max(0,dt)*7);
   T.stumps.forEach((S,k)=>{

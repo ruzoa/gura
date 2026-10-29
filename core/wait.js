@@ -8,20 +8,27 @@ function seatPopOpen(key,anchor){
   const isHost=mode==='host',me=myIdx(),max=+V.cfg.max,ps=V.ps||[],pop=$('#seatPop');
   const pickF=!!(G.firstPick&&+V.cfg.pickfirst);
   let h='';
-  if(key[0]==='e'){   // 빈 자리
-    if(me<0&&V.spec){sendAct({t:'join'});sfx('pick');return}   // 방장의 봇 앉히기·자리 치우기는 자판(봇 추가·의자 빼기)으로
-    else{sfx('no');return}
+  if(key[0]==='e'){   // 빈 자리: 앉아 있으면 그 자리로 옮김, 관전 중이면 그 자리에 앉음 (봇 앉히기·자리 치우기는 자판으로)
+    const k=+key.slice(1);
+    if(me>=0){sendAct({t:'seat',to:k});sfx('pick');return}
+    if(V.spec){sendAct({t:'join',seat:k});sfx('pick');return}
+    sfx('no');return
   }else{
     const i=+key.slice(1),p=ps[i];if(!p)return;
     if(i===me){
       if(!(pickF&&isHost)&&(isHost||+(V.cfg.spec??4)<=0)){sfx('no');return}   // 내 이름표 메뉴: 선 플레이어(방장)·관전하기(참가자)
       if(pickF&&isHost)h+=`<button type="button" data-sp="first:${i}">선 플레이어</button>`;
       if(!isHost&&+(V.cfg.spec??4)>0)h+=`<button type="button" data-sp="tospec">관전하기</button>`;
-    }else if(isHost){
+    }else{
+      if(me>=0)h+=`<button type="button" data-sp="swap:${i}">자리 바꾸기</button>`;
+      if(!p.b)h+=`<button type="button" data-sp="emomute:${i}">이모티콘 ${emoMuted.has(p.n)?'켜기':'끄기'}</button>`;   // 로비에서도 상대 이모티콘을 끄고 켬
+      if(isHost){
       if(p.b&&!G.oneBotLv)h+=`<div class="sp-lv">${BOT_LV.map((t,k)=>`<button type="button" data-sp="lv:${i}:${k}"${(p.lv??1)===k?' class="on"':''}>${t}</button>`).join('')}</div>`;
       if(pickF)h+=`<button type="button" data-sp="first:${i}">선 플레이어</button>`;
       h+=`<button type="button" class="danger" data-sp="kick:${i}" data-name="${esc(p.n)}">내보내기</button>`;
-    }else{sfx('no');return}
+      }
+      if(!h){sfx('no');return}
+    }
   }
   if(FR.pop===key){seatPopClose();return}   // 같은 이름표를 다시 누르면 닫힘
   FR.pop=key;pop.innerHTML=h;pop.hidden=false;sfx('tick');
@@ -33,6 +40,8 @@ $('#seatPop').addEventListener('click',e=>{
   const b=e.target.closest('[data-sp]');if(!b)return;const a=b.dataset.sp;
   if(a==='emo'){openEmoPad(b);seatPopClose();return}
   if(a==='tospec'){sendAct({t:'spec'});seatPopClose();return}
+  if(a.startsWith('swap:')){sendAct({t:'swap',with:+a.slice(5)});sfx('pick');seatPopClose();return}
+  if(a.startsWith('emomute:')){const p=V&&V.ps&&V.ps[+a.slice(8)];if(p)emoMuteToggle(p.n);seatPopClose();return}
   if(mode!=='host'||!H||H.phase!=='wait')return;
   if(a==='addbot'){hostAddBot();sfx('pick')}
   else if(a==='drop')setRoomCfg('max',(+H.cfg.max)-1);
@@ -53,11 +62,12 @@ function waitSeatsHTML(){
   const pickF=!!(G.firstPick&&+V.cfg.pickfirst);
   let fi=pickF?ps.findIndex(p=>p.n===V.fn):-1;if(pickF&&fi<0)fi=Math.max(0,ps.findIndex(p=>p.hs));
   let h='';
+  const at=ps.map((p,i)=>p.st!=null?p.st:i);   // 자리 번호 → 사람 순서
   for(let k=0;k<Math.max(max,ps.length);k++){
-    const p=ps[k];
+    const i=at.indexOf(k),p=i>=0?ps[i]:null;
     if(p){const sub=p.hs?'방장':p.b?(G.oneBotLv?'봇':`봇 · ${BOT_LV[p.lv??1]}`):p.aw?'연결 끊김':'';
-      h+=`<div class="seat wseat${k===me?' mine':''}${p.b?' bot lv'+(p.lv??1):''}" data-w="${k}"><button type="button" data-seat="s${k}" aria-label="${esc(p.n)}${k===me?' (나)':''}">${k===fi?'<i class="fsel">선</i>':''}<span class="nm">${G.nameTag?G.nameTag(p,k):''}${esc(p.n)}</span>${sub?`<small>${esc(sub)}</small>`:''}</button>${k===me?'<button type="button" class="wemo" aria-label="이모티콘" title="이모티콘">😊</button>':''}</div>`}
-    else h+=`<div class="seat wseat empty${me<0&&V.spec?' sitok':''}" data-w="${k}"><button type="button" data-seat="e${k}" aria-label="빈 자리"${me<0&&V.spec?'':' tabindex="-1"'}>${CHAIR_SVG}</button></div>`;   // 빈 자리: 빈 의자 점선 그림 (관전자만 눌러서 앉음)
+      h+=`<div class="seat wseat${i===me?' mine':''}${p.b?' bot lv'+(p.lv??1):''}" data-w="${k}"><button type="button" data-seat="s${i}" aria-label="${esc(p.n)}${i===me?' (나)':''}">${i===fi?'<i class="fsel">선</i>':''}<span class="nm">${G.nameTag?G.nameTag(p,i):''}${esc(p.n)}</span>${sub?`<small>${esc(sub)}</small>`:''}</button>${i===me?'<button type="button" class="wemo" aria-label="이모티콘" title="이모티콘">😊</button>':''}</div>`}
+    else h+=`<div class="seat wseat empty${me>=0||V.spec?' sitok':''}" data-w="${k}"><button type="button" data-seat="e${k}" aria-label="빈 자리"${me>=0||V.spec?'':' tabindex="-1"'}>${CHAIR_SVG}</button></div>`;   // 빈 자리: 빈 의자 점선 그림 (관전자만 눌러서 앉음)
   }
   return h;
 }
@@ -111,7 +121,7 @@ function placeLabels(){
     np.style.transform='none';np.style.top=Math.max(8,Math.min((Hh-nh)/2,plateTop-nh-8))+'px';
   }}
   const avoid=stageRects();
-  const wN=Math.max(+(V.cfg&&V.cfg.max)||0,V.ps.length),wMe=myIdx(),wB=wMe>=0?wMe:0;
+  const wN=Math.max(+(V.cfg&&V.cfg.max)||0,V.ps.length),wMe=mySeatNo(),wB=wMe>=0?wMe:0;
   document.querySelectorAll('#labels .seat').forEach(el=>{
     const i=+el.dataset.i;let x,y;
     if(el.dataset.w!=null&&T.ok){   // 대기실 자리: 최대 인원만큼 둥글게. 내 이름표는 디스플레이 왼쪽 앞에
@@ -131,6 +141,7 @@ function placeLabels(){
     }
     y=Math.max(hh+6,Math.min(Hh-hh-6,y));
     el.style.left=x+'px';el.style.top=y+'px';
+    {const eb=el.querySelector('.emob');if(eb)eb.classList.toggle('left',x>W/2)}   // 이모지 버튼은 화면 가운데 쪽 옆에
   });
   // 필드 가운데 위치 (장수 배지와 이펙트 기준)
   let ax=W/2,ay=Hh/2;

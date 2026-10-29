@@ -28,15 +28,30 @@ function frontBuildList(TG){
     const a=-Math.PI*.35,ex=64+32*Math.cos(a),ey=66+32*Math.sin(a);x.beginPath();x.moveTo(ex+20,ey-6);x.lineTo(ex-6,ey-22);x.lineTo(ex-2,ey+14);x.closePath();x.fill()});
   const refM=toon({color:0xb8925a,rim:.3}),rf=new THREE.Group();rf.position.set(-PW/2-.11,PL/2-.2,.04);b.add(rf);   // 왼쪽 옆 위 (레버는 오른쪽)
   const xT=canvasTex(128,128,(x,w,h)=>{x.fillStyle='#c9a46a';x.fillRect(0,0,w,h);x.strokeStyle='#5a3a1c';x.lineWidth=16;x.lineCap='round';x.beginPath();x.moveTo(38,38);x.lineTo(90,90);x.moveTo(90,38);x.lineTo(38,90);x.stroke()});
-  const lx=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.05,24),[brass,toon({map:xT,rim:.2}),brass]);lx.rotation.x=Math.PI/2;lx.position.set(PW/2+.1,PL/2-.2,.04);b.add(lx);{const o=hull(new THREE.CylinderGeometry(.088,.088,.06,24),lx,b);o.rotation.x=Math.PI/2;lx.visible=o.visible=false}   // 닫기·새로고침·쪽 넘기기는 판 아래 2D 단추 줄(#bbar)로 옮김
+  const lx=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.05,24),[brass,toon({map:xT,rim:.2}),brass]);lx.rotation.x=Math.PI/2;lx.position.set(PW/2+.1,PL/2-.2,.04);b.add(lx);{const o=hull(new THREE.CylinderGeometry(.088,.088,.06,24),lx,b);o.rotation.x=Math.PI/2;lx.visible=o.visible=false}
   const rfm=new THREE.Mesh(new THREE.CylinderGeometry(.085,.085,.05,24),[refM,toon({map:refT,rim:.2}),refM]);rfm.rotation.x=Math.PI/2;rf.add(rfm);hull(new THREE.CylinderGeometry(.1,.1,.06,24),rfm,rf).rotation.x=Math.PI/2;
   // 판이 오르내릴 때 탁자 윗면 아래쪽은 잘라서 안 보이게 + 판이 나오는 틈
   const clipY=[new THREE.Plane(new THREE.Vector3(0,1,0),-.001)];
   b.traverse(o=>{if(o.material&&o.material!==hitM)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{m.clippingPlanes=clipY})});
   const slit=new THREE.Mesh(new THREE.PlaneGeometry(PW+.16,.22),new THREE.MeshBasicMaterial({color:0x15100c}));slit.rotation.x=-Math.PI/2;slit.position.y=.0005;g.add(slit);
   lv.visible=false;rf.visible=false;
-  T.plist={g,b,board,cv,tex,rows,xk:lx,ref:{g:rf,m:refM,at:-1e9,ang:0},lever:{g:lv,rod,knob,at:-1e9,dir:1},L:PL,W:PW,tilt:.08,key:'',flaps:[...Array(FR_ROWS)].map(()=>({to:['','',''],cur:['','',''],until:0,next:0,mid:0})),pick:-1,pickAt:0,drawn:''};
+  // 판 아래 빈 자리(탁자 위)의 놋쇠 단추: ◀ 이전 쪽 · ▶ 다음 쪽 · ↻ 새로고침 · ✕ 닫기. 누르면 살짝 눌렸다 올라옴
+  const lbtn=[];
+  {const ink='#5a3a1c',dr={
+    prev:x=>{x.beginPath();x.moveTo(36,64);x.lineTo(86,34);x.lineTo(86,94);x.closePath();x.fill()},
+    next:x=>{x.beginPath();x.moveTo(92,64);x.lineTo(42,34);x.lineTo(42,94);x.closePath();x.fill()},
+    ref:x=>{x.lineWidth=13;x.beginPath();x.arc(64,66,32,-Math.PI*.35,Math.PI*1.25);x.stroke();const a=-Math.PI*.35,ex=64+32*Math.cos(a),ey=66+32*Math.sin(a);x.beginPath();x.moveTo(ex+20,ey-6);x.lineTo(ex-6,ey-22);x.lineTo(ex-2,ey+14);x.closePath();x.fill()},
+    x:x=>{x.lineWidth=16;x.beginPath();x.moveTo(38,38);x.lineTo(90,90);x.moveTo(90,38);x.lineTo(38,90);x.stroke()}};
+   [['prev',-.39],['next',-.13],['ref',.13],['x',.39]].forEach(([k,bx])=>{
+    const tx=canvasTex(128,128,(x,w,h)=>{x.fillStyle='#c9a46a';x.fillRect(0,0,w,h);x.strokeStyle=x.fillStyle=ink;x.lineCap='round';x.lineJoin='round';x.translate(64,64);x.rotate(-Math.PI/2);x.translate(-64,-64);dr[k](x)});   // 윗면은 90도 돌아 보여서 미리 반대로 돌려 그림
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(.085,.095,.05,28),[brass,toon({map:tx,rim:.2}),brass]);m.position.set(bx,.03,.3);m.castShadow=true;g.add(m);
+    const o=hull(new THREE.CylinderGeometry(.099,.109,.06,28),m,g);
+    lbtn.push({k,m,o,y:.03,at:-1e9})})}
+  T.plist={g,b,board,lbtn,cv,tex,rows,xk:lx,ref:{g:rf,m:refM,at:-1e9,ang:0},lever:{g:lv,rod,knob,at:-1e9,dir:1},L:PL,W:PW,tilt:.08,key:'',flaps:[...Array(FR_ROWS)].map(()=>({to:['','',''],cur:['','',''],until:0,next:0,mid:0})),pick:-1,pickAt:0,drawn:''};
   const fr=$('#front');
+  {const acts={prev:()=>frontListPage(-1),next:()=>frontListPage(1),ref:()=>frontListRefresh(true),x:()=>frontList(false)},nm={prev:'이전 쪽',next:'다음 쪽',ref:'새로고침',x:'닫기'};
+   lbtn.forEach(B=>{const bt=document.createElement('button');bt.type='button';bt.className='fr-hot off fr-key';bt.id='frL'+B.k;bt.setAttribute('aria-label',nm[B.k]);bt.title=nm[B.k];
+     bt.addEventListener('click',()=>{B.at=clock();acts[B.k]();if(B.k==='prev'||B.k==='next'||B.k==='x')sfx('key')});fr.insertBefore(bt,$('#frFoot'))})}
   rows.forEach((m,i)=>{const bt=document.createElement('button');bt.type='button';bt.className='fr-hot off fr-key';bt.id='frR'+i;bt.addEventListener('click',()=>frontListPick(i));fr.insertBefore(bt,$('#frFoot'))});
 }
 function frontListRooms(){return (FR.lrooms||[]).filter(roomOpen)}
