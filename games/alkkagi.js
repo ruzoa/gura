@@ -336,7 +336,7 @@ function botPlan(A,seat,rnd){
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 알을 튕겨 다른 사람의 알을 모두 판 밖으로 떨어뜨립니다. 내 알이 모두 떨어지면 탈락하고, 마지막까지 남은 사람이 <b>승리</b>합니다. 2~4명이 할 수 있습니다</li><li><b>알 놓기</b> : 먼저 선(흑)이 내 쪽의 줄이 만나는 점에 알을 하나 놓고, 이어서 다른 사람이 차례로 하나씩 놓습니다. 이렇게 번갈아 모두 놓으면 알까기를 시작합니다. 2명이면 내 쪽 반(가운데 줄 제외), 3~4명이면 내 쪽 삼각형(대각선 제외)에만 놓을 수 있습니다. 누른 점에 미리 보기가 뜨고, 같은 점을 한 번 더 누르면 놓습니다(설정의 ‘두 번 눌러 놓기’를 끄면 바로 놓습니다)</li><li><b>진행</b> : 선부터 차례로 내 알 하나씩 튕깁니다. 판 밖으로 떨어진 알은 다시 쓰지 못하고, 내 알이 떨어져도 마찬가지입니다</li><li><b>튕기기</b> : 내 알을 누른 채 뒤로 당겼다 놓습니다. 알 뒤에 내 손이 나타나 당길수록 진해지고 세게 나갑니다. 끝까지 당기면 더 세지지 않습니다. 조금만 당기고 놓으면 취소됩니다</li><li><b>손 떨림</b> : 손은 당기는 동안 계속 떨리고, 세게 당길수록 크게 떨립니다. 놓는 순간 손이 가리키던 쪽으로 나가므로 살살 치면 거의 똑바로, 세게 치면 빗나가기 쉽습니다</li><li><b>뜨는 알</b> : 바둑알은 납작해서 세게 부딪히면 위로 튀어 오르기도 합니다</li><li><b>한 번 더</b> : 탁자 설정에서 켜면, 다른 사람의 알을 떨어뜨리고 튕긴 내 알이 판에 남았을 때 한 번 더 튕깁니다</li><li><b>끝</b> : 한 명만 남으면 끝납니다. 남은 사람들의 마지막 알이 함께 떨어지면 무승부입니다. 탈락한 순서가 늦을수록 순위가 높습니다</li><li><b>제한 시간</b> : 튕길 차례에 제한 시간이 지나면 차례가 넘어가고, 놓을 차례에 지나면 아무 자리에 대신 놓습니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다. 항복·탈주한 사람의 알은 판에서 사라집니다</li><li><b>다음 판</b> : 결과 화면에서 바로 시작하면 진 사람(4명이면 가장 먼저 탈락한 사람)이 선(먼저 놓고 먼저 튕김)이 되고, 비기면 서로 바꿉니다. 첫 판은 탁자 설정의 선 플레이어(선택·무작위)로 정합니다</li><li><b>오목 모드</b> : 탁자 설정에서 켜면(2명), 판 위에 내 돌 다섯 개를 한 줄로 먼저 세우는 사람이 <b>승리</b>합니다<ul><li><b>진행</b> : 선(흑)부터 번갈아, 내 차례에 <b>돌을 놓거나</b> 판 위의 내 돌 하나를 <b>튕깁니다</b>. 돌은 얼마든지 놓을 수 있고, 판 어디든 다른 돌과 겹치지 않는 점이면 놓을 수 있습니다. 빈 점을 누르면 미리 보기가 뜨고 같은 점을 한 번 더 누르면 놓고, 내 돌을 누른 채 당겼다 놓으면 튕깁니다</li><li><b>떨어진 돌</b> : 판에서 떨어진 돌은 그냥 사라집니다. 가져오는 일은 없습니다</li><li><b>판정</b> : 돌이 모두 멈춘 뒤, 줄이 만나는 점마다 그 점을 가리는(반 칸 안에서 가장 가까운) 돌이 그 점에 있다고 봅니다. 가로·세로·대각선으로 다섯 개 이상 이어지면 오목입니다. 상대가 튕겨서 생긴 내 오목도 내 승리입니다</li><li><b>한 번 더</b> : 탁자 설정의 ‘떨어뜨리면 한 번 더’를 켜면, 상대 돌을 떨어뜨렸을 때 한 번 더 둡니다(튕긴 돌이 함께 떨어져도)</li><li><b>동시 오목</b> : 두 사람의 오목이 함께 생기면 튕긴 사람이 집니다</li><li><b>제한 시간</b> : 시간이 지나면 차례를 넘깁니다</li><li><b>무승부</b> : 돌을 놓을 수 있는 점이 하나도 없으면 무승부입니다</li></ul></li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 알을 튕겨 다른 사람의 알을 모두 판 밖으로 떨어뜨립니다. 내 알이 모두 떨어지면 탈락하고, 마지막까지 남은 사람이 <b>승리</b>합니다. 2~4명이 할 수 있습니다</li><li><b>알 놓기</b> : 먼저 선(흑)이 내 쪽의 줄이 만나는 점에 알을 하나 놓고, 이어서 다른 사람이 차례로 하나씩 놓습니다. 이렇게 번갈아 모두 놓으면 알까기를 시작합니다. 2명이면 내 쪽 반(가운데 줄 제외), 3~4명이면 내 쪽 삼각형(대각선 제외)에만 놓을 수 있습니다. 누른 점에 미리 보기가 뜨고, [놓기]를 누르거나 같은 점을 한 번 더 누르면 놓습니다(설정의 ‘두 번 눌러 놓기’를 끄면 같은 점을 다시 누를 때 취소됩니다). 놓을 수 없는 곳에는 빨간 빗금이 보이고, 경계에는 차단기가 내려옵니다</li><li><b>진행</b> : 선부터 차례로 내 알 하나씩 튕깁니다. 판 밖으로 떨어진 알은 다시 쓰지 못하고, 내 알이 떨어져도 마찬가지입니다</li><li><b>튕기기</b> : 내 알을 누른 채 뒤로 당겼다 놓습니다. 알 뒤에 내 손이 나타나 당길수록 진해지고 세게 나갑니다. 끝까지 당기면 더 세지지 않습니다. 조금만 당기고 놓으면 취소됩니다</li><li><b>손 떨림</b> : 손은 당기는 동안 계속 떨리고, 세게 당길수록 크게 떨립니다. 놓는 순간 손이 가리키던 쪽으로 나가므로 살살 치면 거의 똑바로, 세게 치면 빗나가기 쉽습니다</li><li><b>뜨는 알</b> : 바둑알은 납작해서 세게 부딪히면 위로 튀어 오르기도 합니다</li><li><b>한 번 더</b> : 탁자 설정에서 켜면, 다른 사람의 알을 떨어뜨리고 튕긴 내 알이 판에 남았을 때 한 번 더 튕깁니다</li><li><b>끝</b> : 한 명만 남으면 끝납니다. 남은 사람들의 마지막 알이 함께 떨어지면 무승부입니다. 탈락한 순서가 늦을수록 순위가 높습니다</li><li><b>제한 시간</b> : 튕길 차례에 제한 시간이 지나면 차례가 넘어가고, 놓을 차례에 지나면 아무 자리에 대신 놓습니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다. 항복·탈주한 사람의 알은 판에서 사라집니다</li><li><b>다음 판</b> : 결과 화면에서 바로 시작하면 진 사람(4명이면 가장 먼저 탈락한 사람)이 선(먼저 놓고 먼저 튕김)이 되고, 비기면 서로 바꿉니다. 첫 판은 탁자 설정의 선 플레이어(선택·무작위)로 정합니다</li><li><b>오목 모드</b> : 탁자 설정에서 켜면(2명), 판 위에 내 돌 다섯 개를 한 줄로 먼저 세우는 사람이 <b>승리</b>합니다<ul><li><b>진행</b> : 선(흑)부터 번갈아, 내 차례에 <b>돌을 놓거나</b> 판 위의 내 돌 하나를 <b>튕깁니다</b>. 돌은 얼마든지 놓을 수 있고, 판 어디든 다른 돌과 겹치지 않는 점이면 놓을 수 있습니다. 빈 점을 누르면 미리 보기가 뜨고 [놓기]를 누르거나 같은 점을 한 번 더 누르면 놓고, 내 돌을 누른 채 당겼다 놓으면 튕깁니다</li><li><b>떨어진 돌</b> : 판에서 떨어진 돌은 그냥 사라집니다. 가져오는 일은 없습니다</li><li><b>판정</b> : 돌이 모두 멈춘 뒤, 줄이 만나는 점마다 그 점을 가리는(반 칸 안에서 가장 가까운) 돌이 그 점에 있다고 봅니다. 가로·세로·대각선으로 다섯 개 이상 이어지면 오목입니다. 상대가 튕겨서 생긴 내 오목도 내 승리입니다</li><li><b>한 번 더</b> : 탁자 설정의 ‘떨어뜨리면 한 번 더’를 켜면, 상대 돌을 떨어뜨렸을 때 한 번 더 둡니다(튕긴 돌이 함께 떨어져도)</li><li><b>동시 오목</b> : 두 사람의 오목이 함께 생기면 튕긴 사람이 집니다</li><li><b>제한 시간</b> : 시간이 지나면 차례를 넘깁니다</li><li><b>무승부</b> : 돌을 놓을 수 있는 점이 하나도 없으면 무승부입니다</li></ul></li></ol>';
 G.modeDesc=['마지막까지 남은 사람이 이김','마지막까지 남은 사람이 이김'];
 G.defaults={max:2,turn:30,stones:5,again:1,pickfirst:0,omok:0};
 G.roomSet=[
@@ -636,7 +636,7 @@ function pickStone(x,z){   // 누른 곳에서 가까운 내 알 (알이 작아�
 /* 놓기: 누른 곳에서 가장 가까운 줄 점. 처음 누르면 반투명 미리 보기, 같은 점을 한 번 더 누르면 놓음('두 번 눌러 놓기'를 끄면 바로) */
 let GH=null;   // 미리 보기 {c,r}
 function nearGrid(x,z){const c=Math.round(x/PITCH+C0),r=Math.round(z/PITCH+C0);return Math.hypot(x-(c-C0)*PITCH,z-(r-C0)*PITCH)<PITCH*.75?[c,r]:null}
-function setGH(g){const was=!!GH;GH=g;if(was!==!!g&&!(OS&&OS.om))sendAct({t:'hold',on:g?1:0});Ak3.dirty=true;draw2D()}
+function setGH(g){const was=!!GH;GH=g;if(was!==!!g&&!(OS&&OS.om))sendAct({t:'hold',on:g?1:0});Ak3.dirty=true;draw2D();G.buttons()}
 const nextOf=seat=>OS?OS.st.findIndex(q=>q.s===seat&&q.u):-1;   // 다음에 놓을 알 (놓기 전 줄의 첫 알)
 function placeTap(x,z){
   const me=myIdx();if(me<0||me>=npOf())return;
@@ -644,9 +644,12 @@ function placeTap(x,z){
   {const k=nextOf(me),q=!OS.om&&k>=0&&OS.st[k];if(GH&&q&&Math.hypot(q.x-x,q.z-z)<.3){setGH(null);sndPickUp();return}}   // 집어 든 알을 누르면 내려놓음
   const g=nearGrid(x,z);
   if(!g||!canPlace(OS,me,g[0],g[1])){sndNo();return}
-  const dbl=typeof dblTap==='undefined'||!!dblTap;
-  if(dbl&&!(GH&&GH.c===g[0]&&GH.r===g[1])){if(!GH)sndPickUp();setGH({c:g[0],r:g[1]});return}
-  GH=null;sendAct({t:'place',c:g[0],r:g[1]});Ak3.dirty=true;
+  if(GH&&GH.c===g[0]&&GH.r===g[1]){if(typeof dblTap!=='undefined'&&dblTap)confirmGH();else{setGH(null);sndPickUp()}return}   // 같은 점을 다시 누르면: 두 번 눌러 놓기면 놓음, 아니면 취소 (오목과 같음)
+  if(!GH)sndPickUp();setGH({c:g[0],r:g[1]});
+}
+function confirmGH(){   // 미리 보기 자리에 놓음 ([놓기] 버튼·스페이스, 또는 같은 점 두 번)
+  if(!GH||!myPlaceNow()){sndNo();return}
+  const g=GH;GH=null;sendAct({t:'place',c:g.c,r:g.r});Ak3.dirty=true;G.buttons();
 }
 function dragStart(x,z){
   if(!OS||!V||V.st!=='play')return false;
@@ -821,13 +824,16 @@ function stones2D(pos){
     const ln=V.st==='over'&&OS.res&&OS.res.ln;
     if(ln&&ln.length>1){const [a,b]=[gridXZ(...ln[0]),gridXZ(...ln[ln.length-1])].map(([x,z])=>w2s(x,z));out.push(`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#f2b632" stroke-width="${PITCH*.22}" stroke-linecap="round" opacity=".85"/>`)}
   }
-  else if(OS.ph==='place'&&V.st==='play'&&!introWait()){const hl=BW-.07;
-    if(np===2){   // 상대 쪽 반 빗금(화면 위쪽) + 가운데 바리케이드
-      if(me>=0&&me<2)out.unshift(`<rect x="${-BW+.06}" y="${-(BW-.06)}" width="${2*BW-.12}" height="${BW-.06-PITCH/2}" fill="url(#akHatch)" opacity=".32"/>`);
+  else if(OS.ph==='place'&&V.st==='play'&&!introWait()){const hl=BW-.07,pl=me>=0&&me<np;
+    if(np===2){   // 상대 쪽 반 빗금(화면 위쪽) + 가운데 차단기
+      if(pl)out.unshift(`<rect x="${-BW+.06}" y="${-(BW-.06)}" width="${2*BW-.12}" height="${BW-.06-PITCH/2}" fill="url(#akHatch)" opacity=".32"/>`);
       out.unshift(`<rect x="${-hl}" y="${-PITCH*.21}" width="${2*hl}" height="${PITCH*.42}" fill="url(#akBar)" stroke="#3b2a1f" stroke-width=".02"/>`)}
-    else if(myPlaceNow()){   // 3~4명: 내 쪽 삼각형(초록)에만 놓을 수 있음
-      const L=BW-.06,[sx,sz]=mySide(),pts=[[0,0],[L*(sx+sz),L*(sz-sx)],[L*(sx-sz),L*(sz+sx)]].map(([x,z])=>w2s(x,z).join(',')).join(' ');
-      out.unshift(`<polygon points="${pts}" fill="rgba(47,174,78,.34)" stroke="#14632a" stroke-width=".016"/>`)}}
+    else{   // 3~4명: 내 삼각형(화면 아래) 말고 세 삼각형에 빗금 + 대각선 차단기 넷과 가운데 받침
+      const L=BW-.06,d=hl*Math.SQRT2,bar=[];
+      if(pl)for(const [a,b] of [[[-L,-L],[L,-L]],[[-L,-L],[-L,L]],[[L,-L],[L,L]]])out.unshift(`<polygon points="0,0 ${a.join(',')} ${b.join(',')}" fill="url(#akHatch)" opacity=".32"/>`);
+      for(const r of [45,-45])bar.push(`<rect x="${-d}" y="${-PITCH*.21}" width="${2*d}" height="${PITCH*.42}" fill="url(#akBar)" stroke="#3b2a1f" stroke-width=".02" transform="rotate(${r})"/>`);
+      bar.push(`<circle r="${PITCH*.45}" fill="#2b2b2e" stroke="#3b2a1f" stroke-width=".02"/>`);
+      out.unshift(...bar)}}
   if(myPlaceNow()){
     if(GH){const [x,z]=gridXZ(GH.c,GH.r),[X,Y]=w2s(x,z),c=stC(OS.co[me]);out.push(`<circle cx="${X}" cy="${Y}" r="${SR}" fill="${c.f}" stroke="${c.s}" stroke-width=".02" opacity=".5"/>`)}}
   if(myTurnNow()&&!drag&&!Ak3.shot&&!FLK)OS.st.forEach((s,i)=>{if(s.s===me&&!s.o&&!s.u){const [X,Y]=w2s(pos[i].x,pos[i].z);out.push(`<circle cx="${X}" cy="${Y}" r="${SR*1.45}" fill="none" stroke="#f2b632" stroke-width=".03" opacity=".85"/>`)}});
@@ -941,9 +947,10 @@ function ak3Build(){
      tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(w/.46,h/.46);
      const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:.32,depthWrite:false}));
      m.rotation.x=-Math.PI/2;m.visible=false;m.renderOrder=1;m.userData.h=h;root.add(m);Ak3.half=m}
-    // 3~4명 놓기: 내 쪽 삼각형 (월드 좌표로 직접 만든 세 점, 쪽이 바뀌면 다시 채움)
-    {const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(9),3));
-     const wm=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x2fae4e,transparent:true,opacity:.34,depthWrite:false,side:THREE.DoubleSide}));
+    // 3~4명 놓기: 내 쪽 삼각형 말고 나머지 세 삼각형에 빨간 빗금 (월드 좌표로 직접 만든 세모 셋, 무늬는 판 좌표로 이어짐. 쪽이 바뀌면 다시 채움)
+    {const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(27),3));geo.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(18),2));
+     const t3=Ak3.half.material.map.clone();t3.needsUpdate=true;t3.repeat.set(1,1);
+     const wm=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:t3,transparent:true,opacity:.32,depthWrite:false,side:THREE.DoubleSide}));
      wm.visible=false;wm.renderOrder=1;wm.frustumCulled=false;root.add(wm);Ak3.wedge=wm;Ak3.wedgeKey=''}
     Ak3.bowls=[0,1].map(()=>{const g=bowlGroup();root.add(g);return g});
     {const sq=(fill,line)=>canvasTex(64,64,(c,w)=>{c.clearRect(0,0,w,w);c.fillStyle=fill;c.strokeStyle=line;c.lineWidth=5;c.beginPath();c.roundRect?c.roundRect(5,5,w-10,w-10,10):c.rect(5,5,w-10,w-10);c.fill();c.stroke()});
@@ -951,27 +958,32 @@ function ak3Build(){
      Ak3.omOn=[[],[]];   // 돌이 있다고 보는 점 (흑·백), 판 위·알 아래. 필요한 만큼 늘려 씀
      Ak3.omMake=col=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(PITCH*.96,PITCH*.96),new THREE.MeshBasicMaterial({map:col?tw:tb,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.visible=false;m.renderOrder=1;root.add(m);return m}}
     Ak3.winM=new THREE.Mesh(new THREE.BoxGeometry(1,.02,1),new THREE.MeshBasicMaterial({color:0xf2b632,transparent:true,opacity:.85,depthWrite:false}));Ak3.winM.visible=false;Ak3.winM.renderOrder=6;root.add(Ak3.winM);
-    // 건널목 차단기: 판 틀 양끝(가운데 줄 끝)에 기둥, 기둥 위 축에서 검정·노랑 차단봉이 가운데 줄 위로 내려옴. 기둥 머리에 빨간 경고등 둘(번갈아 깜빡)
-    {const XP=BW-.13,AH=.3,AL=XP-.045,AW=.06,AT=.04,tex=canvasTex(256,32,(g,W,Hc)=>{g.fillStyle='#f2c230';g.fillRect(0,0,W,Hc);g.fillStyle='#1d1b19';
+    // 건널목 차단기 (놓기 동안): 두 명이면 판 틀 양끝(가운데 줄 끝)에 기둥 둘, 세·네 명이면 판 네 모서리에 기둥 넷과 가운데 받침(Ak3.barD).
+    // 기둥 위 축에서 검정·노랑 차단봉이 경계(가운데 줄·대각선) 위로 내려옴. 기둥 머리에 빨간 경고등 둘(번갈아 깜빡, 모든 기둥이 함께)
+    {const XP=BW-.13,AH=.3,AW=.06,AT=.04,tex=canvasTex(256,32,(g,W,Hc)=>{g.fillStyle='#f2c230';g.fillRect(0,0,W,Hc);g.fillStyle='#1d1b19';
        for(let x=-Hc;x<W+Hc;x+=Hc*2){g.beginPath();g.moveTo(x,Hc);g.lineTo(x+Hc,Hc);g.lineTo(x+2*Hc,0);g.lineTo(x+Hc,0);g.closePath();g.fill()}});
-     tex.wrapS=THREE.RepeatWrapping;tex.repeat.set(AL/(AW*8),1);
-     const g=new THREE.Group(),am=toon({map:tex,rim:.1}),pm=toon({color:0xd9dcdf,rim:.15}),dm=toon({color:0x2b2b2e,rim:.1}),
+     tex.wrapS=THREE.RepeatWrapping;
+     const pm=toon({color:0xd9dcdf,rim:.15}),dm=toon({color:0x2b2b2e,rim:.1}),
        lampA=new THREE.MeshBasicMaterial({color:0x5a1410}),lampB=new THREE.MeshBasicMaterial({color:0x5a1410}),
        add=(par,geo,m,x,y,z)=>{const a=new THREE.Mesh(geo,m),o=new THREE.Mesh(geo,inkM);a.position.set(x,y,z);o.position.copy(a.position);
          geo.computeBoundingBox();const bb=geo.boundingBox,e=.018;o.scale.set(...['x','y','z'].map(k=>(bb.max[k]-bb.min[k]+e)/(bb.max[k]-bb.min[k])));a.castShadow=true;par.add(a,o);return a};
-     const arms=[];
-     for(const sg of [-1,1]){
-       const post=new THREE.Group();post.position.set(sg*XP,0,0);g.add(post);
-       add(post,new THREE.CylinderGeometry(.075,.085,.03,20),dm,0,.015,0);   // 받침
-       add(post,new THREE.CylinderGeometry(.03,.034,AH+.1,16),pm,0,(AH+.1)/2,0);   // 기둥
-       add(post,new THREE.BoxGeometry(.06,.07,.16),dm,0,AH+.13,0);   // 경고등 머리
-       for(const [z,m] of [[-.05,lampA],[.05,lampB]]){const l=new THREE.Mesh(new THREE.SphereGeometry(.028,14,10),m);l.position.set(0,AH+.13+.03,z);post.add(l)}
-       const piv=new THREE.Group();piv.position.set(0,AH,0);piv.rotation.y=sg>0?Math.PI:0;post.add(piv);   // 축: 봉이 판 가운데 쪽(+x 로컬)으로 뻗음
-       const arm=new THREE.Group();piv.add(arm);
-       add(arm,new THREE.BoxGeometry(AL,AW,AT),am,AL/2,0,0);
-       add(arm,new THREE.BoxGeometry(.13,.07,.07),dm,-.08,0,0);   // 축 뒤 추
-       arms.push(arm)}
-     g.visible=false;g.position.y=TOP;root.add(g);Ak3.barG=g;Ak3.gate={arms,lampA,lampB}}
+     const mkGate=(posts,AL,ped)=>{   // posts: 기둥 자리 [[x,z]…] (봉은 판 가운데 쪽으로), AL: 봉 길이, ped: 가운데 받침
+       const g=new THREE.Group(),arms=[],t2=tex.clone();t2.needsUpdate=true;t2.repeat.set(AL/(AW*8),1);const am=toon({map:t2,rim:.1});
+       for(const [px,pz] of posts){
+         const post=new THREE.Group();post.position.set(px,0,pz);post.rotation.y=Math.atan2(pz,-px);g.add(post);   // 로컬 +x가 판 가운데 쪽
+         add(post,new THREE.CylinderGeometry(.075,.085,.03,20),dm,0,.015,0);   // 받침
+         add(post,new THREE.CylinderGeometry(.03,.034,AH+.1,16),pm,0,(AH+.1)/2,0);   // 기둥
+         add(post,new THREE.BoxGeometry(.06,.07,.16),dm,0,AH+.13,0);   // 경고등 머리
+         for(const [z,m] of [[-.05,lampA],[.05,lampB]]){const l=new THREE.Mesh(new THREE.SphereGeometry(.028,14,10),m);l.position.set(0,AH+.13+.03,z);post.add(l)}
+         const piv=new THREE.Group();piv.position.set(0,AH,0);post.add(piv);
+         const arm=new THREE.Group();piv.add(arm);
+         add(arm,new THREE.BoxGeometry(AL,AW,AT),am,AL/2,0,0);
+         add(arm,new THREE.BoxGeometry(.13,.07,.07),dm,-.08,0,0);   // 축 뒤 추
+         arms.push(arm)}
+       if(ped){const h=AH-AW/2;add(g,new THREE.CylinderGeometry(.09,.1,.03,20),dm,0,.015,0);add(g,new THREE.CylinderGeometry(.045,.05,h,16),pm,0,h/2,0);add(g,new THREE.CylinderGeometry(.08,.08,.025,20),dm,0,h-.012,0)}   // 가운데 받침: 내려온 봉 끝이 걸침
+       g.visible=false;g.position.y=TOP;root.add(g);return {g,arms}};
+     const G2=mkGate([[-XP,0],[XP,0]],XP-.045,false),G4=mkGate([[-XP,-XP],[XP,-XP],[XP,XP],[-XP,XP]],XP*Math.SQRT2-.045-.07,true);
+     Ak3.barG=G2.g;Ak3.barD=G4.g;Ak3.gate={arms:G2.arms,lampA,lampB};Ak3.gateD={arms:G4.arms}}
     {const g=new THREE.Group(),mat=new THREE.MeshBasicMaterial({color:0x26262a,transparent:true,opacity:.5,depthWrite:false}),m=new THREE.Mesh(new THREE.SphereGeometry(SR,28,16),mat);
      m.scale.y=SH/SR;g.add(m);g.visible=false;g.renderOrder=4;root.add(g);Ak3.ghost={g,mat}}
     Ak3.cam=new THREE.PerspectiveCamera(40,1,.1,100);
@@ -1130,19 +1142,22 @@ function ak3Place(now){
     const on=!!s&&!s.o&&!s.u&&V.st==='play'&&!Ak3.shot&&!FLK&&!introWait()&&(a?(!a.mine&&a.i===i):(myTurnNow()&&s.s===me));
     r.visible=on;if(on)r.position.set(q.x,TOP+.004,q.z);
   });
-  // 놓기: 놓을 수 있는 곳(2명은 내 쪽 반 밖에 빗금·차단기, 3~4명은 내 쪽 삼각형)과 미리 보기
+  // 놓기: 놓을 수 없는 곳에 빨간 빗금(2명은 상대 쪽 반, 3~4명은 내 삼각형 말고 나머지)과 차단기, 미리 보기
   {const on=myPlaceNow(),me=myIdx(),[sx,sz]=mySide(),om=!!OS.om,np=npOf(),B=Ak3.bar;
-   const pl=!om&&np===2&&OS.ph==='place'&&V.st==='play'&&!introWait();
+   const pl=!om&&OS.ph==='place'&&V.st==='play'&&!introWait();
    if(pl!==B.on){B.on=pl;B.t0=now}
-   const k=ease((now-B.t0)/BAR_MS),bk=B.on?k:1-k;   // 놓기 단계가 되면 바리케이드가 판에서 솟고 빗금이 나타남, 끝나면 들어가며 사라짐
-   if(om||np>2)Ak3.barG.visible=false;else gateStep(now,B);
-   const hm=Ak3.half;
+   const k=ease((now-B.t0)/BAR_MS),bk=B.on?k:1-k;   // 놓기 단계가 되면 차단기가 서고 빗금이 나타남, 끝나면 들어가며 사라짐
+   if(om){Ak3.barG.visible=Ak3.barD.visible=false}else gateStep(now,B);
+   const hm=np>2?Ak3.wedge:Ak3.half;(np>2?Ak3.half:Ak3.wedge).visible=false;
    if(hm.visible){const m=hm.material.map;m.offset.x=(now/2600)%1}   // 빗금은 늘 한쪽으로 흘러감
-   hm.visible=!om&&np===2&&bk>.01&&me>=0&&me<2;if(hm.visible){hm.position.set(0,TOP+.003,-sz*(PITCH/2+hm.userData.h/2));hm.material.opacity=.32*bk}
-   const wd=Ak3.wedge;wd.visible=!om&&np>2&&on&&me>=0&&me<np;
-   if(wd.visible){const key=sx+','+sz;if(Ak3.wedgeKey!==key){Ak3.wedgeKey=key;const L=BW-.06,a=wd.geometry.attributes.position;
-     a.array.set([0,0,0,L*(sx+sz),0,L*(sz-sx),L*(sx-sz),0,L*(sz+sx)]);a.needsUpdate=true}
-     wd.position.set(0,TOP+.003,0)}
+   hm.visible=!om&&bk>.01&&me>=0&&me<np;
+   if(hm.visible){hm.material.opacity=.32*bk;
+     if(np===2)hm.position.set(0,TOP+.003,-sz*(PITCH/2+hm.userData.h/2));
+     else{hm.position.set(0,TOP+.003,0);const key=sx+','+sz;
+       if(Ak3.wedgeKey!==key){Ak3.wedgeKey=key;const L=BW-.06,P=hm.geometry.attributes.position,U=hm.geometry.attributes.uv,pa=[],ua=[];
+         for(const [ax,az] of SIDES){if(ax===sx&&az===sz)continue;   // 내 쪽 빼고 세 삼각형
+           for(const [x,z] of [[0,0],[L*(ax+az),L*(az-ax)],[L*(ax-az),L*(az+ax)]]){pa.push(x,0,z);ua.push(x/.46,-z/.46)}}
+         P.array.set(pa);U.array.set(ua);P.needsUpdate=U.needsUpdate=true}}}
    const gh=Ak3.ghost;gh.g.visible=on&&!!GH;
    if(gh.g.visible){const [x,z]=gridXZ(GH.c,GH.r);gh.g.position.set(x,TOP+SH,z);gh.mat.color.setHex(stC(OS.co[me]).h)}}
   ak3Bowls(pos);
@@ -1186,7 +1201,7 @@ function ak3Render(t){
   if(fog){fog.near=Ak3.d+4;fog.far=Ak3.d+26}
   for(const m of [T.timerBg,T.timerArc,T.ring])if(m)m.visible=false;
   let cam=Ak3.cam;
-  {const k=OS&&(OS.om||npOf()>2)?0:gateTimes(Ak3.bar,t).cam;   // 놓기 동안: 내 쪽에서 비스듬히 (차단기가 서 있는 게 보이게), 끝나면 천천히 바로 위로
+  {const k=OS&&OS.om?0:gateTimes(Ak3.bar,t).cam;   // 놓기 동안: 내 쪽에서 비스듬히 (차단기가 서 있는 게 보이게), 끝나면 천천히 바로 위로
    if(k>.001&&!intro){const tc=Ak3.tcam||(Ak3.tcam=new THREE.PerspectiveCamera()),[sx,sz]=mySide(),th=GATE.tilt*k,d=Ak3.d*(1+.06*k);
      tc.position.set(sx*d*Math.sin(th),TOP+d*Math.cos(th),sz*d*Math.sin(th));tc.up.set(-sx,0,-sz);tc.lookAt(0,TOP,0);
      tc.projectionMatrix.copy(Ak3.cam.projectionMatrix);tc.projectionMatrixInverse.copy(Ak3.cam.projectionMatrixInverse);tc.updateMatrixWorld();cam=tc}}
@@ -1228,13 +1243,13 @@ function gateTimes(B,now){
   const lift=(e-G2.arm*.8)/G2.post;
   return {e,post:lift>=1?-1:2+Math.max(0,lift),up:ease(e/(G2.arm*.8)),bell:e<G2.arm*.8,cam:1-ease((e-G2.arm*.4)/G2.cam),busy:e<G2.arm*.4+G2.cam+100};
 }
-function gateStep(now,B){
-  const g=Ak3.gate,T2=gateTimes(B,now),bar=Ak3.barG;
+function gateStep(now,B){   // 두 명은 가운데 줄 차단기(barG), 세·네 명은 대각선 차단기 넷(barD)
+  const four=npOf()>2,g=Ak3.gate,T2=gateTimes(B,now),bar=four?Ak3.barD:Ak3.barG;(four?Ak3.barG:Ak3.barD).visible=false;
   bar.visible=T2.post>=0&&!(B.on&&T2.e<0);
   if(bar.visible)bar.position.y=TOP+(T2.post<=1?dropY(T2.post,1.6):1.8*ease(T2.post-2));
   if(B.on&&T2.post>=.68&&!B.thud){B.thud=1;tone(140,.12,{type:'triangle',vol:.16});hiss(.08,{freq:900,vol:.1})}
   if(!B.on)B.thud=0;
-  for(const a of g.arms)a.rotation.z=T2.up*Math.PI/2;   // 1 = 서 있음, 0 = 가운데 줄 위로 내려옴
+  for(const a of (four?Ak3.gateD:g).arms)a.rotation.z=T2.up*Math.PI/2;   // 1 = 서 있음, 0 = 경계 위로 내려옴
   const k=Math.floor(T2.e/GATE.bell);
   g.lampA.color.setHex(T2.bell&&k%2===0?0xff3b2a:0x5a1410);g.lampB.color.setHex(T2.bell&&k%2===1?0xff3b2a:0x5a1410);
   if(T2.bell&&k!==B.bk&&T2.e>=0){B.bk=k;tone(1480,.09,{type:'triangle',vol:.07});tone(1975,.07,{type:'sine',vol:.04,at:.01})}   // 땡
@@ -1322,6 +1337,7 @@ G.preView=()=>{
     if(o&&o[6]&&!q.u){Ak3.pl[i]={x:o[0],y:o[1]+(Ak3.hi.cur===i?LIFT:0),z:o[2],t0:clock()};if(Ak3.hi.cur===i)Ak3.hi={cur:-1,prev:-1,t0:0};Ak3.plSnd[i]=0}})}
   if(!myPlaceNow())GH=null;
   else if(GH&&!canPlace(OS,myIdx(),GH.c,GH.r))setGH(null);
+  G.buttons();
   if(pv&&pv.ph==='place'&&OS.ph==='aim'&&V.st==='play'&&!OS.om){say('알까기를 시작합니다.');sfx('turn')}
   // 한 번 더: 굴러가기가 끝나고 같은 사람 차례가 다시 오면
   if(pv&&pv.ph==='roll'&&OS.ph==='aim'&&V.st==='play'&&OS.sh&&V.t===OS.sh.by&&!OS.om)say(V.t===myIdx()?'한 번 더':`${nm(V.t)} 한 번 더`);
@@ -1357,8 +1373,11 @@ G.overRank=p=>{
   return t?`<span class="left">${t}</span>`:'';
 };
 G.no3D=true;
-G.buttons=()=>{
-  $('#btnPass').hidden=true;$('#btnGura').hidden=true;$('#btnPlay').hidden=true;   // 누르는 버튼 없음: 알을 당겼다 놓아서 튕김
+G.buttons=()=>{   // 튕기기는 버튼 없이 당겼다 놓음. 알을 놓을 수 있는 동안만 [놓기] (오목과 같음: 미리 보기를 고르면 켜짐)
+  $('#btnPass').hidden=true;$('#btnGura').hidden=true;
+  const play=$('#btnPlay'),me=myIdx(),show=!!(V&&V.ak&&V.st==='play'&&OS&&me>=0&&me<npOf()&&(OS.om||OS.ph==='place')),can=show&&!!GH&&myPlaceNow();
+  play.hidden=!show;play.disabled=!can;play.classList.toggle('ready',can);
+  if(show){if($('#playMain').textContent!=='놓기')$('#playMain').textContent='놓기';const sub=keyLabel(KEYS.play);if($('#playSub').textContent!==sub)$('#playSub').textContent=sub}
 };
 /* 매 프레임: 내 차례 남은 시간 (이름 칸·내 정보 칸), 2D 화면의 굴러가기 */
 G.live=()=>{
@@ -1378,7 +1397,7 @@ G.live=()=>{
     if(Ak3.shot||drag||FLK||(OS.aim&&OS.ph==='aim')||myTurnNow()||(Ak3.pl&&Ak3.pl.some(Boolean)))draw2D();
   }
 };
-G.play=()=>{};
+G.play=()=>confirmGH();
 G.pass=()=>{};
 G.keyPhase=st=>st==='play';
 G.onKey=()=>false;
