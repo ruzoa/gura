@@ -8,7 +8,7 @@ function seatPopOpen(key,anchor){
   const isHost=mode==='host',me=myIdx(),max=+V.cfg.max,ps=V.ps||[],pop=$('#seatPop');
   const pickF=!!(G.firstPick&&+V.cfg.pickfirst);
   let h='';
-  if(key[0]==='e'){   // 빈 자리: 앉아 있으면 그 자리로 옮김, 관전 중이면 그 자리에 앉음 (봇 앉히기·자리 치우기는 자판으로)
+  if(key[0]==='e'){   // 빈 자리: 앉아 있으면 그 자리로 옮김, 관전 중이면 그 자리에 앉음 (봇 앉히기는 자판의 봇 추가, 자리 수는 설정 판자의 최대 인원)
     const k=+key.slice(1);
     if(me>=0){sendAct({t:'seat',to:k});sfx('pick');return}
     if(V.spec){sendAct({t:'join',seat:k});sfx('pick');return}
@@ -43,9 +43,7 @@ $('#seatPop').addEventListener('click',e=>{
   if(a.startsWith('swap:')){sendAct({t:'swap',with:+a.slice(5),n:b.dataset.name||''});sfx('pick');seatPopClose();return}
   if(a.startsWith('emomute:')){const p=V&&V.ps&&V.ps[+a.slice(8)];if(p)emoMuteToggle(p.n);seatPopClose();return}
   if(mode!=='host'||!H||H.phase!=='wait')return;
-  if(a==='addbot'){hostAddBot();sfx('pick')}
-  else if(a==='drop')setRoomCfg('max',(+H.cfg.max)-1);
-  else if(a.startsWith('lv:')){const [,i,k]=a.split(':'),m=H.members[+i];if(m&&m.bot){m.lv=+k;sfx('tick');mark()}seatPopClose();return}
+  if(a.startsWith('lv:')){const [,i,k]=a.split(':'),m=H.members[+i];if(m&&m.bot){m.lv=+k;sfx('tick');mark()}seatPopClose();return}
   else if(a.startsWith('first:')){const m=H.members[+a.slice(6)];if(m){H.firstName=m.name;sfx('tick');mark()}}
   else if(a.startsWith('kick:')){const i=+a.slice(5),m=H.members[i],nm=b.dataset.name||'';if(m&&!m.host&&m.name===nm&&(m.bot||confirm(`${nm}님을 탁자에서 내보낼까요?\n내보낸 사람은 이 탁자에 다시 앉을 수 없습니다.`)))hostKick(i)}
   seatPopClose();

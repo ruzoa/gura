@@ -368,6 +368,9 @@ for(let rep=0;rep<60;rep++){
   hostNew(false,'t','t');H.cfg={...cfgFor('gura'),game:'gura',max:8};H.members=[{name:'a',host:true,seat:0},{name:'b',bot:true,seat:2},{name:'c',bot:true,seat:5}];
   shrinkSeats(6);if(H.members.map(m=>m.seat).join()!=='0,2,5')fail('shrinkSeats 6: '+H.members.map(m=>m.seat));
   H.cfg.max=6;shrinkSeats(3);if(H.members.map(m=>m.seat).join()!=='0,1,2')fail('shrinkSeats 3: '+H.members.map(m=>m.seat));
+  hostNew(false,'t','t');H.cfg={...cfgFor('gura'),game:'gura',max:8};H.members=[{name:'a',host:true,seat:0},{name:'b',bot:true,seat:5},{name:'c',bot:true,seat:7}];
+  hostSetGame('quoridor');if(H.cfg.max!==4||H.members.map(m=>m.seat).join()!=='0,2,3')fail('게임 바꾸기로 인원이 줄면 뒤쪽 빈 의자부터: '+H.cfg.max+' '+H.members.map(m=>m.seat));
+  hostNew(false,'t','t');H.cfg={...cfgFor('gura'),game:'gura',max:3};H.members=[{name:'a',host:true,seat:0},{name:'b',bot:true,seat:1},{name:'c',bot:true,seat:2}];
   H.cfg.max=3;shrinkSeats(2);if(H.members.map(m=>m.seat).join()!=='0,1,2')fail('shrinkSeats 사람 수 아래로는 못 줄임');
 }
 console.log('ticks',ticks,'fails',fails);
