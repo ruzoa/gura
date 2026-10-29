@@ -130,7 +130,7 @@ function showPanel(html,kind,opt){
 /* 방장이 방 설정 값 바꾸기 (범위 밖이면 가까운 값으로) */
 function setRoomCfg(k,v){
   if(mode!=='host'||!H||H.phase!=='wait')return;
-  const d=roomSetOf(EG()).find(x=>x.k===k);if(!d)return;
+  const d=roomSetOf(EG(),H.cfg).find(x=>x.k===k);if(!d)return;
   let lo=d.lo;if(k==='max')lo=Math.max(lo,H.members.length);if(k==='spec')lo=Math.max(lo,(H.specs||[]).length);
   v=Math.round(+v);if(!Number.isFinite(v))v=+(H.cfg[k]??cfg[k]);
   if(d.step>1)v=Math.round(v/d.step)*d.step;
@@ -141,7 +141,7 @@ function setRoomCfg(k,v){
 /* −/+ 꾹 누르기: 처음 한 칸 → 0.4초 뒤부터 계속 (오래 누를수록 빨라짐). 패널이 다시 그려져도 멈추지 않게 문서 단위로 처리 */
 const HOLD={timer:null,act:'',n:0};
 function holdStep(){
-  const [op,k]=HOLD.act.split(':');const d=roomSetOf(EG()).find(x=>x.k===k);if(!d||!H){holdStop();return}
+  const [op,k]=HOLD.act.split(':');const d=roomSetOf(EG(),H&&H.cfg).find(x=>x.k===k);if(!d||!H){holdStop();return}
   const before=+H.cfg[k];setRoomCfg(k,before+(op==='inc'?d.step:-d.step));
   if(+H.cfg[k]===before){holdStop();return}
   HOLD.n++;HOLD.timer=setTimeout(holdStep,HOLD.n<6?140:HOLD.n<16?80:45);
@@ -150,7 +150,7 @@ function holdStop(){clearTimeout(HOLD.timer);HOLD.timer=null;HOLD.act=''}
 $('#panel').addEventListener('pointerdown',e=>{
   const b=e.target.closest('.stp-b');if(!b||b.disabled||e.button>0)return;
   e.preventDefault();holdStop();HOLD.act=b.dataset.act;HOLD.n=0;
-  const [op,k]=HOLD.act.split(':');const d=roomSetOf(EG()).find(x=>x.k===k);if(!d||!H)return;
+  const [op,k]=HOLD.act.split(':');const d=roomSetOf(EG(),H&&H.cfg).find(x=>x.k===k);if(!d||!H)return;
   setRoomCfg(k,(+H.cfg[k])+(op==='inc'?d.step:-d.step));
   HOLD.timer=setTimeout(holdStep,400);
 });
@@ -202,9 +202,9 @@ function renderPanel(){
       const gpick=`<div class="rs-seg"><div class="rs-h"><b>게임</b><small>${esc(G.lead)}${tooMany.length?`<br>${tooMany.map(id=>`${esc(GAMES[id].name)}은(는) 최대 ${GAMES[id].maxHi}명`).join(', ')}까지 할 수 있습니다.`:''}</small></div><div class="segrow" role="radiogroup" aria-label="게임">${GAME_IDS.map(id=>`<button class="btn ${c.game===id?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${c.game===id}" data-act="game:${id}"${tooMany.includes(id)?' disabled':''}>${esc(GAMES[id].name)}</button>`).join('')}</div></div>`;
       const stepRow=d=>{const v=+(c[d.k]??cfg[d.k]),lo=d.k==='max'?minMax:d.k==='spec'?(Array.isArray(V.sv)?V.sv.length:0):d.lo;
         return `<div class="stp"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="stp-b" data-act="dec:${d.k}" aria-label="${d.label} 줄이기"${v<=lo?' disabled':''}>−</button><input class="txt stp-v" id="st_${d.k}" type="number" inputmode="numeric" min="${lo}" max="${d.hi}" step="${d.step}" value="${v}" aria-label="${d.label}"><span class="stp-u">${d.unit}</span><button type="button" class="stp-b" data-act="inc:${d.k}" aria-label="${d.label} 늘리기"${v>=d.hi?' disabled':''}>+</button></div></div>`};
-      const rows=roomSetOf(G).map(stepRow).join('');
+      const rows=roomSetOf(G,c).map(stepRow).join('');
       // 게임이 규칙 칸을 직접 그릴 수 있음 (G.settingsHTML: 대부호의 룰 레버). 없으면 −/+ 칸과 스위치를 차례로
-      const body=G.settingsHTML?G.settingsHTML(c,{stepRow,common:COMMON_SET.map(d=>roomSetOf(G).find(x=>x.k===d.k))}):`<div class="rs-grid">${rows}</div>${rules?`<div class="rulehead">게임 규칙</div><div class="rs-grid tgs">${rules}</div>`:''}`;
+      const body=G.settingsHTML?G.settingsHTML(c,{stepRow,common:COMMON_SET.map(d=>roomSetOf(G,c).find(x=>x.k===d.k))}):`<div class="rs-grid">${rows}</div>${rules?`<div class="rulehead">게임 규칙</div><div class="rs-grid tgs">${rules}</div>`:''}`;
       const modeRow=G.noFast?'':`<div class="rs-seg"><div class="rs-h"><b>게임 모드</b><small>${G.modeDesc[c.fast?1:0]}</small></div><div class="segrow" role="radiogroup" aria-label="게임 모드">${[0,1].map(v=>`<button class="btn ${(c.fast?1:0)===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${(c.fast?1:0)===v}" data-act="mode${v}">${OPT_LABEL.fast[v]}</button>`).join('')}</div></div>`;
       showPanel(`<div class="vhead"><button type="button" class="back" data-act="setclose" aria-label="대기실로">←</button><h2>탁자 설정</h2></div>
         ${gpick}${modeRow}
@@ -260,7 +260,7 @@ $('#panel').addEventListener('click',e=>{
   if(a==='setopen'){roomSetOpen=true;renderPanel();return}
   if(a==='setclose'){roomSetOpen=false;renderPanel();return}
   if((a==='om:more'||a==='prmore')&&!H&&G.panelAct){G.panelAct(a,b);return}   // 참가자도 세부 설정 쪽은 넘겨 볼 수 있음
-  if(/^(inc|dec):/.test(a)){if(e.detail!==0)return;const [op,k]=a.split(':');const d=roomSetOf(EG()).find(x=>x.k===k);if(d&&H)setRoomCfg(k,(+H.cfg[k])+(op==='inc'?d.step:-d.step));return}
+  if(/^(inc|dec):/.test(a)){if(e.detail!==0)return;const [op,k]=a.split(':');const d=roomSetOf(EG(),H&&H.cfg).find(x=>x.k===k);if(d&&H)setRoomCfg(k,(+H.cfg[k])+(op==='inc'?d.step:-d.step));return}
   if(a==='pub'){if(mode==='host'&&H&&H.online){H.cfg={...H.cfg,pub:H.cfg.pub?0:1};mark()}return}
   if(a==='copy'){
     const inp=$('#linkTxt');if(!inp)return;

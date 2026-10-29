@@ -39,17 +39,17 @@ const BOT_LV=['쉬움','보통','어려움'];
 const COMMON_SET=[
   {k:'max',label:'최대 인원',unit:'명',lo:2,hi:8,step:1,desc:'현재 인원보다 적게 줄일 수 없습니다'},
   {k:'spec',label:'관전 인원',unit:'명',lo:0,hi:8,step:1,desc:'게임 중이거나 탁자가 가득 차면 관전으로 들어옵니다'}];
-const roomSetOf=g=>[...COMMON_SET.map(d=>d.k==='max'&&g.maxHi?{...d,hi:g.maxHi}:d),...g.roomSet];   // g.maxHi: 그 게임의 최대 인원 (쿼리도 4명)
+const roomSetOf=(g,c)=>[...COMMON_SET.map(d=>{const hi=d.k==='max'?(g.maxOf&&c?g.maxOf(c):g.maxHi):0;return hi?{...d,hi}:d}),...g.roomSet];   // g.maxHi: 그 게임의 최대 인원 (쿼리도 4명), g.maxOf(방 설정): 규칙에 따라 달라지는 최대 인원 (알까기 오목 모드 2명)
 const cfgKey=id=>id==='gura'?'gura-roomcfg':'gura-roomcfg-'+id;
 /* 게임별로 저장해 둔 방 설정 (없으면 기본값). 범위 밖이면 가까운 값으로 */
 function cfgFor(id){
   const g=gameOf(id),c={max:4,spec:4,...g.defaults};
   try{const sv=JSON.parse(store(cfgKey(g.id))||'null');if(sv){for(const d of roomSetOf(g))if(Number.isFinite(+sv[d.k]))c[d.k]=+sv[d.k];for(const d of g.ruleSet)if(sv[d.k]!==undefined)c[d.k]=+sv[d.k]?1:0}}catch(e){}
-  for(const d of roomSetOf(g))c[d.k]=Math.max(d.lo,Math.min(d.hi,Math.round(+c[d.k])||0));
+  for(const d of roomSetOf(g,c))c[d.k]=Math.max(d.lo,Math.min(d.hi,Math.round(+c[d.k])||0));
   for(const d of g.ruleSet)c[d.k]=+c[d.k]?1:0;
   c.game=g.id;return c;
 }
-function saveRoomCfg(c){const g=gameOf(c.game),o={};for(const d of roomSetOf(g))o[d.k]=c[d.k];for(const d of g.ruleSet)o[d.k]=c[d.k]?1:0;store(cfgKey(g.id),JSON.stringify(o))}
+function saveRoomCfg(c){const g=gameOf(c.game),o={};for(const d of roomSetOf(g,c))o[d.k]=c[d.k];for(const d of g.ruleSet)o[d.k]=c[d.k]?1:0;store(cfgKey(g.id),JSON.stringify(o))}
 let roomSetOpen=false;
 const PEER_PREFIX='gura-cardgame-room-';
 const ALPH='abcdefghjkmnpqrstuvwxyz23456789';

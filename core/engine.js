@@ -99,7 +99,7 @@ function hostSetGame(id){
   if(mx&&H.members.length>mx){addLog(`${GAMES[id].name}은(는) 최대 ${mx}명까지 할 수 있습니다.`,'sys');mark();return}
   const keep={max:Math.max(H.cfg.max,H.members.length),spec:H.cfg.spec,pub:H.cfg.pub,fast:H.cfg.fast};
   if(mx)keep.max=Math.min(keep.max,mx);
-  H.cfg={...cfgFor(id),...keep};store('gura-game',id);
+  H.cfg={...cfgFor(id),...keep};if(GAMES[id].fixCfg)H.cfg=GAMES[id].fixCfg(H.cfg,H.members.length,false);store('gura-game',id);
   if(GAMES[id].engine.reset)GAMES[id].engine.reset();
   addLog(`게임을 ${GAMES[id].name}(으)로 바꿨습니다.`,'sys');
   sfx('tick');lastPanelHtml='';mark();
@@ -109,11 +109,13 @@ function hostSetGame(id){
 function setRule(k,v){
   if(mode!=='host'||!H||H.phase!=='wait'||!EG().ruleSet.some(d=>d.k===k))return;
   v=+v?1:0;if((+H.cfg[k]?1:0)===v){lastPanelHtml='';mark();return}
-  H.cfg={...H.cfg,[k]:v};saveRoomCfg(H.cfg);sfx('tick');lastPanelHtml='';mark();
+  let nc={...H.cfg,[k]:v};if(EG().fixCfg){nc=EG().fixCfg(nc,H.members.length,true);if(!nc){sfx('no');lastPanelHtml='';mark();return}}   // 규칙에 따라 인원 제한이 있으면 맞춤 (알까기 오목 모드 2명)
+  H.cfg=nc;saveRoomCfg(H.cfg);sfx('tick');lastPanelHtml='';mark();
 }
 function toggleRule(k){
   if(mode!=='host'||!H||H.phase!=='wait'||!EG().ruleSet.some(d=>d.k===k))return;
-  H.cfg={...H.cfg,[k]:H.cfg[k]?0:1};saveRoomCfg(H.cfg);sfx('tick');lastPanelHtml='';mark();
+  let nc={...H.cfg,[k]:H.cfg[k]?0:1};if(EG().fixCfg){nc=EG().fixCfg(nc,H.members.length,true);if(!nc){sfx('no');lastPanelHtml='';mark();return}}
+  H.cfg=nc;saveRoomCfg(H.cfg);sfx('tick');lastPanelHtml='';mark();
 }
 /* 봇이 보기에 i번이 방금 낸 카드가 진짜일 확률 (공개된 정보만 사용) */
 const botLv=b=>b&&b.lv!=null?b.lv:1;   // 봇마다 따로 정한 난이도 (기본 보통)

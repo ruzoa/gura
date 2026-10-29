@@ -153,7 +153,7 @@ function padIcon(g,k){   // 192×128 칸에 그림 (상·의자 그림은 사용
 /* 대기실 자판 */
 function frontWaitCan(k){
   if(!V||!frWaitV())return false;
-  const max=+V.cfg.max,n=(V.ps||[]).length,hi=(roomSetOf(G).find(d=>d.k==='max')||{hi:8}).hi;
+  const max=+V.cfg.max,n=(V.ps||[]).length,hi=(roomSetOf(G,V.cfg).find(d=>d.k==='max')||{hi:8}).hi;
   if(k==='bot'||k==='chairUp')return mode==='host'&&(k==='bot'?n<max||max<hi:max<hi);
   if(k==='chairDn')return mode==='host'&&max>Math.max(2,n);   // 빈 의자가 없으면 못 뺌 (앉은 사람·봇은 이름표 메뉴로)
   if(k==='clear'||k==='chair'||k==='back')return mode==='host';

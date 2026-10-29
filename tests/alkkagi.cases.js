@@ -130,15 +130,86 @@ for(const ag of [1,0])for(let rep=0;rep<6;rep++){
  ok(c.length>0&&c.every(q=>q.i===0&&q.p>=.3&&q.p<=1),'cands from own stone');
  ok(T.shotScore(A,0,{i:0,a:-Math.PI/2,p:.9})>=10,'straight hit scores');}
 
+/* ---------- 3~4명 ---------- */
+/* 놓기 전 자리: 사람마다 자기 쪽 펠트에 한 줄, 겹치지 않음 */
+for(const np of [3,4])for(let n=1;n<=10;n++){
+  const h=T.reserves(n,np);
+  eq(h.length,np*n,'reserves count np='+np+' n='+n);
+  ok(h.every(q=>q.u&&Math.hypot(q.x,q.z)<3.15-SR&&Math.max(Math.abs(q.x),Math.abs(q.z))>BW+SR*.9),'reserves on felt np='+np+' n='+n);
+  for(let s=0;s<np;s++){const [sx,sz]=T.sideOfSeat(s,np);ok(h.slice(s*n,s*n+n).every(q=>q.s===s&&q.x*sx+q.z*sz>BW),'reserves side seat '+s+' np='+np)}
+  for(let a=0;a<h.length;a++)for(let b=a+1;b<h.length;b++)if(Math.hypot(h[a].x-h[b].x,h[a].z-h[b].z)<2*SR+.01)fail('alkkagi reserves overlap np='+np+' n='+n);
+}
+/* 내 쪽: 두 명이면 위아래, 세·네 명이면 아래(0)부터 시계 방향 */
+eq(JSON.stringify([0,1].map(s=>T.sideOfSeat(s,2))),'[[0,1],[0,-1]]','2p sides');
+eq(JSON.stringify([0,1,2,3].map(s=>T.sideOfSeat(s,4))),'[[0,1],[-1,0],[0,-1],[1,0]]','4p sides');
+/* 놓을 수 있는 점: 3~4명은 내 쪽 삼각형(대각선 제외), 2명은 내 쪽 반(가운데 줄 제외) */
+{const C=(T.NL-1)/2,A3={np:3,st:[]},A2={np:2,st:[]};
+ ok(T.canPlace(A3,0,9,14),'3p bottom wedge');ok(!T.canPlace(A3,0,4,14),'3p diagonal excluded');ok(!T.canPlace(A3,0,0,10),'3p outside wedge');
+ ok(T.canPlace(A3,1,2,9),'3p left wedge');ok(!T.canPlace(A3,1,16,9),'3p left seat not on right');ok(T.canPlace(A3,2,9,3),'3p top wedge');
+ ok(T.canPlace(A2,0,0,10),'2p bottom half wide');ok(!T.canPlace(A2,0,0,C),'2p centre line');ok(!T.canPlace(A2,0,9,4),'2p not opponent half');ok(T.canPlace(A2,1,9,4),'2p top half');
+ A2.st=[{x:T.gridXZ(9,14)[0],y:TOP+SH,z:T.gridXZ(9,14)[1],s:0,o:0,g:0}];ok(!T.canPlace(A2,0,9,14),'occupied point');}
+/* 네 명이 시계 방향으로 한 알씩 놓고, 다 놓으면 선부터 튕김 */
+{mkRoom({max:4,stones:2,pickfirst:1,again:0},['가','나','다','라'],true);
+ const A=H.ak;eq(A.np,4,'four players');eq(A.co.join(),'1,2,3,4','four colours');eq(H.turn,0,'first places first');
+ const seq=[];
+ for(let k=0;k<8&&A.ph==='place';k++){seq.push(H.turn);const b=T.placePlan(A,H.turn);AK.engine.act(H.turn,{t:'place',c:b[0],r:b[1]})}
+ eq(seq.join(),'0,1,2,3,0,1,2,3','clockwise placing');eq(A.ph,'aim','shooting starts');eq(H.turn,0,'first shoots first');
+ ok(A.st.every((q,i)=>!q.u&&T.ownPt(q.s,4,Math.round(q.x/T.PITCH+(T.NL-1)/2),Math.round(q.z/T.PITCH+(T.NL-1)/2))),'each stone in own wedge');
+ eq(snapFor(1).ak.np,4,'np sent');}
+/* 한 명씩 탈락: 마지막 순위부터, 탈락한 사람은 건너뜀, 한 명 남으면 승리 */
+{mkRoom({max:4,stones:1,pickfirst:1,again:0},['가','나','다','라'],true);
+ const A=H.ak;A.st=[at(0,-1.4,0),at(0,-2.0,1),at(2,2,2),at(-2,2,3)];A.ph='aim';H.turn=0;A.next=0;H.players.forEach(p=>p.hand=[0]);
+ AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.4});roll();
+ ok(A.st[1].o&&!A.st[0].o,'second stone knocked off');
+ eq(H.phase,'play','game goes on');eq(H.players[1].rank,4,'first out is last place');eq(H.players[1].finished,true,'out flag');eq(H.turn,2,'turn skips the one who is out');
+ AK.engine.act(3,{t:'surrender'});eq(H.players[3].rank,3,'surrender rank');eq(H.phase,'play','still going');ok(A.st[3].o,'surrendered stone removed');eq(H.turn,2,'turn unchanged');
+ AK.engine.act(2,{t:'surrender'});eq(H.phase,'over','last one standing');eq(A.res.w,0,'winner');
+ eq(H.players.map(p=>p.rank).join(),'1,4,2,3','ranks');
+ hostStart();eq(H.ak.A,1,'first out starts the rematch');}
+/* 차례인 사람이 항복하면 차례는 다음 사람에게 */
+{mkRoom({max:4,stones:1,pickfirst:1,again:0},['가','나','다','라'],true);
+ const A=H.ak;A.st=[at(0,1.4,0),at(0,-1.4,1),at(2,2,2),at(-2,2,3)];A.ph='aim';H.turn=0;
+ AK.engine.act(0,{t:'surrender'});eq(H.phase,'play','three left');eq(H.turn,1,'next player moves');eq(H.players[0].rank,4,'surrender is last place');}
+/* 놓는 중에 항복하면 그 사람 건너뜀 */
+{mkRoom({max:3,stones:2,pickfirst:1},['가','나','다'],true);
+ const A=H.ak;AK.engine.act(0,{t:'place',c:9,r:14});eq(H.turn,1,'second places');AK.engine.act(1,{t:'surrender'});
+ eq(H.turn,2,'third places after surrender');eq(H.phase,'play','going on');ok(!A.st.some(q=>q.s===1&&q.u),'unplaced stones removed');
+ for(let k=0;k<9&&A.ph==='place';k++){const b=T.placePlan(A,H.turn);AK.engine.act(H.turn,{t:'place',c:b[0],r:b[1]})}
+ eq(A.ph,'aim','shooting after placing');ok(H.turn===0||H.turn===2,'out player never moves');}
+/* 두 사람이 한꺼번에 탈락하면 같은 순위 */
+{mkRoom({max:3,stones:1,pickfirst:1,again:0},['가','나','다'],true);
+ const A=H.ak;A.st=[at(0,0,0),{...at(3,0,1),o:1},{...at(3,3,2),o:1}];A.ph='aim';H.turn=0;
+ AK.engine.act(0,{t:'shoot',i:0,a:0,p:.1});roll();
+ eq(H.phase,'over','over');eq(H.players.map(p=>p.rank).join(),'1,2,2','tied ranks');eq(A.res.w,0,'winner');}
+/* 남은 사람이 모두 한꺼번에 탈락하면 무승부 */
+{mkRoom({max:3,stones:1,pickfirst:1,again:0},['가','나','다'],true);
+ const A=H.ak;A.st=[at(0,-1.9,0),{...at(3,0,1),o:1},{...at(3,3,2),o:1}];A.ph='aim';H.turn=0;
+ AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.6});roll();
+ eq(H.phase,'over','draw over');eq(A.res.w,-1,'draw');eq(H.players.map(p=>p.rank).join(),'1,1,1','all first in a draw');}
+/* 한 번 더(세 명): 쓴 사람이 탈락하지 않았다면 같은 사람 */
+{mkRoom({max:3,stones:2,pickfirst:1,again:1},['가','나','다'],true);
+ const A=H.ak;A.st=[at(0,-1.4,0),at(0,-2.0,1),at(2,2,2),at(0,1,0),at(-2,2,1),at(2,-2,2)];A.ph='aim';H.turn=0;
+ AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.4});roll();
+ ok(A.st[1].o&&!A.st[0].o,'knocked');eq(H.turn,0,'again goes to same player');}
+/* 시간 초과: 세 명이면 다음 사람 (탈락한 사람 건너뜀) */
+{mkRoom({max:3,stones:1,pickfirst:1,turn:20},['가','나','다'],true);
+ const A=H.ak;A.st=[at(0,1,0),at(0,-1,1),at(1,1,2)];A.ph='aim';H.turn=0;H.deadline=NOW+20000;
+ H.players[1].finished=true;H.players[1].rank=3;A.st[1].o=1;
+ NOW+=20001;engineTick();eq(H.turn,2,'timeout skips the one who is out');}
+/* 방 설정: 오목 모드는 2명까지 */
+{eq(AK.maxOf({omok:1}),2,'omok max 2');eq(AK.maxOf({omok:0}),4,'normal max 4');
+ eq(roomSetOf(AK,{omok:1}).find(d=>d.k==='max').hi,2,'room set hi 2');eq(roomSetOf(AK,{omok:0}).find(d=>d.k==='max').hi,4,'room set hi 4');eq(roomSetOf(AK).find(d=>d.k==='max').hi,4,'room set default hi');
+ eq(AK.fixCfg({omok:1,max:4},2,true).max,2,'omok clamps max');eq(AK.fixCfg({omok:1,max:2},3,true),null,'omok refused with 3 seated');
+ eq(AK.fixCfg({omok:1,max:4},3,false).omok,0,'omok dropped when too many');eq(AK.fixCfg({omok:0,max:4},4,true).max,4,'normal untouched');}
+
 /* ---------- 오목 모드 ---------- */
 const gp=(c,r,s)=>{const [x,z]=T.gridXZ(c,r);return at(x,z,s)};
-const bowl=s=>({x:0,y:.1,z:s?-2.6:2.6,s,o:0,g:0,u:1});
-/* 판정: 반 칸 안의 가장 가까운 돌, 첫째 줄을 따라 가로 5목은 안 침(세로·대각선은 침), 6목도 침 */
+/* 판정: 반 칸 안의 가장 가까운 돌, 가로·세로·대각선 어디서나 (맨 끝 줄도), 6목도 침 */
 {const five=(pts,s)=>T.omFive(T.omGrid(pts.map(([c,r])=>gp(c,r,s))),s);
  ok(five([[3,5],[4,5],[5,5],[6,5],[7,5]],0),'row five');
  ok(!five([[3,5],[4,5],[5,5],[6,5]],0),'four is not five');
- ok(!five([[3,18],[4,18],[5,18],[6,18],[7,18]],0),'edge row horizontal ignored');
- ok(!five([[3,0],[4,0],[5,0],[6,0],[7,0]],1),'far edge row horizontal ignored');
+ ok(five([[3,18],[4,18],[5,18],[6,18],[7,18]],0),'edge row horizontal counts');
+ ok(five([[3,0],[4,0],[5,0],[6,0],[7,0]],1),'far edge row horizontal counts');
  ok(five([[4,14],[4,15],[4,16],[4,17],[4,18]],0),'vertical through edge row counts');
  ok(five([[0,18],[1,17],[2,16],[3,15],[4,14]],0),'diagonal through edge row counts');
  ok(five([[2,6],[3,6],[4,6],[5,6],[6,6],[7,6]],1),'six counts');
@@ -146,79 +217,88 @@ const bowl=s=>({x:0,y:.1,z:s?-2.6:2.6,s,o:0,g:0,u:1});
  {const g=T.omGrid([gp(3,5,0),gp(4,5,0),gp(5,5,0),gp(6,5,0)].concat([{...gp(7,5,0),x:gp(7,5,0).x+T.PITCH*.55}]));ok(!T.omFive(g,0),'beyond half pitch misses')}
  {const a=gp(7,5,1),b=gp(7,5,0);a.x+=T.PITCH*.3;b.x-=T.PITCH*.1;const g=T.omGrid([gp(3,5,0),gp(4,5,0),gp(5,5,0),gp(6,5,0),a,b]);ok(T.omFive(g,0),'nearest stone owns the point')}
  {const q=gp(5,5,0);q.o=1;eq(T.omGrid([q])[5*T.NL+5],0,'fallen stone ignored')}}
-/* 주인 바꾸기: 떨어진 순서대로, 돌이 5개뿐이면 자기 통으로 */
-{const st=[];for(let k=0;k<6;k++)st.push(gp(k,10,0));for(let k=0;k<14;k++)st.push(gp(k,4,1));
- st[0].o=st[1].o=st[2].o=1;st[6].o=1;
- const cv=T.omConv({st},{0:100,1:200,2:300,6:50});
- eq(JSON.stringify(cv),JSON.stringify([[6,0],[0,1],[1,1],[2,0]]),'conv order and floor');}
-/* 엔진: 첫째 줄에만 놓고, 놓은 돌만 튕김 */
+/* 엔진: 판 어디나 놓을 수 있고(겹치지 않게), 놓은 뒤 차례가 넘어감. 돌 수 제한 없음 */
 {mkRoom({pickfirst:1,omok:1},undefined,true);
- const A=H.ak;eq(A.om,1,'omok on');eq(A.st.length,2*T.OM_N,'ten each');ok(A.st.every(q=>q.u),'all in bowls');eq(A.ph,'place','place first');eq(H.turn,0,'black first');
- AK.engine.act(0,{t:'place',c:9,r:17});eq(A.pc,0,'not second row');
- AK.engine.act(0,{t:'place',c:9,r:0});eq(A.pc,0,'not opponent row');
- AK.engine.act(0,{t:'place',c:9,r:18});eq(A.pc,1,'placed on first row');eq(A.ph,'aim','then shoot');eq(H.turn,0,'same player shoots');
- const fx=A.fx;ok(fx>=0&&A.st[fx].s===0&&!A.st[fx].u,'fixed stone');eq(snapFor(1).ak.fx,fx,'fx sent');
- AK.engine.act(0,{t:'shoot',i:(fx+1)%T.OM_N,a:-Math.PI/2,p:.5});eq(A.cnt,0,'bowl stone cannot shoot');
- AK.engine.act(0,{t:'shoot',i:fx,a:-Math.PI/2,p:.3});eq(A.cnt,1,'shot');roll();
- eq(H.turn,1,'opponent next');eq(A.ph,'place','opponent places');
- AK.engine.act(1,{t:'place',c:9,r:18});eq(A.pc,1,'opponent not on my row');
- AK.engine.act(1,{t:'place',c:9,r:0});eq(A.pc,2,'opponent placed');
- NOW+=31000;engineTick();
- eq(H.turn,0,'timeout passes');ok(A.st.filter(q=>q.s===1&&q.u).length===T.OM_N,'timed-out stone back to bowl');eq(A.ph,'place','next places');
- NOW+=31000;engineTick();eq(H.turn,1,'timeout while placing passes');}
-/* 떨어뜨린 상대 돌은 내 통으로 (연출이 끝난 뒤), 돌이 5개뿐이면 자기 통으로 */
-for(const floor of [0,1])for(const ag of [1,0]){
+ const A=H.ak;eq(A.om,1,'omok on');eq(A.np,2,'omok two players');eq(A.st.length,0,'empty board');eq(A.ph,'aim','aim phase from the start');eq(H.turn,0,'black first');
+ AK.engine.act(1,{t:'place',c:9,r:9});eq(A.st.length,0,'not your turn');
+ AK.engine.act(0,{t:'place',c:19,r:9});eq(A.st.length,0,'not off grid');
+ AK.engine.act(0,{t:'place',c:9.5,r:9});eq(A.st.length,0,'not between lines');
+ AK.engine.act(0,{t:'place',c:9,r:9});eq(A.st.length,1,'placed anywhere');eq(H.turn,1,'turn passes after placing');
+ {const q=A.st[0];ok(q.s===0&&!q.u&&Math.abs(q.x)<1e-9&&Math.abs(q.z)<1e-9&&Math.abs(q.y-(TOP+SH))<1e-9,'stone on the point')}
+ AK.engine.act(1,{t:'place',c:9,r:9});eq(A.st.length,1,'cannot overlap');
+ AK.engine.act(1,{t:'place',c:10,r:9});eq(A.st.length,2,'next point is fine');eq(H.turn,0,'back to black');
+ AK.engine.act(0,{t:'place',c:0,r:0});AK.engine.act(1,{t:'place',c:18,r:0});AK.engine.act(0,{t:'place',c:0,r:18});eq(A.st.length,5,'corners and edges are fine');
+ eq(snapFor(1).ak.st.length,5,'stones sent');eq(snapFor(1).ak.np,2,'np sent');
+ for(let k=0;k<12;k++){const [c,r]=[k%9+2,3+Math.floor(k/9)*2];AK.engine.act(H.turn,{t:'place',c,r:r+7})}
+ ok(A.st.length>12,'no stone limit '+A.st.length);}
+/* 튕기기: 내 돌만, 놓은 돌과 겹친 돌은 점을 가림 */
+{mkRoom({pickfirst:1,omok:1},undefined,true);
+ const A=H.ak;AK.engine.act(0,{t:'place',c:9,r:12});AK.engine.act(1,{t:'place',c:9,r:6});
+ AK.engine.act(0,{t:'shoot',i:1,a:-Math.PI/2,p:.5});eq(A.cnt,2,'cannot shoot the opponent stone');
+ AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.3});eq(A.cnt,3,'shot own stone');eq(A.ph,'roll','rolling');
+ AK.engine.act(0,{t:'place',c:5,r:5});eq(A.st.length,2,'no placing while rolling');
+ roll();eq(A.ph,'aim','aim again');ok(H.turn===1||A.next===0,'turn passes');}
+/* 놓아서 오목: 맨 끝 줄이어도 승리, 순위·줄 전송 */
+{mkRoom({pickfirst:1,omok:1},undefined,true);
+ const A=H.ak;A.st=[gp(3,18,0),gp(4,18,0),gp(5,18,0),gp(6,18,0),gp(3,5,1),gp(4,5,1),gp(5,5,1),gp(6,5,1)];
+ AK.engine.act(0,{t:'place',c:7,r:18});
+ eq(H.phase,'over','five by placing ends');eq(A.res.w,0,'placer wins');eq(A.res.ln.length,5,'line sent');eq(H.players.map(p=>p.rank).join(),'1,2','ranks');}
+/* 떨어진 돌은 그냥 사라지고 주인이 바뀌지 않음, 상대 돌을 떨어뜨리면 한 번 더(설정) */
+for(const ag of [1,0]){
   mkRoom({pickfirst:1,omok:1,again:ag},undefined,true);
-  const A=H.ak;
-  A.st=[gp(9,16,0),gp(9,4,1)];for(let k=0;k<9;k++)A.st.push(bowl(0));for(let k=0;k<(floor?4:9);k++)A.st.push(bowl(1));
-  A.st[1]=at(0,-2.05,1);A.st[0]=at(0,-1.45,0);A.fx=0;A.ph='aim';H.turn=0;
-  AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.4});
-  ok(A.st[1].o&&!A.st[1].u,'knocked stone waits on felt during roll');eq(A.st[1].s,1,'owner unchanged during roll');
-  roll();
-  if(!A.st[0].o){eq(A.st[1].u,1,'knocked stone to bowl');eq(A.st[1].s,floor?1:0,'owner after capture floor='+floor);eq(H.turn,ag?0:1,'omok again after knock ag='+ag)}
-  else fail('alkkagi omok capture setup');
+  const A=H.ak;A.st=[at(0,-1.45,0),at(0,-2.05,1)];H.turn=0;
+  AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.4});roll();
+  if(A.st[1].o&&!A.st[0].o){eq(A.st[1].s,1,'owner unchanged');eq(A.st.length,2,'no stones appear');eq(H.turn,ag?0:1,'omok again after knock ag='+ag)}
+  else fail('alkkagi omok knock setup');
 }
-/* 오목 판정: 상대가 만들어 준 오목도 승리, 동시 오목은 튕긴 사람 패배 */
+/* 상대가 만들어 준 오목도 승리, 동시 오목은 튕긴 사람 패배 */
 {mkRoom({pickfirst:1,omok:1},undefined,true);
- const A=H.ak;A.st=[gp(9,18,0)];for(let k=0;k<5;k++)A.st.push(gp(2+k,7,1));for(let k=0;k<9;k++)A.st.push(bowl(0));for(let k=0;k<5;k++)A.st.push(bowl(1));
- A.fx=0;A.ph='aim';H.turn=0;AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.2});roll();
+ const A=H.ak;A.st=[gp(9,16,0)];for(let k=0;k<5;k++)A.st.push(gp(2+k,7,1));
+ H.turn=0;AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.2});roll();
  eq(H.phase,'over','five ends');eq(A.res.w,1,'opponent five wins even on my shot');eq(A.res.ln.length,5,'line sent');}
 {mkRoom({pickfirst:1,omok:1},undefined,true);
- const A=H.ak;A.st=[gp(9,18,0)];for(let k=0;k<5;k++)A.st.push(gp(2+k,7,1));for(let k=0;k<5;k++)A.st.push(gp(2+k,12,0));for(let k=0;k<4;k++)A.st.push(bowl(0));for(let k=0;k<5;k++)A.st.push(bowl(1));
- A.fx=0;A.ph='aim';H.turn=0;AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.2});roll();
+ const A=H.ak;A.st=[gp(9,16,0)];for(let k=0;k<5;k++)A.st.push(gp(2+k,7,1));for(let k=0;k<5;k++)A.st.push(gp(2+k,12,0));
+ H.turn=0;AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.2});roll();
  eq(A.res.w,1,'both fives: shooter loses');eq(A.res.why,'both','both reason');}
-/* 통이 비면 판 위 내 돌 아무거나 */
+/* 시간 초과면 차례만 넘김 */
+{mkRoom({pickfirst:1,omok:1,turn:20},undefined,true);
+ const A=H.ak;AK.engine.act(0,{t:'place',c:9,r:9});NOW+=20001;engineTick();eq(H.turn,0,'timeout passes turn');eq(A.st.length,1,'nothing placed for them');}
+/* 놓을 점이 없으면 무승부 */
 {mkRoom({pickfirst:1,omok:1},undefined,true);
- const A=H.ak;A.st=[gp(3,15,0),gp(12,15,0),gp(5,3,1)];for(let k=0;k<17;k++)A.st.push(bowl(1));
- H.turn=1;A.fx=-1;A.ph='aim';AK.engine.act(1,{t:'shoot',i:2,a:Math.PI/2,p:.2});roll();
- eq(H.turn,0,'empty bowl player turn');eq(A.ph,'aim','no placing with empty bowl');eq(A.fx,-1,'any stone');
- AK.engine.act(0,{t:'shoot',i:1,a:-Math.PI/2,p:.2});eq(A.cnt,2,'board stone shot');}
-/* 봇 계획: 놓기는 첫째 줄, 후보는 정해진 돌에서 */
-{const A={om:1,fx:-1,st:[gp(4,10,0),gp(5,10,0),gp(6,10,0),gp(9,6,1)]};for(let k=0;k<8;k++)A.st.push(bowl(0));
- for(let k=0;k<10;k++){const b=T.omPlacePlan(A,0,null,1+(k%2));ok(b&&b[1]===18&&T.canPlace(A,0,b[0],b[1]),'omok place plan')}
+ const A=H.ak;eq(T.omFull(A),false,'empty board not full');
+ A.st=[];for(let c=0;c<T.NL;c++)for(let r=0;r<T.NL;r++)A.st.push(gp(c,r,(c+r+((c>>1)+(r>>1)))&1));
+ eq(T.omFull(A),true,'full board');}
+/* 봇 계획: 놓기는 놓을 수 있는 곳, 후보는 내 돌과 놓기 */
+{const A={om:1,np:2,st:[gp(4,10,0),gp(5,10,0),gp(6,10,0),gp(9,6,1)]};
+ for(let k=0;k<10;k++){const b=T.omPlacePlan(A,0,null,1+(k%2));ok(b&&T.canPlace(A,0,b[0],b[1]),'omok place plan')}
  const t=T.omTargets(A,0,4);ok(t.some(q=>(q.c===3||q.c===7)&&q.r===10),'target extends line');
- A.st[0]=gp(9,18,0);A.fx=0;const c=T.omCands(A,0,2);ok(c.length&&c.every(q=>q.i===0&&q.p>=.1&&q.p<=1),'cands from fixed stone');
- for(let k=0;k<30;k++){const b=T.botPlan(A,0);ok(b&&b.i===0&&b.p>=.1,'easy omok plan')}}
+ const c=T.omCands(A,0,2);ok(c.length>0,'omok cands');
+ ok(c.some(q=>q.pl),'cands include placing');ok(c.some(q=>q.i!=null),'cands include flicking');
+ ok(c.every(q=>q.pl?T.canPlace(A,0,q.pl[0],q.pl[1]):(A.st[q.i].s===0&&q.p>=.1&&q.p<=1)),'cands valid');
+ for(let k=0;k<30;k++){const b=T.botPlan(A,0);ok(b&&(b.pl?T.canPlace(A,0,b.pl[0],b.pl[1]):A.st[b.i].s===0&&b.p>=.1),'easy omok plan')}
+ const sc=T.omScore(A,0,{pl:[7,10]});ok(sc>T.omScore(A,0,{pl:[16,2]}),'extending a three beats a far corner '+sc);}
 /* 봇끼리 끝까지 */
-function playOutA(over,lvs){
+function playOutA(over,lvs,np){
+  np=np||2;
   hostNew(false,'t','t');
   H.cfg={...cfgFor('alkkagi'),...over,game:'alkkagi'};
-  H.members=[0,1].map(i=>({name:'b'+i,bot:true,conn:null,host:i===0,lv:lvs[i%lvs.length]}));
+  H.members=Array.from({length:np},(_,i)=>({name:'b'+i,bot:true,conn:null,host:i===0,lv:lvs[i%lvs.length]}));
   hostStart();
   let ticks=0,guard=0;
-  while(H.phase!=='over'&&guard++<20000){NOW+=250;engineTick();ticks++;
+  while(H.phase!=='over'&&guard++<30000){NOW+=250;engineTick();ticks++;
     if(H.ak.st.some(q=>!Number.isFinite(q.x+q.y+q.z))){fail('alkkagi NaN position');break}}
-  if(H.phase!=='over'){fail('alkkagi stuck shots='+H.ak.cnt);return ticks}
-  const ranks=H.players.map(p=>p.rank).join();
-  if(ranks!=='1,2'&&ranks!=='2,1'&&ranks!=='1,1')fail('alkkagi ranks '+ranks);
-  if(H.ak.om){   // 오목 모드: 이긴 사람에게 오목 줄, 돌 수는 그대로 (한 사람 5개 이상)
-    const own=[0,1].map(s=>H.ak.st.filter(q=>q.s===s).length);
-    if(own[0]+own[1]!==2*T.OM_N||Math.min(...own)<T.OM_MIN)fail('alkkagi omok stones '+own);
-    if(H.ak.res.w>=0&&!H.ak.res.why&&!T.omFive(T.omGrid(H.ak.st),H.ak.res.w))fail('alkkagi omok winner without five');
+  if(H.phase!=='over'){fail('alkkagi stuck shots='+H.ak.cnt+' np='+np);return ticks}
+  const rk=H.players.map(p=>p.rank),w=H.ak.res.w;
+  if(rk.some(r=>!Number.isInteger(r)||r<1||r>np))fail('alkkagi ranks '+rk);
+  else if(w>=0&&(rk[w]!==1||rk.filter(r=>r===1).length!==1))fail('alkkagi winner rank '+rk+' w='+w);
+  else if(w<0&&H.ak.res.why!=='full'&&rk.filter(r=>r===1).length<2)fail('alkkagi draw ranks '+rk);
+  if(H.ak.om){   // 오목 모드: 이긴 사람은 오목을 가짐 (돌 수는 제한 없음, 떨어진 돌은 사라짐)
+    if(w>=0&&!H.ak.res.why&&!T.omFive(T.omGrid(H.ak.st),w))fail('alkkagi omok winner without five');
     return ticks;
   }
-  const al=[0,1].map(s=>H.ak.st.filter(q=>q.s===s&&!q.o).length);
-  if(H.ak.res.w>=0&&al[1-H.ak.res.w]!==0)fail('alkkagi loser still has stones '+al);
+  const al=Array.from({length:np},(_,s)=>H.ak.st.filter(q=>q.s===s&&!q.o).length);
+  if(w>=0&&al.some((n,s)=>s!==w&&n!==0))fail('alkkagi losers still have stones '+al);
+  if(w>=0&&al[w]===0)fail('alkkagi winner has no stones');
   return ticks;
 }
 globalThis.playOutA=playOutA;

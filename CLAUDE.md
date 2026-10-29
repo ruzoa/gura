@@ -22,7 +22,7 @@
 | `games/chess.js` | 체스 (0x88 엔진·Web Worker 봇·3D 기물) | `docs/chess.md` |
 | `games/blackjack.js` | 블랙잭 (슈·사람 딜러·3D 칩) | `docs/blackjack.md` |
 | `games/poker.js` | 포커 (텍사스 홀덤 노 리밋·사이드 팟·쉬움 봇) | `docs/poker.md` |
-| `games/alkkagi.js`, `games/hand3d.js` | 알까기 (물리는 방장만·3D 손·오목 모드) | `docs/alkkagi.md` |
+| `games/alkkagi.js`, `games/hand3d.js` | 알까기 (2~4명·물리는 방장만·3D 손·오목 모드(2명, 아무 점에 놓거나 튕김)) | `docs/alkkagi.md` |
 | `tests/`, `dicepick.js`, `lab*.html`, `manifest.webmanifest`, `sw.js`, 아이콘 | 테스트(`node tests/engine.test.js`, `node tests/dicepick.test.js`), 첫 차례 주사위 계산·주사위 만들기, 연출·아이콘 테스트룸, 홈 화면 앱 | `docs/tools.md` |
 
 - 공통 코드는 `G`(지금 화면의 게임)와 `EG()`(방장 엔진이 돌리는 게임)를 통해 게임 모듈의 함수를 부릅니다. 기준 모듈은 `games/gura.js`입니다.
