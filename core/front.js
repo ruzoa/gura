@@ -13,7 +13,7 @@ const FR_WORD=new Set(['없음','만석','끊김']);
 const HOLO_C=0xffa04a,HOLO_LINE=0xffe2b8,HOLO_BAD=0xff4d6d;   // 주황빛 (못 하는 게임은 붉은 분홍)
 const FR_KEYS=['1','2','3','4','5','search','dice','6','7','8','9','0','←','enter'];   // 키판 두 줄: 윗줄 1~5·돋보기(공개 탁자 목록)·주사위(아무 탁자나), 아랫줄 6~0·지우기(뒤로)·엔터
 const FR_KEY_NAME={'←':'지우기 (뒤로)',enter:'참여하기',search:'공개 탁자 목록',dice:'아무 탁자나 앉기'};
-const FR_MENU=['create','join','rules'],FR_HOST=['bot','chairUp','chairDn','rset','clear'];   // 첫 자판(상차리기·참여하기·게임 규칙), 방장 대기실 자판
+const FR_MENU=['create','join','rules'],FR_HOST=['chair','rset','clear'],FR_CHAIR=['chairUp','chairDn','bot','back'];   // 첫 자판(상차리기·참여하기·게임 규칙), 방장 대기실 자판
 const FR_ROWS=7;   // 공개 탁자 목록 판: 한 쪽에 7줄
 const PL_CW=832,PL_CH=1024,PL_Y0=52,PL_STEP=122,PL_RH=108,PL_RAIL=966;   // 목록 판 그림 크기와 줄 자리
 const DSP={W:1.5,D:.5,Th:.05,Z:3.9};   // 디스플레이: 폭, 깊이, 두께, 경첩(먼 쪽 끝) 위치
@@ -88,7 +88,8 @@ function frontBuildDisplay(TG){
   // 첫 자판: 앉으면 먼저 나옴. 상차리기(탁자 위 +), 참여하기(→]). 참여하기를 누르면 이 자판이 들어가고 같은 틈에서 숫자 키판이 나옴
   T.menuPad=frontBuildPad(TG,FR_MENU,{w:.44,d:.38,gap:.52,id:'frM',on:frontMenu});
   // 대기실 자판: 방장(봇 추가·의자 추가·의자 빼기·상치우기), 참가자(관전하기·떠나기), 관전자(참여하기·떠나기). 같은 틈에서 나옴
-  T.hostPad=frontBuildPad(TG,FR_HOST,{w:.26,d:.28,gap:.295,id:'frH',on:frontWaitKey});
+  T.hostPad=frontBuildPad(TG,FR_HOST,{w:.44,d:.38,gap:.52,id:'frH',on:frontWaitKey});
+  T.chairPad=frontBuildPad(TG,FR_CHAIR,{w:.3,d:.3,gap:.34,id:'frC',on:frontWaitKey});   // 의자 키를 누르면 방장 자판이 내려가고 이 자판이 올라옴
   T.guestPad=frontBuildPad(TG,['spec','rset','leave'],{w:.44,d:.38,gap:.52,id:'frG',on:frontWaitKey});
   T.sitPad=frontBuildPad(TG,['sit','rset','leave'],{w:.44,d:.38,gap:.52,id:'frS',on:frontWaitKey});
   frontClearHold();
@@ -112,7 +113,7 @@ function frontBuildPad(TG,list,o){
   list.forEach((k,i)=>{const b=document.createElement('button');b.type='button';b.className='fr-hot off fr-key';b.id=o.id+i;b.setAttribute('aria-label',PAD_NAME[k]);b.title=PAD_NAME[k];b.addEventListener('click',()=>o.on(k));$('#front').insertBefore(b,$('#frFoot'))});
   return {g,keys,id:o.id,a:{v:0,to:0,from:0,t0:0,ms:0}};
 }
-const PAD_NAME={create:'상차리기',join:'참여하기',bot:'봇 추가',chairUp:'의자 추가',chairDn:'의자 빼기',clear:'상치우기 (꾹 누르기)',spec:'관전하기',sit:'참여하기',rules:'게임 규칙',rset:'탁자 설정·규칙',leave:'탁자 떠나기 (두 번 누르기)'};
+const PAD_NAME={chair:'의자',back:'돌아가기',create:'상차리기',join:'참여하기',bot:'봇 추가',chairUp:'의자 추가',chairDn:'의자 빼기',clear:'상치우기 (꾹 누르기)',spec:'관전하기',sit:'참여하기',rules:'게임 규칙',rset:'탁자 설정·규칙',leave:'탁자 떠나기 (두 번 누르기)'};
 const PAD_COL={create:['#f2b632',0xd99a1e]};
 function padIcon(g,k){   // 192×128 칸에 그림 (상·의자 그림은 사용자 스케치: 둥근 상판 + 기둥 + 발판, 나이테 보이는 나무 기둥)
   const ink='#3b2a1f',bg=g.fillStyle;g.strokeStyle=g.fillStyle=ink;g.lineCap='round';g.lineJoin='round';
@@ -132,6 +133,8 @@ function padIcon(g,k){   // 192×128 칸에 그림 (상·의자 그림은 사용
   // 상·의자 그림은 +·−에 상관없이 같은 크기. 상은 기호가 위에서 윗면 테두리를 끊고 지나가고, 의자는 기호가 오른쪽
   if(k==='create'){table();mark(96,26,18,true)}
   else if(k==='clear'){table();mark(96,42,22,false)}
+  else if(k==='chair')stump(96,40,44,56)
+  else if(k==='back'){L(13,150,92,84,92,84,48);L(13,56,70,84,44,112,70)}   // 위로 꺾여 되돌아가는 화살표
   else if(k==='chairUp'){stump(78,52,36,46);L(15,140,70,180,70);L(15,160,50,160,90)}   // 의자는 기둥을 왼쪽으로, +·−는 오른쪽에
   else if(k==='chairDn'){stump(78,52,36,46);L(15,140,70,180,70)}
   else if(k==='join'||k==='sit'){L(11,122,24,146,24,146,104,122,104);L(11,40,64,116,64);L(11,92,40,118,64,92,88)}
@@ -152,8 +155,8 @@ function frontWaitCan(k){
   if(!V||!frWaitV())return false;
   const max=+V.cfg.max,n=(V.ps||[]).length,hi=(roomSetOf(G).find(d=>d.k==='max')||{hi:8}).hi;
   if(k==='bot'||k==='chairUp')return mode==='host'&&(k==='bot'?n<max||max<hi:max<hi);
-  if(k==='chairDn')return mode==='host'&&(max>Math.max(2,n)||(V.ps||[]).some(p=>p.b));
-  if(k==='clear')return mode==='host';
+  if(k==='chairDn')return mode==='host'&&max>Math.max(2,n);   // 빈 의자가 없으면 못 뺌 (앉은 사람·봇은 이름표 메뉴로)
+  if(k==='clear'||k==='chair'||k==='back')return mode==='host';
   const sv=Array.isArray(V.sv)?V.sv:[],spm=+(V.cfg.spec??4);
   if(k==='spec')return myIdx()>=0&&mode!=='host'&&spm>0&&sv.length<spm;
   if(k==='sit')return myIdx()<0&&!!V.spec&&n<max;
@@ -163,7 +166,7 @@ function frontWaitCan(k){
 }
 function frontWaitKey(k){
   if(!frTableUI()||FR.clearing)return;
-  const t=clock(),P=[T.hostPad,T.guestPad,T.sitPad].find(Q=>Q.g.visible&&Q.keys.some(x=>x.userData.k===k))||T.hostPad,m=P.keys.find(x=>x.userData.k===k);if(m)m.userData.downAt=t;
+  const t=clock(),P=[T.hostPad,T.chairPad,T.guestPad,T.sitPad].find(Q=>Q.g.visible&&Q.keys.some(x=>x.userData.k===k))||T.hostPad,m=P.keys.find(x=>x.userData.k===k);if(m)m.userData.downAt=t;
   if(k==='clear')return;   // 꾹 누르기로만 (frontClearHold)
   if(!frontWaitCan(k)){sfx('no');return}
   if(k==='spec'){sfx('key');sendAct({t:'spec'});return}
@@ -175,11 +178,12 @@ function frontWaitKey(k){
   if(mode!=='host'||!H||H.phase!=='wait'){sfx('no');return}
   const max=+H.cfg.max;
   if(k==='bot'){if(H.members.length>=max)setRoomCfg('max',max+1);hostAddBot();sfx('pick');return}   // 빈 의자가 없으면 의자를 하나 놓고 앉힘
+  if(k==='chair'){FR.chairM=true;sfx('key');return}
+  if(k==='back'){FR.chairM=false;sfx('key');return}
   if(k==='chairUp'){setRoomCfg('max',max+1);sfx('key');return}
-  if(k==='chairDn'){   // 빈 의자부터, 없으면 마지막 봇과 그 의자. 사람이 앉은 의자는 빼지 않음
+  if(k==='chairDn'){   // 뒤쪽 빈 의자부터 뺌. 앉은 사람의 자리는 그대로
     fixSeats();
-    if(max>Math.max(2,H.members.length)){const used=new Set(H.members.map(m=>m.seat));let e=max-1;while(e>0&&used.has(e))e--;dropSeat(e);setRoomCfg('max',max-1);sfx('key');return}   // 뒤쪽 빈 의자를 빼고 앉은 사람은 그대로
-    for(let i=H.members.length-1;i>=0;i--)if(H.members[i].bot){const b=H.members.splice(i,1)[0];dropSeat(b.seat);if(max>2)H.cfg={...H.cfg,max:max-1};saveRoomCfg(H.cfg);lastPanelHtml='';mark();sfx('key');return}
+    if(max>Math.max(2,H.members.length)){const used=new Set(H.members.map(m=>m.seat));let e=max-1;while(e>0&&used.has(e))e--;dropSeat(e);setRoomCfg('max',max-1);sfx('key');return}
     sfx('no');return}
 }
 /* 상치우기: 꾹 누르고 있으면 키가 점점 빨개지고 1초가 차면 치움. 일찍 떼면 원래 색으로 돌아감. 키보드 Enter·Space는 바로 */

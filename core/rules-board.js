@@ -389,7 +389,7 @@ function frontRulesScroll(ds,drag){
 function frontRulesUpdate(t,dt,lobby,wait){
   const P=T.rb,S=FR.rb;if(!P)return;
   if(S.on&&((!lobby&&!wait)||FR.warp||FR.spread||(lobby&&!FR.sit)||roomSetOpen||FR.browse)){S.on=false;S.drag=false}
-  const others=FR.ma.v<=.01&&FR.ka.v<=.01&&FR.pla.v<=.01&&[T.hostPad,T.guestPad,T.sitPad].every(Q=>!Q||Q.a.v<=.01);
+  const others=FR.ma.v<=.01&&FR.ka.v<=.01&&FR.pla.v<=.01&&[T.hostPad,T.chairPad,T.guestPad,T.sitPad].every(Q=>!Q||Q.a.v<=.01);
   const v=frontTween(FR.rba,S.on&&others?1:0,t,S.on?560:400),u=smooth(v);
   if(FR.rba.to===1&&v>0&&!S.up){S.up=1;sfx('btnUp')}if(FR.rba.to===0)S.up=0;
   P.g.visible=v>.01;if(!P.g.visible)return;

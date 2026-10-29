@@ -294,7 +294,7 @@ function frontUpdate(t,dt){
   // 천
   frontStumps(t,dt,lobby,wait);
   // 디스플레이: 첫 화면·타임머신·대기실에서 열림, 게임이 시작되면 접혀 덮개가 됨
-  const padOut=[T.menuPad,T.hostPad,T.guestPad,T.sitPad].some(P=>P&&P.a.v>.01)||(FR.ka&&FR.ka.v>.01)||(FR.pla&&FR.pla.v>.01)||(FR.rba&&FR.rba.v>.01);
+  const padOut=[T.menuPad,T.hostPad,T.chairPad,T.guestPad,T.sitPad].some(P=>P&&P.a.v>.01)||(FR.ka&&FR.ka.v>.01)||(FR.pla&&FR.pla.v>.01)||(FR.rba&&FR.rba.v>.01);
   const ow=(lobby&&FR.sit)||!!FR.warp||wait||padOut?1:0;   // 자판이 다 들어간 뒤에 덮개가 닫힘 (안 그러면 키가 탁자 위로 뚫고 나옴)
   if(FR.oa.to!==ow)sfx('lid');
   FR.open=frontTween(FR.oa,ow,t,ow?520:420);
@@ -307,11 +307,12 @@ function frontUpdate(t,dt){
   if(!lobby||!FR.sit)FR.kmode='menu';
   if(T.menuPad){T.menuPad.a=FR.ma;padPose(T.menuPad,kbase&&FR.kmode==='menu'&&!FR.list&&!FR.rb.on&&FR.ka.v<=.01&&FR.pla.v<=.01&&FR.rba.v<=.01,t,lobby?620:400)}
   if(T.hostPad){   // 대기실 자판: 방장·참가자·관전자 중 하나만. 바뀔 때는 앞 자판이 다 들어간 뒤 나옴
-    const me=wait?myIdx():-1,sitd=wait&&FR.stand<.05&&FR.open>.98&&!FR.warp,pads=[[T.hostPad,host],[T.guestPad,!host&&me>=0],[T.sitPad,!host&&me<0&&!!(V&&V.spec)]];
+    const me=wait?myIdx():-1,sitd=wait&&FR.stand<.05&&FR.open>.98&&!FR.warp,pads=[[T.hostPad,host&&!FR.chairM],[T.chairPad,host&&!!FR.chairM],[T.guestPad,!host&&me>=0],[T.sitPad,!host&&me<0&&!!(V&&V.spec)]];
     pads.forEach(([P,mine])=>padPose(P,sitd&&mine&&!FR.rb.on&&FR.rba.v<=.01&&pads.every(([Q])=>Q===P||Q.a.v<=.01),t,wait?620:380));
+    if(!wait||!host)FR.chairM=false;
     if(FR.clearHold&&(!wait||!host)){FR.clearHold=0;if(FR.humStop){FR.humStop();FR.humStop=null}}
     const hp=FR.clearHold?clamp01((t-FR.clearHold)/CLEAR_MS):0;FR.clearP=FR.clearHold?hp:Math.max(0,(FR.clearP||0)-dt*3);   // 떼면 천천히 원래 색으로
-    for(const P of [T.hostPad,T.guestPad,T.sitPad])if(P.g.visible)P.keys.forEach(m=>{const k=m.userData.k,ok=frontWaitCan(k);
+    for(const P of [T.hostPad,T.chairPad,T.guestPad,T.sitPad])if(P.g.visible)P.keys.forEach(m=>{const k=m.userData.k,ok=frontWaitCan(k);
       if(k==='clear'){const p=FR.clearP;m.material[2].color.setRGB(1,1-.62*p,1-.68*p);m.material[0].color.setRGB(.85+.15*p,.78-.45*p,.66-.4*p);if(FR.clearHold)m.position.y=-.03*Math.min(1,hp*4)}   // 꾹 누르면 점점 빨갛게
       else m.material[2].color.setScalar(ok?1:.55)});   // 못 누르는 키는 어둡게
     if(FR.clearHold&&hp>=1){FR.clearHold=0;FR.word='';if(FR.humStop){FR.humStop();FR.humStop=null}setTimeout(frontClearGo,0)}   // 그리는 도중에 탁자를 닫지 않게 다음 차례에
@@ -447,7 +448,7 @@ function frontLayout(lobby,wait,host,t){
   const seated=wait&&FR.stand<.05&&!FR.browse&&!FR.rb.on&&FR.rba.v<=.01;
   const leaned=front&&FR.lean>.9,kpUp=T.keypad&&T.keypad.g.position.y>.02;
   // 숙이기 전: 디스플레이와 키판을 한 덩어리로 누르면 숙여서 봄
-  for(const P of [T.hostPad,T.guestPad,T.sitPad]){const on=seated&&P.g.position.y>.025;P.keys.forEach((m,i)=>frontPut($('#'+P.id+i),on,on?frontRect(m,W,Hh):null,2,44,44))}
+  for(const P of [T.hostPad,T.chairPad,T.guestPad,T.sitPad]){const on=seated&&P.g.position.y>.025;P.keys.forEach((m,i)=>frontPut($('#'+P.id+i),on,on?frontRect(m,W,Hh):null,2,44,44))}
   const mUp=front&&T.menuPad.g.position.y>.025&&FR.open>.98&&FR.kmode==='menu';
   T.menuPad.keys.forEach((m,i)=>frontPut($('#frM'+i),mUp,mUp?frontRect(m,W,Hh):null,4,60,48));
   let kr=null;if(front&&FR.lean<.1&&kpUp&&FR.open>.98&&FR.kmode==='num'){const a1=frontRect(T.keypad.g,W,Hh),a2=frontRect(T.board.screen,W,Hh);kr={l:Math.min(a1.l,a2.l),r:Math.max(a1.r,a2.r),t:Math.min(a1.t,a2.t),b:Math.max(a1.b,a2.b)}}
