@@ -145,7 +145,30 @@ function frontPoses(w,h){
    const c2=new THREE.Vector3(0,.002+(RB.L/2+.08)*Math.cos(P.tilt),DSP.Z+DSP.D*.8-(RB.L/2+.08)*Math.sin(P.tilt)),d2=Math.max((RB.L+.3)*.54/tv,(RB.W/2+.3)/(tv*a));
    _fc.position.copy(c2).addScaledVector(n,d2);_fc.lookAt(c2);_fc.updateMatrixWorld();_fc.updateProjectionMatrix();
    T.rbCam={p:_fc.position.clone(),q:_fc.quaternion.clone(),m:_fc.projectionMatrix.clone()}}
-  FR.applied=false;frontApplyCam();
+  VW.max=viewLimit();FR.applied=false;frontApplyCam();
+}
+/* 고개 돌리기: 탁자 양옆이 화면에 다 안 보이는 좁은 화면에서, 앉은 눈이 제자리에서 좌우로 고개를 돎(VW.yaw). 양옆이 다 보이면 못 돌림(VW.max=0).
+   탁자 끝까지만: 탁자 가장자리가 화면 가장자리에 닿을 때까지(frontPoses가 VW.max를 잼). 마우스는 오른쪽 버튼 드래그, 터치는 두 손가락 드래그.
+   고정 버튼(#btnCam)을 켜면 정중앙으로 돌아오고(VW.ty=0) 돌리기가 막힘. 판 확대·서서 보기와 겹칠 때는 weight로 서서히 0 */
+const VW={yaw:0,ty:0,max:0,lock:false,drag:null,t:0},_vq=window.THREE?new THREE.Quaternion():null,_vY=window.THREE?new THREE.Vector3(0,1,0):null;
+function viewStep(t){
+  const dt=Math.min(.1,Math.max(0,(t-VW.t)/1000));VW.t=t;
+  VW.ty=VW.lock?0:Math.max(-VW.max,Math.min(VW.max,VW.ty));
+  VW.yaw+=(VW.ty-VW.yaw)*Math.min(1,dt*(VW.drag?22:9));if(Math.abs(VW.yaw-VW.ty)<1e-4)VW.yaw=VW.ty;
+}
+function viewTurn(w){const y=VW.yaw*w;if(!y)return;_vq.setFromAxisAngle(_vY,y);T.cam.quaternion.premultiply(_vq)}   // 제자리에서 고개만 (눈 위치는 그대로, y>0 = 왼쪽)
+const viewOn=()=>!!(VW.yaw||VW.ty);
+function viewReset(){VW.ty=0}
+/* 돌릴 수 있는 범위: 앉은 눈으로 탁자 가장자리(반지름 4.94) 점들을 화면에 찍어 양옆이 다 보이면 0, 잘리면 고개를 돌려 가장자리가 화면 끝에 닿는 각도 */
+const _vc=window.THREE?new THREE.PerspectiveCamera():null,_vp=window.THREE?new THREE.Vector3():null;
+function viewLimit(){
+  if(!_vc||!T.seat)return 0;
+  _vc.position.copy(T.seat.p);_vc.projectionMatrix.copy(T.seat.m);_vc.projectionMatrixInverse.copy(T.seat.m).invert();
+  const minX=ang=>{_vq.setFromAxisAngle(_vY,ang);_vc.quaternion.copy(T.seat.q).premultiply(_vq);_vc.updateMatrixWorld();let m=1e9;
+    for(let a=0;a<48;a++){const r=a/48*Math.PI*2;_vp.set(Math.sin(r)*4.94,0,Math.cos(r)*4.94).project(_vc);m=Math.min(m,_vp.x)}return m};
+  const edge=-.985;if(minX(0)>=edge)return 0;   // 양옆이 다 보임
+  let lo=0,hi=Math.PI*80/180;if(minX(hi)<edge)return hi;   // 80°까지 돌려도 안 닿으면 거기까지
+  for(let i=0;i<24;i++){const m=(lo+hi)/2;if(minX(m)<edge)lo=m;else hi=m}return hi;
 }
 const _m4=window.THREE?new THREE.Matrix4():null,_fpose=window.THREE?{p:new THREE.Vector3(),q:new THREE.Quaternion(),m:new THREE.Matrix4()}:null;
 function frontApplyCam(){
@@ -153,7 +176,8 @@ function frontApplyCam(){
   const t=clock(),u=FR.stand,k=u*u*(3-2*u),jolt=t-FR.shakeAt<420?(1-(t-FR.shakeAt)/420):0,rum=FR.rum||0;
   const am=FR.arm?FR.arm.v:0;
   const l=FR.lean||0;
-  if(k<=0&&!jolt&&!rum&&!am&&l<=0){if(!FR.applied){FR.applied=true;T.cam.position.copy(T.seat.p);T.cam.quaternion.copy(T.seat.q);T.cam.projectionMatrix.copy(T.seat.m);T.cam.projectionMatrixInverse.copy(T.seat.m).invert();T.cam.updateMatrixWorld();frontFog()}return}
+  if(k<=0&&!jolt&&!rum&&!am&&l<=0){const vo=viewOn();if(!FR.applied||vo||FR.viewDrawn){FR.applied=!vo;FR.viewDrawn=vo;T.cam.position.copy(T.seat.p);T.cam.quaternion.copy(T.seat.q);if(vo)viewTurn(1);T.cam.projectionMatrix.copy(T.seat.m);T.cam.projectionMatrixInverse.copy(T.seat.m).invert();T.cam.updateMatrixWorld();frontFog()}return}
+  FR.viewDrawn=false;
   FR.applied=false;
   const ls=l*l*(3-2*l),F=_fpose;   // 앉음 ↔ 서서 봄, 그 위에 숙여서 봄
   F.p.lerpVectors(T.seat.p,T.front.p,k);F.q.copy(T.seat.q).slerp(T.front.q,k);{const a=T.seat.m.elements,b=T.front.m.elements,e=F.m.elements;for(let i=0;i<16;i++)e[i]=a[i]+(b[i]-a[i])*k}
@@ -164,6 +188,7 @@ function frontApplyCam(){
   if(am){const a=am*am*(3-2*am);T.cam.position.z+=.9*a;T.cam.position.y+=.55*a}   // 떠나려고 의자를 뺌
   const s=jolt*.12+rum*.012;   // 눈은 조금만 흔들림 (탁자가 더 흔들림)
   if(s){T.cam.position.x+=Math.sin(t/23)*s;T.cam.position.y+=Math.cos(t/17)*s*.7}
+  viewTurn((1-k)*(1-ls)*(1-pz));
   const a=F.m.elements,b=T.lean.m.elements,e=_m4.elements;for(let i=0;i<16;i++)e[i]=a[i]+(b[i]-a[i])*ls;
   if(pz>0){const c2=ZC.m.elements;for(let i=0;i<16;i++)e[i]+=(c2[i]-e[i])*pz}
   T.cam.projectionMatrix.copy(_m4);T.cam.projectionMatrixInverse.copy(_m4).invert();T.cam.updateMatrixWorld();frontFog();
@@ -287,7 +312,11 @@ function frontUpdate(t,dt){
   const want=lobby&&!FR.warp&&!FR.sit?1:0;   // 첫 화면: 서서 탁자만 봄 → 탁자를 누르면 앉음
   if(FR.armAt&&(t-FR.armAt>2500||!(frTableUI()||(lobby&&FR.sit))))FR.armAt=0;
   frontTween(FR.arm,FR.armAt?1:0,t,FR.armAt?260:320);
-  FR.stand=frontTween(FR.sa,want,t,want?900:1100);frontApplyCam();
+  FR.stand=frontTween(FR.sa,want,t,want?900:1100);
+  {const ok=!lobby&&!FR.warp&&FR.stand<.05&&(FR.lean||0)<.05&&FR.rba.v<=.01&&FR.pla.v<=.01&&VW.max>0&&(!T.lastCam||T.lastCam===T.cam);   // 카메라를 돌릴 수 있는 때: 탁자에 앉아 대기실·게임을 볼 때. 양옆이 다 보이는 화면과 자기 카메라로 그리는 게임(쿼리도·야추 등)은 빼고 버튼도 숨김
+   if(ok!==FR.camOk){FR.camOk=ok;document.body.classList.toggle('camok',ok);if(!ok){VW.drag=null;if(lobby||FR.warp)viewReset()}}
+   const y0=VW.yaw;viewStep(t);if(VW.yaw!==y0)FR.viewMoved=1}   // 돌아가는 동안 이름표 등 화면 위 글자가 따라감 (frontApplyCam 뒤)
+  frontApplyCam();if(FR.viewMoved){FR.viewMoved=0;placeLabels()}
   if(FR.warp&&T.scene.fog){const d=T.cam.position.length(),k=FR.warp.fog||0;T.scene.fog.near=d+5+(1-5)*k;T.scene.fog.far=d+22+(8-22)*k}
   {const st=$('#stage'),sit=!lobby&&FR.stand>.04;if(st.classList.contains('frsit')!==sit)st.classList.toggle('frsit',sit)}
   {const st=$('#stage'),fw=frTableUI();if(st.classList.contains('frwait')!==fw)st.classList.toggle('frwait',fw)}   // 3D 대기실: 게임 CSS가 이름표를 숨겨도 대기실에서는 보이게   // 앉는 동안은 창을 잠깐 숨김
@@ -635,3 +664,29 @@ $('#cv').addEventListener('click',e=>{
   if(armed){FR.armAt=0;FR.word='';if(lob){FR.sit=false;sfx('tick')}else leaveRoom();return}
   FR.armAt=t;frontWord(lob?'일어서기':'떠나기',2500);sfx('tick');
 });
+
+/* 카메라 돌리기 입력: 마우스 오른쪽 드래그, 터치 두 손가락 드래그 (한 손가락은 게임이 씀). 고정이면 무시 */
+{
+  const st=$('#stage'),tp=new Map(),mid=()=>{let x=0,y=0;for(const q of tp.values()){x+=q.x;y+=q.y}return {x:x/tp.size,y:y/tp.size}};
+  const move=dx=>{VW.ty=Math.max(-VW.max,Math.min(VW.max,VW.ty+dx*.005))};   // 오른쪽으로 끌면 장면이 따라 오른쪽으로 → 고개는 왼쪽
+  st.addEventListener('pointerdown',e=>{
+    if(!FR.camOk||VW.lock)return;
+    if(e.pointerType==='mouse'){if(e.button!==2)return;VW.drag={id:e.pointerId,x:e.clientX,y:e.clientY};try{st.setPointerCapture(e.pointerId)}catch(_){}return}
+    tp.set(e.pointerId,{x:e.clientX,y:e.clientY});if(tp.size===2){const c=mid();VW.drag={two:1,x:c.x,y:c.y}}
+  },true);
+  st.addEventListener('pointermove',e=>{
+    const d=VW.drag;if(!d)return;
+    if(d.two){const q=tp.get(e.pointerId);if(!q)return;q.x=e.clientX;q.y=e.clientY;if(tp.size<2)return;const c=mid();move(c.x-d.x);d.x=c.x;d.y=c.y;return}
+    if(e.pointerId!==d.id)return;move(e.clientX-d.x);d.x=e.clientX;d.y=e.clientY;
+  },true);
+  const up=e=>{tp.delete(e.pointerId);if(VW.drag&&(VW.drag.two?tp.size<2:VW.drag.id===e.pointerId))VW.drag=null};
+  st.addEventListener('pointerup',up,true);st.addEventListener('pointercancel',up,true);
+  st.addEventListener('contextmenu',e=>{if(FR.camOk&&!VW.lock)e.preventDefault()});
+  const bc=$('#btnCam');
+  function setCamLock(on){   // 켜면 정중앙으로 돌아오고 못 돌림, 끄면 다시 돌릴 수 있음
+    VW.lock=on;if(on)viewReset();bc.classList.toggle('on',on);bc.setAttribute('aria-pressed',on?'true':'false');
+    const tt=on?'카메라 고정 풀기':'카메라 정중앙으로 고정';bc.title=tt;bc.setAttribute('aria-label',tt);
+  }
+  bc.addEventListener('click',()=>{setCamLock(!VW.lock);sfx(VW.lock?'key':'pick')});
+  setCamLock(false);
+}
