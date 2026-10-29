@@ -15,7 +15,7 @@ const FR_KEYS=['1','2','3','4','5','search','dice','6','7','8','9','0','←','en
 const FR_KEY_NAME={'←':'지우기 (뒤로)',enter:'참여하기',search:'공개 탁자 목록',dice:'아무 탁자나 앉기'};
 const FR_MENU=['create','join','rules'],FR_HOST=['bot','rset','clear'];   // 첫 자판(상차리기·참여하기·게임 규칙), 방장 대기실 자판(봇 추가·탁자 설정·상치우기)
 const FR_ROWS=7;   // 공개 탁자 목록 판: 한 쪽에 7줄
-const PL_CW=832,PL_CH=1120,PL_Y0=52,PL_STEP=122,PL_RH=108,PL_RAIL=966,PL_BTNY=1048;   // 목록 판 그림 크기와 줄 자리
+const PL_CW=832,PL_CH=1092,PL_Y0=72,PL_STEP=122,PL_RH=108,PL_DOTY=24,PL_BTNY=1014;   // 목록 판 그림 크기와 줄 자리: 맨 위 쪽 표시 점 → 플립 줄 7개 → 바로 아래 단추
 const DSP={W:1.5,D:.5,Th:.05,Z:3.9};   // 디스플레이: 폭, 깊이, 두께, 경첩(먼 쪽 끝) 위치
 function frontBuild(){
   const TG=T.tableG;

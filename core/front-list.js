@@ -1,10 +1,10 @@
 /* index.html 공통 코드 · 공개 탁자 목록 판(플립 안내판). 파일 순서는 index.html의 <script src> 순서 */
 /* 공개 탁자 목록 판 = 플립 안내판: 돋보기를 누르면 키판이 디스플레이 아래로 들어간 뒤, 같은 틈에서 원목 틀의 안내판이 서서 올라옴.
    틀 안에 플립 줄 7개(게임·탁자 이름·인원 칸, 디스플레이와 같은 짙은 칸에 크림 글씨). 내용이 바뀌면 줄마다 차례로 촤라락 넘어감.
-   오른쪽 나무 손잡이 레버: 누르면(아래로 당김) 다음 쪽, 위로 밀면 이전 쪽. 줄을 누르면 그 줄이 밝게 딸깍 → 찾아감 */
+   맨 위 띠에 쪽 표시 점, 짙은 판 바로 아래 놋쇠 단추(◀ ▶ ↻ ✕). 줄을 누르면 그 줄이 밝게 딸깍 → 찾아감 */
 const PL_X=[46,226,622,786],PL_FR=34;   // 칸 경계(게임 | 탁자 이름 | 인원), 틀 두께
 function frontBuildList(TG){
-  const {Z,D}=DSP,PW=1.3,PL=1.75,cv=document.createElement('canvas');cv.width=PL_CW;cv.height=PL_CH;   // 구멍 폭 안, 세로로 김
+  const {Z,D}=DSP,PW=1.3,PL=PL_CH/640,cv=document.createElement('canvas');cv.width=PL_CW;cv.height=PL_CH;   // 구멍 폭 안, 세로로 김
   const tex=new THREE.CanvasTexture(cv);tex.anisotropy=8;
   const g=new THREE.Group();g.position.set(0,.002,Z+D*.8);TG.add(g);
   const arm=new THREE.Group();arm.rotation.x=-.08;g.add(arm);   // 거의 똑바로 섬
@@ -84,7 +84,7 @@ function frontDrawList(t){
   const g=P.cv.getContext('2d'),W=PL_CW,Hc=PL_CH;
   // 원목 틀
   for(let p=0;p<5;p++){const y0=p*Hc/5,ph=Hc/5;g.fillStyle=p%2?'#b98350':'#ad7745';g.fillRect(0,y0,W,ph);g.fillStyle='rgba(84,46,20,.5)';g.fillRect(0,y0+ph-3,W,4)}
-  g.fillStyle='#2b1d14';rr(g,PL_FR-8,PL_FR-8,W-2*PL_FR+16,PL_RAIL-PL_FR-30,18);g.fill();   // 안쪽 짙은 판
+  g.fillStyle='#2b1d14';rr(g,PL_FR-8,PL_Y0-26,W-2*PL_FR+16,(FR_ROWS-1)*PL_STEP+PL_RH+52,18);g.fill();   // 안쪽 짙은 판
   const cell=(x0,x1,y,txt,mid,lit,align)=>{
     const h=PL_RH;g.fillStyle=lit?'#3d2c20':'#16100c';rr(g,x0,y,x1-x0,h,10);g.fill();
     g.fillStyle=lit?'#4a3627':'#231a14';rr(g,x0,y,x1-x0,h/2,10);g.fill();g.fillRect(x0,y+h/2-10,x1-x0,10);
@@ -99,8 +99,8 @@ function frontDrawList(t){
   P.flaps.forEach((f,i)=>{const y=PL_Y0+i*PL_STEP,lit=i===pk,big=f.to[1]&&!f.to[0];
     if(big)cell(PL_X[0],PL_X[3],y,f.cur[1],f.mid,lit,'c');
     else{cell(PL_X[0],PL_X[1]-10,y,f.cur[0],f.mid,lit,'c');cell(PL_X[1],PL_X[2]-10,y,f.cur[1],f.mid,lit,'l');cell(PL_X[2],PL_X[3],y,f.cur[2],f.mid,lit,'r')}});
-  // 아래 띠: 쪽 표시 놋쇠 못
-  if(w.pages>1)for(let k=0;k<w.pages&&k<9;k++){const x=W/2+(k-(Math.min(w.pages,9)-1)/2)*36;g.fillStyle=k===w.pg?'#f2d08a':'#6e4a2c';g.beginPath();g.arc(x,PL_RAIL,11,0,7);g.fill();g.strokeStyle='rgba(43,29,20,.7)';g.lineWidth=3;g.stroke()}
+  // 위 띠: 쪽 표시 놋쇠 못 (단추는 짙은 판 바로 아래)
+  if(w.pages>1)for(let k=0;k<w.pages&&k<9;k++){const x=W/2+(k-(Math.min(w.pages,9)-1)/2)*36;g.fillStyle=k===w.pg?'#f2d08a':'#6e4a2c';g.beginPath();g.arc(x,PL_DOTY,10,0,7);g.fill();g.strokeStyle='rgba(43,29,20,.7)';g.lineWidth=3;g.stroke()}
   P.tex.needsUpdate=true;
 }
 function frontList(on){
