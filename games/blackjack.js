@@ -57,7 +57,7 @@ G.pubExtra=c=>({hd:+c.hdeal?1:0,rds:+c.rounds||8});
 G.cardInfo=()=>'';
 G.rankTitle=()=>'';
 G.finLabel=()=>'';
-G.noEmotes=['gq'];
+G.noEmotes=[];
 G.keys={bjUp:'ArrowUp',bjDown:'ArrowDown'};
 G.keyActions=[
   {a:'gura',n:'더블',d:'처음 두 장일 때 건 칩을 두 배로 하고 한 장만 더 받습니다 (구라!와 같은 키)'},

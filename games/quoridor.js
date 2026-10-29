@@ -199,7 +199,7 @@ G.cardInfo=(c,nowN)=>{
 };
 G.rankTitle=()=>'';
 G.finLabel=()=>'도착';
-G.noEmotes=['gq'];
+G.noEmotes=[];
 G.keys={qmode:'KeyX',qrot:'KeyR'};
 G.keyActions=[
   {a:'qmode',n:'이동 / 벽 바꾸기',d:'말을 움직이는 모드와 벽을 세우는 모드를 바꿉니다'},

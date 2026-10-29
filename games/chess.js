@@ -462,7 +462,7 @@ G.pubExtra=()=>({});
 G.cardInfo=(c,nowN)=>`<p class="cardinfo">${nowN>2?'체스는 두 명이 하는 게임입니다.':'두 명이 하는 게임입니다.'}</p>`;
 G.rankTitle=()=>'';
 G.finLabel=()=>'';
-G.noEmotes=['gq'];
+G.noEmotes=[];
 G.keys={};
 G.keyActions=[];
 G.cardHTML=()=>'';G.drawFace=()=>{};G.cmpCard=()=>0;G.labelOf=()=>'';

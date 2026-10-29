@@ -241,7 +241,7 @@ G.cardInfo=(c,nowN)=>{
   return `<p class="cardinfo">카드 ${total}장 · 지금 ${nowN}명이면 1인당 약 ${perNow}장${+c.max>nowN?` · ${+c.max}명이 다 차면 약 ${perFull}장`:''}${+c.max>=7?'<br>7~8명 탁자는 제한 시간 20초 정도로 짧게 하면 덜 지루합니다.':''}</p>`;
 };
 G.finLabel=(r,n)=>rankTitle(r,n);
-G.noEmotes=['gq'];
+G.noEmotes=[];
 G.keys={};
 G.keyActions=[];
 

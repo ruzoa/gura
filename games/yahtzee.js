@@ -191,7 +191,7 @@ G.cardInfo=(c,nowN)=>{
 };
 G.rankTitle=()=>'';
 G.finLabel=()=>'완료';
-G.noEmotes=['gq'];
+G.noEmotes=[];
 G.keys={yroll:'KeyC'};
 G.keyActions=[{a:'yroll',n:'주사위 굴리기',d:'누르고 있으면 컵을 흔들고, 떼면 던집니다. 고정한 주사위는 그대로 둡니다'}];
 /* 이 게임에는 카드가 없음 (공통 코드가 부르는 자리만 채움) */

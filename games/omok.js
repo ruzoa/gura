@@ -214,7 +214,7 @@ G.pubExtra=()=>({});
 G.cardInfo=(c,nowN)=>`<p class="cardinfo">${nowN>2?'오목은 두 명이 하는 게임입니다.':'두 명이 하는 게임입니다. 사람이 한 명이면 봇이 상대합니다.'}</p>`;
 G.rankTitle=()=>'';
 G.finLabel=()=>'';
-G.noEmotes=['gq'];
+G.noEmotes=[];
 G.keys={};
 G.keyActions=[];
 /* 이 게임에는 카드가 없음 (공통 코드가 부르는 자리만 채움) */

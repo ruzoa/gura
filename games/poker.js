@@ -115,7 +115,7 @@ G.pubExtra=c=>({bl:blindTxt(c),rds:+c.rounds||10});
 G.cardInfo=()=>'';
 G.rankTitle=()=>'';
 G.finLabel=()=>'';
-G.noEmotes=['gq'];
+G.noEmotes=[];
 G.keys={pkAll:'KeyZ'};   // ↑·↓는 블랙잭과 같은 키(bjUp·bjDown)를 같이 씀
 G.keyActions=[
   {a:'gura',n:'레이즈',d:'올린 칩만큼 레이즈합니다. 칩을 올리지 않았으면 가장 적게 올립니다 (구라!와 같은 키)'},

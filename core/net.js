@@ -305,15 +305,17 @@ function hostLeft(amNext,nxName){
 function becomeHost(why){
   if(mode!=='guest'||!V||!net.code)return;
   const code=net.code,last=V,meI=myIdx(),myName=meI>=0&&last.ps[meI]?last.ps[meI].n:myNick();
+  // 연결을 닫기 전에 먼저 상태를 바꿈: conn.close()가 바로 'close'를 내보내 guestReconnect()가 다시 돌면 재접속 상태가 남아 알림이 안 사라짐
+  const oldConn=net.conn;net.conn=null;mode='promoting';
   if(net.retry){clearTimeout(net.retry.timer);net.retry=null}
-  try{if(net.conn)net.conn.close()}catch(e){}net.conn=null;
+  try{if(oldConn)oldConn.close()}catch(e){}
   try{if(net.peer)net.peer.destroy()}catch(e){}net.peer=null;
-  mode='promoting';
   showPanel('<h2>새 방장이 되었습니다</h2><p>탁자를 이어서 차리는 중입니다…</p>','promote');
   const tryOpen=n=>{
     const peer=new Peer(PEER_PREFIX+code);let ok=false;
     peer.on('open',()=>{
       ok=true;net.peer=peer;mode='host';unstore('gura-guest');
+      if(net.retry){clearTimeout(net.retry.timer);net.retry=null}
       const cfg0={...cfgFor((last.cfg&&last.cfg.game)||'gura'),...(last.cfg||{})};
       H={online:true,code,title:last.title||myName+'의 탁자',cfg:cfg0,phase:'wait',members:[{name:myName,bot:false,conn:null,cid:CID,host:true}],specs:[],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
       // 봇은 그대로 남기고, 사람들은 다시 연결되면 자동으로 자리에 들어옴
