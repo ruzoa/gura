@@ -186,7 +186,7 @@ function omFive(g,seat){   // 5목 이상인 줄의 점들 [[c,r]…] 또는 nul
 }
 const omFull=A=>{for(let r=0;r<NL;r++)for(let c=0;c<NL;c++)if(freeAt(A,c,r))return false;return true};   // 놓을 점이 없음
 /* 줄 세기 점수: 한쪽 돌만 있는 다섯 칸 묶음마다 (돌 수에 따라) 더함. 봇이 수를 고를 때 */
-const OM_W=[0,1,6,40,300,0];
+const OM_W=[0,1,6,40,300,5000];   // 다섯 칸이 다 차면(오목) 가장 크게: 0이면 이기는 점·막을 점을 노리지 않음
 function omLines(g){
   const sc=[0,0];
   for(let r=0;r<NL;r++)for(let c=0;c<NL;c++)for(const [dc,dr] of OM_DIR){
@@ -235,13 +235,25 @@ function omCands(A,seat,lv){
     for(const o of [0,-.08,.08])for(const p of [.6,.85])out.push({i:pk.i,a:base+o,p})}
   return out;
 }
-function omScore(A,seat,c){   // 이기면 +1000, 지면 −1000, 그 밖에는 줄 세기 점수 차이와 떨어뜨린 돌
-  if(c.pl){const g=omGrid(A.st);g[c.pl[1]*NL+c.pl[0]]=seat+1;if(omFive(g,seat))return 1000;const L=omLines(g);return L[seat]-1.3*L[1-seat]}
+/* seat가 다음 차례에 놓으면 바로 오목이 되는 빈 점 수 (st: 돌 목록, g: 그 판의 omGrid). 봇이 막아야 할 수를 놓치지 않게 */
+function omThreats(st,g,seat){
+  const v=seat+1,A={om:1,st},seen=new Set();
+  for(let r=0;r<NL;r++)for(let c=0;c<NL;c++)for(const [dc,dr] of OM_DIR){
+    const ec=c+4*dc,er=r+4*dr;if(ec<0||ec>=NL||er<0||er>=NL)continue;
+    let n=0,o=0,e=-1;for(let k=0;k<5;k++){const x=g[(r+k*dr)*NL+c+k*dc];if(x===v)n++;else if(x)o++;else e=k}
+    if(n===4&&!o){const x=c+e*dc,y=r+e*dr,key=y*NL+x;if(!seen.has(key)&&freeAt(A,x,y))seen.add(key)}}
+  return seen.size;
+}
+const OM_WIN=1e6;   // 이기고 지는 점수: 줄 세기 점수(수천까지 쌓임)보다 훨씬 크게
+function omScore(A,seat,c){   // 놓아서 이기면 2×OM_WIN(확실), 굴려서 이기면 OM_WIN(손이 떨려 빗나갈 수 있음), 지면 −OM_WIN, 그 밖에는 줄 세기 점수 차이와 떨어뜨린 돌
+  if(c.pl){const g=omGrid(A.st);g[c.pl[1]*NL+c.pl[0]]=seat+1;if(omFive(g,seat))return 2*OM_WIN;
+    const [x,z]=gridXZ(c.pl[0],c.pl[1]),L=omLines(g);
+    return L[seat]-1.3*L[1-seat]-(omThreats(A.st.concat([{x,y:TOP+SH,z,s:seat,o:0,g:0}]),g,1-seat)?OM_WIN/2:0)}   // 상대에게 이기는 점을 남기면 크게 −
   const v=speedOf(c.p),r=simulate(A.st,{i:c.i,vx:Math.cos(c.a)*v,vz:Math.sin(c.a)*v,p:c.p},()=>.5);
   const st=r.fin.map((q,k)=>({...q,o:A.st[k].o||q.o?1:0}));
   const g=omGrid(st),me=omFive(g,seat),op=omFive(g,1-seat);
-  if(op)return -1000;if(me)return 1000;
-  const L=omLines(g);let sc=L[seat]-1.3*L[1-seat];
+  if(op)return -OM_WIN;if(me)return OM_WIN;
+  const L=omLines(g);let sc=L[seat]-1.3*L[1-seat]-(omThreats(st,g,1-seat)?OM_WIN/2:0);
   st.forEach((q,k)=>{if(!A.st[k].o&&q.o)sc+=q.s===seat?-4:4});
   return sc;
 }
@@ -517,7 +529,7 @@ function botStep(i,t){
   if(!doShot(i,b.i,b.fa,b.p))startTurn(turnAfter(A,i));
 }
 /* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
-G._test={omGrid,omFive,omLines,omTargets,omPlacePlan,omCands,omScore,omFull,simulate,reserves,shotCands,shotScore,botPick,placePlan,canPlace,gridXZ,botPlan,speedOf,groundAt,doShot,doSurrender,timeout,pickFirst,aliveOf,sideOfSeat,ownPt,freeAt,PHY,TOP,SH,SR,BW,PITCH,NL};
+G._test={omGrid,omFive,omThreats,omLines,omTargets,omPlacePlan,omCands,omScore,omFull,simulate,reserves,shotCands,shotScore,botPick,placePlan,canPlace,gridXZ,botPlan,speedOf,groundAt,doShot,doSurrender,timeout,pickFirst,aliveOf,sideOfSeat,ownPt,freeAt,PHY,TOP,SH,SR,BW,PITCH,NL};
 G.engine={
   /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
   start(){

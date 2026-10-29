@@ -276,6 +276,13 @@ for(const ag of [1,0]){
  ok(c.some(q=>q.pl),'cands include placing');ok(c.some(q=>q.i!=null),'cands include flicking');
  ok(c.every(q=>q.pl?T.canPlace(A,0,q.pl[0],q.pl[1]):(A.st[q.i].s===0&&q.p>=.1&&q.p<=1)),'cands valid');
  for(let k=0;k<30;k++){const b=T.botPlan(A,0);ok(b&&(b.pl?T.canPlace(A,0,b.pl[0],b.pl[1]):A.st[b.i].s===0&&b.p>=.1),'easy omok plan')}
+ {const B={om:1,np:2,st:[gp(3,10,0),gp(4,10,0),gp(5,10,0),gp(6,10,0),gp(9,6,1),gp(9,5,1)]},win=q=>(q.c===2||q.c===7)&&q.r===10;
+  ok(win(T.omTargets(B,0,1)[0]),'bot aims at its winning point');ok(win(T.omTargets(B,1,1)[0]),'bot aims at the blocking point');
+  ok(T.omScore(B,0,{pl:[7,10]})>=1e6,'placing the fifth scores a sure win');
+  eq(T.omThreats(B.st,T.omGrid(B.st),0),2,'open four has two winning points');eq(T.omThreats(B.st,T.omGrid(B.st),1),0,'no threat for the other side');
+  {const C={om:1,np:2,st:B.st.slice(0,4).concat([gp(2,10,1),gp(12,3,1)])};   // 막힌 넷: 이기는 점 하나 (7,10). 백이 막지 않는 수는 크게 −
+   ok(T.omScore(C,1,{pl:[7,10]})>T.omScore(C,1,{pl:[12,4]})+1e5,'blocking beats ignoring a four')}
+  for(let k=0;k<5;k++){const p=T.omPlacePlan(B,0,null,2);ok(p&&(p[0]===2||p[0]===7)&&p[1]===10,'hard place plan wins')}}
  const sc=T.omScore(A,0,{pl:[7,10]});ok(sc>T.omScore(A,0,{pl:[16,2]}),'extending a three beats a far corner '+sc);}
 /* 봇끼리 끝까지 */
 function playOutA(over,lvs,np){
