@@ -216,6 +216,16 @@ const SFX={
   warpFail(){tone(95,.16,{type:'square',vol:.12});tone(70,.22,{type:'square',vol:.1,at:.14});hiss(.18,{freq:500,q:.7,vol:.14});hiss(.7,{freq:2400,sweep:300,q:.8,vol:.06,at:.35})},
 };
 function sfx(name,...a){try{if(SFX[name])SFX[name](...a)}catch(e){}}
+/* 가운데 안내 문구: 첫 차례 주사위가 멈춘 뒤처럼 판마다 한 번 알릴 때. 화면 가운데에 잠깐 떴다 사라짐 (at: {x,y} 화면 좌표, 없으면 화면 가운데 위쪽) */
+function fxSay(text,col,at){
+  if(!text)return;
+  const st=$('#stage'),layer=$('#fx');if(!st||!layer)return;
+  const a=at||{x:st.clientWidth/2,y:st.clientHeight*.5};
+  const d=document.createElement('div');d.className='playfx';d.style.setProperty('--rc',col||'#9a5b00');
+  d.style.left=a.x+'px';d.style.top=Math.max(46,a.y-40)+'px';d.innerHTML=`<span class="fx-n" style="font-size:.7em">${esc(text)}</span>`;
+  d.addEventListener('animationend',()=>d.remove());
+  while(layer.children.length>2)layer.firstChild.remove();layer.appendChild(d);setTimeout(()=>d.remove(),2300);
+}
 let lastLogId=0,lastWarnSec=-1;
 function cues(v,pv){
   if(!v||!v.ps)return;

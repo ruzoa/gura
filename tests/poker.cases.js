@@ -30,6 +30,23 @@ const runTo=(cond,ms)=>{for(let k=0;k<(ms||60000)/50&&!cond();k++){NOW+=50;engin
 const mkP=(n,over)=>{hostNew(false,'t','t');H.cfg={...cfgFor('poker'),pickfirst:1,...over,game:'poker'};
   H.members=[];for(let i=0;i<n;i++)H.members.push({name:'p'+i,bot:false,conn:null,host:i===0,cid:i?'c'+i:''});hostStart();
   if(!runTo(()=>H.pk.ph==='bet'&&!dealing(),30000))fail('pk start to bet '+H.pk.ph);return H.pk};
+/* 첫 딜러 주사위: 방장이 던질 횟수(fp)를 정해 신호로 보내고, 연출 길이는 그 횟수에서 나옴. pickfirst를 켜면 -1 */
+{
+  const same=(a,b,m)=>{if(a!==b)fail(m+': '+a+' != '+b)};
+  const start=(n,over)=>{hostNew(false,'t','t');H.cfg={...cfgFor('poker'),...over,game:'poker'};
+    H.members=[];for(let i=0;i<n;i++)H.members.push({name:'p'+i,bot:false,conn:null,host:i===0,cid:i?'c'+i:''});hostStart()};
+  let seen={};
+  for(let k=0;k<60;k++){
+    start(5,{pickfirst:0});
+    const fp=H.fp;seen[fp]=1;
+    if(!(fp>=1&&fp<=DicePick.MAXR))fail('pk fp 범위 '+fp);
+    same(H.dealUntil-NOW,PK.introMs(false,fp),'pk 주사위 연출 길이');
+    same(snapFor(0).fp,fp,'pk 스냅샷에 던질 횟수');
+  }
+  if(!seen[1]||Object.keys(seen).length<2)fail('pk 5명이면 다시 굴리기가 가끔 나와야 함 '+Object.keys(seen));
+  for(const n of [2,3,4,6,8]){start(n,{pickfirst:0});same(H.fp,1,'pk '+n+'명은 한 번만 던짐')}
+  start(4,{pickfirst:1});same(H.fp,-1,'pk 직접 고른 딜러는 던지지 않음');same(H.dealUntil-NOW,PK.introMs(false,-1),'pk 직접 고른 딜러의 연출 길이');
+}
 /* 카드 정하기: 사람마다 두 장, 공용 다섯 장(덱 끝에서 버리는 카드 한 장씩 사이에 둠) */
 function rig(hcs,bd){
   const K=H.pk,used=new Set([...hcs.flat(),...bd]),rest=[...Array(52).keys()].filter(x=>!used.has(x));

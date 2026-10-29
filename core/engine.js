@@ -53,36 +53,36 @@ function hostStart(){
   EG().engine.start();   // 카드 나누기·첫 차례는 게임마다 다름
   H.fp=0;
   if(EG().dealAnim)beginDeal(DEAL_MS+(EG().dealExtra?+EG().dealExtra()||0:0));   // dealExtra: 카드 나누기 뒤 게임의 추가 연출(대부호 카드 교환) 동안도 멈춤
-  else if(EG().introMs){H.dealAgain=again?1:0;H.fp=EG().firstPick?(H.cfg.pickfirst?-1:Roulette.pickFast(Roulette.DEF.fastMin,Roulette.DEF.fastMax)):0;beginDeal(introLen(EG(),again,H.fp))}   // 카드가 없는 게임의 시작 연출 (야추다이스·쿼리도: 카메라 이동·준비·첫 차례 룰렛)
+  else if(EG().introMs){H.dealAgain=again?1:0;H.fp=EG().firstPick?(H.cfg.pickfirst?-1:DicePick.pickRolls(H.members.length)):0;beginDeal(introLen(EG(),again,H.fp))}   // 카드가 없는 게임의 시작 연출 (야추다이스·쿼리도·포커: 카메라 이동·준비·첫 차례 주사위). fp: 주사위를 던질 횟수(방장이 정함, -1이면 방장이 직접 고른 선)
 }
 /* 카드 섞고 나누는 연출 동안(DEAL_MS)은 제한 시간·봇·행동을 멈춤. 화면 쪽 연출은 dealStart3D
    카드가 없는 게임은 G.introMs만큼 같은 방식으로 멈추고, 화면 쪽은 G.intro(시작 시각, {total, again})가 그림
    G.introMs는 숫자, 또는 바로 시작(again)이면 다른 길이를 돌려주는 함수 */
-/* ===== 첫 차례 룰렛 공통 실행부 (게임 연출 안에서 쓰는 도구, 계산은 roulette.js)
-   쓰는 법: 게임에 G.firstPick=true를 두고 G.introMs=(again,fast)=>시작 전 연출 ms + Roulette.planFor(2,0,fast).total + 여유.
-   G.intro(t0,{fast})에서 ctl=firstPick(룰렛 시작 시각, {seats,first,fast}) →
-   매 프레임 ctl.idx(now)로 지금 켜진 자리를 그리고, ctl.tick(now)를 부르면 틱 소리가 나고 끝나는 순간 한 번 true(그때 게임이 ctl.msg()를 안내로 보여 줌).
-   seats: 룰렛에 들어가는 자리 번호들(V.ps 기준), first: 첫 차례 자리 번호. 결과는 엔진이 정함 — 화면은 그 자리에서 멈추도록 맞춰 돎
-   방 설정의 '선 플레이어 선택·무작위'(pickfirst)을 켜면 방장이 대기실에서 고르고(H.firstName), 신호 fp=-1 → 룰렛 없이 그 자리만 짧게 알림 */
-function firstPick(t0,{seats,first,fast}){
-  const L=seats.slice(),f=Math.max(0,L.indexOf(first)),P=Roulette.planFor(L.length,f,fast);   // fast<0: 방장이 직접 고른 선 (돌지 않음)
-  const c={t0,total:P.total,seats:L,first:L[f],plan:P,fixed:P.fixed,n:0,said:false,cued:false,
-    idx(now){const e=now-t0;if(e>=P.total)return L[f];const k=P.at(e);return k<0?-1:L[k]},   // 지금 켜진 자리 (-1: 아직 후보만 켜진 중)
-    cand(now){return !P.fixed&&now>=t0&&now-t0<P.lead},   // 후보(모든 자리)가 한꺼번에 켜져 있는 구간 — 게임이 모든 자리를 켜 줌
-    msg(){const p=V&&V.ps&&V.ps[c.first];return p?(c.first===myIdx()?'내가 먼저 시작합니다.':`${p.n}부터 시작합니다.`):''},   // 끝날 때 보여 줄 안내 (표시는 게임이 함)
-    tick(now){   // 틱 소리 + 끝나면 안내 (끝나는 순간 한 번 true)
-      const e=now-t0,m=P.times.length;let k=0;while(k<m&&P.times[k]<=e)k++;
-      if(!c.cued&&e>=0&&!P.fixed){c.cued=true;tone(420,.34,{type:'triangle',vol:.1,slide:900})}   // 룰렛이 시작된다는 신호음 (후보가 켜지는 순간)
-      if(k>c.n){c.n=k;const r=k/m;tone(1400-r*650,.035,{type:'square',vol:.03+r*.03})}   // 느려질수록 낮고 또렷한 틱
-      if(e>=P.total&&!c.said){
-        c.said=true;sfx('turn');return true;
-      }
+/* ===== 첫 차례 주사위 공통 실행부 (게임 연출 안에서 쓰는 도구, 계산은 dicepick.js)
+   쓰는 법: 게임에 G.firstPick=true를 두고 G.introMs=(again,rolls)=>시작 전 연출 ms + DicePick.totalFor(rolls) + 여유.
+   G.intro(t0,{rolls,seed})에서 ctl=firstPick(주사위 시작 시각, {seats,first,rolls,seed}) →
+   주사위: m=DicePick.mesh(THREE,seats.length,색 목록)를 게임 장면에 넣고, 매 프레임 m.apply(ctl.pose(now),크기,가운데x,바닥y,가운데z)
+   매 프레임 ctl.idx(now)로 불이 켜질 자리(멈추기 전 -1, 멈춘 뒤 첫 차례), ctl.tick(now)를 부르면 바닥에 닿는 소리가 나고 멈추는 순간 한 번 true(그때 fxSay(ctl.msg())로 가운데 안내).
+   seats: 주사위에 들어가는 자리 번호들(V.ps 기준), first: 첫 차례 자리 번호. 결과는 엔진이 정함 — 주사위는 그 자리 색이 위로 오도록 굴러감
+   rolls: 방장이 정한 던질 횟수(다시 굴리기 면이 나오면 한 번 더), seed: 같은 연출을 모두 같게(dealId).
+   방 설정의 '선 플레이어'(pickfirst)를 선택으로 하면 방장이 대기실에서 고르고(H.firstName), 신호 fp=-1 → 주사위 없이 그 자리만 짧게 알림 */
+function firstPick(t0,{seats,first,rolls,seed}){
+  const L=seats.slice(),f=Math.max(0,L.indexOf(first)),P=DicePick.planFor(L.length,f,rolls,seed);   // rolls<0: 방장이 직접 고른 선 (굴리지 않음)
+  const c={t0,total:P.total,seats:L,first:L[f],plan:P,fixed:P.fixed,n:0,k:0,said:false,
+    idx(now){return now-t0>=P.landAt?L[f]:-1},   // 지금 불이 켜질 자리 (-1: 아직 굴러가는 중)
+    pose(now){return P.poseAt(now-t0)},   // 주사위 자세 (끝나면 null)
+    msg(){const p=V&&V.ps&&V.ps[c.first];return p?(c.first===myIdx()?'내가 먼저 시작합니다.':`${p.n}부터 시작합니다.`):''},   // 멈춘 뒤 가운데에 보여 줄 안내
+    tick(now){   // 닿는 소리 + 멈추는 순간 한 번 true
+      const e=now-t0,im=P.impacts;
+      while(c.n<im.length&&im[c.n].t<=e){const v=im[c.n].v;c.n++;tone(150+v*110,.05+.05*v,{type:'triangle',vol:.04+.12*v});hiss(.03+.03*v,{freq:2200+v*500,q:2,vol:.03+.09*v})}
+      while(c.k<P.throws.length&&P.throws[c.k].t0<=e){if(c.k>0)hiss(.07,{freq:1500,sweep:2600,q:1,vol:.07});c.k++}   // 다시 집어 던지는 소리
+      if(e>=P.landAt&&!c.said){c.said=true;sfx('turn');return true}
       return false;
     }};
   return c;
 }
 const DEAL_MS=4350;
-const introLen=(g,again,fast)=>typeof g.introMs==='function'?g.introMs(!!again,fast):+g.introMs||0;   // fast: 첫 차례 룰렛의 빠른 칸 수 (G.firstPick인 게임만)
+const introLen=(g,again,rolls)=>typeof g.introMs==='function'?g.introMs(!!again,rolls):+g.introMs||0;   // rolls: 첫 차례 주사위를 던질 횟수 (G.firstPick인 게임만)
 function beginDeal(ms){
   ms=ms||DEAL_MS;
   const t=clock();H.dealUntil=t+ms;H.dealMs=ms;H.dealId=(H.dealId||0)+1;
@@ -188,7 +188,7 @@ function snapFor(you){
   if(H.phase==='wait'){fixSeats();s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0,lv:m.bot?(m.lv??1):undefined,st:m.seat}));if(H.firstName)s.fn=H.firstName;if(EG().engine.waitSnap)EG().engine.waitSnap(s);return s}   // waitSnap: 대기실에도 게임별 값 (대부호의 계급)
   s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=p.surrendered==='time'?2:p.deserter?3:1;if(p.away)o.aw=1;if(p.deserter)o.dz=1;if(i===you)o.h=p.hand.slice();return o});
   s.t=H.turn;
-  if(H.dealUntil>t){s.dk=Math.round(H.dealUntil-t);s.di=H.dealId;s.dm=H.dealMs||0;if(H.dealAgain)s.dg=1;if(H.fp)s.fp=H.fp}   // 카드를 나누는 중 (남은 ms, fp: 첫 차례 룰렛의 빠른 칸 수)
+  if(H.dealUntil>t){s.dk=Math.round(H.dealUntil-t);s.di=H.dealId;s.dm=H.dealMs||0;if(H.dealAgain)s.dg=1;if(H.fp)s.fp=H.fp}   // 카드를 나누는 중 (남은 ms, fp: 첫 차례 주사위를 던질 횟수)
   EG().engine.snap(s,you,t);   // 필드·판정 등은 게임마다 다름
   return s;
 }

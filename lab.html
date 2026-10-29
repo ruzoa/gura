@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>테스트룸 · 첫 차례 룰렛</title>
+<title>테스트룸 · 첫 차례 주사위</title>
 <style>
 :root{--bg:#10170f;--panel:#1a241a;--line:#2d3b2c;--fg:#e8efe4;--dim:#93a38f;--acc:#f2c14e}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -13,13 +13,15 @@ main{max-width:560px;margin:0 auto;padding:10px 12px calc(24px + env(safe-area-i
 h1{font-size:15px;margin:2px 0 8px;color:var(--dim);font-weight:600}
 /* 미리보기: 고른 화면 비율 그대로, 폭에 맞춰 줄임 */
 #viewWrap{position:sticky;top:0;z-index:5;background:var(--bg);padding:4px 0 8px}
-#view{position:relative;margin:0 auto;background:#1f4a2b;border:1px solid #2f6a3d;border-radius:10px;overflow:hidden}
-#view .tbl{position:absolute;inset:8% 6%;border-radius:50%/42%;background:#18401f;box-shadow:inset 0 0 0 2px #2a5c34}
-#view .mid{position:absolute;left:12%;right:12%;top:50%;border-top:2px dashed rgba(242,193,78,.55)}
-.seat{position:absolute;width:var(--sz);height:var(--sz);margin:calc(var(--sz)/-2) 0 0 calc(var(--sz)/-2);border-radius:50%;background:#0d1a10;border:3px solid var(--c);opacity:.5;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:calc(var(--sz)*.4);color:var(--c);transition:none}
-.seat.on{opacity:1;background:var(--c);color:#0d1a10;box-shadow:0 0 0 4px rgba(255,255,255,.5),0 0 18px var(--c)}
+#view{position:relative;margin:0 auto;background:#cfe6ee;border:1px solid #2f6a3d;border-radius:10px;overflow:hidden}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+.seat{position:absolute;width:var(--sz);height:var(--sz);margin:calc(var(--sz)/-2) 0 0 calc(var(--sz)/-2);border-radius:50%;background:#0d1a10;border:3px solid var(--c);opacity:.55;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:calc(var(--sz)*.4);color:var(--c);transition:none}
+.seat.on{opacity:1;background:var(--c);color:#0d1a10;box-shadow:0 0 0 4px rgba(255,255,255,.55),0 0 18px var(--c)}
 .seat.win{animation:pop .35s ease-out}
 @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+#say{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);background:#fffaf0;border:3px solid var(--rc,#9a5b00);border-radius:14px;padding:5px 14px;box-shadow:0 4px 0 var(--rc,#9a5b00);font-weight:800;font-size:19px;color:var(--rc,#9a5b00);white-space:nowrap;opacity:0;pointer-events:none}
+#say.show{animation:fxpop 2s ease-out forwards}
+@keyframes fxpop{0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}12%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}20%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0}}
 #msg{height:26px;text-align:center;font-weight:700;color:var(--acc);margin-top:6px}
 section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}
 .row{display:flex;align-items:center;gap:10px;margin:8px 0}
@@ -34,9 +36,9 @@ input[type=range]{flex:1;min-width:0;height:34px;accent-color:var(--acc)}
 .btn.main{flex:2;background:var(--acc);color:#1a1405;font-size:17px}
 .info{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:13px;color:var(--dim)}
 .info b{color:var(--fg);font-variant-numeric:tabular-nums}
+.faces{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.faces i{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;font-style:normal;font-weight:700;font-size:13px;color:#fff;border:2px solid rgba(0,0,0,.35)}
 #line{width:100%;margin-top:8px;background:#0b110b;color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px;font:12px/1.4 ui-monospace,Menlo,monospace;resize:none}
-details{margin-top:8px;color:var(--dim);font-size:12px}
-details div{font-variant-numeric:tabular-nums;word-break:break-all;margin-top:4px}
 .nav{display:flex;gap:6px;margin-bottom:8px}
 .nav a{color:var(--dim);text-decoration:none;border:1px solid var(--line);border-radius:18px;padding:5px 12px;font-size:13px}
 .nav a.on{background:var(--acc);color:#1a1405;border-color:var(--acc);font-weight:700}
@@ -45,11 +47,11 @@ details div{font-variant-numeric:tabular-nums;word-break:break-all;margin-top:4p
 </head>
 <body>
 <main>
-<nav class="nav"><a href="lab.html" class="on">첫 차례 룰렛</a><a href="lab-icon.html">아이콘 찍기</a><a href="lab-hand.html">알까기 손</a><a href="lab-poker.html">포커 카메라</a></nav>
-<h1>테스트룸 · 첫 차례 룰렛 <span style="font-weight:400">(메인에 연결되지 않은 연습용 화면입니다)</span></h1>
+<nav class="nav"><a href="lab.html" class="on">첫 차례 주사위</a><a href="lab-icon.html">아이콘 찍기</a><a href="lab-hand.html">알까기 손</a><a href="lab-poker.html">포커 카메라</a></nav>
+<h1>테스트룸 · 첫 차례 주사위 <span style="font-weight:400">(메인에 연결되지 않은 연습용 화면입니다)</span></h1>
 
 <div id="viewWrap">
-  <div id="view"><div class="tbl"></div><div class="mid"></div></div>
+  <div id="view"><canvas id="gl"></canvas><div id="say"></div></div>
   <div id="msg"></div>
 </div>
 
@@ -61,57 +63,67 @@ details div{font-variant-numeric:tabular-nums;word-break:break-all;margin-top:4p
 <section>
   <div class="row"><label>인원</label><div class="chips" id="nChips"></div></div>
   <div class="row"><label>첫 차례</label><div class="chips" id="fChips"></div></div>
+  <div class="row"><label>던진 횟수</label><div class="chips" id="rChips"></div></div>
+  <div class="row"><label>카메라</label><div class="chips" id="cChips"></div></div>
   <div class="row"><label>화면</label><div class="chips" id="vChips"></div></div>
 </section>
 
 <section>
-  <div class="row"><label>빠른 칸 수 최소</label><input type="range" id="fastMin" min="0" max="40" step="1"><output id="fastMinO"></output></div>
-  <div class="row"><label>빠른 칸 수 최대</label><input type="range" id="fastMax" min="0" max="40" step="1"><output id="fastMaxO"></output></div>
-  <div class="row"><label>빠른 간격</label><input type="range" id="fastGap" min="15" max="120" step="1"><output id="fastGapO"></output></div>
-  <div class="row"><label>감속 비율</label><input type="range" id="ratio" min="1.1" max="2.5" step="0.05"><output id="ratioO"></output></div>
-  <div class="row"><label>마지막 간격</label><input type="range" id="endGap" min="200" max="3000" step="50"><output id="endGapO"></output></div>
-  <div class="row"><label>앞 연출(후보)</label><input type="range" id="lead" min="0" max="1500" step="50"><output id="leadO"></output></div>
-  <div class="row"><label>멈춘 뒤 대기</label><input type="range" id="wait" min="0" max="1500" step="50"><output id="waitO"></output></div>
+  <div class="row"><label>첫 굴림 길이</label><input type="range" id="dur" min="800" max="3500" step="50"><output id="durO"></output></div>
+  <div class="row"><label>다시 굴림 길이</label><input type="range" id="durAgain" min="500" max="2500" step="50"><output id="durAgainO"></output></div>
+  <div class="row"><label>굴림 사이 쉼</label><input type="range" id="pause" min="0" max="1000" step="20"><output id="pauseO"></output></div>
+  <div class="row"><label>멈춘 뒤 안내</label><input type="range" id="wait" min="300" max="2500" step="50"><output id="waitO"></output></div>
+  <div class="row"><label>주사위 크기</label><input type="range" id="size" min="0.3" max="1.3" step="0.05"><output id="sizeO"></output></div>
   <div class="row"><span class="sw"><input type="checkbox" id="snd" checked> 소리</span></div>
 </section>
 
 <section>
   <div class="info" id="info"></div>
-  <details><summary>칸 사이 간격 (ms)</summary><div id="gaps"></div></details>
+  <div class="faces" id="faces"></div>
   <textarea id="line" rows="3" readonly></textarea>
   <div class="btns"><button class="btn" id="reset">현재 게임 값으로</button></div>
 </section>
 </main>
 
-<script src="roulette.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="dicepick.js"></script>
 <script>
 (()=>{
 const $=s=>document.querySelector(s);
-const KEY='gura-lab-roulette';
-const PCOL=['#4aa3ff','#ff6b6b','#ffd166','#5fd38d'];
-const NAME=['나','왼쪽','맞은편','오른쪽'];
+const KEY='gura-lab-dice';
 const VIEWS=[['휴대폰 세로',390,780],['휴대폰 가로',780,390],['PC 1280',1280,800],['PC 1920',1920,1080]];
-/* 지금 게임이 쓰는 값 = roulette.js의 Roulette.DEF (값을 바꾸면 여기도 자동으로 따라감) */
-const D=Roulette.DEF;
-const GAME={fastMin:D.fastMin,fastMax:D.fastMax,fastGap:D.fastGap,ratio:D.ratio,endGap:D.endGap,wait:D.wait,lead:D.lead};
-const DEFAULT=Object.assign({n:4,first:'random',view:0,snd:true},GAME);
+const CAMS=[['앉은 눈 37°'],['바로 위']];
+const COL=DicePick.SEAT_COL;
+/* 지금 게임이 쓰는 값 = dicepick.js의 DicePick.DEF (값을 바꾸면 여기도 자동으로 따라감). 크기는 게임마다 달라서 이 화면에서만 씀 */
+const D=DicePick.DEF;
+const GAME={dur:D.dur,durAgain:D.durAgain,pause:D.pause,wait:D.wait,size:.6};
+const DEFAULT=Object.assign({n:5,first:'random',rolls:'auto',cam:0,view:0,snd:true},GAME);
 let S=Object.assign({},DEFAULT);
 try{const j=JSON.parse(localStorage.getItem(KEY)||'null');if(j)S=Object.assign(S,j)}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const nameOf=i=>i===0?'나':'P'+(i+1);
 
-/* ---------- 소리 (게임과 같은 틱) ---------- */
-let ctx=null;
+/* ---------- 소리 (게임 core/engine.js의 firstPick과 같은 소리) ---------- */
+let ctx=null,noise=null;
 function audio(){
   if(!ctx){const AC=window.AudioContext||window.webkitAudioContext;if(AC)try{ctx=new AC()}catch(e){}}
   if(ctx&&ctx.state==='suspended')ctx.resume().catch(()=>{});
+  if(ctx&&!noise){noise=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate);const d=noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
   return ctx;
 }
-function tone(f,dur,vol,type,slide){
-  if(!S.snd||!ctx||ctx.state!=='running')return;
-  const t=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();
-  o.type=type||'square';o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+dur);
-  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
-  o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+dur+.03);
+function tone(f,dur,o){
+  if(!S.snd||!ctx||ctx.state!=='running')return;o=o||{};
+  const t=ctx.currentTime,os=ctx.createOscillator(),g=ctx.createGain();
+  os.type=o.type||'sine';os.frequency.setValueAtTime(f,t);if(o.slide)os.frequency.exponentialRampToValueAtTime(o.slide,t+dur);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(o.vol||.2,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  os.connect(g);g.connect(ctx.destination);os.start(t);os.stop(t+dur+.03);
+}
+function hiss(dur,o){
+  if(!S.snd||!ctx||ctx.state!=='running'||!noise)return;o=o||{};
+  const t=ctx.currentTime,s=ctx.createBufferSource(),fl=ctx.createBiquadFilter(),g=ctx.createGain();
+  s.buffer=noise;fl.type='bandpass';fl.Q.value=o.q||1;fl.frequency.setValueAtTime(o.freq||1800,t);if(o.sweep)fl.frequency.exponentialRampToValueAtTime(o.sweep,t+dur);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(o.vol||.25,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  s.connect(fl);fl.connect(g);g.connect(ctx.destination);s.start(t);s.stop(t+dur+.03);
 }
 
 /* ---------- 칩·슬라이더 ---------- */
@@ -122,87 +134,116 @@ function chips(el,items,cur,on){
     b.onclick=()=>{on(v);draw()};el.appendChild(b);
   });
 }
-const fmt={fastMin:v=>v+'칸',fastMax:v=>v+'칸',fastGap:v=>v+'ms',ratio:v=>'×'+(+v).toFixed(2),endGap:v=>v+'ms',wait:v=>v+'ms',lead:v=>v+'ms'};
+const fmt={dur:v=>v+'ms',durAgain:v=>v+'ms',pause:v=>v+'ms',wait:v=>v+'ms',size:v=>(+v).toFixed(2)};
 function bindRanges(){
   for(const k of Object.keys(fmt)){
     const el=$('#'+k);el.value=S[k];$('#'+k+'O').textContent=fmt[k](S[k]);
-    el.oninput=()=>{
-      S[k]=+el.value;
-      if(k==='fastMin'&&S.fastMin>S.fastMax){S.fastMax=S.fastMin;$('#fastMax').value=S.fastMax}
-      if(k==='fastMax'&&S.fastMax<S.fastMin){S.fastMin=S.fastMax;$('#fastMin').value=S.fastMin}
-      for(const j of Object.keys(fmt))$('#'+j+'O').textContent=fmt[j](S[j]);
-      info();save();
-    };
+    el.oninput=()=>{S[k]=+el.value;$('#'+k+'O').textContent=fmt[k](S[k]);info();save()};
   }
   $('#snd').checked=!!S.snd;$('#snd').onchange=e=>{S.snd=e.target.checked;save()};
 }
 
-/* ---------- 미리보기 ---------- */
-const SEAT={2:[[50,86],[50,14]],3:[[50,86],[20,22],[80,22]],4:[[50,86],[10,50],[50,14],[90,50]]};
-let seats=[];
-function layout(){
-  const v=VIEWS[S.view],vw=Math.min(document.querySelector('main').clientWidth-24,560);
-  // 세로로 긴 화면이 화면을 다 가리지 않게 높이는 화면의 45%까지만
-  let w=vw,h=w*v[2]/v[1];const maxH=innerHeight*.45;if(h>maxH){h=maxH;w=h*v[1]/v[2]}
-  const el=$('#view');el.style.width=w+'px';el.style.height=h+'px';
-  el.querySelectorAll('.seat').forEach(x=>x.remove());seats=[];
-  const sz=Math.max(28,Math.min(w,h)*.17);
-  SEAT[S.n].forEach(([x,y],i)=>{
-    const d=document.createElement('div');d.className='seat';d.textContent=i===0?'나':'P'+(i+1);
-    d.style.cssText=`left:${x}%;top:${y}%;--c:${PCOL[i]};--sz:${sz}px`;el.appendChild(d);seats.push(d);
-  });
+/* ---------- 3D 미리보기 ---------- */
+let R=null,scene,cam,die=null,gl=false;
+function initGL(){
+  try{
+    R=new THREE.WebGLRenderer({canvas:$('#gl'),antialias:true});
+    scene=new THREE.Scene();scene.background=new THREE.Color(0xcfe6ee);
+    cam=new THREE.PerspectiveCamera(42,1,.1,100);
+    scene.add(new THREE.HemisphereLight(0xd8ecff,0x8d8a5c,.75));
+    const dl=new THREE.DirectionalLight(0xffffff,.7);dl.position.set(3,7,4);scene.add(dl);
+    const wood=new THREE.Mesh(new THREE.CylinderGeometry(3.5,3.6,.3,64),new THREE.MeshLambertMaterial({color:0x7a4a22}));wood.position.y=-.16;scene.add(wood);
+    const felt=new THREE.Mesh(new THREE.CircleGeometry(3.12,72),new THREE.MeshLambertMaterial({color:0x2f7a45}));felt.rotation.x=-Math.PI/2;felt.position.y=.001;scene.add(felt);
+    const line=new THREE.Mesh(new THREE.RingGeometry(1.0,1.03,64),new THREE.MeshBasicMaterial({color:0xf2c14e,transparent:true,opacity:.5}));line.rotation.x=-Math.PI/2;line.position.y=.004;scene.add(line);
+    gl=true;
+  }catch(e){gl=false}
 }
+function setCam(w,h){
+  const a=w/h;cam.aspect=a;
+  if(S.cam===0){   // 앉은 눈: 모든 화면에서 같은 위치·각도(37°), 좁은 화면은 양옆이 잘림
+    const d=7.4;cam.up.set(0,1,0);cam.position.set(0,d*Math.sin(37*Math.PI/180),d*Math.cos(37*Math.PI/180));cam.lookAt(0,0,.2);
+  }else{            // 바로 위 (쿼리도·야추다이스처럼 자기 카메라)
+    const d=Math.max(7.6,3.7/(Math.tan(21*Math.PI/180)*Math.min(1,a)));cam.up.set(0,0,-1);cam.position.set(0,d,.001);cam.lookAt(0,0,0);
+  }
+  cam.updateProjectionMatrix();cam.updateMatrixWorld();
+}
+/* 자리 번호 표시: 탁자 둘레를 고르게 (나는 아래) */
+let seats=[],vw=0,vh=0;
+function layout(){
+  const v=VIEWS[S.view],mw=Math.min(document.querySelector('main').clientWidth-24,560);
+  let w=mw,h=w*v[2]/v[1];const maxH=innerHeight*.45;if(h>maxH){h=maxH;w=h*v[1]/v[2]}
+  const el=$('#view');el.style.width=w+'px';el.style.height=h+'px';vw=w;vh=h;
+  if(gl){R.setPixelRatio(Math.min(devicePixelRatio||1,2));R.setSize(w,h,false);setCam(w,h)}
+  el.querySelectorAll('.seat').forEach(x=>x.remove());seats=[];
+  const sz=Math.max(24,Math.min(w,h)*(S.n>5?.12:.15)),vec=new THREE.Vector3();
+  for(let i=0;i<S.n;i++){
+    const a=i*Math.PI*2/S.n,x=Math.sin(a)*3.25,z=Math.cos(a)*3.25;
+    let px=w/2,py=h/2;
+    if(gl){vec.set(x,0,z).project(cam);px=(vec.x+1)/2*w;py=(1-vec.y)/2*h}
+    px=Math.max(sz/2+4,Math.min(w-sz/2-4,px));py=Math.max(sz/2+4,Math.min(h-sz/2-4,py));
+    const d=document.createElement('div');d.className='seat';d.textContent=nameOf(i);
+    d.style.cssText=`left:${px}px;top:${py}px;--c:${COL[i]};--sz:${sz}px`;el.appendChild(d);seats.push(d);
+  }
+}
+
 function draw(){
-  chips($('#nChips'),[[2,'2명'],[3,'3명'],[4,'4명']],S.n,v=>{S.n=+v;if(S.first!=='random'&&+S.first>=S.n)S.first='random';save();layout()});
-  chips($('#fChips'),[['random','랜덤'],...Array.from({length:S.n},(_,i)=>[i,i===0?'나':'P'+(i+1)])],S.first,v=>{S.first=v;save()});
+  chips($('#nChips'),[2,3,4,5,6,7,8].map(n=>[n,n+'명']),S.n,v=>{S.n=+v;if(S.first!=='random'&&+S.first>=S.n)S.first='random';save();layout()});
+  chips($('#fChips'),[['random','랜덤'],...Array.from({length:S.n},(_,i)=>[i,nameOf(i)])],S.first,v=>{S.first=v;save()});
+  chips($('#rChips'),[['auto','자동 (방장 뽑기)'],[1,'1번'],[2,'2번'],[3,'3번']],S.rolls,v=>{S.rolls=v;save()});
+  chips($('#cChips'),CAMS.map((c,i)=>[i,c[0]]),S.cam,v=>{S.cam=+v;save();layout()});
   chips($('#vChips'),VIEWS.map((v,i)=>[i,v[0]]),S.view,v=>{S.view=+v;save();layout()});
   info();
 }
 
 /* ---------- 계산·표시 ---------- */
-const opt=fast=>({fastCount:fast,fastGap:S.fastGap,endGap:S.endGap,ratio:S.ratio,wait:S.wait,lead:S.lead});
+const opt=()=>({dur:S.dur,durAgain:S.durAgain,pause:S.pause,wait:S.wait});
+const tot=a=>(a/1000).toFixed(2)+'초';
 function info(){
-  const p=Roulette.plan(S.n,0,opt(S.fastMin)),q=Roulette.plan(S.n,0,opt(S.fastMax));
-  const tot=a=>(a/1000).toFixed(2)+'초';
-  const range=S.fastMin===S.fastMax?`${S.fastMin}칸`:`${S.fastMin}~${S.fastMax}칸`;
+  const n=S.n,own=DicePick.owners(n),side=DicePick.sidesFor(n),p=DicePick.rerollP(n),o=opt();
+  const T=k=>DicePick.totalFor(k,o);
   $('#info').innerHTML=
-    `<span>빠르게 도는 시간</span><b>${tot(S.fastMin*S.fastGap)}${S.fastMin===S.fastMax?'':' ~ '+tot(S.fastMax*S.fastGap)}</b>`+
-    `<span>감속 칸 수</span><b>${p.steps}칸 (실제 ×${p.ratio.toFixed(3)})</b>`+
-    `<span>감속 시간</span><b>${tot(p.gaps.slice(p.fast).reduce((a,b)=>a+b,0))}</b>`+
-    `<span>전체 연출</span><b>${S.fastMin===S.fastMax?tot(p.total):tot(p.total)+' ~ '+tot(q.total)}</b>`;
-  $('#gaps').textContent=`빠른 구간 ${range} × ${S.fastGap} → `+p.gaps.slice(p.fast).map(Math.round).join(', ');
+    `<span>주사위</span><b>${side}면체</b>`+
+    `<span>다시 굴리기 확률</span><b>${p?(p*100).toFixed(1)+'%':'없음'}</b>`+
+    `<span>한 번에 끝</span><b>${tot(T(1))}</b>`+
+    `<span>다시 굴림 1번</span><b>${p?tot(T(2)):'-'}</b>`+
+    `<span>다시 굴림 2번</span><b>${p?tot(T(3)):'-'}</b>`+
+    `<span>평균 연출</span><b>${p?tot(T(1)+(p/(1-p))*(S.pause+S.durAgain)):tot(T(1))}</b>`;
+  $('#faces').innerHTML=own.map((s,f)=>`<i style="background:${s<0?DicePick.REROLL_COL:COL[s]}" title="면 ${f+1}">${s<0?'↻':nameOf(s)}</i>`).join('');
   $('#line').value=line();
 }
-const line=()=>`n=${S.n} 첫차례=${S.first==='random'?'랜덤':'P'+(+S.first+1)} 빠른칸=${S.fastMin}~${S.fastMax} 빠른간격=${S.fastGap} 감속비율=${(+S.ratio).toFixed(2)} 마지막간격=${S.endGap} 대기=${S.wait} 앞연출=${S.lead} 화면=${VIEWS[S.view][0]}`;
+const line=()=>`n=${S.n} 첫차례=${S.first==='random'?'랜덤':nameOf(+S.first)} 던짐=${S.rolls} 첫굴림=${S.dur} 다시굴림=${S.durAgain} 쉼=${S.pause} 안내=${S.wait} 크기=${(+S.size).toFixed(2)} 카메라=${CAMS[S.cam][0]} 화면=${VIEWS[S.view][0]}`;
 
-let raf=0;
+/* ---------- 재생 ---------- */
+let cur=null;   // 지금 재생 중: {plan,t0,n,k,said,first}
+function say(text,col){
+  const el=$('#say');el.textContent=text;el.style.setProperty('--rc',col);el.classList.remove('show');void el.offsetWidth;el.classList.add('show');
+}
 function play(){
-  cancelAnimationFrame(raf);audio();
-  const first=S.first==='random'?Math.floor(Math.random()*S.n):+S.first;
-  const fast=Roulette.pickFast(S.fastMin,S.fastMax);
-  const p=Roulette.plan(S.n,first,opt(fast));
-  $('#msg').textContent='';seats.forEach(s=>s.className='seat');
-  const t0=performance.now();let last=-1,shown=-1;
-  const step=now=>{
-    const e=now-t0,done=e>=p.total;
-    let c=0;while(c<p.times.length&&p.times[c]<=e)c++;
-    const lead=e<p.lead,key=lead?-1:c;
-    const cur=(p.start+c)%S.n,r=c/p.times.length;
-    if(key!==last){   // 칸이 넘어갈 때만 소리·표시
-      if(lead){seats.forEach(s=>s.classList.add('on'));tone(420,.34,.1,'triangle',900)}   // 앞 연출: 후보 전체 켜짐 + 시작 신호음 (게임과 같음)
-      else{if(c>0)tone(1400-r*650,.035,.03+r*.03);seats.forEach((s,i)=>s.classList.toggle('on',i===cur))}
-      last=key;
+  audio();
+  if(die){die.dispose();die=null}
+  const n=S.n,first=S.first==='random'?Math.floor(Math.random()*n):+S.first;
+  const rolls=S.rolls==='auto'?DicePick.pickRolls(n):+S.rolls;   // 다시 굴리기 면이 없는 인원은 알아서 한 번
+  const plan=DicePick.plan(n,first,Object.assign(opt(),{rolls,seed:Math.random()*1e9|0}));
+  $('#msg').textContent=`던진 횟수 ${plan.rolls}번 · 연출 ${tot(plan.total)}`;$('#say').classList.remove('show');
+  seats.forEach(s=>s.className='seat');
+  if(gl){die=DicePick.mesh(THREE,n,COL.slice(0,n));scene.add(die.g)}
+  cur={plan,t0:performance.now(),n:0,k:0,said:false,first};
+}
+function frame(now){
+  requestAnimationFrame(frame);
+  if(cur){
+    const P=cur.plan,e=now-cur.t0;
+    if(die)die.apply(P.poseAt(e),S.size,0,.012,0);
+    while(cur.n<P.impacts.length&&P.impacts[cur.n].t<=e){const v=P.impacts[cur.n].v;cur.n++;tone(150+v*110,.05+.05*v,{type:'triangle',vol:.04+.12*v});hiss(.03+.03*v,{freq:2200+v*500,q:2,vol:.03+.09*v})}
+    while(cur.k<P.throws.length&&P.throws[cur.k].t0<=e){if(cur.k>0)hiss(.07,{freq:1500,sweep:2600,q:1,vol:.07});cur.k++}
+    if(e>=P.landAt&&!cur.said){
+      cur.said=true;seats[cur.first].classList.add('on','win');
+      tone(660,.12,{vol:.07});tone(990,.18,{vol:.07});
+      say(cur.first===0?'내가 먼저 시작합니다.':nameOf(cur.first)+'부터 시작합니다.',COL[cur.first]);
     }
-    if(done){
-      seats[first].classList.add('win');
-      $('#msg').textContent=(first===0?'내가':'P'+(first+1)+'(이)가')+' 먼저 시작합니다.';
-      tone(660,.12,.07,'sine');tone(990,.18,.07,'sine');
-      return;
-    }
-    raf=requestAnimationFrame(step);
-  };
-  // 시작 직전 상태: 처음 켜지는 자리는 첫 칸이 넘어간 뒤 켜짐
-  raf=requestAnimationFrame(step);
+    if(e>=P.total){cur=null;if(die)die.apply(null,1,0,0,0)}
+  }
+  if(gl)R.render(scene,cam);
 }
 
 $('#play').onclick=play;
@@ -215,7 +256,7 @@ $('#copy').onclick=async()=>{
 $('#reset').onclick=()=>{Object.assign(S,GAME);save();bindRanges();draw()};
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&!/INPUT|TEXTAREA|BUTTON/.test(e.target.tagName)){e.preventDefault();play()}});
 addEventListener('resize',layout);
-bindRanges();layout();draw();
+initGL();bindRanges();layout();draw();requestAnimationFrame(frame);
 })();
 </script>
 </body>

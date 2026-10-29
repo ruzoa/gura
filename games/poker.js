@@ -4,7 +4,7 @@
    손패(hand)는 공통 코드가 '끝나지 않은 사람'으로 보도록 [0]만 넣어 둠. 진짜 카드는 H.pk.hc(사람마다 2장)·H.pk.bd(공용 카드)이고
    받는 사람 자기 카드만 보냄(쇼다운·올인으로 펼친 카드만 모두에게). 덱은 방장만 가짐
    칩: H.pk.ch는 앞에 남은 칩(건 칩은 빼고), bet은 이번 베팅 차례에 건 칩, tot는 이번 판에 낸 칩 모두(팟 = tot의 합)
-   한 경기: 첫 딜러 버튼 룰렛 → 판마다 블라인드 → 카드 2장 → 프리플랍·플랍·턴·리버 베팅 → 쇼다운 → 정산 → 다음 판(버튼이 왼쪽으로).
+   한 경기: 첫 딜러 버튼 주사위 → 판마다 블라인드 → 카드 2장 → 프리플랍·플랍·턴·리버 베팅 → 쇼다운 → 정산 → 다음 판(버튼이 왼쪽으로).
    정한 판 수를 마치면 칩 순서로 순위, 칩을 다 잃으면 그때 탈락 */
 (function(){
 const G={id:'poker',name:'포커',short:'포커',lead:'텍사스 홀덤, 노 리밋',brand:'포커',brandPx:56};
@@ -106,7 +106,7 @@ G.roomSet=[
   {k:'sb',label:'스몰 블라인드',unit:'개',lo:10,hi:100,step:10,desc:'빅 블라인드는 두 배입니다'},
   {k:'up',label:'블라인드 오름',unit:'판마다',lo:0,hi:10,step:1,desc:'이 판 수마다 블라인드가 두 배로 오릅니다. 0이면 오르지 않습니다'},
   {k:'turn',label:'제한 시간',unit:'초',lo:10,hi:60,step:5,desc:'시간이 지나면 체크할 수 있으면 체크, 아니면 폴드'}];
-G.ruleSet=[{k:'pickfirst',pick:1,label:'첫 딜러',desc:'선택: 방장이 대기실에서 첫 딜러 버튼을 받을 사람을 고릅니다. 무작위: 룰렛으로 정합니다'}];
+G.ruleSet=[{k:'pickfirst',pick:1,label:'첫 딜러',desc:'선택: 방장이 이름표 메뉴에서 첫 딜러 버튼을 받을 사람을 고릅니다. 무작위: 주사위로 정합니다'}];
 const blindTxt=c=>`${+c.sb||10}/${2*(+c.sb||10)}`;
 G.cfgChips=c=>`<span class="chip">시작 칩 <b>${+c.chips}개</b></span><span class="chip"><b>${+c.rounds}판</b></span><span class="chip">블라인드 <b>${blindTxt(c)}</b></span><span class="chip">제한 시간 <b>${+c.turn}초</b></span>`;
 G.cfgSum=c=>`시작 칩 ${+c.chips}개 · ${+c.rounds}판 · 블라인드 ${blindTxt(c)}${+c.up?` (${+c.up}판마다 두 배)`:''} · 제한 시간 ${+c.turn}초 · 첫 딜러 ${+c.pickfirst?'선택':'무작위'}`;
@@ -372,9 +372,9 @@ function botPlay(i){
   doAct(i,a);
 }
 G._test={eval5,best,score7,handName,splitPots,raiseRange,preScore,equity,doAct,newHand,startStreet,endStreet,showdown,winNoShow,endHand,live,U};
-G.firstPick=true;   // 첫 딜러 버튼은 공통 룰렛(firstPick + roulette.js)으로 정함
-const INTRO_LEAD=900,INTRO_REST=700;
-G.introMs=(again,fast)=>Math.round(INTRO_LEAD+Roulette.planFor(2,0,fast).total+INTRO_REST);   // 정수 ms (방장 시계와 신호가 소수로 어긋나지 않게)
+G.firstPick=true;   // 첫 딜러 버튼은 공통 주사위(firstPick + dicepick.js)로 정함
+const INTRO_LEAD=900,INTRO_REST=700,DIE=.55;   // DIE: 주사위 한 변
+G.introMs=(again,rolls)=>Math.round(INTRO_LEAD+DicePick.totalFor(rolls)+INTRO_REST);   // 정수 ms (방장 시계와 신호가 소수로 어긋나지 않게)
 G.engine={
   start(){
     const n=H.players.length;
@@ -415,7 +415,7 @@ G.engine={
     s.pk={ph:K.ph,hn:K.hn,hns:K.hns,sb:K.sb,bb:K.bb,lv:K.lv,bt:K.bt,sbS:K.sbS,bbS:K.bbS,ch:K.ch.slice(),bet:K.bet.slice(),tot:K.tot.slice(),st:K.st.slice(),la:K.la.slice(),
       bd:K.bd.slice(),hc,cur:K.cur,minR:K.minR,ro:you>=0&&K.ro[you]?1:0,op:K.open?1:0,rs:K.rs,sq:K.sq,sr:K.sr,dor:K.dor.slice()};
     if(K.ph==='bet'&&H.turn>=0&&H.phase==='play')s.t=H.turn;
-    else if(K.ph==='intro')s.t=K.bt;   // 시작 연출: 룰렛이 멈출 자리(첫 딜러)
+    else if(K.ph==='intro')s.t=K.bt;   // 시작 연출: 주사위가 멈출 자리(첫 딜러)
     else delete s.t;
   },
   restore(d){
@@ -790,7 +790,7 @@ function btnPos(i){
   const tx=-S.uz,tz=S.ux,sd=S.th>=0?-1:1;   // 탁자 안쪽(화면 가운데) 쪽으로
   return {x:S.x+tx*.48*sd+S.ux*.2,z:S.z+tz*.48*sd+S.uz*.2};
 }
-/* 링: 차례 시간(지금 차례인 사람의 베팅 칸 둘레, 줄어듦)과 룰렛·차례 표시(카드 자리 둘레) */
+/* 링: 차례 시간(지금 차례인 사람의 베팅 칸 둘레, 줄어듦)과 첫 딜러·차례 표시(카드 자리 둘레) */
 function ringMesh(r0,r1,col,op){
   const m=new THREE.Mesh(new THREE.RingGeometry(r0,r1,48),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false}));
   m.rotation.x=-Math.PI/2;return m;
@@ -816,7 +816,7 @@ function clear3D(){
   for(const f of V3.flights)killG(f.obj);V3.flights=[];
   for(const P of V3.piles.values())killG(P.g);V3.piles.clear();
   killG(V3.bank);V3.bank=null;killG(V3.pot);V3.pot=null;V3.potAmt=-1;V3.potPend=0;
-  for(const r of V3.rings.values())killG(r);V3.rings.clear();
+  for(const r of V3.rings.values())killG(r);V3.rings.clear();dieOff();
   if(V3.arc){killG(V3.arc);V3.arc=null}
   killG(V3.root);V3.root=null;V3.deck=V3.btn=null;V3.btnAt=null;
   V3.hk=-1;V3.awarded=-1;V3.landed.clear();V3.toBet=V3.toBank=0;spKey='';IN.on=false;
@@ -1067,13 +1067,15 @@ function handStart(B){
   fxText(`<span class="fx-n">${B.hn} / ${B.hns}판</span>${B.lv===B.hn?`<span class="fx-s">블라인드 ${B.sb}/${B.bb}</span>`:''}`);
   V3.bounceAt=clock();
 }
-/* ---------- 첫 딜러 룰렛 (시작 연출) ---------- */
-const IN={on:false,t0:0,total:0,fp:null,said:false};
+/* ---------- 첫 딜러 주사위 (시작 연출) ---------- */
+const IN={on:false,t0:0,total:0,fp:null,die:null,said:false};
+function dieOff(){if(IN.die){IN.die.dispose();IN.die=null}}
 G.intro=(t0,o)=>{
   const B=BV();if(!B||B.ph!=='intro')return;   // 판마다 카드를 나눌 때도 불림 → 시작 연출만
   const L=V.ps.map((_,i)=>i);
-  IN.on=true;IN.t0=t0;IN.said=false;IN.total=(o&&o.total)||G.introMs(false,o&&o.fast);
-  IN.fp=firstPick(t0+INTRO_LEAD,{seats:L,first:B.bt,fast:o&&o.fast});
+  dieOff();
+  IN.on=true;IN.t0=t0;IN.said=false;IN.total=(o&&o.total)||G.introMs(false,o&&o.rolls);
+  IN.fp=firstPick(t0+INTRO_LEAD,{seats:L,first:B.bt,rolls:o&&o.rolls,seed:(o&&o.seed)||1});
 };
 function syncRingsIntro(now){
   const on=IN.on&&now<IN.t0+IN.total;
@@ -1082,11 +1084,16 @@ function syncRingsIntro(now){
 function introFrame(now){
   if(!IN.on)return;
   const end=IN.t0+IN.total;
-  if(now>=end+200){IN.on=false;for(const r of V3.rings.values())r.visible=false;return}
+  if(now>=end+200){IN.on=false;dieOff();for(const r of V3.rings.values())r.visible=false;return}
   const fp=IN.fp;if(!fp||!V||!V.ps)return;
-  const cand=fp.cand(now),cur=now>=IN.t0+INTRO_LEAD?fp.idx(now):-2;
-  V.ps.forEach((_,i)=>{const r=spotRing(i);r.visible=cand||cur===i;if(r.visible){const s=cand?1+.12*Math.sin(now/80):1;r.scale.set(s,s,1)}});
-  if(fp.tick(now)&&!IN.said){IN.said=true;const p=V.ps[fp.first];if(p)fxText(`<span class="fx-n" style="font-size:.7em">${fp.first===myIdx()?'내가':esc(p.n)+' 님이'} 첫 딜러입니다</span>`,'#3b2a1f')}
+  // 주사위: 탁자 가운데에 던짐 (방장이 직접 고른 딜러면 없음). 끝나면 작아지며 사라짐
+  if(!fp.fixed){
+    if(!IN.die&&V3.root&&now<end){IN.die=DicePick.mesh(THREE,V.ps.length,V.ps.map((_,i)=>DicePick.SEAT_COL[i%8]));V3.root.add(IN.die.g)}
+    if(IN.die)IN.die.apply(fp.pose(now),DIE,O.x,.02,O.z);
+  }
+  const cur=fp.idx(now);   // 주사위가 멈춘 뒤에야 첫 딜러 자리에 링 (그 자리 색)
+  V.ps.forEach((_,i)=>{const r=spotRing(i);r.visible=cur===i;if(r.visible)r.material.color.set(DicePick.SEAT_COL[i%8])});
+  if(fp.tick(now)&&!IN.said){IN.said=true;const p=V.ps[fp.first];if(p)fxText(`<span class="fx-n" style="font-size:.7em">${fp.first===myIdx()?'내가':esc(p.n)+' 님이'} 첫 딜러입니다</span>`,DicePick.SEAT_COL[fp.first%8])}
 }
 
 /* ---------- 이름표: 자리 바깥에 칩·마지막 행동, 쇼다운이면 족보·받은 칩 ---------- */

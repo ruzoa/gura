@@ -57,7 +57,7 @@ const mk=(o,n,bots,keepIntro)=>{
 
 /* 시작 연출: 그동안 방장이 시간·봇·행동을 멈추고, 끝나면 그만큼 미룬 제한 시간으로 시작 */
 {mk({},2,false,true);
- eq(H.dealUntil-NOW,Y.introMs(false),'intro pause');
+ eq(H.fp,1,'yahtzee 2명은 주사위를 한 번만 던짐');eq(H.dealUntil-NOW,Y.introMs(false,H.fp),'intro pause');
  const t=H.turn,dl=H.deadline;
  hostAct(t,{t:'roll'});eq(H.y.rolled,false,'no roll during intro');
  let s=snapFor(0);if(!(s.dk>0)||!s.di)fail('yahtzee intro in snapshot');
@@ -66,8 +66,8 @@ const mk=(o,n,bots,keepIntro)=>{
  if(dl-H.dealUntil!==H.cfg.turn*1000)fail('yahtzee deadline after intro '+(dl-H.dealUntil))}
 /* 결과 화면에서 바로 시작: 연출이 짧고, 화면에 바로 시작인 걸 알려 줌 */
 {mk({},2);H.phase='over';hostStart();
- eq(H.phase,'play','restart');eq(H.dealUntil-NOW,Y.introMs(true),'restart intro pause');
- const s=snapFor(0);eq(s.dg,1,'snap restart flag');eq(s.dm,Y.introMs(true),'snap intro length');
+ eq(H.phase,'play','restart');eq(H.dealUntil-NOW,Y.introMs(true,H.fp),'restart intro pause');
+ const s=snapFor(0);eq(s.dg,1,'snap restart flag');eq(s.dm,Y.introMs(true,H.fp),'snap intro length');eq(s.fp,H.fp,'snap carries dice roll count');
  NOW=H.dealUntil}
 const filled=i=>CATS.filter(c=>H.y.sc[i][c.id]!==null).length;
 

@@ -188,7 +188,7 @@ G.modeDesc=['먼저 도착한 사람이 이기면 끝','먼저 도착한 사람�
 G.defaults={max:2,turn:30,pickfirst:0};
 G.roomSet=[
   {k:'turn',label:'제한 시간',unit:'초',lo:10,hi:180,step:5,desc:'제한 시간이 지나면 패배합니다. 연결이 끊겨도 시간은 흐르고, 45초가 지나면 탈주로 처리합니다'}];
-G.ruleSet=[{k:'pickfirst',pick:1,label:'선 플레이어',desc:'선택: 방장이 대기실에서 선 플레이어를 고릅니다. 무작위: 룰렛으로 정합니다'}];
+G.ruleSet=[{k:'pickfirst',pick:1,label:'선 플레이어',desc:'선택: 방장이 이름표 메뉴에서 선 플레이어를 고릅니다. 무작위: 주사위로 정합니다'}];
 G.cfgChips=c=>`<span class="chip">제한 시간 <b>${+c.turn}초</b></span><span class="chip">선 <b>${c.pickfirst?'선택':'무작위'}</b></span>`;
 G.cfgSum=c=>`제한 시간 ${+c.turn}초 · 선 ${c.pickfirst?'선택':'무작위'}`;
 G.roomSub=()=>'2~4명 보드게임';
@@ -501,7 +501,7 @@ function boardHTML(S,me){
 function barHTML(q,me){
   return V.ps.map((p,i)=>{
     if(i>=q.cnt&&p.f)return '';
-    const on=introWait()?clock()-IN.t0>=IN.r&&(IN.fp&&IN.fp.cand(clock())?IN.L.includes(i):introIdx(clock()-IN.t0)===i):V.st==='play'&&V.t===i&&!p.f;
+    const on=introWait()?introIdx(clock()-IN.t0)===i:V.st==='play'&&V.t===i&&!p.f;   // 시작 연출 중: 주사위가 멈춘 뒤에야 첫 차례 이름표가 켜짐
     return `<div class="qd-p${on?' on':''}${i===me?' me':''}${p.f?' out':''}" style="--pc:${PCOL[i%4]}"><i class="dot"></i><b>${esc(p.n)}${i===me?' (나)':''}</b>${p.f?`<span class="w">${p.sr===2?'시간 초과':p.sr===3?'탈주':p.sr?'항복':(+p.f)+'위'}</span>`:`<span class="w">벽 ${+q.wl[i]}</span>`}${on?'<span class="tb"><i></i></span>':''}</div>`;
   }).join('');
 }
@@ -767,7 +767,7 @@ function q3Marks(){
   if(sl){if(!(mine&&qMode==='wall'))Q3.sel=null;
     sl.w.forEach((m,g)=>{if(!m)return;const p=slotPose(sl.side,g);m.position.y=p.y+(g===Q3.sel?.16:0)})}
   // 차례 고리
-  if(IN.on3d)return void(Q3.dirty=true);   // 시작 연출 중 차례 고리는 룰렛이 정함
+  if(IN.on3d)return void(Q3.dirty=true);   // 시작 연출 중 차례 고리는 주사위가 멈춘 뒤에 켜짐
   const ti=V.st==='play'?V.t:-1,pw=Q3.pawns.get(ti);
   if(pw){Q3.ring.material.color.set(PCOL[ti%4]);Q3.ring.userData.pw=pw;Q3.ring.visible=true}else Q3.ring.visible=false;
   Q3.dirty=true;
@@ -837,22 +837,23 @@ function q3Render(t){
    0.15~0.6초  보드가 위에서 툭 내려앉음, 0.45~1.1초 칸 81개가 가운데부터 바깥으로 솟아오름, 0.9초부터 좌표 글자
    1.0~1.4초   보관함이 바깥에서 미끄러져 들어옴, 1.25~2.0초 벽이 홈에 하나씩 꽂힘(탁탁탁)
    1.95~2.7초  말이 출발 칸에 하나씩 떨어져 튕기고, 닿는 순간 그 사람의 목표 줄이 그어짐
-   2.6~7.65초 차례 고리가 말들 사이를 빠르게 한두 바퀴 돌다가 점점 느려져(… 0.44 → 0.67 → 1 → 1.5초) 첫 차례 사람에서 멈춤 → 'OO부터 시작합니다'
-   다시 하기(이미 쿼리도 화면)는 카메라·보드 없이 벽·말·룰렛만. 늦게 들어오거나 다시 연결된 사람은 연출 없이 바로 (공통 dealCheck)
-   기기의 '움직임 줄이기' 설정과 상관없이 보임 (야추다이스와 같게), WebGL이 없으면 위쪽 이름 목록의 룰렛만 */
-const INTRO={cam:1300,ui:650,board:[150,450],cells:[450,90,260],lab:[900,350],tray:[1000,380],walls:[1250,55,220],pawn:[1950,110,380],stripe:300,rest:500};   // rest: 보드 준비(마지막 말의 목표 줄)가 끝난 뒤 룰렛 전 쉬는 박자. 룰렛의 길이는 공통 firstPick이 정함(빠른 칸 수가 판마다 달라서 연출 길이도 달라짐)
-/* 룰렛 시작 시각: 마지막 말이 떨어져 목표 줄이 다 그어진 뒤 + 쉬는 박자 (인원수에 따라) */
+   2.6초~  보드 가운데에 주사위 하나를 던짐(면마다 자리 색, 5·7명은 '다시 굴리기' 면이 나오면 한 번 더) → 멈추면 위 면 색 자리의 말 밑에 고리 + 가운데에 'OO부터 시작합니다'
+   다시 하기(이미 쿼리도 화면)는 카메라·보드 없이 벽·말·주사위만. 늦게 들어오거나 다시 연결된 사람은 연출 없이 바로 (공통 dealCheck)
+   기기의 '움직임 줄이기' 설정과 상관없이 보임 (야추다이스와 같게), WebGL이 없으면 주사위 없이 위쪽 이름 목록의 켜짐(멈춘 뒤 첫 차례)만 */
+const INTRO={cam:1300,ui:650,board:[150,450],cells:[450,90,260],lab:[900,350],tray:[1000,380],walls:[1250,55,220],pawn:[1950,110,380],stripe:300,rest:500};   // rest: 보드 준비(마지막 말의 목표 줄)가 끝난 뒤 주사위 전 쉬는 박자. 주사위의 길이는 공통 firstPick이 정함(다시 굴린 횟수가 판마다 달라서 연출 길이도 달라짐)
+/* 주사위 시작 시각: 마지막 말이 떨어져 목표 줄이 다 그어진 뒤 + 쉬는 박자 (인원수에 따라) */
 const roulAt=n=>INTRO.pawn[0]+(Math.max(1,n)-1)*INTRO.pawn[1]+INTRO.pawn[2]*.68+INTRO.stripe+INTRO.rest;
 const introN=()=>(typeof H!=='undefined'&&H&&H.q&&H.q.cnt)||(V&&V.q&&V.q.cnt)||4;
-G.firstPick=true;   // 첫 차례 룰렛은 index.html의 firstPick + roulette.js를 씀 (값은 테스트룸 lab.html에서 맞춤)
-G.introMs=(again,fast)=>Math.round(roulAt(introN())+Roulette.planFor(2,0,fast).total+100);   // 룰렛 시작 + 룰렛 길이 + 여유 0.1초 (정수 ms: 방장 시계와 신호가 소수로 어긋나지 않게)
-const IN={on:false,on3d:false,t0:0,total:0,r:0,fromLobby:true,said:false,fp:null,L:[],snd:{}};
+const DIE=.6;   // 주사위 한 변 (보드 묶음 안 단위. 칸 간격 .58과 비슷)
+G.firstPick=true;   // 첫 차례 주사위는 core/engine.js의 firstPick + dicepick.js를 씀 (값은 테스트룸 lab.html에서 맞춤)
+G.introMs=(again,rolls)=>Math.round(roulAt(introN())+DicePick.totalFor(rolls)+100);   // 주사위 시작 + 주사위 길이 + 여유 0.1초 (정수 ms: 방장 시계와 신호가 소수로 어긋나지 않게)
+const IN={on:false,on3d:false,t0:0,total:0,r:0,fromLobby:true,said:false,fp:null,die:null,L:[],snd:{}};
 const introOn=()=>IN.on&&clock()<IN.t0+IN.total;
 const introWait=()=>introOn()&&!IN.said;   // 첫 차례 안내 전
 const eOut=x=>{x=x<0?0:x>1?1:x;return 1-Math.pow(1-x,3)};
 const popS=x=>x<=0?0:x>=1?1:1+2.2*Math.pow(x-1,3)+1.2*Math.pow(x-1,2);   // 0→1, 살짝 넘쳤다가 제자리
 const dropY=(x,h)=>x>=1?0:x<.68?h*(1-(x/.68)*(x/.68)):h*.13*Math.sin(Math.PI*(x-.68)/.32);   // 떨어진 뒤 한 번 튕김
-/* 룰렛: 지금 가리키는 사람 (끝나면 첫 차례 사람) */
+/* 주사위: 켜질 사람 (멈추기 전 -1, 멈춘 뒤 첫 차례 사람) */
 function introIdx(e){
   if(!IN.fp)return V?V.t:0;
   return IN.fp.idx(IN.t0+e);
@@ -861,9 +862,10 @@ G.intro=(t0,o)=>{
   if(!V||!V.q||!V.ps)return;
   const q=V.q,L=[];for(let i=0;i<q.cnt;i++)if(q.pos[i])L.push(i);
   if(!L.length)return;
-  const fast=o&&o.fast;   // 없으면 roulette.js 기본값 (introMs와 같은 계산)
-  IN.on=true;IN.t0=t0;IN.said=false;IN.snd={};IN.fromLobby=!Q3.on;IN.L=L;IN.r=roulAt(L.length);IN.total=(o&&o.total)||G.introMs(false,fast);
-  IN.fp=firstPick(t0+IN.r,{seats:L,first:V.t,fast});   // 방장이 정한 빠른 칸 수로 모두 같은 룰렛이 돎
+  const rolls=o&&o.rolls,seed=(o&&o.seed)||1;   // 방장이 정한 던진 횟수(없으면 한 번, -1은 방장이 직접 고른 선)
+  IN.on=true;IN.t0=t0;IN.said=false;IN.snd={};IN.fromLobby=!Q3.on;IN.L=L;IN.r=roulAt(L.length);IN.total=(o&&o.total)||G.introMs(false,rolls);
+  if(IN.die){IN.die.dispose();IN.die=null}
+  IN.fp=firstPick(t0+IN.r,{seats:L,first:V.t,rolls,seed});   // 방장이 정한 횟수·같은 씨앗으로 모두 같은 주사위가 굴러감
   IN.on3d=true;
   $('#stage').classList.add('qd-intro');if(elQd&&IN.fromLobby)elQd.classList.add('intro');
   lastBar='';Q3.dirty=true;
@@ -890,25 +892,23 @@ function introStep(now,force){
     pw.visible=x>0;pw.position.y=CT+dropY(Math.max(0,x),2.4);
     const st=Q3.stripes[i];if(st){const y=done?1:(e-INTRO.pawn[0]-k*INTRO.pawn[1]-INTRO.pawn[2]*.68)/INTRO.stripe;st.scale.x=Math.max(.001,eOut(y))}
   }
-  // 차례 고리: 룰렛
+  // 주사위: 보드 가운데에 던짐 (고정 선이면 없음). 끝나면 치움
+  if(IN.fp&&!IN.fp.fixed){
+    if(!IN.die&&!done&&Q3.root){IN.die=DicePick.mesh(THREE,IN.L.length,IN.L.map(i=>PCOL[i%4]));Q3.root.add(IN.die.g)}
+    if(IN.die)IN.die.apply(done||e<IN.r?null:IN.fp.pose(now),DIE,0,CT,0);
+  }
+  // 차례 고리: 주사위가 멈춘 뒤 첫 차례 말 밑
   if(!done&&IN.fp&&e<IN.r+IN.fp.total+80){
     const pw=e>=IN.r?Q3.pawns.get(introIdx(e)):null;
     Q3.ring.visible=!!pw;if(pw){Q3.ring.userData.pw=pw;Q3.ring.material.color.set(PCOL[introIdx(e)%4])}
-    // 후보 표시: 돌기 전에 모든 말에 고리가 한꺼번에 켜졌다가 룰렛이 시작되면 하나만 남음
-    const cand=e>=IN.r&&IN.fp.cand(now);if(!Q3.candR)Q3.candR=new Map();
-    for(const i of L){
-      const p2=Q3.pawns.get(i);if(!p2)continue;
-      let r=Q3.candR.get(i);
-      if((!r||r.parent!==Q3.ring.parent)&&cand&&Q3.ring.parent){r=Q3.ring.clone();r.material=Q3.ring.material.clone();Q3.ring.parent.add(r);Q3.candR.set(i,r)}
-      if(r){r.visible=!!cand;if(cand){r.position.x=p2.position.x;r.position.z=p2.position.z;r.material.color.set(PCOL[i%4]);const s=1+.14*Math.sin(now/80);r.scale.set(s,s,1)}}
-    }
   }
-  if(done){for(const pw of Q3.pawns.values())pw.visible=true;if(Q3.candR)for(const r of Q3.candR.values())r.visible=false;q3Marks()}
+  if(done){for(const pw of Q3.pawns.values())pw.visible=true;if(IN.die){IN.die.dispose();IN.die=null}q3Marks()}
   return true;
 }
 /* 연출을 바로 끝냄 (게임을 떠날 때) */
 function introEnd(){
   if(IN.on3d)introStep(clock(),true);
+  if(IN.die){IN.die.dispose();IN.die=null}
   IN.on=false;IN.on3d=false;IN.said=true;
   $('#stage').classList.remove('qd-intro');if(elQd)elQd.classList.remove('intro');
 }
@@ -927,9 +927,9 @@ function introTick(){
     const L=IN.L;
     L.forEach((i,k)=>{if(e>=INTRO.pawn[0]+k*INTRO.pawn[1]+INTRO.pawn[2]*.68)once('p'+k,()=>{tone(190,.08,{type:'triangle',vol:.16});hiss(.04,{freq:1500,vol:.08});tone(520+k*130,.12,{type:'sine',vol:.06,at:.05})})});
   }
-  if(IN.fp&&e>=IN.r&&IN.fp.tick(IN.t0+e)){   // 틱 소리, 끝나는 순간 한 번 안내
+  if(IN.fp&&e>=IN.r&&IN.fp.tick(IN.t0+e)){   // 닿는 소리, 멈추는 순간 한 번 안내
     IN.said=true;$('#stage').classList.remove('qd-intro');if(elQd)elQd.classList.remove('intro');
-    const m=IN.fp.msg();if(m)say(m);
+    fxSay(IN.fp.msg(),PCOL[IN.fp.first%4]);   // 멈추면 가운데에 안내
     lastBar='';if(Q3.on)q3Marks();
   }
   if(e>=IN.total){IN.on=false;lastBar='';lastHint='';G.buttons()}
@@ -1046,7 +1046,7 @@ G.enter=()=>{
   if(elQd)fit();
 };
 G.leave=()=>{
-  introEnd();   // 연출 도중에 나가면 물체를 제자리로
+  introEnd();   // 연출 도중에 나가면 물체를 제자리로 (주사위도 치움)
   $('#stage').classList.remove('qd','qd-over','qd3d','qd2d');
   if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
   if(Q3.root)Q3.root.visible=false;Q3.on=false;Q3.anim=[];

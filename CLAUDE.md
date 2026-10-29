@@ -13,20 +13,20 @@
 | --- | --- | --- |
 | `index.html` | 화면 틀(HTML)과 스크립트 불러오는 순서만 | |
 | `core/style.css` | 공통 CSS | |
-| `core/*.js` | 공통 코드. 한 스크립트처럼 전역을 같이 쓰고 `index.html`의 순서대로 불러옴: `base`(상수·게임 목록) → `engine`(방장 엔진·룰렛 실행부 `firstPick`) → `net`(PeerJS·재접속·방장 이양·관전) → `view`(화면 상태·소리·말풍선) → `render`(2D 화면·입력·메뉴·로비) → `table3d`(3D 테이블·카드 나누기) → `front`(첫 화면·디스플레이·자판) → `receipt`(영수증 프린터) → `front-list`(공개 탁자 목록 판) → `rules-board`(규칙 나무판·설정 판자) → `front-objs`(홀로그램·구멍·시작 버튼·카메라) → `wait`(대기실 이름표) → `boot`(시작, 맨 마지막) | `docs/common.md` |
+| `core/*.js` | 공통 코드. 한 스크립트처럼 전역을 같이 쓰고 `index.html`의 순서대로 불러옴: `base`(상수·게임 목록) → `engine`(방장 엔진·첫 차례 주사위 실행부 `firstPick`) → `net`(PeerJS·재접속·방장 이양·관전) → `view`(화면 상태·소리·말풍선) → `render`(2D 화면·입력·메뉴·로비) → `table3d`(3D 테이블·카드 나누기) → `front`(첫 화면·디스플레이·자판) → `receipt`(영수증 프린터) → `front-list`(공개 탁자 목록 판) → `rules-board`(규칙 나무판·설정 판자) → `front-objs`(홀로그램·구멍·시작 버튼·카메라) → `wait`(대기실 이름표) → `boot`(시작, 맨 마지막) | `docs/common.md` |
 | `games/gura.js` | 구라! | `docs/gura.md` |
 | `games/president.js` | 대부호 (계급 카드 교환 연출) | `docs/president.md` |
-| `games/quoridor.js` | 쿼리도 (3D 보드·벽 보관함·첫 차례 룰렛) | `docs/quoridor.md` |
+| `games/quoridor.js` | 쿼리도 (3D 보드·벽 보관함·첫 차례 주사위) | `docs/quoridor.md` |
 | `games/yahtzee.js` | 야추다이스 (3D 컵·주사위·점수 종이) | `docs/yahtzee.md` |
 | `games/omok.js` | 오목 (렌주 규칙·오프닝·체스 시계·바둑통) | `docs/omok.md` |
 | `games/chess.js` | 체스 (0x88 엔진·Web Worker 봇·3D 기물) | `docs/chess.md` |
 | `games/blackjack.js` | 블랙잭 (슈·사람 딜러·3D 칩) | `docs/blackjack.md` |
 | `games/poker.js` | 포커 (텍사스 홀덤 노 리밋·사이드 팟·쉬움 봇) | `docs/poker.md` |
 | `games/alkkagi.js`, `games/hand3d.js` | 알까기 (물리는 방장만·3D 손·오목 모드) | `docs/alkkagi.md` |
-| `tests/`, `roulette.js`, `lab*.html`, `manifest.webmanifest`, `sw.js`, 아이콘 | 테스트(`node tests/engine.test.js`), 룰렛 계산, 연출·아이콘 테스트룸, 홈 화면 앱 | `docs/tools.md` |
+| `tests/`, `dicepick.js`, `lab*.html`, `manifest.webmanifest`, `sw.js`, 아이콘 | 테스트(`node tests/engine.test.js`, `node tests/dicepick.test.js`), 첫 차례 주사위 계산·주사위 만들기, 연출·아이콘 테스트룸, 홈 화면 앱 | `docs/tools.md` |
 
 - 공통 코드는 `G`(지금 화면의 게임)와 `EG()`(방장 엔진이 돌리는 게임)를 통해 게임 모듈의 함수를 부릅니다. 기준 모듈은 `games/gura.js`입니다.
-- 게임 모듈이 갖출 것(훅·골라 쓰는 값·룰렛 붙이기)과 새 게임 추가 순서는 `docs/module.md`에 있습니다.
+- 게임 모듈이 갖출 것(훅·골라 쓰는 값·첫 차례 주사위 붙이기)과 새 게임 추가 순서는 `docs/module.md`에 있습니다.
 
 ## 작업 규칙
 
@@ -63,7 +63,7 @@
 - **시작 연출 동안 멈춤**: 방장은 제한 시간과 봇을 멈춥니다(`introMs`/`intro`, 카드 게임은 `dealAnim`).
 - **로비 카메라에서 이어서**: 자기 카메라로 옮길 때 미끄러지듯, 도착 위치는 화면 비율마다 다르게.
 - **바로 시작은 테이블을 다시 차리지 않음**: 판·통은 두고 말·주사위·돌만 모으고 짧게.
-- **첫 차례 룰렛은 공통 하나로**: `firstPick` + `roulette.js`. (아직: 야추다이스)
+- **첫 차례는 공통 주사위 하나로**: `firstPick` + `dicepick.js`(룰렛은 없앰). 면마다 자리 색, 결과는 방장이 정하고 던진 횟수(`H.fp`)만 신호로 보내 모두 같은 굴림을 재생. 오목·체스·알까기는 아직 주사위 없이 시작 안내만 (아직: 오목, 체스, 알까기)
 - **대기실은 공통 테이블**: 게임 중이 아니면 `T.cam`으로 공통 테이블을 그립니다. 이름표를 숨기는 게임 CSS는 대기실(`#stage.frwait`)을 뺍니다.
 - **카메라는 게임 칸에 맞추고 부드럽게 바꿈**: 크기가 바뀌면 약 0.35초에 걸쳐 옮깁니다. 앉은 카메라(37°)는 모든 화면·모든 게임(포커 포함)이 같고, 위쪽 배경은 화면 높이의 10%, 좁은 화면은 양옆이 잘리다가 가운데 점선 원이 잘리기 전부터는 위쪽 배경 2 : 아래쪽 배경 1로 함께 늘어납니다. (아직: 블랙잭)
 - **3D 위에 놓인 칸은 높이 고정**: 줄바꿈으로 높이가 바뀌어 카메라가 흔들리지 않게.

@@ -1002,30 +1002,31 @@ function d3Release(){
    0~1.3초  로비 카메라(테이블 앞에 앉은 눈) → 야추 카메라(내려다봄). 0.65초부터 점수 종이·버튼이 들어옴
    0.3~1.1초 펠트가 펼쳐지고, 0.85~1.4초 고정 칸이 왼쪽부터 하나씩
    1.3~1.75초 컵이 위에서 내려와 놓이고(그 전엔 숨김), 1.85~2.45초 주사위 5개가 하나씩 컵에 떨어짐
-   2.45~3.35초 컵 띠 색(과 위쪽 차례 표시)이 참가자 색으로 돌다가 점점 느려져 첫 차례 사람에서 멈춤
-   바로 시작(결과 화면에서): 카메라·펠트·고정 칸·컵은 그대로, 테이블과 고정 칸의 주사위만 컵으로 모으고 룰렛 (2.3초)
-   늦게 들어오거나 다시 연결된 사람은 연출 없이 바로 (공통 dealCheck). WebGL이 없으면 위쪽 차례 표시의 룰렛만 */
-const INTRO={cam:1300,ui:650,felt:[300,800],slot:[850,90,220],line:[800,450],cup:[1300,450],drop:[1850,120,330],roul:[2450,3350]};
-G.introMs=again=>again?2300:3600;   // 바로 시작(again)은 테이블이 이미 차려져 있어서 짧게
-const IN0={on:false,t0:0,total:3600,again:false,r0:INTRO.roul[0],r1:INTRO.roul[1],fromLobby:true,said:false,seq:null,tick:0,pop:0};
-const AGAIN={gather:[0,60,420],roul:[950,1850]};   // 바로 시작: 지난 판 주사위를 컵으로 모으고 룰렛
+   2.45초~  펠트 가운데에 주사위 하나를 던짐(면마다 자리 색, 5·7명은 '다시 굴리기' 면이 나오면 한 번 더) → 멈추면 컵 띠 색(과 위쪽 차례 표시)이 위 면 색 자리로 켜지고 가운데에 'OO부터 시작합니다'
+   바로 시작(결과 화면에서): 카메라·펠트·고정 칸·컵은 그대로, 테이블과 고정 칸의 주사위만 컵으로 모으고 주사위 (0.95초부터)
+   늦게 들어오거나 다시 연결된 사람은 연출 없이 바로 (공통 dealCheck). WebGL이 없으면 주사위 없이 위쪽 차례 표시의 켜짐(멈춘 뒤 첫 차례)만 */
+const INTRO={cam:1300,ui:650,felt:[300,800],slot:[850,90,220],line:[800,450],cup:[1300,450],drop:[1850,120,330],dice:2450};   // dice: 첫 차례 주사위를 던지는 시각
+const DIE=.7;   // 첫 차례 주사위 한 변 (게임 주사위 .72와 비슷)
+G.firstPick=true;   // 첫 차례 주사위는 core/engine.js의 firstPick + dicepick.js를 씀 (값은 테스트룸 lab.html에서 맞춤)
+G.introMs=(again,rolls)=>Math.round((again?AGAIN.dice:INTRO.dice)+DicePick.totalFor(rolls)+100);   // 바로 시작(again)은 테이블이 이미 차려져 있어서 주사위가 일찍 시작
+const IN0={on:false,t0:0,total:3600,again:false,r0:INTRO.dice,fromLobby:true,said:false,fp:null,die:null,pop:0};
+const AGAIN={gather:[0,60,420],dice:950};   // 바로 시작: 지난 판 주사위를 컵으로 모으고 첫 차례 주사위
+function dieOff(){if(IN0.die){IN0.die.dispose();IN0.die=null}}
 const introOn=()=>IN0.on&&clock()<IN0.t0+IN0.total;
-/* 룰렛: 지금 가리키는 자리 (끝나면 첫 차례 사람) */
+/* 주사위: 켜질 자리 (멈추기 전 -1, 멈춘 뒤 첫 차례 사람) */
 function introIdx(e){
-  const q=IN0.seq;if(!q)return V?V.t:0;
-  if(e>=IN0.r1)return q.f;
-  let c=0;while(c<q.times.length&&q.times[c]<=e)c++;
-  return (q.start+c)%q.n;
+  if(!IN0.fp)return V?V.t:0;
+  return IN0.fp.idx(IN0.t0+e);
 }
 G.intro=(t0,o)=>{
   if(!V||!V.y||!V.ps)return;
   const again=!!(o&&o.again);
-  IN0.on=true;IN0.t0=t0;IN0.said=false;IN0.tick=0;IN0.pop=0;IN0.fromLobby=!D3.on;yMsgUntil=0;
-  IN0.again=again;IN0.total=(o&&o.total)||G.introMs(again);
-  [IN0.r0,IN0.r1]=again?AGAIN.roul:INTRO.roul;
-  const n=Math.max(2,Math.min(V.ps.length,4)),f=V.t>=0?V.t:0,times=[];
-  for(let t=IN0.r0,dt=55;t+dt<IN0.r1-40;dt*=1.17){t+=dt;times.push(t)}   // 처음엔 빠르게, 점점 느리게
-  IN0.seq={times,n,f,start:((f-times.length)%n+n)%n};
+  const rolls=o&&o.rolls,seed=(o&&o.seed)||1;   // 방장이 정한 던진 횟수(없으면 한 번, -1은 방장이 직접 고른 선)
+  IN0.on=true;IN0.t0=t0;IN0.said=false;IN0.pop=0;IN0.fromLobby=!D3.on;yMsgUntil=0;
+  IN0.again=again;IN0.total=(o&&o.total)||G.introMs(again,rolls);
+  IN0.r0=again?AGAIN.dice:INTRO.dice;
+  dieOff();
+  IN0.fp=firstPick(t0+IN0.r0,{seats:V.ps.map((_,i)=>i),first:V.t>=0?V.t:0,rolls,seed});   // 모두 같은 횟수·같은 씨앗으로 같은 주사위가 굴러감
   if(elYz&&IN0.fromLobby)elYz.classList.add('intro');
   $('#stage').classList.add('yz-intro');
   lastTurn='';lastBoard='';
@@ -1068,18 +1069,21 @@ function introStep(now){
   // 컵: 내려오기 시작할 때 보이고, 닿을 때 툭
   D3.cup.g.visible=done||set||e>=INTRO.cup[0];
   if(!set&&!IN0.thud&&e>=INTRO.cup[0]+INTRO.cup[1]){IN0.thud=true;tone(150,.09,{type:'triangle',vol:.16});hiss(.06,{freq:900,vol:.08})}
-  if(done){A.st='idle';A.tn=-1;D3.dirty=true}
+  // 첫 차례 주사위: 펠트 가운데에 던짐 (방장이 직접 고른 선이면 없음). 끝나면 치움
+  if(IN0.fp&&!IN0.fp.fixed){
+    if(!IN0.die&&!done&&D3.root){IN0.die=DicePick.mesh(THREE,V.ps.length,V.ps.map((_,i)=>PCOL[i%4]));D3.root.add(IN0.die.g)}
+    if(IN0.die)IN0.die.apply(done||e<IN0.r0?null:IN0.fp.pose(now),DIE,0,FLOOR,-.4);
+  }
+  if(done){dieOff();A.st='idle';A.tn=-1;D3.dirty=true}
 }
 /* 연출 중 화면 글자·버튼: 매 프레임 (G.live) */
 function introTick(){
   if(!IN0.on)return;
   const e=clock()-IN0.t0;
   if(e>=INTRO.ui&&elYz.classList.contains('intro'))elYz.classList.remove('intro');
-  if(e>=IN0.r0&&e<IN0.r1){const c=IN0.seq?IN0.seq.times.filter(x=>x<=e).length:0;if(c>IN0.tick){IN0.tick=c;sfx('tick')}}
-  if(e>=IN0.r1&&!IN0.said){
+  if(IN0.fp&&e>=IN0.r0&&IN0.fp.tick(IN0.t0+e)&&!IN0.said){   // 닿는 소리, 멈추는 순간 한 번 가운데 안내
     IN0.said=true;$('#stage').classList.remove('yz-intro');
-    const p=V.ps[V.t];if(p)say(V.t===myIdx()?'내가 먼저 시작합니다.':`${p.n}부터 시작합니다.`);
-    sfx('turn');
+    fxSay(IN0.fp.msg(),PCOL[IN0.fp.first%4]);
   }
   if(e>=IN0.total){IN0.on=false;lastTurn='';lastBoard='';G.buttons()}
   drawAll();
@@ -1105,10 +1109,10 @@ function turnHTML(){
   const Y=V.y;
   if(V.st==='over')return '<span class="yz-chip"><b>게임 끝</b></span>';
   let t=V.t;
-  if(introOn()&&!IN0.said){   // 시작 연출: 첫 차례를 룰렛으로
+  if(introOn()&&!IN0.said){   // 시작 연출: 주사위가 멈춘 뒤에야 첫 차례가 켜짐
     const e=clock()-IN0.t0;
-    if(e<IN0.r0)return '<span class="yz-chip"><b>게임 준비 중</b></span>';
-    t=introIdx(e);
+    t=e<IN0.r0?-1:introIdx(e);
+    if(t<0)return '<span class="yz-chip"><b>게임 준비 중</b></span>';
   }
   const p=V.ps[t];if(!p)return '';
   const mine=t===myIdx();
@@ -1270,7 +1274,7 @@ G.enter=()=>{
   yCat=null;
 };
 G.leave=()=>{
-  $('#stage').classList.remove('yz','yz-over','yz3d','yz2d','yz-intro');IN0.on=false;if(elYz)elYz.classList.remove('intro');
+  $('#stage').classList.remove('yz','yz-over','yz3d','yz2d','yz-intro');IN0.on=false;dieOff();if(elYz)elYz.classList.remove('intro');
   if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
   if(D3.root)D3.root.visible=false;
   D3.on=false;A.tn=-1;A.st='idle';if(elYz)elYz.classList.remove('yz3');

@@ -244,7 +244,7 @@ function dealCheck(v){
   const total=G.dealAnim?(+v.dm||DEAL_MS):(+v.dm||introLen(G,!!v.dg,+v.fp));
   const done=total-(+v.dk);if(done>900)return;   // 이미 많이 지났으면 연출 없이
   if(G.dealAnim)dealStart(v,clock()-Math.max(0,done),key);
-  else G.intro(clock()-Math.max(0,done),{total,again:!!v.dg,fast:+v.fp||undefined});
+  else G.intro(clock()-Math.max(0,done),{total,again:!!v.dg,rolls:+v.fp||undefined,seed:+v.di||1});   // rolls: 첫 차례 주사위 던진 횟수(-1: 방장이 직접 고름), seed: 모두 같은 굴림
 }
 function dealAbort(){
   const d=T.deal;if(!d)return;T.deal=null;

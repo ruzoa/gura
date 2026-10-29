@@ -5,7 +5,7 @@
    방 설정(레버): 판 크기 sz, 3-3·4-4 b33, 장목(6목 이상) ov, 오프닝 op, 총 시간 tm(분), 추가 시간 inc(초), 선 플레이어 선택·무작위 pickfirst(쿼리도와 같은 공통 선택·무작위 버튼: 선택이면 방장이 대기실 목록의 [선]으로 고름)
    손패(hand)는 카드가 아니라 '돌 하나'를 뜻하는 표시: 공통 코드가 hand가 비면 끝난 사람으로 보기 때문에 게임 중에는 [0]으로 둠 */
 (function(){
-const G={id:'omok',name:'오목',short:'오목',lead:'렌주 금수와 스왑 오프닝까지',brand:'오목',brandPx:62,maxHi:2,noFast:true,firstPick:true};   // firstPick: 대기실 목록의 [선] 버튼을 씀 (룰렛 연출은 아직 없음: 랜덤이면 시작 안내로만 알림)   // 두 사람이 하는 게임 (게임 모드 선택 없음)
+const G={id:'omok',name:'오목',short:'오목',lead:'렌주 금수와 스왑 오프닝까지',brand:'오목',brandPx:62,maxHi:2,noFast:true,firstPick:true};   // firstPick: 대기실 이름표 메뉴의 [선]을 씀 (주사위 연출은 아직 없음: 랜덤이면 시작 안내로만 알림)   // 두 사람이 하는 게임 (게임 모드 선택 없음)
 
 /* ---------- 규칙 (방장 엔진과 화면이 같은 함수를 씀) ---------- */
 const COLS='abcdefghijklmnopqrs';
