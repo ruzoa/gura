@@ -509,7 +509,7 @@ G.engine={
 /* ---------- 화면 (모든 참가자) ---------- */
 const PIPS={0:[],1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
 let yCat=null,yHold=[false,false,false,false,false],yLock={rl:-1,tn:-1,at:0},yMsg='',yMsgUntil=0,yMsgTimer=null,yTumbleUntil=0;
-let elYz=null,elTurn=null,elDice=null,elRoll=null,elHint=null,elTbl=null,elLeft=null,elHold=null,yInk={k:'',until:0},lastTurn='',lastDice='',lastRoll='',lastBoard='',lastHint='';
+let elYz=null,elTurn=null,elDice=null,elRoll=null,elHint=null,elTbl=null,elLeft=null,elHold=null,elInfo=null,elCup=null,elRoll2=null,yInk={k:'',until:0},lastTurn='',lastDice='',lastRoll='',lastInfo='',lastBoard='',lastHint='';
 const scoreOf=i=>{const o={};if(V&&V.y&&V.y.sc[i])CATS.forEach((c,k)=>{o[c.id]=V.y.sc[i][k]});return o};
 const myTurnNow=()=>!!(V&&V.y&&V.st==='play'&&myReady());
 function say(txt){
@@ -928,8 +928,22 @@ function d3Layout(t){
 }
 /* 주사위마다 투명한 버튼(누르면 고정 칸으로, 다시 누르면 테이블로)을 겹쳐 둠: 키보드·화면 읽기 프로그램도 쓸 수 있게 */
 function placeHoldBtns(){
-  if(!elHold||elHold.hidden||!D3.W)return;
+  if(!D3.W)return;
   const v=new THREE.Vector3(),cam=D3.cam,W=D3.W,Hh=D3.H;
+  if(elInfo){   // 고정 칸 줄 바로 아래 가운데
+    const sp=slotPos(2);v.set(sp[0],FLOOR,sp[2]+DS*.71).project(cam);
+    const x=Math.round((v.x+1)/2*W),y=Math.round((1-v.y)/2*Hh)+6,k=x+','+y;
+    if(elInfo.dataset.k!==k){elInfo.dataset.k=k;elInfo.style.left=x+'px';elInfo.style.top=y+'px'}
+  }
+  if(elCup){   // 쉬고 있는 컵 위의 투명 버튼: 누르고 있으면 흔들고 떼면 던짐
+    const on=rollOn();
+    if(elCup.style.visibility!==(on?'':'hidden'))elCup.style.visibility=on?'':'hidden';
+    v.set(CUP_REST[0],CUP_H*.5,CUP_REST[2]).project(cam);const x=(v.x+1)/2*W,y=(1-v.y)/2*Hh;
+    v.set(CUP_REST[0]+CUP_H*.55,CUP_H*.5,CUP_REST[2]).project(cam);const r=Math.max(26,Math.abs((v.x+1)/2*W-x));
+    const k=`${Math.round(x-r)},${Math.round(y-r)},${Math.round(r*2)}`;
+    if(elCup.dataset.k!==k){elCup.dataset.k=k;Object.assign(elCup.style,{left:(x-r)+'px',top:(y-r)+'px',width:r*2+'px',height:r*2+'px'})}
+  }
+  if(!elHold||elHold.hidden)return;
   [...elHold.children].forEach((b,i)=>{
     const d=D3.dice[i],p=d.p;
     if(!d.g.visible||destOf(d)==='cup'){b.style.visibility='hidden';return}
@@ -986,11 +1000,11 @@ function d3Press(){
   const Y=V.y,keep=Y.r?yHold.slice():[false,false,false,false,false];
   sendAct({t:'shake',keep});
   d3Lift(keep,true);
-  yCat=null;elRoll.classList.add('down');drawAll();G.buttons();
+  yCat=null;[elRoll,elRoll2,elCup].forEach(b=>b&&b.classList.add('down'));drawAll();G.buttons();
   return true;
 }
 function d3Release(){
-  elRoll&&elRoll.classList.remove('down');
+  [elRoll,elRoll2,elCup].forEach(b=>b&&b.classList.remove('down'));
   if(!A.mine||A.released||(A.st!=='lift'&&A.st!=='shake'))return;
   A.released=true;
   const Y=V.y;yLock={rl:Y.rl,tn:Y.tn,at:Date.now()};
@@ -1116,8 +1130,19 @@ function turnHTML(){
   }
   const p=V.ps[t];if(!p)return '';
   const mine=t===myIdx();
-  const pips=Array.from({length:3},(_,k)=>`<i class="pp${k<Y.l?' on':''}"></i>`).join('');
-  return `<span class="yz-chip yz-who${mine?' me':''}" style="--pc:${PCOL[t%4]}"><i class="dot"></i><b>${mine?'내 차례':esc(p.n)+' 차례'}</b></span><span class="yz-chip">${Math.min(Y.dn[t]+1,Y.rd)}/${Y.rd}라운드</span><span class="yz-chip" role="img" aria-label="남은 굴림 ${Y.l}번"><span class="yz-pips">${pips}</span></span>`;
+  const who=`<span class="yz-chip yz-who${mine?' me':''}" style="--pc:${PCOL[t%4]}"><i class="dot"></i><b>${mine?'내 차례':esc(p.n)+' 차례'}</b></span>`;
+  return D3.on?who:who+roundChip(t)+pipsChip();   // 3D는 라운드·남은 굴림을 고정 칸 아래(infoHTML)에 보여 줌
+}
+const roundChip=t=>`<span class="yz-chip">${Math.min(V.y.dn[t]+1,V.y.rd)}/${V.y.rd}라운드</span>`;
+const pipsOf=()=>Array.from({length:3},(_,k)=>`<i class="pp${k<V.y.l?' on':''}"></i>`).join('');
+const pipsChip=()=>`<span class="yz-chip" role="img" aria-label="남은 굴림 ${V.y.l}번"><span class="yz-pips">${pipsOf()}</span></span>`;
+/* 3D: 주사위 고정 칸 아래 — 첫 줄 라운드, 둘째 줄 남은 굴림 점 3개. 시작 연출 중·게임이 끝난 뒤에는 비움 */
+function infoHTML(){
+  const Y=V&&V.y;if(!Y||V.st!=='play')return '';
+  let t=V.t;
+  if(introOn()&&!IN0.said){const e=clock()-IN0.t0;t=e<IN0.r0?-1:introIdx(e)}
+  if(t<0||!V.ps[t])return '';
+  return `<span class="rd">${Math.min(Y.dn[t]+1,Y.rd)}/${Y.rd}라운드</span><span class="yz-pips" role="img" aria-label="남은 굴림 ${Y.l}번">${pipsOf()}</span>`;
 }
 function diceHTML(){
   const Y=V.y,me=myIdx(),mineTurn=V.st==='play'&&V.t===me&&me>=0;
@@ -1177,6 +1202,8 @@ function drawAll(){
   drawHold();
   const r=rollHTML();if(r!==lastRoll){elRoll.innerHTML=r;lastRoll=r}
   elRoll.disabled=!rollOn();
+  const inf=D3.on?infoHTML():'';if(inf!==lastInfo){elInfo.innerHTML=inf;lastInfo=inf;D3.dirty=true}
+  drawRoll2();
   const b=boardHTML();if(b!==lastBoard){elTbl.innerHTML=b;lastBoard=b}
   drawHint();
 }
@@ -1244,13 +1271,20 @@ G.render3D=(t)=>{if(D3.on)d3Render(t);else if(T.ok)T.r.render(T.scene,T.cam)};  
 G.buttons=()=>{
   const play=$('#btnPlay'),can=canScore();
   $('#btnPass').hidden=true;$('#btnGura').hidden=true;
-  play.disabled=!can;play.classList.toggle('ready',can);
-  if($('#playMain').textContent!=='기록하기')$('#playMain').textContent='기록하기';
-  let sub=keyLabel(KEYS.play);
-  if(yCat&&V&&V.y&&myIdx()>=0)sub=`${byId[yCat].name} ${calc(yCat,V.y.d,jokerOf(scoreOf(myIdx()),V.y.d))}점`;
-  if($('#playSub').textContent!==sub)$('#playSub').textContent=sub;
+  play.hidden=true;play.disabled=!can;   // 기록하기 버튼은 없음: 점수 칸을 두 번 누르거나 Enter로 기록 (버튼은 키 입력 연결용으로만 남김)
   if(elRoll)elRoll.disabled=!rollOn();
+  drawRoll2();
 };
+/* 점수 종이가 아래로 내려오는 좁은 화면(3D): 기록하기 버튼 자리의 굴리기 버튼 (넓은 화면은 CSS로 숨김) */
+function drawRoll2(){
+  if(!elRoll2)return;
+  const sh=shakingMine(),mine=V&&V.y&&V.st==='play'&&myTurnNow(),again=!!(V&&V.y&&V.y.r);
+  const main=sh?'떼면 던지기':mine&&again?'다시 굴리기':'굴리기';
+  const sub=(typeof KEYS!=='undefined'&&KEYS.yroll&&typeof keyLabel==='function')?keyLabel(KEYS.yroll):'';
+  const h=`<b>${main}</b>${sub?`<small>${sub}</small>`:''}`;
+  if(elRoll2.dataset.h!==h){elRoll2.dataset.h=h;elRoll2.innerHTML=h}
+  elRoll2.disabled=!rollOn();
+}
 G.live=()=>{
   if(!elYz||elYz.hidden||!V||!V.y||V.st!=='play')return;
   introTick();
@@ -1397,6 +1431,22 @@ G.init=()=>{
 #yz.yz3 .yz-row{grid-area:r}
 #yz.yz3 .yz-hint{grid-area:h;height:56px;min-height:0;display:flex;align-items:center;text-align:left;padding:0 2px;overflow:hidden}   /* 줄 수가 바뀌어도 테이블 크기가 흔들리지 않게 */
 #yz.yz3 .yz-roll{width:auto;min-width:112px;height:56px;padding:4px 14px;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+/* 기록하기 버튼은 없음(점수 칸을 두 번 누름). 점수 종이가 아래로 내려오는 좁은 화면에서만 그 자리에 굴리기 버튼, 넓은 화면(종이가 오른쪽)은 버튼 없이 컵을 누름 */
+.stage.yz #btnPlay{display:none}
+.stage.yz #yzRoll2{display:none;--face:var(--gura);--edge:var(--gura-edge);--ink-on:var(--gura-ink);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.stage.yz #yzRoll2 b{font-weight:400}
+.stage.yz #yzRoll2.down{transform:translateY(4px) scale(.97);box-shadow:0 0 0 3px var(--mustard)}
+#yz.yz3 .yz-roll{display:none}   /* 3D에서는 왼쪽 굴리기 버튼 없음 (2D 화면은 그대로) */
+@media (max-width:819px){.stage.yz3d #yzRoll2{display:flex}}
+@media (min-width:820px){.stage.yz3d .actions{display:none}}
+#yz .yz-cup{position:absolute;display:none;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;pointer-events:auto}
+#yz.yz3 .yz-cup{display:block}
+#yz .yz-cup:focus-visible{outline:3px solid var(--focus);outline-offset:1px}
+#yz .yz-info{position:absolute;display:none;transform:translateX(-50%);flex-direction:column;align-items:center;gap:4px;pointer-events:none;color:#fffaf0;text-shadow:0 1px 2px rgba(0,0,0,.6);font-size:13px;font-weight:600;line-height:1.1;white-space:nowrap}
+#yz.yz3 .yz-info{display:flex}
+#yz .yz-info:empty{visibility:hidden}
+#yz .yz-info .yz-pips .pp{border-color:rgba(255,250,240,.85)}
+#yz .yz-info .yz-pips .pp.on{background:var(--mustard);border-color:var(--mustard-edge)}
 #yz.yz3 .yz-roll.down{transform:translateY(4px) scale(.97);box-shadow:0 0 0 3px var(--mustard)}
 #yz.yz3 .yz-card{flex:0 1 auto}
 #yz .yz-hold{position:absolute;inset:0;pointer-events:none}
@@ -1422,24 +1472,29 @@ G.init=()=>{
 `;
   document.head.appendChild(css);
   elYz=document.createElement('div');elYz.id='yz';elYz.hidden=true;
-  elYz.innerHTML=`<div class="yz-top"></div><div class="yz-main"><div class="yz-left"><div class="yz-row"><div class="yz-dice" role="group" aria-label="주사위"></div><button type="button" class="yz-roll" disabled></button></div><div class="yz-hint" aria-live="polite"></div></div><div class="yz-card"><table class="yz-tbl" aria-label="점수판"></table></div></div><div class="yz-hold" hidden>${[0,1,2,3,4].map(i=>`<button type="button" data-i="${i}" aria-pressed="false"></button>`).join('')}</div>`;
+  elYz.innerHTML=`<div class="yz-top"></div><div class="yz-main"><div class="yz-left"><div class="yz-row"><div class="yz-dice" role="group" aria-label="주사위"></div><button type="button" class="yz-roll" disabled></button></div><div class="yz-hint" aria-live="polite"></div></div><div class="yz-card"><table class="yz-tbl" aria-label="점수판"></table></div></div><div class="yz-hold" hidden>${[0,1,2,3,4].map(i=>`<button type="button" data-i="${i}" aria-pressed="false"></button>`).join('')}</div><div class="yz-info"></div><button type="button" class="yz-cup" aria-label="컵 (누르고 있으면 흔들고, 떼면 던짐)"></button>`;
   $('#stage').insertBefore(elYz,$('#fx'));
   elTurn=elYz.querySelector('.yz-top');elDice=elYz.querySelector('.yz-dice');elRoll=elYz.querySelector('.yz-roll');
-  elHint=elYz.querySelector('.yz-hint');elTbl=elYz.querySelector('.yz-tbl');elLeft=elYz.querySelector('.yz-left');elHold=elYz.querySelector('.yz-hold');
+  elHint=elYz.querySelector('.yz-hint');elTbl=elYz.querySelector('.yz-tbl');elLeft=elYz.querySelector('.yz-left');elHold=elYz.querySelector('.yz-hold');elInfo=elYz.querySelector('.yz-info');elCup=elYz.querySelector('.yz-cup');
+  elRoll2=document.createElement('button');elRoll2.type='button';elRoll2.id='yzRoll2';elRoll2.className='act act-roll';elRoll2.disabled=true;
+  $('#actions').insertBefore(elRoll2,$('#btnPlay'));
   elDice.addEventListener('click',e=>{const b=e.target.closest('.die');if(b)toggleHold(+b.dataset.i)});
   elHold.addEventListener('click',e=>{const b=e.target.closest('button');if(b)toggleHold(+b.dataset.i)});
   // 굴리기: 2D는 누르면 바로, 3D는 누르는 동안 흔들고 떼면 던짐 (키보드 Enter·Space는 잠깐 흔든 뒤 던짐)
-  elRoll.addEventListener('click',e=>{
-    if(!D3.on){rollNow();return}
-    if(e.detail===0&&d3Press())setTimeout(d3Release,600);
-  });
-  elRoll.addEventListener('pointerdown',e=>{
-    if(!D3.on||e.button>0)return;
-    e.preventDefault();
-    if(d3Press()){try{elRoll.setPointerCapture(e.pointerId)}catch(_){}}
-  });
-  for(const ev of ['pointerup','pointercancel','lostpointercapture'])elRoll.addEventListener(ev,()=>{if(D3.on)d3Release()});
-  elRoll.addEventListener('contextmenu',e=>{if(D3.on)e.preventDefault()});
+  const bindRoll=(el,clickRolls)=>{
+    if(clickRolls)el.addEventListener('click',e=>{
+      if(!D3.on){rollNow();return}
+      if(e.detail===0&&d3Press())setTimeout(d3Release,600);
+    });
+    el.addEventListener('pointerdown',e=>{
+      if(!D3.on||e.button>0)return;
+      e.preventDefault();
+      if(d3Press()){try{el.setPointerCapture(e.pointerId)}catch(_){}}else if(el===elCup)sfx('no');
+    });
+    for(const ev of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(ev,()=>{if(D3.on)d3Release()});
+    el.addEventListener('contextmenu',e=>{if(D3.on)e.preventDefault()});
+  };
+  bindRoll(elRoll,true);bindRoll(elRoll2,true);bindRoll(elCup,false);
   addEventListener('keyup',e=>{if(D3.on&&typeof KEYS!=='undefined'&&e.code===KEYS.yroll)d3Release()});
   addEventListener('blur',()=>{if(D3.on)d3Release()});
   if(window.ResizeObserver){const ro=new ResizeObserver(()=>{D3.layDirty=true});[$('#stage'),elLeft,elRoll,elHint].forEach(x=>ro.observe(x))}
