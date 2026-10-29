@@ -13,7 +13,7 @@ function frontBuildRules(TG){
   const g=new THREE.Group();g.position.set(0,.002,Z+D*.8);TG.add(g);
   const arm=new THREE.Group();arm.rotation.x=-.08;g.add(arm);
   const r=new THREE.Group();arm.add(r);   // 올라오는 묶음 (기둥·레버·판자)
-  const wood=toon({color:0x8a5530}),dark=toon({color:0x6a3e20}),face=toon({map:tex,rim:0}),brass=toon({color:0xb8925a,rim:.3}),knobM=toon({color:0x5a3a22,rim:.25});
+  const wood=toon({color:0x8a5530}),dark=toon({color:0x6a3e20}),face=toon({map:tex,rim:0}),brass=toon({color:0xb8925a,rim:.3});
   const px=W/2+.075,posts=[];
   for(const sx of [-1,1]){const post=new THREE.Mesh(new THREE.BoxGeometry(.1,1,.15),dark);post.position.set(sx*px,.5,0);post.castShadow=true;r.add(post);const po=hull(new THREE.BoxGeometry(.13,1,.18),post,r);
     const cap=new THREE.Mesh(new THREE.BoxGeometry(.15,.05,.2),wood);cap.position.set(sx*px,1,0);r.add(cap);const co=hull(new THREE.BoxGeometry(.18,.08,.23),cap,r);posts.push({post,po,cap,co})}
@@ -29,13 +29,6 @@ function frontBuildRules(TG){
     const m=new THREE.Mesh(new THREE.CylinderGeometry(.062,.062,.045,24),[side,mOn,side]);m.rotation.x=Math.PI/2;m.position.set(-px,.5,.1);m.visible=false;r.add(m);
     const o=hull(new THREE.CylinderGeometry(.074,.074,.055,24),m,r);o.rotation.x=Math.PI/2;o.visible=false;
     pgs.push({m,o,cv:cvp,tx,mat:mOn,lab:'',lit:null})}
-  // 다음 판자: 오른쪽 기둥의 레버 (공개 탁자 목록 판과 같은 모양)
-  const lv=new THREE.Group();lv.position.set(px+.055,.9,0);r.add(lv);
-  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.06,20),brass);hub.rotation.z=Math.PI/2;lv.add(hub);
-  const rod=new THREE.Group();lv.add(rod);
-  const bar=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.34,10),brass);bar.rotation.x=Math.PI/2;bar.position.set(.025,0,.17);rod.add(bar);
-  const kn=new THREE.Mesh(new THREE.SphereGeometry(.07,16,12),knobM);kn.position.set(.025,0,.36);kn.castShadow=true;rod.add(kn);hull(new THREE.SphereGeometry(.082,16,12),kn,rod);
-  rod.rotation.x=-.5;
   // 판자: 길이는 쪽마다 다름 (scale.y)
   const plank=new THREE.Mesh(new THREE.BoxGeometry(W,1,.08),[wood,wood,wood,wood,face,wood]);plank.castShadow=true;r.add(plank);
   const pOut=hull(new THREE.BoxGeometry(W+.03,1,.11),plank,r);
@@ -44,8 +37,8 @@ function frontBuildRules(TG){
   const slit=new THREE.Mesh(new THREE.PlaneGeometry(2*(W/2+.165)+.08,.3),new THREE.MeshBasicMaterial({color:0x15100c}));slit.rotation.x=-Math.PI/2;slit.position.y=.0006;g.add(slit);
   const hitM=new THREE.MeshBasicMaterial({visible:false});
   const win=new THREE.Mesh(new THREE.PlaneGeometry(W,1),hitM);win.position.set(0,.5,.05);r.add(win);
-  lv.visible=false;   // 레버는 없앰(쪽은 왼쪽 기둥 쪽 단추·옆으로 밀기·←→). ✕는 오른쪽 기둥 위
-  T.rb={g,r,cv,tex,plank,pOut,posts,xk,xkO,bk,bkO,pgs,win,px,lever:{g:lv,rod,at:-1e9,dir:1},key:'',fitL:0};
+  // 쪽은 왼쪽 기둥 쪽 단추·옆으로 밀기·←→. ✕는 오른쪽 기둥 위
+  T.rb={g,r,cv,tex,plank,pOut,posts,xk,xkO,bk,bkO,pgs,win,px,key:'',fitL:0};
   rbFit(RB.L,true);
   g.visible=false;
   const fr=$('#front'),mk=(id,lab)=>{const b=document.createElement('button');b.type='button';b.className='fr-hot off fr-key';b.id=id;if(lab){b.setAttribute('aria-label',lab);b.title=lab}fr.insertBefore(b,$('#frFoot'));return b};
@@ -74,7 +67,7 @@ function rbFit(L,force){
   const PH=L+.06;
   for(const s of P.posts){s.post.scale.y=PH;s.post.position.y=PH/2;s.po.scale.y=PH+.03;s.po.position.y=PH/2;s.cap.position.y=s.co.position.y=PH+.025}
   P.xk.position.y=P.xkO.position.y=P.bk.position.y=P.bkO.position.y=PH-.13;
-  P.lever.g.position.y=L*.55;P.win.scale.y=L;P.win.position.y=L/2;
+  P.win.scale.y=L;P.win.position.y=L/2;
   rbPlanks.c={};rbSetPlanks.c=null;
   if(FR.rb&&FR.rb.on){FR.rb.s=0;rbDraw()}
 }
@@ -339,7 +332,6 @@ function frontRulesBack(){   // ← 단추·Esc: 목록에서 들어온 게임 �
 }
 function frontRulesPage(dir){
   const S=FR.rb;if(!S.on||S.chg)return;
-  if(T.rb){T.rb.lever.at=clock();T.rb.lever.dir=dir}
   const n=rbPages();
   if(n<=1){sfx('lid');setTimeout(()=>sfx('no'),120);return}
   frontRulesSet(S.mode,S.gid,(S.pg+dir+n)%n,true);
@@ -444,5 +436,4 @@ function frontRulesUpdate(t,dt,lobby,wait){
   if(S.on&&S.mode==='game'&&S.pg<nS&&!S.chg){const key=JSON.stringify(V&&V.cfg)+mode+S.pg+(S.press?S.press.at:0)+(V&&V.ps?V.ps.length:0);if(key!==S.setKey||S.busy){S.setKey=key;S.busy=rbDraw(t)}}   // 설정이 바뀌면 다시 그림(숫자 넘김·손잡이·못 미끄러짐)
   if(S.on&&S.mode==='game'&&S.pg>=rbPages()&&!S.chg){S.pg=Math.max(0,rbPages()-1);rbDraw(t)}   // 판자 수가 줄면 마지막 판자로
   if(S.pick>=0&&t-S.pickAt>=420){S.pick=-1;if(S.mode==='list')rbDraw()}
-  {const L=P.lever,d=t-L.at,k=d<0||d>520?0:d<160?d/160:1-smooth((d-160)/360);L.rod.rotation.x=-.5+(L.dir>0?.95:-.55)*k}
 }
