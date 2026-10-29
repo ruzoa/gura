@@ -285,8 +285,7 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .rc-hot{z-index:6;touch-action:none}
 body.rc3d #btnLog,body.rc3d #logPanel{display:none}   /* 3D가 있으면 진행 기록은 영수증으로 */
 body.rc3d .fsbtn.fs{right:10px}body.rc3d .fsbtn.cfg{right:58px}body.rc3d.nofs .fsbtn.cfg{right:10px}
-.fsbtn.cam{display:none;right:154px}.fsbtn.cam.on{background:var(--mustard);border-color:var(--mustard-edge)}
-body.rc3d.camok .fsbtn.cam{display:flex;right:106px}body.rc3d.camok.nofs .fsbtn.cam{right:58px}   /* 카메라 고정 버튼: 설정 왼쪽, 탁자에 앉아 있을 때만 */
+body.camok #cv{touch-action:none}   /* 고개 돌릴 수 있을 때 탁자 바깥을 끌어도 브라우저가 스크롤·확대하지 않게 */
 .rcov{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(40,28,18,.18)}
 .rc2d{position:relative;width:min(300px,100%);max-height:100%;overflow-y:auto;overscroll-behavior:contain;background:#fbfaf4;color:#2c2620;padding:18px 18px 22px;font:500 14px/1.55 ui-monospace,'D2Coding','Nanum Gothic Coding',monospace;box-shadow:0 10px 30px -10px rgba(0,0,0,.45);
   -webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/12px 100%,conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) 50%/12px 100%;-webkit-mask-composite:source-in;mask-composite:intersect;

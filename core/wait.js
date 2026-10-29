@@ -163,7 +163,7 @@ function placeLabels(){
 }
 function stageRects(){
   const st=$('#stage').getBoundingClientRect(),out=[];
-  for(const id of ['btnLog','btnFs','btnCam','btnMenu','actions','numpick','me','ruleBadges','holoTag']){
+  for(const id of ['btnLog','btnFs','btnMenu','actions','numpick','me','ruleBadges','holoTag']){
     const el=document.getElementById(id);if(!el||el.hidden||!el.offsetWidth)continue;
     const r=el.getBoundingClientRect();out.push({l:r.left-st.left-4,r:r.right-st.left+4,t:r.top-st.top-4,b:r.bottom-st.top+4});
   }
