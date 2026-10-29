@@ -214,6 +214,8 @@ function resize3D(){
   T.seatKey=(V&&V.ps?V.ps.length:0)+':'+myIdx();
   let hx=(w/h)*(top-bot)/2;
   if(hx<hxFit){hx=hxFit;const ex=2*hx*h/w-(top-bot);top+=ex*2/3;bot-=ex/3}   // 늘어나는 양: 위쪽 배경 2 : 아래쪽 배경 1
+  // 내 쪽 테이블 모서리가 화면 맨 아래에서 몇 px 위에 있는지(보통 0, 좁은 화면은 아래 배경만큼 위). 카드게임 손패가 이 선에 걸쳐 놓임(layoutFan)
+  {const eb=h*(tNear-bot)/(top-bot),ch=T.edgeB==null||Math.abs(eb-T.edgeB)>.5;T.edgeB=eb;if(ch&&typeof V!=='undefined'&&V&&typeof layoutFan==='function')layoutFan()}
   const nr=T.cam.near,fr=T.cam.far;
   T.cam.projectionMatrix.makePerspective(-hx*nr,hx*nr,top*nr,bot*nr,nr,fr);T.cam.projectionMatrixInverse.copy(T.cam.projectionMatrix).invert();
   if(T.scene&&T.scene.fog){const d=T.cam.position.length();T.scene.fog.near=d+5;T.scene.fog.far=d+22}

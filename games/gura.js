@@ -487,6 +487,7 @@ function midLayout(){
   const key=midB+':'+plateB;if(key===midKey)return;midKey=key;
   st.style.setProperty('--gMidB',midB+'px');st.style.setProperty('--gPlateB',plateB+'px');
 }
+G.afterFan=midLayout;   // 손패가 모서리 위치에 맞춰 다시 놓이면(창 크기·카메라 변화) 버튼 줄도 다시 맞춤
 G.buttons=()=>{
   const play=$('#btnPlay'),pass=$('#btnPass');
   const ready=myReady(),num=chosenNum(),k=sel.size;

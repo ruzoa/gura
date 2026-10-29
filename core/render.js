@@ -60,31 +60,42 @@ function renderMe(){
   renderButtons();
 }
 /* 부채꼴 배치: 카드마다 아래쪽 먼 점을 축으로 조금씩 회전 */
-const FAN={n:0,stepPx:20,half:30};
+const FAN={n:0,stepPx:20,half:30,R:600,k:1,S:0,zoneH:0},FOC={i:-1};
 let lastFanH=-1;
 function layoutFan(){
   const fan=$('#hand'),st=$('#stage'),cards=[...fan.children],n=cards.length;
+  // 카드게임(구라!·대부호)은 손패를 테이블 모서리에 걸쳐 놓음: 모서리가 카드 가운데에 오고 아래 절반은 테이블 밖(화면 밖). 카드도 더 크게
+  const edge=!!(T.ok&&T.edgeB!=null&&typeof G!=='undefined'&&G&&G.dealAnim);
   // 손패 크기: 화면 높이에 비례(세로로 긴 화면은 폭에 비례), 휴대폰 1배 ~ 큰 화면 1.8배. 높이가 낮은 화면(휴대폰 가로)은 0.8배까지
-  const W=st.clientWidth,Hs=st.clientHeight||W,k=Math.max(Hs<600?.8:1,Math.min(1.8,Math.min(Hs/677,W/460)));
+  // 모서리에 걸친 손패는 위 절반만 보이므로 1.3배 키워 2.3배까지
+  const W=st.clientWidth,Hs=st.clientHeight||W,k=Math.max(Hs<600?(edge?.95:.8):1,Math.min(edge?2.3:1.8,Math.min(Hs/677,W/460)*(edge?1.3:1)));
   // 카드 간격: 폭 전체를 쓰되 최대 40 (모서리 글자가 다 보이는 간격). 손패 배치는 버튼 위치와 상관없이 정해짐
   // PC(넓고 높은 화면)에서는 버튼을 조금 키움(손패가 커지는 만큼, 최대 1.3배). 손패와 버튼이 같이 커져야 눌러야 할 곳이 작아 보이지 않음
   const pc=W>=900&&Hs>=600&&!(window.matchMedia&&matchMedia('(pointer:coarse)').matches),aS=pc?Math.max(1,Math.min(1.3,k*.8)):1;
   const aW=($('#actions').offsetWidth||0)*aS,mW=$('#me').offsetWidth||0;
   const side=Math.max(mW,aW)+24;
-  let step=n>1?Math.min(40,(Math.max(150,(W-24)/k)-60)/(n-1)):0;step=Math.max(step,9);
+  // 벌어짐 폭(화면 px): 가리킨 카드 기준으로 모든 카드가 이만큼(가까운 카드는 더) 벌어짐 → 양 끝이 화면 밖으로 안 밀리게 손패 폭에서 미리 뺌
+  const S=edge?Math.round(8*Math.min(1.4,k)):0;
+  let step=n>1?Math.min(40,(Math.max(150,(W-24-2*S)/k)-60)/(n-1)):0;step=Math.max(step,9);
   // 손패 양옆에 내 정보·버튼이 들어갈 자리가 있으면 옆(화면 아래 구석)에, 없으면 손패 위에. 바뀌어도 손패·테이블은 그대로
   // 가로 화면은 손패를 조금 좁혀서라도(모서리 글자가 보이는 간격 20 이상) 옆에 둠 → 버튼이 화면 가운데로 올라오지 않음
   let wide=W-((n-1)*step+60)*k>=2*side+16;
   if(!wide&&W>Hs){const s2=(Math.max(150,(W-2*side-16)/k)-60)/(n-1||1);if(s2>=20||(Hs<560&&W/Hs>=1.6)){wide=true;step=Math.max(9,Math.min(40,s2))}}
   // 휘는 정도: 손패가 넓을수록 큰 원의 일부로 → 가로로 긴 화면에서도 양 끝이 과하게 내려가지 않음 (양 끝 기울기 약 20도)
-  const R=Math.max(560,((n-1)*step+60)*1.45);
-  const da=step/(R+44),half=da*(n-1)/2;
-  const drop=(R+88)*(1-Math.cos(half));
+  let R=Math.max(560,((n-1)*step+60)*1.45);
+  let da=step/(R+44),half=da*(n-1)/2;
+  let drop=(R+88)*(1-Math.cos(half));
+  // 모서리에 걸친 손패는 덜 휘게: 양 끝 카드가 가운데보다 14px(카드 기준) 넘게 내려가면 화면 밖으로 너무 숨음
+  if(edge)for(let it=0;it<8&&drop>14;it++){R*=1.6;da=step/(R+44);half=da*(n-1)/2;drop=(R+88)*(1-Math.cos(half))}
   cards.forEach((c,i)=>{c.style.setProperty('--a',((i-(n-1)/2)*da).toFixed(4)+'rad');c.style.zIndex=i+1});
   FAN.n=n;FAN.stepPx=(R+44)*Math.sin(da)*k;FAN.half=30*k;   // 화면에서 카드 사이 가로 간격
-  fan.style.setProperty('--R',R+'px');fan.style.setProperty('--k',k);fan.style.setProperty('--b',((window.matchMedia&&matchMedia('(pointer:coarse)').matches?2:10)+drop).toFixed(1)+'px');
+  FAN.R=R;FAN.k=k;FAN.S=S;
   const coarse=window.matchMedia&&matchMedia('(pointer:coarse)').matches;
-  const fh=n?Math.round((88+drop+(coarse?24:46))*k):0;
+  // 카드 아래 위치(--b): 모서리 걸치기는 가운데 카드의 가운데 높이(44)가 테이블 모서리(화면 아래에서 T.edgeB px 위)에 오게. 양 끝은 drop/2만큼 아래, 가운데는 drop/2만큼 위
+  const eb=edge?T.edgeB:0,bb=edge?eb/k-44+drop/2:(coarse?2:10)+drop;
+  fan.style.setProperty('--R',R+'px');fan.style.setProperty('--k',k);fan.style.setProperty('--b',bb.toFixed(1)+'px');
+  const fh=n?Math.round(edge?eb+(44+drop/2+(coarse?24:46))*k:(88+drop+(coarse?24:46))*k):0;
+  FAN.zoneH=fh;
   fan.style.setProperty('--fh',(fh/k)+'px');
   // PC에서 손패 옆에 둘 때는 화면 구석이 아니라 손패 바로 옆에(카드에서 버튼까지 마우스가 멀지 않게). 손패가 줄면 같이 따라 들어옴
   // 손패를 숨기는 게임(보드·주사위·블랙잭)은 그대로 구석
@@ -97,6 +108,32 @@ function layoutFan(){
   st.style.setProperty('--plateB',(wide||!n?14:fh+66)+'px');
   st.style.setProperty('--actB',(wide||!n?14:fh+6)+'px');
   if(fh!==lastFanH){lastFanH=fh;T.fanH=fh;if(T.ok)resize3D()}
+  if(FOC.i>=n)FOC.i=-1;
+  applySpread();   // 손패가 다시 만들어지거나 크기가 바뀌어도 벌어짐 상태를 그대로 이어서 적용
+  if(typeof G!=='undefined'&&G&&G.afterFan)G.afterFan();
+}
+/* 손패 벌어짐: 가리킨 카드(FOC.i)는 제자리에서 살짝만 올라오고, 왼쪽 카드는 왼쪽으로 오른쪽 카드는 오른쪽으로 모두 벌어짐
+   가까운 카드일수록 더 벌어지고(독처럼) 멀리 있는 카드도 조금은 벌어짐. 모서리 글자가 가린 카드를 읽을 수 있게 하는 것이 목적.
+   가리키는 카드는 벌어지기 전 '원래 자리' 가로 위치(fanIdxAt)로 정함 → 카드가 움직여도 경계에서 떨리지 않음 */
+function applySpread(){
+  const cards=[...$('#hand').children],f=FOC.i;
+  cards.forEach((c,j)=>{
+    const d=j-f;
+    if(f<0||d===0){c.style.removeProperty('--sp');c.classList.toggle('hov',f>=0&&d===0);return}
+    const ad=Math.abs(d),px=FAN.S*(1+.7*Math.max(0,1-(ad-1)/3));   // 바로 옆 1.7배 → 4장 떨어지면 1배
+    c.style.setProperty('--sp',(Math.sign(d)*px/(FAN.k*(FAN.R+44))).toFixed(5)+'rad');
+    c.classList.remove('hov');
+  });
+}
+function setFocus(i){
+  const n=$('#hand').children.length;if(i<0||i>=n||!FAN.S)i=-1;
+  if(FOC.i===i)return;FOC.i=i;applySpread();
+}
+/* 화면 가로 위치로 손패에서 몇 번째 카드를 가리키는지 (벌어지기 전 자리 기준) */
+function fanIdxAt(x){
+  const n=FAN.n;if(!n)return -1;
+  const r=$('#stage').getBoundingClientRect(),cx=r.left+r.width/2;
+  return Math.max(0,Math.min(n-1,Math.floor((x-cx+FAN.half)/Math.max(6,FAN.stepPx)+(n-1)/2)));
 }
 window.addEventListener('resize',()=>{if(V)layoutFan()});
 /* 선언 자음 세로 휠 */
@@ -315,6 +352,7 @@ const DRAG={el:null,x:0,y:0,on:false,rest:null,cards:[],off:[],one:null,gt:0,sup
 function dragClear(){clearTimeout(DRAG.gt);for(const c of DRAG.cards){c.classList.remove('drag','gath','go');for(const v of ['--dx','--dy','--ra'])c.style.removeProperty(v)}DRAG.el=null;DRAG.on=false;DRAG.cards=[];DRAG.off=[];DRAG.one=null}
 /* 끌기 시작: 끄는 카드는 기울기를 펴고 잡은 카드 옆으로 촘촘하게 모임(잡은 카드는 손 아래 그대로) */
 function dragBegin(b){
+  setFocus(-1);
   const cs=[...$('#hand').children];let l=1e9,t=1e9,r=-1e9,bt=-1e9;
   for(const c of cs){const q=c.getBoundingClientRect();l=Math.min(l,q.left);t=Math.min(t,q.top);r=Math.max(r,q.right);bt=Math.max(bt,q.bottom)}
   DRAG.rest={l,t,r,b:bt};DRAG.on=true;
@@ -377,14 +415,28 @@ $('#hand').addEventListener('lostpointercapture',e=>mouseUp(e,true));
 /* 터치: 짧게 탭하면 선택, 꾹 누르면 카드가 올라와서 미리 보기(손가락을 옆으로 밀면 다른 카드 보기), 떼면 선택 안 함
    위로 밀면 끌어서 내기 (미리 보기 중에는 그 카드를 위로 밀면) */
 const TOUCH={id:null,t0:0,x:0,y:0,timer:null,peek:false,el:null,suppress:0};
-function setPeek(el){if(TOUCH.el===el)return;if(TOUCH.el)TOUCH.el.classList.remove('peek');TOUCH.el=el;if(el)el.classList.add('peek')}
+function setPeek(el){if(TOUCH.el===el)return;if(TOUCH.el)TOUCH.el.classList.remove('peek');TOUCH.el=el;if(el){el.classList.add('peek');setFocus([...$('#hand').children].indexOf(el))}}
 function toggleCard(id){curId=id;sel.has(id)?sel.delete(id):sel.add(id);sfx('pick');renderMe()}
 $('#hand').addEventListener('contextmenu',e=>e.preventDefault());
 $('#hand').addEventListener('pointerover',e=>{if(e.pointerType!=='touch')seeNewCard(e.target.closest('.card'))});
+/* 마우스: 카드에 올리면 그 카드 기준으로 벌어짐. 한 번 올리면 손패 띠(카드가 놓인 가로·세로 범위)를 벗어날 때까지 이어짐(카드 사이 틈·벌어진 틈에서 풀리지 않게) */
+document.addEventListener('pointermove',e=>{
+  if(e.pointerType==='touch')return;
+  if(!FAN.n||!FAN.S||DRAG.el||DRAG.on){if(FOC.i>=0)setFocus(-1);return}
+  const t=e.target,onCard=!!(t&&t.closest&&t.closest('#hand .card'));
+  if(FOC.i<0&&!onCard)return;
+  const st=$('#stage').getBoundingClientRect(),cx=st.left+st.width/2;
+  const halfW=(FAN.n-1)*FAN.stepPx/2+FAN.half+FAN.S*1.7+6;
+  const inZone=e.clientY>=st.bottom-FAN.zoneH&&e.clientY<=st.bottom&&Math.abs(e.clientX-cx)<=halfW&&!(t&&t.closest&&t.closest('button,.panel,#me,#actions'));
+  if(!onCard&&!inZone){setFocus(-1);return}
+  setFocus(fanIdxAt(e.clientX));
+});
+document.addEventListener('pointerout',e=>{if(!e.relatedTarget&&e.pointerType!=='touch')setFocus(-1)});
 $('#hand').addEventListener('pointerdown',e=>{
   if(e.pointerType!=='touch')return;
   const b=e.target.closest('.card');if(!b)return;
   seeNewCard(b);
+  setFocus([...$('#hand').children].indexOf(b));   // 손가락이 닿으면 바로 살짝 올라오고 벌어짐 (꾹 누르면 크게 올라와 미리 보기)
   TOUCH.id=+b.dataset.id;TOUCH.t0=Date.now();TOUCH.x=e.clientX;TOUCH.y=e.clientY;TOUCH.peek=false;
   DRAG.el=b;DRAG.on=false;
   clearTimeout(TOUCH.timer);
@@ -406,14 +458,13 @@ $('#hand').addEventListener('pointermove',e=>{
   if(TOUCH.el&&up&&-dy>40){DRAG.x=e.clientX;DRAG.y=e.clientY;dragBegin(TOUCH.el);return}
   // 올라온 카드가 손가락을 덮으므로 화면 좌표 대신 부채 가운데로부터의 가로 거리로 카드 고르기
   const cards=[...$('#hand').children];if(!cards.length)return;
-  const r=$('#stage').getBoundingClientRect(),cx=r.left+r.width/2;
-  const idx=Math.max(0,Math.min(cards.length-1,Math.floor((e.clientX-cx+FAN.half)/Math.max(6,FAN.stepPx)+(cards.length-1)/2)));
+  const idx=fanIdxAt(e.clientX);
   const c=cards[idx];
   if(c&&c!==TOUCH.el){setPeek(c);seeNewCard(c);sfx('tick')}
 });
 function touchEnd(e,cancel){
   if(e.pointerType!=='touch'||TOUCH.id==null)return;
-  clearTimeout(TOUCH.timer);
+  clearTimeout(TOUCH.timer);setFocus(-1);
   if(DRAG.on){setPeek(null);dragDrop(cancel);TOUCH.id=null;TOUCH.peek=false;TOUCH.suppress=Date.now();return}
   DRAG.el=null;
   const quick=!TOUCH.peek&&Date.now()-TOUCH.t0<300&&Math.hypot(e.clientX-TOUCH.x,e.clientY-TOUCH.y)<=12;
