@@ -107,7 +107,9 @@ function doPlay(i,ids,num){
   startTurn(nextActive(i));
 }
 function doPass(i,auto){
-  closeChance();if(H.phase!=='play')return;
+  // 패스해도 직전에 낸 카드에는 새 카드가 나올 때까지 구라!를 외칠 수 있음. 마지막 카드를 낸 사람(탈출 대기)만 패스가 오면 탈출이 확정됨
+  if(H.pending!=null)closeChance();
+  if(H.phase!=='play')return;
   H.passes++;H.seatNote[i]=auto?'시간 초과':'패스';
   addLog(`${H.players[i].name} ${auto?'시간 초과 ':''}패스`,'sys');
   // 마지막으로 낸 사람을 포함해 남은 사람 전원이 연속으로 패스해야 폐기
@@ -389,7 +391,7 @@ function renderPileNum(){
 }
 /* 선언 자음 세로 휠 */
 function renderWheel(){
-  const order=wheelOrder(),np=$('#numpick'),cur=chosenNum()||order[order.length>>1],narrow=$('#stage').clientWidth<600,rows=narrow?3:5;
+  const order=wheelOrder(),np=$('#numpick'),cur=chosenNum()||order[order.length>>1],rows=3;   // 고른 자음 + 위아래 하나씩
   const idx=Math.max(0,order.indexOf(cur));
   if(!np.querySelector('.wh-list')){
     np.innerHTML=`<span class="wh-t">선언할 자음</span><button type="button" class="wh-arrow" data-step="1" aria-label="이전 자음">▲<small>${esc(keyLabel(KEYS.numUp))}</small></button><div class="wh-view"><ul class="wh-list">${order.map(k=>`<li><button type="button" class="np" data-n="${k}" style="--rc:${RANK_COLORS[k-1]}" aria-label="${rankLabel(k)}"><span class="wl">${rankLabel(k)}</span></button></li>`).join('')}</ul></div><button type="button" class="wh-arrow" data-step="-1" aria-label="다음 자음">▼<small>${esc(keyLabel(KEYS.numDown))}</small></button>`;
@@ -484,7 +486,8 @@ G.buttons=()=>{
   if($('#playSub').textContent!==sub)$('#playSub').textContent=sub;
   pass.disabled=!(ready&&V.rn!=null);
 };
-G.live=()=>{const can=canShoutV(),gb=$('#btnGura');if(gb.disabled===can){gb.disabled=!can;gb.classList.toggle('ready',can)}};
+G.live=()=>{const can=canShoutV(),gb=$('#btnGura');if(gb.disabled===can){gb.disabled=!can;gb.classList.toggle('ready',can)}
+  if(!!GLOW.on.length!==!!can)glowSync()};   // 맨 위 카드 테두리는 구라!를 외칠 수 있을 때만
 G.play=()=>{
   if(!myReady()||!sel.size)return;const num=chosenNum();if(num==null)return;
   const ids=myHand().filter(id=>sel.has(id));
@@ -531,13 +534,39 @@ G.field3D=(v,pv,me)=>{
       c.userData.p.set((j-(k-1)/2)*gap,2.3,1.2);c.userData.rx=-.72;c.userData.ry=0;c.userData.s=sc;
     });
   },REVEAL_PAUSE);
+  glowSync();
 };
+/* 구라!를 외칠 수 있는 동안 직전에 낸 카드(맨 위)의 테두리가 빛나고, 그 카드를 누르면 구라! (패스해도 새 카드가 나올 때까지 이어짐) */
+const GLOW={on:[],geo:null,mat:null,raf:0},_gRay=window.THREE?new THREE.Raycaster():null;
+function glowMake(){
+  if(GLOW.mat)return true;if(!window.THREE||!T.ok)return false;
+  const k=T.cardK||1;
+  GLOW.geo=new THREE.PlaneGeometry(.80*k,1.14*k);
+  GLOW.mat=new THREE.MeshBasicMaterial({color:0xf2b632,map:canvasTex(128,180,(g,w,h)=>{g.lineWidth=14;g.strokeStyle='#fff';g.shadowColor='#fff';g.shadowBlur=14;rr(g,18,18,w-36,h-36,16);g.stroke()}),transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide});
+  return true;
+}
+function glowSync(){
+  const n=T.ok&&Array.isArray(T.field)&&canShoutV()?Math.min(T.field.length,+V.la.c||0):0;
+  const want=n?T.field.slice(T.field.length-n):[];
+  for(const c of GLOW.on)if(!want.includes(c)&&c.userData.glow){c.remove(c.userData.glow);c.userData.glow=null}
+  if(want.length&&glowMake())for(const c of want)if(!c.userData.glow){const m=new THREE.Mesh(GLOW.geo,GLOW.mat);m.renderOrder=40;c.add(m);c.userData.glow=m}
+  GLOW.on=want;
+  if(want.length&&!GLOW.raf){const loop=()=>{if(!GLOW.on.length){GLOW.raf=0;return}GLOW.mat.opacity=.55+.45*Math.sin(clock()/170);GLOW.raf=requestAnimationFrame(loop)};GLOW.raf=requestAnimationFrame(loop)}
+}
+function topCardAt(e){
+  if(!_gRay||!T.ok||!GLOW.on.length)return false;
+  const r=$('#cv').getBoundingClientRect();if(!r.width)return false;
+  _gRay.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},T.cam);
+  return _gRay.intersectObjects(GLOW.on.map(c=>c.userData.glow).filter(Boolean),false).length>0;
+}
 /* 이 게임으로 바뀔 때 / 다른 게임으로 바뀔 때 */
-G.enter=()=>{$('#btnGura').hidden=false};
+G.enter=()=>{$('#btnGura').hidden=false;$('#stage').classList.add('gmid')};
 G.leave=()=>{
   for(const id of ['#pileNum','#pileCount','#verdict','#numpick'])$(id).hidden=true;
-  $('#numpick').innerHTML='';$('#btnGura').hidden=true;$('#stage').classList.remove('revealing');$('#fx').innerHTML='';
+  $('#numpick').innerHTML='';$('#btnGura').hidden=true;$('#stage').classList.remove('revealing','gmid');$('#fx').innerHTML='';
   lastPileN=-1;lastPileNum=null;
+  for(const c of GLOW.on)if(c.userData.glow){c.remove(c.userData.glow);c.userData.glow=null}
+  GLOW.on=[];const cv=$('#cv');if(cv)cv.style.cursor='';
 };
 /* 처음 한 번: 휠·구라! 버튼 */
 G.init=()=>{
@@ -549,6 +578,10 @@ G.init=()=>{
   w.addEventListener('click',e=>{const a=e.target.closest('.wh-arrow');if(a){stepNum(+a.dataset.step)}});
   w.addEventListener('click',e=>{const b=e.target.closest('.np');if(!b)return;pickNum=+b.dataset.n;renderMe()});
   $('#btnGura').addEventListener('click',()=>{if(canShoutV())sendAct({t:'gura'})});
+  // 맨 위 카드 누르기 = 구라! (꾹 누르기 없음). 고개를 돌리려고 끌었던 뒤의 click은 무시
+  const cv=$('#cv');
+  cv.addEventListener('click',e=>{if(clock()-(VW.movedAt||-1e9)<400||!canShoutV())return;if(topCardAt(e))sendAct({t:'gura'})});
+  cv.addEventListener('pointermove',e=>{if(!GLOW.on.length&&!cv.style.cursor)return;const c=e.pointerType==='mouse'&&canShoutV()&&topCardAt(e)?'pointer':'';if(cv.style.cursor!==c)cv.style.cursor=c});
 };
 
 (window.GAMES=window.GAMES||{}).gura=G;

@@ -67,6 +67,28 @@ function playOut(game,n,over,lvs){
   return ticks;
 }
 `,'helpers');
+// 구라!: 패스해도 직전에 낸 카드에는 새 카드가 나올 때까지 구라!를 외칠 수 있음 (마지막 카드를 낸 사람은 패스가 오면 탈출 확정)
+run(`{
+const {newRound,doPlay,doPass,doShout}=GAMES.gura._test;
+hostNew(false,'t','t');H.cfg={...cfgFor('gura'),game:'gura',jokers:0};
+H.members=[0,1,2].map(i=>({name:'p'+i,bot:false,conn:null,host:i===0}));hostStart();
+H.players[0].hand=[0,1,2,3,40];H.players[1].hand=[8,9,10,11];H.players[2].hand=[12,13,14,15];
+newRound(0);doPlay(0,[0,1],1);
+if(H.turn!==1||!H.last.open)fail('gura play opens chance');
+doPass(1);
+if(!H.last||!H.last.open||H.phase!=='play')fail('gura pass keeps chance');
+if(H.turn!==2)fail('gura turn after pass');
+doShout(2);
+if(H.phase!=='reveal')fail('gura shout after pass');
+// 마지막 카드: 다음 사람이 패스하면 탈출 확정, 그 뒤에는 외칠 수 없음
+hostNew(false,'t','t');H.cfg={...cfgFor('gura'),game:'gura',jokers:0};
+H.members=[0,1,2].map(i=>({name:'p'+i,bot:false,conn:null,host:i===0}));hostStart();
+H.players[0].hand=[0];H.players[1].hand=[8,9,10,11];H.players[2].hand=[12,13,14,15];
+newRound(0);doPlay(0,[0],1);doPass(1);
+if(!H.players[0].finished)fail('gura last card escapes after pass');
+doShout(2);
+if(H.phase!=='play')fail('gura no shout after escape');
+}`,'gura.cases.js');
 // 대부호 규칙 단위 테스트 (기존 테스트를 모듈 함수로)
 run(`{
 const {parseCombo,playError,legalPlays}=GAMES.president;
