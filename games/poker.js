@@ -106,10 +106,10 @@ G.roomSet=[
   {k:'sb',label:'스몰 블라인드',unit:'개',lo:10,hi:100,step:10,desc:'빅 블라인드는 두 배입니다'},
   {k:'up',label:'블라인드 오름',unit:'판마다',lo:0,hi:10,step:1,desc:'이 판 수마다 블라인드가 두 배로 오릅니다. 0이면 오르지 않습니다'},
   {k:'turn',label:'제한 시간',unit:'초',lo:10,hi:60,step:5,desc:'시간이 지나면 체크할 수 있으면 체크, 아니면 폴드'}];
-G.ruleSet=[{k:'pickfirst',label:'첫 딜러 직접 고르기',desc:'켜면 방장이 대기실에서 첫 딜러 버튼을 받을 사람을 고릅니다. 끄면 룰렛으로 정합니다'}];
+G.ruleSet=[{k:'pickfirst',pick:1,label:'첫 딜러',desc:'선택: 방장이 대기실에서 첫 딜러 버튼을 받을 사람을 고릅니다. 무작위: 룰렛으로 정합니다'}];
 const blindTxt=c=>`${+c.sb||10}/${2*(+c.sb||10)}`;
 G.cfgChips=c=>`<span class="chip">시작 칩 <b>${+c.chips}개</b></span><span class="chip"><b>${+c.rounds}판</b></span><span class="chip">블라인드 <b>${blindTxt(c)}</b></span><span class="chip">제한 시간 <b>${+c.turn}초</b></span>`;
-G.cfgSum=c=>`시작 칩 ${+c.chips}개 · ${+c.rounds}판 · 블라인드 ${blindTxt(c)}${+c.up?` (${+c.up}판마다 두 배)`:''} · 제한 시간 ${+c.turn}초 · 첫 딜러 ${+c.pickfirst?'방장 선택':'룰렛'}`;
+G.cfgSum=c=>`시작 칩 ${+c.chips}개 · ${+c.rounds}판 · 블라인드 ${blindTxt(c)}${+c.up?` (${+c.up}판마다 두 배)`:''} · 제한 시간 ${+c.turn}초 · 첫 딜러 ${+c.pickfirst?'선택':'무작위'}`;
 G.roomSub=x=>`블라인드 ${x.bl||'10/20'} · ${+x.rds||10}판`;
 G.pubExtra=c=>({bl:blindTxt(c),rds:+c.rounds||10});
 G.cardInfo=()=>'';

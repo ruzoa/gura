@@ -23,6 +23,10 @@ const EMOTES=[
   {k:'shh',e:'🤫',n:'쉿'},{k:'plz',e:'🙏',n:'제발'},{k:'omg',e:'😱',n:'놀람'},{k:'lol',e:'🤣',n:'빵 터짐'},
   {k:'dizzy',e:'😵',n:'멘붕'},{k:'cry',e:'😭',n:'슬픔'},{k:'mad',e:'😡',n:'화남'},{k:'hurry',e:'⏰',n:'재촉'},
   {k:'smile',e:'😊',n:'좋음'},{k:'gg',t:'GG',n:'GG'}];
+/* 선 플레이어처럼 '선택'(값 1) / '무작위'(값 0) 두 버튼으로 고르는 규칙: 규칙 정의에 pick:true. 판자·2D 창이 스위치 대신 버튼 둘을 그림 */
+const PICK_OPTS=['선택','무작위'];
+const pickIdx=v=>+v?0:1;            // 버튼 번호: 0 선택, 1 무작위
+const pickVal=i=>i===0?1:0;
 const EMO_KEYS=['Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','Digit8','Digit9','Digit0','Minus'];
 const BOT_NAMES=['여우','까치','너구리','고양이','두더지','수달','부엉이','다람쥐'];
 const OPTS={gi:GAME_IDS.map((_,i)=>i),fast:[0,1],pub:[0,1]};

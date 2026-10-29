@@ -2,7 +2,7 @@
    공통 코드(index.html)가 GAMES.omok의 함수를 불러서 이 게임의 규칙·봇·화면을 그림.
    판: 15×15 또는 19×19. 칸 (r,c): r = 위에서 아래로 0~n-1, c = 왼쪽에서 오른쪽으로. 돌: 1 흑, 2 백 (0은 빈 칸)
    두 사람이 하는 게임이고 모든 화면이 같은 방향(아래가 1줄)으로 봄. 좌표는 'h8'처럼 가로 a~, 세로 1~(아래가 1)
-   방 설정(레버): 판 크기 sz, 3-3·4-4 b33, 장목(6목 이상) ov, 오프닝 op, 총 시간 tm(분), 추가 시간 inc(초), 선 플레이어 직접 선택 pickfirst(쿼리도와 같은 공통 스위치: 켜면 방장이 대기실 목록의 [선]으로 고름)
+   방 설정(레버): 판 크기 sz, 3-3·4-4 b33, 장목(6목 이상) ov, 오프닝 op, 총 시간 tm(분), 추가 시간 inc(초), 선 플레이어 선택·무작위 pickfirst(쿼리도와 같은 공통 스위치: 켜면 방장이 대기실 목록의 [선]으로 고름)
    손패(hand)는 카드가 아니라 '돌 하나'를 뜻하는 표시: 공통 코드가 hand가 비면 끝난 사람으로 보기 때문에 게임 중에는 [0]으로 둠 */
 (function(){
 const G={id:'omok',name:'오목',short:'오목',lead:'렌주 금수와 스왑 오프닝까지',brand:'오목',brandPx:62,maxHi:2,noFast:true,firstPick:true};   // firstPick: 대기실 목록의 [선] 버튼을 씀 (룰렛 연출은 아직 없음: 랜덤이면 시작 안내로만 알림)   // 두 사람이 하는 게임 (게임 모드 선택 없음)
@@ -202,13 +202,13 @@ G.roomSet=[
   {k:'b33',label:'3-3 · 4-4',unit:'',lo:0,hi:2,step:1,desc:'',lever:1},
   {k:'ov',label:'장목',unit:'',lo:0,hi:2,step:1,desc:'',lever:1},
   {k:'op',label:'오프닝',unit:'',lo:0,hi:2,step:1,desc:'',lever:1}];
-G.ruleSet=[{k:'pickfirst',label:'선 플레이어 직접 선택 (끄면 랜덤)',desc:'켜면 방장이 대기실에서 선 플레이어를 고릅니다. 오프닝이 없으면 선 플레이어가 흑, 있으면 오프닝 돌을 놓습니다. 결과 화면에서 바로 시작하면 이긴 사람이 선입니다'}];
+G.ruleSet=[{k:'pickfirst',pick:1,label:'선 플레이어',desc:'선택: 방장이 대기실에서 선 플레이어를 고릅니다. 무작위: 랜덤으로 정합니다. 오프닝이 없으면 선 플레이어가 흑, 있으면 오프닝 돌을 놓습니다. 결과 화면에서 바로 시작하면 이긴 사람이 선입니다'}];
 function ruleLine(c){
   const p=presetOf(c),df=diffKeys(c);
   return `<b>${p>=0?PNAME[p]:'커스텀'}</b>${p>=0?'':` <small>(${PNAME[baseOf(c)]} 기반)</small>`}${p>=0?'':df.map(k=>` · <b class="pdiff">${esc(diffLabel(k,c))}</b>`).join('')}`;
 }
-G.cfgChips=c=>`<span class="chip">규칙 ${ruleLine(c)}</span><span class="chip">${lvTxt('sz',c)}</span><span class="chip">시계 <b>${clockTxt(c)}</b></span><span class="chip">선 <b>${+c.pickfirst?'방장 선택':'랜덤'}</b></span>`;
-G.cfgSum=c=>`${lvTxt('sz',c)} · 시계 ${clockTxt(c)} · 선 ${+c.pickfirst?'방장 선택':'랜덤'}<br>규칙: ${ruleLine(c)}${+c.op?` · 오프닝 ${lvTxt('op',c)}`:''}`;
+G.cfgChips=c=>`<span class="chip">규칙 ${ruleLine(c)}</span><span class="chip">${lvTxt('sz',c)}</span><span class="chip">시계 <b>${clockTxt(c)}</b></span><span class="chip">선 <b>${+c.pickfirst?'선택':'무작위'}</b></span>`;
+G.cfgSum=c=>`${lvTxt('sz',c)} · 시계 ${clockTxt(c)} · 선 ${+c.pickfirst?'선택':'무작위'}<br>규칙: ${ruleLine(c)}${+c.op?` · 오프닝 ${lvTxt('op',c)}`:''}`;
 G.roomSub=()=>'2명 보드게임';
 G.pubExtra=()=>({});
 G.cardInfo=(c,nowN)=>`<p class="cardinfo">${nowN>2?'오목은 두 명이 하는 게임입니다.':'두 명이 하는 게임입니다. 사람이 한 명이면 봇이 상대합니다.'}</p>`;
@@ -437,16 +437,15 @@ G.settingsHTML=(c,{stepRow})=>{
     return `<div class="stp om-seg${df.has(k)?' pdiff-row':''}"><div class="stp-t"><b>${LV[k].label}</b>${note(k)}<small>${LV[k].desc}</small></div><div class="segrow">${LV[k].vals.map((t,j)=>`<button class="btn ${v===j?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${v===j}" data-act="om:set:${k}:${j}">${t}</button>`).join('')}</div></div>`};
   const det=open?`<div class="pl-det"><div class="rs-grid">${['sz','b33','ov','op'].map(seg).join('')}</div></div>`:'';
   const sp=rs.find(d=>d.k==='spec'),tm=rs.find(d=>d.k==='tm'),inc=rs.find(d=>d.k==='inc');
-  const pf=!!(+c.pickfirst),pd=G.ruleSet[0];   // 선 플레이어: 쿼리도와 같은 스위치 (켜면 대기실 목록의 [선]으로 고름)
-  const pfRow=`<div class="stp tg om-full"><div class="stp-t"><b>${pd.label}</b><small>${pd.desc}</small></div><div class="stp-c"><button type="button" class="sw${pf?' on':''}" role="switch" aria-checked="${pf}" aria-label="${pd.label}" data-act="tog:pickfirst"><i></i></button></div></div>`;
-  return `<div class="rs-grid">${[sp,tm,inc].filter(Boolean).map(stepRow).join('')}</div><div class="rulehead">게임 규칙</div>${lever}<p class="pl-sum">${ruleLine(c)}</p>${more}${det}<div class="rs-grid tgs">${pfRow}</div>`;
+  const pfRow=pickRowHTML(G.ruleSet[0],c,' om-full');   // 선 플레이어: 선택·무작위 버튼 둘
+  return `<div class="rs-grid">${[sp,tm,inc].filter(Boolean).map(stepRow).join('')}</div><div class="rulehead">게임 규칙</div>${lever}<p class="pl-sum">${ruleLine(c)}</p>${more}${det}<div class="rs-grid">${pfRow}</div>`;
 };
 /* 나무판 '세부 설정' 항목 (공통 코드가 G.boardSet으로 그림). 맨 위 규칙 레버 → 아래 항목이 한꺼번에 바뀜 */
 G.boardSet=c=>{
   const pos=presetOf(c),lv=pos===0?0:pos===1?2:1,df=new Set(diffKeys(c)),pd=G.ruleSet[0];
   return [{kind:'choice',k:'preset',label:'규칙',opts:['자유','커스텀','렌주'],desc:'자유: 금수·오프닝 없음 · 렌주: 흑 금수 + Swap2. 아래 항목을 바꾸면 커스텀이 됩니다',v:lv,act:o=>'om:pr:'+['0','c','1'][o]},
     ...['sz','b33','ov','op'].map(k=>({kind:'choice',k,label:LV[k].label,opts:LV[k].vals,desc:LV[k].desc,v:Math.max(0,Math.min(LV[k].vals.length-1,+c[k]||0)),diff:df.has(k),act:o=>`om:set:${k}:${o}`})),
-    {kind:'tog',k:'pickfirst',label:pd.label,desc:pd.desc,v:+c.pickfirst?1:0,act:()=>'tog:pickfirst'}];
+    rbRuleItem(pd,c)];
 };
 G.panelAct=a=>{
   if(!a.startsWith('om:'))return false;

@@ -31,7 +31,7 @@ function hostAddBot(force){
   const nm=BOT_NAMES.map(n=>n+' 봇').find(n=>!used.has(n))||'봇';
   H.members.push({name:nm,bot:true,conn:null,host:false,lv:1});mark();
 }
-/* 선 플레이어: 방 설정에서 '선 플레이어 직접 선택'을 켠 방은 방장이 대기실에서 고른 사람(H.firstName, 안 골랐거나 나갔으면 방장), 아니면 랜덤 */
+/* 선 플레이어: 방 설정에서 '선 플레이어'를 선택으로 한 방은 방장이 대기실에서 고른 사람(H.firstName, 안 골랐거나 나갔으면 방장), 아니면 랜덤 */
 function firstSeat(cnt){
   if(H.cfg.pickfirst){
     let i=H.players.findIndex(p=>p.name===H.firstName);
@@ -63,7 +63,7 @@ function hostStart(){
    G.intro(t0,{fast})에서 ctl=firstPick(룰렛 시작 시각, {seats,first,fast}) →
    매 프레임 ctl.idx(now)로 지금 켜진 자리를 그리고, ctl.tick(now)를 부르면 틱 소리가 나고 끝나는 순간 한 번 true(그때 게임이 ctl.msg()를 안내로 보여 줌).
    seats: 룰렛에 들어가는 자리 번호들(V.ps 기준), first: 첫 차례 자리 번호. 결과는 엔진이 정함 — 화면은 그 자리에서 멈추도록 맞춰 돎
-   방 설정의 '선 플레이어 직접 선택'(pickfirst)을 켜면 방장이 대기실에서 고르고(H.firstName), 신호 fp=-1 → 룰렛 없이 그 자리만 짧게 알림 */
+   방 설정의 '선 플레이어 선택·무작위'(pickfirst)을 켜면 방장이 대기실에서 고르고(H.firstName), 신호 fp=-1 → 룰렛 없이 그 자리만 짧게 알림 */
 function firstPick(t0,{seats,first,fast}){
   const L=seats.slice(),f=Math.max(0,L.indexOf(first)),P=Roulette.planFor(L.length,f,fast);   // fast<0: 방장이 직접 고른 선 (돌지 않음)
   const c={t0,total:P.total,seats:L,first:L[f],plan:P,fixed:P.fixed,n:0,said:false,cued:false,
@@ -105,6 +105,12 @@ function hostSetGame(id){
   sfx('tick');lastPanelHtml='';mark();
 }
 /* 켜고 끄는 규칙 (대부호의 8 끊기·혁명 등) */
+/* 선 플레이어처럼 두 버튼 중 하나를 고르는 규칙: 값을 정해서 바꿈 */
+function setRule(k,v){
+  if(mode!=='host'||!H||H.phase!=='wait'||!EG().ruleSet.some(d=>d.k===k))return;
+  v=+v?1:0;if((+H.cfg[k]?1:0)===v){lastPanelHtml='';mark();return}
+  H.cfg={...H.cfg,[k]:v};saveRoomCfg(H.cfg);sfx('tick');lastPanelHtml='';mark();
+}
 function toggleRule(k){
   if(mode!=='host'||!H||H.phase!=='wait'||!EG().ruleSet.some(d=>d.k===k))return;
   H.cfg={...H.cfg,[k]:H.cfg[k]?0:1};saveRoomCfg(H.cfg);sfx('tick');lastPanelHtml='';mark();

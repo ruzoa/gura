@@ -160,6 +160,11 @@ $('#panel').addEventListener('contextmenu',e=>{if(e.target.closest('.stp-b'))e.p
 $('#panel').addEventListener('change',e=>{const t=e.target;if(t&&t.id&&t.id.startsWith('st_'))setRoomCfg(t.id.slice(3),t.value)});
 $('#panel').addEventListener('keydown',e=>{const t=e.target;if(e.key==='Enter'&&t&&t.id&&t.id.startsWith('st_')){e.preventDefault();setRoomCfg(t.id.slice(3),t.value);t.blur()}});
 function hidePanel(){$('#panel').hidden=true;lastPanelHtml='';lastPanelKind=''}
+/* 선 플레이어처럼 선택·무작위 버튼 둘로 고르는 규칙 한 줄 (2D 설정 창) */
+function pickRowHTML(d,c,cls=''){
+  const cur=pickIdx(c[d.k]);
+  return `<div class="stp pick${cls}"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="segrow" role="radiogroup" aria-label="${d.label}">${PICK_OPTS.map((t,j)=>`<button class="btn ${cur===j?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${cur===j}" data-act="set:${d.k}:${pickVal(j)}">${t}</button>`).join('')}</div></div>`;
+}
 function renderPanel(){
   if(mode==='closed'||mode==='promoting'||net.retry)return;
   if(!V||mode==='lobby'){if(mode==='lobby')hidePanel();return}
@@ -167,7 +172,7 @@ function renderPanel(){
   if(V.st==='wait'){
     if(frTableUI()){hidePanel();return}   // 3D로 다 할 수 있으면 대기실 창 없음 (자리 = 이름표, 시작 = 빨간 버튼, 설정 = 설정 판자)
     const max=+V.cfg.max;
-    // 선 플레이어를 직접 고르는 방(방 설정의 '선 플레이어 직접 선택'): 고른 사람(없으면 방장)에 '선' 표시, 방장은 눌러서 바꿈
+    // 선 플레이어를 직접 고르는 방(방 설정의 '선 플레이어 선택·무작위'): 고른 사람(없으면 방장)에 '선' 표시, 방장은 눌러서 바꿈
     const pickF=!!(G.firstPick&&+V.cfg.pickfirst);
     let fi=pickF?V.ps.findIndex(p=>p.n===V.fn):-1;if(pickF&&fi<0)fi=Math.max(0,V.ps.findIndex(p=>p.hs));
     const fBtn=i=>!pickF?'':isHost?`<button type="button" class="firstbtn${i===fi?' on':''}" data-act="first:${i}" aria-pressed="${i===fi}" title="눌러서 선 플레이어로 정하기">선</button>`:i===fi?'<span class="firstbtn on ro">선</span>':'';
@@ -192,7 +197,7 @@ function renderPanel(){
     if(roomSetOpen&&isHost){
       const c=V.cfg,minMax=Math.max(2,V.ps.length);
       const nowN=Math.max(2,V.ps.length),cardInfo=G.cardInfo(c,nowN);
-      const rules=G.ruleSet.filter(d=>!d.hidden).map(d=>{const on=!!(+c[d.k]);return `<div class="stp tg"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="sw${on?' on':''}" role="switch" aria-checked="${on}" aria-label="${d.label}" data-act="tog:${d.k}"><i></i></button></div></div>`}).join('');
+      const rules=G.ruleSet.filter(d=>!d.hidden).map(d=>{const on=!!(+c[d.k]);if(d.pick)return pickRowHTML(d,c);return `<div class="stp tg"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="sw${on?' on':''}" role="switch" aria-checked="${on}" aria-label="${d.label}" data-act="tog:${d.k}"><i></i></button></div></div>`}).join('');
       const tooMany=GAME_IDS.filter(id=>GAMES[id].maxHi&&V.ps.length>GAMES[id].maxHi);   // 인원 제한이 있는 게임(쿼리도 4명)은 지금 인원이 넘으면 고를 수 없음
       const gpick=`<div class="rs-seg"><div class="rs-h"><b>게임</b><small>${esc(G.lead)}${tooMany.length?`<br>${tooMany.map(id=>`${esc(GAMES[id].name)}은(는) 최대 ${GAMES[id].maxHi}명`).join(', ')}까지 할 수 있습니다.`:''}</small></div><div class="segrow" role="radiogroup" aria-label="게임">${GAME_IDS.map(id=>`<button class="btn ${c.game===id?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${c.game===id}" data-act="game:${id}"${tooMany.includes(id)?' disabled':''}>${esc(GAMES[id].name)}</button>`).join('')}</div></div>`;
       const stepRow=d=>{const v=+(c[d.k]??cfg[d.k]),lo=d.k==='max'?minMax:d.k==='spec'?(Array.isArray(V.sv)?V.sv.length:0):d.lo;
@@ -267,6 +272,7 @@ $('#panel').addEventListener('click',e=>{
   if(!H)return;
   if(G.panelAct&&G.panelAct(a,b))return;   // 게임이 따로 처리하는 버튼 (대부호의 룰 레버 등)
   if(a.startsWith('tog:')){toggleRule(a.slice(4));return}
+  if(a.startsWith('set:')){const p=a.split(':');setRule(p[1],p[2]);return}
   if(a.startsWith('game:')){hostSetGame(a.slice(5));return}
   if(a.startsWith('botlv:')){const i=+a.slice(6),m=H&&H.members[i];if(mode==='host'&&H.phase==='wait'&&m&&m.bot&&m.name===b.dataset.name){m.lv=((m.lv??1)+1)%3;sfx('tick');mark()}return}
   if(a==='mode0'||a==='mode1'){if(H.phase==='wait'&&!EG().noFast){H.cfg={...H.cfg,fast:a==='mode1'?1:0};mark()}return}

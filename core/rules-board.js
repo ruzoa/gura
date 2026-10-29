@@ -160,8 +160,13 @@ function rbSetItems(){   // main = 탁자 설정(관전 인원 등 탁자 공통
   for(const d of roomSetOf(g))if(!d.lever&&d.k!=='max'){   // 최대 인원은 의자 추가·빼기 키로 바꾸므로 판자에서 뺌
     const v=+(c[d.k]??0);(common.has(d.k)?main:det).push({kind:'num',...d,v,diff:off(d.k,v)})}
   if(g.boardSet)det.push(...g.boardSet(c));
-  else for(const d of g.ruleSet)if(!d.hidden){const v=+c[d.k]?1:0;det.push({kind:'tog',...d,v,diff:off(d.k,v),act:()=>'tog:'+d.k})}
+  else for(const d of g.ruleSet)if(!d.hidden)det.push(rbRuleItem(d,c,off));
   return {main,det};
+}
+function rbRuleItem(d,c,off){   // 규칙 하나 → 판자 항목 (pick이면 선택·무작위 버튼 둘, 아니면 켜기·끄기)
+  const v=+c[d.k]?1:0;
+  if(d.pick)return {kind:'choice',k:d.k,label:d.label,opts:PICK_OPTS,desc:d.desc,v:pickIdx(v),diff:off?off(d.k,v):false,act:o=>'set:'+d.k+':'+pickVal(o)};
+  return {kind:'tog',...d,v,diff:off?off(d.k,v):false,act:()=>'tog:'+d.k};
 }
 function rbRowH(it){const two=RB.tall?it.kind!=='tog':it.kind==='choice'&&(it.opts.length>2||it.opts.join('').length>8);return {two,h:two?(RB.tall?206:150):(RB.tall?120:96),gap:RB.tall?16:16}}
 /* 판자 나누기: [{title, rows:[{it,y,two,h}]}]. ⚙ 탁자 설정 묶음 다음에 🎲 게임 설정 묶음은 새 판자부터 */
@@ -340,6 +345,7 @@ function frontRulesPick(yPx,hPx){
 /* 설정 판자 장치 누르기 (방장만). 숫자 ◀▶는 꾹 누르면 계속 */
 function rbItem(k){const s=rbSetItems();return [...s.main,...s.det].find(x=>x.k===k)}
 function rbRun(s){if(!s)return;if(G.panelAct&&G.panelAct(s))return;if(s.startsWith('tog:')){toggleRule(s.slice(4));return}
+  if(s.startsWith('set:')){const p=s.split(':');setRule(p[1],p[2]);return}
   if(s==='mode0'||s==='mode1'){if(H.phase==='wait'&&!EG().noFast){H.cfg={...H.cfg,fast:s==='mode1'?1:0};saveRoomCfg(H.cfg);lastPanelHtml='';mark()}}}
 function rbSetAct(k,a){
   const it=rbItem(k);if(!it)return;

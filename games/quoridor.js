@@ -188,9 +188,9 @@ G.modeDesc=['먼저 도착한 사람이 이기면 끝','먼저 도착한 사람�
 G.defaults={max:2,turn:30,pickfirst:0};
 G.roomSet=[
   {k:'turn',label:'제한 시간',unit:'초',lo:10,hi:180,step:5,desc:'제한 시간이 지나면 패배합니다. 연결이 끊겨도 시간은 흐르고, 45초가 지나면 탈주로 처리합니다'}];
-G.ruleSet=[{k:'pickfirst',label:'선 플레이어 직접 선택 (끄면 랜덤)',desc:'끄면 룰렛으로 랜덤하게 정합니다. 켜면 방장이 대기실에서 선 플레이어를 고릅니다'}];
-G.cfgChips=c=>`<span class="chip">제한 시간 <b>${+c.turn}초</b></span><span class="chip">선 <b>${c.pickfirst?'방장 선택':'랜덤'}</b></span>`;
-G.cfgSum=c=>`제한 시간 ${+c.turn}초 · 선 ${c.pickfirst?'방장 선택':'랜덤'}`;
+G.ruleSet=[{k:'pickfirst',pick:1,label:'선 플레이어',desc:'선택: 방장이 대기실에서 선 플레이어를 고릅니다. 무작위: 룰렛으로 정합니다'}];
+G.cfgChips=c=>`<span class="chip">제한 시간 <b>${+c.turn}초</b></span><span class="chip">선 <b>${c.pickfirst?'선택':'무작위'}</b></span>`;
+G.cfgSum=c=>`제한 시간 ${+c.turn}초 · 선 ${c.pickfirst?'선택':'무작위'}`;
 G.roomSub=()=>'2~4명 보드게임';
 G.pubExtra=()=>({});
 G.cardInfo=(c,nowN)=>{
