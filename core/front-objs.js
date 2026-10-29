@@ -149,12 +149,12 @@ function frontPoses(w,h){
 }
 /* 고개 돌리기: 탁자 양옆이 화면에 다 안 보이는 좁은 화면에서, 앉은 눈이 제자리에서 좌우로 고개를 돎(VW.yaw). 양옆이 다 보이면 못 돌림(VW.max=0).
    탁자 끝까지만: 탁자 가장자리가 화면 가장자리에 닿을 때까지(frontPoses가 VW.max를 잼). 탁자 바깥에서 한 손가락으로 끌어 돌리고,
-   놓고 2초 뒤 천천히 정중앙으로 돌아옴. 판 확대·서서 보기와 겹칠 때는 weight로 서서히 0 */
+   놓고 1초 뒤 천천히 정중앙으로 돌아옴. 판 확대·서서 보기와 겹칠 때는 weight로 서서히 0 */
 const VW={yaw:0,ty:0,max:0,drag:null,t:0,at:0,sens:Math.max(20,Math.min(300,+(store('gura-cam-sens')||100)||100))},_vq=window.THREE?new THREE.Quaternion():null,_vY=window.THREE?new THREE.Vector3(0,1,0):null;
 function viewStep(t){
   const dt=Math.min(.1,Math.max(0,(t-VW.t)/1000));VW.t=t;
   VW.ty=Math.max(-VW.max,Math.min(VW.max,VW.ty));
-  if(!VW.drag&&VW.ty&&t-VW.at>2000)VW.ty=0;   // 놓고 2초 뒤 정중앙으로
+  if(!VW.drag&&VW.ty&&t-VW.at>1000)VW.ty=0;   // 놓고 1초 뒤 정중앙으로
   VW.yaw+=(VW.ty-VW.yaw)*Math.min(1,dt*(VW.drag?22:VW.ty?9:3));if(Math.abs(VW.yaw-VW.ty)<1e-4)VW.yaw=VW.ty;
 }
 function viewTurn(w){const y=VW.yaw*w;if(!y)return;_vq.setFromAxisAngle(_vY,y);T.cam.quaternion.premultiply(_vq)}   // 제자리에서 고개만 (눈 위치는 그대로, y>0 = 왼쪽)
@@ -658,6 +658,7 @@ function frontOutside(cx,cy){
   return !hit||Math.hypot(hit.x,hit.z)>4.95;
 }
 $('#cv').addEventListener('click',e=>{
+  if(clock()-(VW.movedAt||-1e9)<400)return;   // 고개를 돌리려고 끈 것은 누르기가 아님
   const lob=mode==='lobby'&&FR.ok&&FR.sit&&FR.stand<.05&&!FR.warp&&!FR.spread&&!net.peer&&FR.lean<.1&&lobbyView==='main';   // 앉아 있는 첫 화면: 두 번 누르면 일어섬
   if(!lob&&(!frTableUI()||FR.stand>.05||FR.browse||roomSetOpen||FR.pop!=null))return;
   const out=frontOutside(e.clientX,e.clientY),t=clock(),armed=FR.armAt&&t-FR.armAt<2500;
@@ -667,16 +668,16 @@ $('#cv').addEventListener('click',e=>{
 });
 
 /* 고개 돌리기 입력: 탁자 바깥(위쪽 배경·탁자 가장자리 바깥)에서 시작한 한 손가락(마우스는 왼쪽 버튼) 드래그. 탁자 위는 게임이 쓰므로 건드리지 않음.
-   놓으면 2초 뒤 천천히 정중앙으로 돌아옴 (viewStep) */
+   놓으면 1초 뒤 천천히 정중앙으로 돌아옴 (viewStep). 끌고 난 뒤 생기는 click은 탁자 밖 누르기(떠나기)로 치지 않음(VW.movedAt) */
 {
   const st=$('#stage'),rc=new THREE.Raycaster(),pl=new THREE.Plane(new THREE.Vector3(0,1,0),0),pt=new THREE.Vector3();
   const outside=e=>{const r=st.getBoundingClientRect();rc.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},T.cam);return !rc.ray.intersectPlane(pl,pt)||Math.hypot(pt.x,pt.z)>4.94}   // 탁자 바깥을 눌렀는지
   const move=dx=>{VW.ty=Math.max(-VW.max,Math.min(VW.max,VW.ty+dx*.005*VW.sens/100))};   // 오른쪽으로 끌면 장면이 따라 오른쪽으로 → 고개는 왼쪽
   st.addEventListener('pointerdown',e=>{
     if(!FR.camOk||(e.pointerType==='mouse'&&e.button!==0)||(e.target.id!=='cv'&&e.target!==st)||!outside(e))return;
-    VW.drag={id:e.pointerId,x:e.clientX};VW.at=clock();try{st.setPointerCapture(e.pointerId)}catch(_){}
+    VW.drag={id:e.pointerId,x:e.clientX,sx:e.clientX};VW.at=clock();   // 붙잡기(capture)는 실제로 끌 때부터: 그냥 누르면 click이 #cv로 가야 함(대기실 떠나기)
   },true);
-  st.addEventListener('pointermove',e=>{const d=VW.drag;if(!d||e.pointerId!==d.id)return;move(e.clientX-d.x);d.x=e.clientX;VW.at=clock()},true);
+  st.addEventListener('pointermove',e=>{const d=VW.drag;if(!d||e.pointerId!==d.id)return;move(e.clientX-d.x);d.x=e.clientX;VW.at=clock();if(Math.abs(e.clientX-d.sx)>6){VW.movedAt=VW.at;if(!d.cap){d.cap=1;try{st.setPointerCapture(e.pointerId)}catch(_){}}}},true);
   const up=e=>{if(VW.drag&&VW.drag.id===e.pointerId){VW.drag=null;VW.at=clock()}};
   st.addEventListener('pointerup',up,true);st.addEventListener('pointercancel',up,true);
   const camS=()=>{for(const id of ['#mCamS','#inCamS'])$(id).value=VW.sens;$('#mCamSV').textContent=$('#camSV').textContent=VW.sens+'%'};   // 설정 → 카메라 감도 (드래그 거리당 도는 양, gura-cam-sens)
