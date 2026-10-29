@@ -587,11 +587,11 @@ G.leave=()=>{
 };
 /* 처음 한 번: 휠·구라! 버튼 */
 G.init=()=>{
-  /* 구라! 화면(.gmid)에서만: 손패 바로 위 가운데에 윗줄 [패스] [구라!], 그 아래(버튼과 손패 사이)에 가로 자음 휠.
+  /* 구라! 화면(.gmid)에서만: 손패 바로 위 가운데에 윗줄 가로 자음 휠, 그 아래(휠과 손패 사이)에 [패스] [구라!].
      내기 버튼은 숨김(끌어서 냄, 키는 그대로). 자음 칸이 없는 차례에도 자리를 남겨 버튼이 움직이지 않음 */
   const css=document.createElement('style');
   css.textContent=`
-.stage.gmid .actions{display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"p g" "w w";gap:8px 10px;width:min(320px,calc(100% - 20px));left:50%;right:auto;bottom:var(--gMidB,14px);transform:translateX(-50%) scale(var(--actS,1));transform-origin:50% 100%;pointer-events:none}
+.stage.gmid .actions{display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"w w" "p g";gap:8px 10px;width:min(320px,calc(100% - 20px));left:50%;right:auto;bottom:var(--gMidB,14px);transform:translateX(-50%) scale(var(--actS,1));transform-origin:50% 100%;pointer-events:none}
 .stage.gmid .myplate{bottom:var(--gPlateB,var(--plateB,14px))}
 .stage.gmid .actions .act,.stage.gmid .actions .numwheel{pointer-events:auto}
 .stage.gmid .actions .act{flex:none;min-width:0;height:60px;font-size:23px;padding:0 8px}
