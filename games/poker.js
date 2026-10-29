@@ -583,7 +583,7 @@ function layout(){
   const me=myIdx(),st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight,c=T.cam?T.cam.position:{x:0,y:0,z:0};
   const key=V.ps.length+'|'+me+'|'+W+'x'+Hh+'|'+[c.x,c.y,c.z].map(x=>x.toFixed(1)).join(',');
   if(key===spKey)return SP;spKey=key;NAR=W<Hh;
-  const list=seatList(),ths=thetas(list);RX=fitRx(ths,T.ok&&T.cam?camTarget():null);
+  const list=seatList(),ths=thetas(list);RX=fitRx(ths,T.ok&&T.seat?camTarget():null);
   SP=new Map();
   for(const i of list){
     const th=ths.get(i),p=arcPos(th,RX);
@@ -1036,34 +1036,19 @@ function knock(x,z){
 function knockFrame(now){
   for(const k of [...V3.knocks]){const a=(now-k.t0)/420;if(a>=1){killG(k.m);V3.knocks.splice(V3.knocks.indexOf(k),1);continue}const s=1+a*2.2;k.m.scale.set(s,s,1);k.m.material.opacity=.8*(1-a)}
 }
-/* ---------- 카메라: 공통 카메라(T.cam)와 똑같은 위치·각도·화각 (가로·세로 화면 모두) ----------
-   크기가 바뀌거나 게임이 시작되면 그때 보이던 카메라에서 미끄러지듯 옮김. 좁은 화면은 공통 카메라처럼 양옆이 잘리고, 자리 폭은 fitRx가 보이는 범위에 맞춤 */
-const PC={cam:null,tgt:null,on:false,key:'',t0:0,dur:0,fp:null,fq:null,fm:null};
+/* ---------- 카메라: 자기 카메라 없이 공통 카메라(T.cam)로 그림 (고개 돌리기도 공통 코드가 처리) ----------
+   자리 폭은 고개를 돌리기 전 앉은 눈(T.seat)이 보는 범위에 맞춰 fitRx가 정함. 이름표·누르기는 T.cam */
+const PK={tgt:null};
 function camTarget(){
-  const c=PC.tgt||(PC.tgt=new THREE.PerspectiveCamera(42,1,.1,100));
-  c.position.copy(T.cam.position);c.quaternion.copy(T.cam.quaternion);c.updateMatrixWorld();
-  c.projectionMatrix.copy(T.cam.projectionMatrix);c.projectionMatrixInverse.copy(T.cam.projectionMatrixInverse);
+  const c=PK.tgt||(PK.tgt=new THREE.PerspectiveCamera(42,1,.1,100));
+  c.position.copy(T.seat.p);c.quaternion.copy(T.seat.q);c.updateMatrixWorld();
+  c.projectionMatrix.copy(T.seat.m);c.projectionMatrixInverse.copy(T.seat.m).invert();
   return c;
 }
-function pkCamFrame(now){
-  const st=$('#stage'),w=st.clientWidth,h=st.clientHeight,tg=camTarget();
-  if(!PC.cam){PC.cam=new THREE.PerspectiveCamera(42,1,.1,100);PC.fp=new THREE.Vector3();PC.fq=new THREE.Quaternion();PC.fm=new THREE.Matrix4()}
-  const c=PC.cam,key=w+'x'+h+'|'+(myIdx()>=0);
-  if(!PC.on||key!==PC.key){   // 지금 보이던 카메라(시작이면 공통 카메라)에서 출발
-    const s=PC.on?c:T.cam;PC.fp.copy(s.position);PC.fq.copy(s.quaternion);PC.fm.copy(s.projectionMatrix);
-    PC.dur=PC.on?350:900;PC.t0=now;PC.on=true;PC.key=key;
-  }
-  const k0=Math.min(1,(now-PC.t0)/PC.dur),k=k0*k0*(3-2*k0);
-  c.position.copy(PC.fp).lerp(tg.position,k);c.quaternion.copy(PC.fq).slerp(tg.quaternion,k);c.updateMatrixWorld();
-  const a=PC.fm.elements,b=tg.projectionMatrix.elements,m=c.projectionMatrix.elements;for(let j=0;j<16;j++)m[j]=a[j]+(b[j]-a[j])*k;
-  c.projectionMatrixInverse.copy(c.projectionMatrix).invert();
-  return c;
-}
-const gameOn=()=>ON&&V3.root&&(V.st==='play'||V.st==='over');
-const CAM=()=>gameOn()&&PC.on&&PC.cam?PC.cam:T.cam;   // 지금 그리는 카메라 (이름표·누르기 계산용)
+const CAM=()=>T.cam;
 G.render3D=t=>{
   if(ON&&V3.root){frame3(t);T.timerBg.visible=T.timerArc.visible=false}
-  if(gameOn())T.r.render(T.scene,pkCamFrame(performance.now()));else{PC.on=false;T.r.render(T.scene,T.cam)}
+  T.r.render(T.scene,T.cam);
 };   // 남은 시간은 이름표 테두리와 베팅 칸 고리로 (자리 가장자리 고리는 숨김)
 /* 공통 코드가 다른 사람 자리에 카드 더미를 놓는데(손패 표시 1장) 포커는 카드를 펠트에 펼치므로 숨김 */
 G.field3D=v=>{
