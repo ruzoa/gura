@@ -15,21 +15,7 @@ function frontBuildList(TG){
   const pt=(x,y)=>[x/PL_CW*PW-PW/2,PL/2-y/PL_CH*PL];
   const hitM=new THREE.MeshBasicMaterial({visible:false}),rows=[];
   for(let i=0;i<FR_ROWS;i++){const [x,y]=pt(PL_CW/2,PL_Y0+i*PL_STEP+PL_RH/2),m=new THREE.Mesh(new THREE.PlaneGeometry(PW*.9,PL_RH/PL_CH*PL),hitM);m.position.set(x,y,.05);b.add(m);rows.push(m)}
-  // 레버: 오른쪽 옆면 축에서 앞으로 뻗은 놋쇠 막대 + 나무 손잡이. 당기면 아래로 꺾였다가 되돌아옴
-  const lv=new THREE.Group();lv.position.set(PW/2+.05,-.05,0);b.add(lv);
-  const brass=toon({color:0xb8925a,rim:.3}),knobM=toon({color:0x5a3a22,rim:.25});
-  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.08,20),brass);hub.rotation.z=Math.PI/2;lv.add(hub);hull(new THREE.CylinderGeometry(.085,.085,.1,20),hub,lv).rotation.z=Math.PI/2;
-  const rod=new THREE.Group();lv.add(rod);
-  const bar=new THREE.Mesh(new THREE.CylinderGeometry(.022,.022,.36,10),brass);bar.rotation.x=Math.PI/2;bar.position.set(.03,0,.18);rod.add(bar);
-  const knob=new THREE.Mesh(new THREE.SphereGeometry(.075,16,12),knobM);knob.position.set(.03,0,.38);knob.castShadow=true;rod.add(knob);hull(new THREE.SphereGeometry(.088,16,12),knob,rod);
-  rod.rotation.x=-.5;   // 쉬는 자리: 손잡이가 앞으로 비스듬히 올라감
-  // 새로고침: 판 왼쪽 옆 위의 놋쇠 단추 (↻를 새김). 누르면 한 바퀴 돌며 다시 찾음, 찾는 동안 계속 돎, 없음·끊김이면 숨 쉬듯 빛남
-  const refT=canvasTex(128,128,(x,w,h)=>{x.fillStyle='#c9a46a';x.fillRect(0,0,w,h);x.strokeStyle='#5a3a1c';x.fillStyle='#5a3a1c';x.lineWidth=13;x.lineCap='round';x.beginPath();x.arc(64,66,32,-Math.PI*.35,Math.PI*1.25);x.stroke();
-    const a=-Math.PI*.35,ex=64+32*Math.cos(a),ey=66+32*Math.sin(a);x.beginPath();x.moveTo(ex+20,ey-6);x.lineTo(ex-6,ey-22);x.lineTo(ex-2,ey+14);x.closePath();x.fill()});
-  const refM=toon({color:0xb8925a,rim:.3}),rf=new THREE.Group();rf.position.set(-PW/2-.11,PL/2-.2,.04);b.add(rf);   // 왼쪽 옆 위 (레버는 오른쪽)
-  const xT=canvasTex(128,128,(x,w,h)=>{x.fillStyle='#c9a46a';x.fillRect(0,0,w,h);x.strokeStyle='#5a3a1c';x.lineWidth=16;x.lineCap='round';x.beginPath();x.moveTo(38,38);x.lineTo(90,90);x.moveTo(90,38);x.lineTo(38,90);x.stroke()});
-  const lx=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.05,24),[brass,toon({map:xT,rim:.2}),brass]);lx.rotation.x=Math.PI/2;lx.position.set(PW/2+.1,PL/2-.2,.04);b.add(lx);{const o=hull(new THREE.CylinderGeometry(.088,.088,.06,24),lx,b);o.rotation.x=Math.PI/2;lx.visible=o.visible=false}
-  const rfm=new THREE.Mesh(new THREE.CylinderGeometry(.085,.085,.05,24),[refM,toon({map:refT,rim:.2}),refM]);rfm.rotation.x=Math.PI/2;rf.add(rfm);hull(new THREE.CylinderGeometry(.1,.1,.06,24),rfm,rf).rotation.x=Math.PI/2;
+  const brass=toon({color:0xb8925a,rim:.3});
   // 판 얼굴 아랫단(어두운 줄 아래 밝은 나무 띠)에 박힌 놋쇠 단추: ◀ 이전 쪽 · ▶ 다음 쪽 · ↻ 새로고침 · ✕ 닫기. 판과 같이 오르내리고, 누르면 판 안쪽으로 살짝 들어갔다 나옴
   const lbtn=[],BR=.08,BZ=.068,BY=PL/2-PL_BTNY/PL_CH*PL;
   {const ink='#5a3a1c',dr={
@@ -46,8 +32,7 @@ function frontBuildList(TG){
   const clipY=[new THREE.Plane(new THREE.Vector3(0,1,0),-.001)];
   b.traverse(o=>{if(o.material&&o.material!==hitM)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{m.clippingPlanes=clipY})});
   const slit=new THREE.Mesh(new THREE.PlaneGeometry(PW+.16,.22),new THREE.MeshBasicMaterial({color:0x15100c}));slit.rotation.x=-Math.PI/2;slit.position.y=.0005;g.add(slit);
-  lv.visible=false;rf.visible=false;
-  T.plist={g,b,board,lbtn,cv,tex,rows,xk:lx,ref:{g:rf,m:refM,at:-1e9,ang:0},lever:{g:lv,rod,knob,at:-1e9,dir:1},L:PL,W:PW,tilt:.08,key:'',flaps:[...Array(FR_ROWS)].map(()=>({to:['','',''],cur:['','',''],until:0,next:0,mid:0})),pick:-1,pickAt:0,drawn:''};
+  T.plist={g,b,board,lbtn,cv,tex,rows,L:PL,W:PW,tilt:.08,key:'',flaps:[...Array(FR_ROWS)].map(()=>({to:['','',''],cur:['','',''],until:0,next:0,mid:0})),pick:-1,pickAt:0,drawn:''};
   const fr=$('#front');
   {const acts={prev:()=>frontListPage(-1),next:()=>frontListPage(1),ref:()=>frontListRefresh(true),x:()=>frontList(false)},nm={prev:'이전 쪽',next:'다음 쪽',ref:'새로고침',x:'닫기'};
    lbtn.forEach(B=>{const bt=document.createElement('button');bt.type='button';bt.className='fr-hot off fr-key';bt.id='frL'+B.k;bt.setAttribute('aria-label',nm[B.k]);bt.title=nm[B.k];
@@ -114,14 +99,12 @@ function frontList(on){
 }
 /* 새로고침: 누르면 줄을 비우고 다시 찾음(첫 줄이 돎). 판이 열려 있으면 15초마다 저절로 다시 찾음(찾는 동안 지금 줄은 그대로) */
 function frontListRefresh(manual){
-  const P=T.plist;if(P)P.ref.at=clock();
   if(manual)sfx('key');
   if(FR.scan)return;
   if(manual){FR.lrooms=null;FR.lpage=0}
   FR.scan=true;scanRooms(l=>{FR.scan=false;if(l)FR.lrooms=l;else if(manual||!FR.lrooms)FR.lrooms=false});
 }
 function frontListPage(dir){
-  const P=T.plist;if(P){P.lever.at=clock();P.lever.dir=dir}
   const pages=Math.ceil(frontListRooms().length/FR_ROWS);
   sfx('lid');
   if(pages<=1){setTimeout(()=>sfx('no'),120);return}

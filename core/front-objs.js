@@ -356,11 +356,9 @@ function frontUpdate(t,dt){
     if(FR.pla.to===1&&pv>0&&!FR.listUp){FR.listUp=1;sfx('btnUp')}if(FR.pla.to===0)FR.listUp=0;
     P.b.position.y=P.L/2-(P.L+.1)*(1-pu);P.g.visible=pv>.01;
 if(pv>.01)frontDrawList(t);
-    {const Rf=P.ref,d=t-Rf.at,spin=FR.scan||d<600;const TW=Math.PI*2;if(spin)Rf.ang+=Math.max(0,dt)*(d<600?10.5:5);else{const tg=Math.ceil(Rf.ang/TW-1e-6)*TW;Rf.ang=Math.min(tg,Rf.ang+Math.max(0,dt)*5)}Rf.g.rotation.z=Rf.ang;   // 화살표 방향(시계 반대)으로 돎, 멈추면 처음 자리까지 마저 돌고 섬
-      const empty=!FR.scan&&(FR.lrooms===false||(Array.isArray(FR.lrooms)&&!frontListRooms().length)),p=empty?.5+.5*Math.sin(t/260):0;Rf.m.color.setRGB(.72+.28*p,.57+.33*p,.35+.2*p)}   // 없음·끊김이면 숨 쉬듯 빛남
     if(FR.list&&pv>=.98&&!FR.scan&&Date.now()-roomScanAt>15000&&Date.now()-(FR.autoAt||0)>15000){FR.autoAt=Date.now();frontListRefresh(false)}
     {P.lbtn.forEach(B=>{const d=t-B.at,k=d<0||d>300?0:d<90?d/90:1-(d-90)/210;B.m.position.z=B.o.position.z=B.z-.022*k})}   // 눌림
-    {const L=P.lever,d=t-L.at,k=d<0||d>520?0:d<160?d/160:1-smooth((d-160)/360);L.rod.rotation.x=-.5+(L.dir>0?.95:-.55)*k}}   // 레버: 당겼다가 되돌아옴
+  }
   frontRulesUpdate(t,dt,lobby,wait);
   if(FR.leanOn&&!FR.rb.on&&(!lobby||!FR.sit||FR.warp||FR.spread||(t-FR.keyAt>20000&&!FR.buf&&!FR.pub&&!FR.list)))FR.leanOn=false;
   if(lobby&&FR.sit&&FR.kmode==='num'&&!FR.leanOn&&!FR.buf&&!FR.pub&&!FR.list&&!FR.warp&&!FR.spread)frontToMenu();   // 숙여 보기를 그만두면(빈 곳·Esc) 번호가 없을 때 첫 자판으로
