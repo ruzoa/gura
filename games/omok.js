@@ -473,7 +473,7 @@ G.panelAct=a=>{
 /* ---------- 화면 (모든 참가자) ----------
    2D(SVG)와 3D(공통 테이블 위 원목 판 + 체스 시계)는 같은 상태(OS)를 보고 그림 */
 let OS=null,pend=null,held=false,msg='',msgUntil=0,msgTimer=null;   // OS: 지금 판 {n,R,b,...}, pend: 미리 보기로 고른 칸 {r,c} (상대 차례에도 미리 고를 수 있음), held: 통에서 돌 하나를 집어 든 상태 (놓을 때까지 유지, 취소해도 통에 돌려놓지 않음)
-let elOm=null,elSvg=null,elMain=null,elGhost=null,elBar=null,elHint=null,elModes=null,lastBoard='',lastBar='',lastHint='',lastModes='';
+let elOm=null,elSvg=null,elMain=null,elGhost=null,elBar=null,elBarMe=null,elHint=null,elModes=null,lastBoard='',lastBar='',lastHint='',lastModes='';
 const OC={at:0,fk:'',fl:[]};   // OC.at: 상태를 받은 시각 (시계가 흐른 시간 계산), fk·fl: 금수 칸 캐시
 function buildS(o){
   const n=o.n,b=Array.from(o.b,Number),R=o.R&&o.R.n?o.R:rulesOf({sz:n===19?1:0,b33:0,ov:0,op:0,tm:10,inc:5});
@@ -581,15 +581,16 @@ function drawGhost(){
 }
 const nm=i=>V.ps[i]?V.ps[i].n:'?';
 function stoneDot(col){return `<i class="dot ${col===1?'blk':col===2?'wht':'non'}"></i>`}
-function barHTML(){
-  const me=myIdx(),o=OS,order=me===1?[1,0]:[0,1];
-  return order.map(i=>{
-    const p=V.ps[i];if(!p||i>1)return '';
-    const on=V.st==='play'&&V.t===i&&!introWait();
-    const st=V.st==='over'?(o.res&&o.res.w<0?'무승부':p.f===1?'승리':(p.sr===2?'시간 초과':p.sr===3?'탈주':p.sr?'항복':'패배')):'';
-    return `<div class="om-p${on?' on':''}${i===me?' me':''}">${stoneDot(o.co[i])}<b>${esc(p.n)}${i===me?' (나)':''}</b><span class="w" data-ct="${i}">${fmtT(remMs(i))}</span>${st?`<span class="st">${st}</span>`:''}</div>`;
-  }).join('');
+/* 이름 칸: 상대는 판 위쪽 가운데, 나는 판 아래쪽 가운데 (관전자는 둘 다 위쪽) */
+function chipHTML(i){
+  const me=myIdx(),o=OS,p=V.ps[i];if(!p||i>1)return '';
+  const on=V.st==='play'&&V.t===i&&!introWait();
+  const st=V.st==='over'?(o.res&&o.res.w<0?'무승부':p.f===1?'승리':(p.sr===2?'시간 초과':p.sr===3?'탈주':p.sr?'항복':'패배')):'';
+  return `<div class="om-p${on?' on':''}${i===me?' me':''}">${stoneDot(o.co[i])}<b>${esc(p.n)}${i===me?' (나)':''}</b><span class="w" data-ct="${i}">${fmtT(remMs(i))}</span>${st?`<span class="st">${st}</span>`:''}</div>`;
 }
+const seated=()=>{const me=myIdx();return me===0||me===1};
+function barHTML(){const me=myIdx();return seated()?chipHTML(1-me):chipHTML(0)+chipHTML(1)}
+function meBarHTML(){return seated()?chipHTML(myIdx()):''}
 /* 안내 줄: 꼭 필요한 것만 짧게 (누구 차례인지는 바둑통 고리·이름 칸이, 놓기는 [놓기] 버튼이 보여 줌) */
 function hintText(){
   if(Date.now()<msgUntil&&msg)return msg;
@@ -637,7 +638,7 @@ function drawAll(){
     const bd=boardHTML();   // 같은 그림이면 다시 넣지 않음 (내 차례 여부에 따라 금수 ✕가 바뀌므로 글 전체로 비교)
     if(bd!==lastBoard){elMain.innerHTML=bd;lastBoard=bd}
   }
-  const bar=barHTML();if(bar!==lastBar){elBar.innerHTML=bar;lastBar=bar}
+  const top=barHTML(),mb=meBarHTML(),key=top+'\u0001'+mb;if(key!==lastBar){elBar.innerHTML=top;elBarMe.innerHTML=mb;lastBar=key}
   drawGhost();drawHint();fit();
 }
 
@@ -840,7 +841,7 @@ function om3Layout(t){
   const key=base+','+top+','+myIdx();
   if(key===Om3.lay)return false;
   Om3.lay=key;
-  const narrow=W<700,fy=top+2,fh=(narrow?Hh-78:Hh-54)-fy,fw=W-8;
+  const narrow=W<700,fy=top+2,fh=(narrow?Hh-114:Hh-54)-fy,fw=W-8;
   const ext=2*(BW+BGAP+2*BR),sV=Math.min(fw/(2*BW),fh/ext),sH=Math.min(fw/ext,fh/(2*BW));
   const lay=sH>sV?'h':'v',s=Math.max(sV,sH)*.97;
   Om3.layout=lay;placeBowls(lay);
@@ -1033,7 +1034,7 @@ G.live=()=>{
   if(IN.on){introTick();}
   if(!V||!V.o||!OS)return;
   // 시계: 위쪽 이름 칸의 시간 (매 프레임 조금씩)
-  if(elBar)elBar.querySelectorAll('[data-ct]').forEach(el=>{const i=+el.dataset.ct,ms=remMs(i),t=fmtT(ms);if(el.textContent!==t)el.textContent=t;
+  if(elBar)elOm.querySelectorAll('.om-bar [data-ct],.om-mebar [data-ct]').forEach(el=>{const i=+el.dataset.ct,ms=remMs(i),t=fmtT(ms);if(el.textContent!==t)el.textContent=t;
     const low=V.st==='play'&&V.t===i&&V.o.run&&ms<=10000;if(el.parentNode.classList.contains('low')!==low)el.parentNode.classList.toggle('low',low)});   // 10초 남으면 이름 칸 시간이 빨갛게 깜빡임 (글 안내 대신)
 };
 G.play=confirmPend;
@@ -1062,8 +1063,8 @@ G.init=()=>{
 .stage.om{background:radial-gradient(ellipse at 50% 38%,#f3e4c2 0%,#e2c89a 70%,#d3b27c 100%)}
 .stage.om.om2d #cv,.stage.om #dim{visibility:hidden}
 .stage.om-intro .actions,.stage.om-intro .myplate,.stage.om-intro #om .om-row{opacity:0;pointer-events:none}
-.stage.om .actions,.stage.om .myplate,#om .om-row,#om .om-bar{transition:opacity .35s}
-#om.intro .om-bar{opacity:0}
+.stage.om .actions,.stage.om .myplate,#om .om-row,#om .om-bar,#om .om-mebar{transition:opacity .35s}
+#om.intro .om-bar,#om.intro .om-mebar{opacity:0}
 .stage.om3d #om svg{display:none}
 .stage.om3d #om .om-hint{flex:0 1 auto;background:rgba(255,250,240,.9);border:1px solid var(--line-strong,#cdb391);border-radius:99px;padding:4px 12px;box-shadow:0 2px 6px -2px rgba(59,42,31,.35)}
 .stp.om-seg{flex-wrap:wrap}.stp.om-seg .segrow{flex:1 1 100%;width:100%}.rs-grid .stp.om-seg,.rs-grid .stp.om-full{grid-column:1/-1}
@@ -1075,7 +1076,9 @@ G.init=()=>{
 .stage.om .myplate{max-width:calc(100% - 150px)}
 #om{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 10px 82px;pointer-events:none;min-height:0}
 #om[hidden]{display:none}
-#om .om-bar{min-height:44px;display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start;max-width:calc(100% - 188px);pointer-events:none}
+#om .om-bar{min-height:44px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;align-self:center;max-width:calc(100% - 188px);pointer-events:none}
+#om .om-mebar{position:absolute;left:50%;bottom:var(--plateB,14px);transform:translateX(-50%);z-index:2;display:flex;pointer-events:none;max-width:calc(100% - 188px)}
+#om .om-mebar:empty{display:none}
 #om .om-p{position:relative;display:flex;align-items:center;gap:6px;padding:4px 10px 5px;border-radius:12px;background:rgba(255,250,240,.92);border:1.5px solid var(--line-strong,#cdb391);font-size:13px;line-height:1.15;white-space:nowrap;max-width:100%}
 #om .om-p .dot,.om-m .dot{width:13px;height:13px;border-radius:50%;flex:none;display:inline-block;vertical-align:-2px}
 #om .dot.blk{background:#222;box-shadow:0 0 0 2px #fffaf0,0 0 0 3px #555}
@@ -1096,14 +1099,16 @@ G.init=()=>{
 #om .om-bd{position:relative;flex:1;min-height:0;width:100%}
 #om svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none;filter:drop-shadow(0 6px 8px rgba(59,42,31,.35))}
 #om .om-co{font-size:.46px;font-weight:700;fill:#6b4a26;text-anchor:middle;dominant-baseline:central;font-family:var(--f-num,monospace)}
-@media (max-width:520px){#om .om-p{font-size:12px;padding:3px 8px 4px}#om .om-m{height:32px;padding:0 10px;font-size:14px}#om{padding-bottom:76px}}
+@media (max-width:520px){#om .om-p{font-size:12px;padding:3px 8px 4px}#om .om-m{height:32px;padding:0 10px;font-size:14px}}
+@media (max-width:520px){.stage.om2d #om .om-bar{align-self:flex-start;width:calc(100% - 150px);max-width:none}}
+@media (max-width:699px){#om{padding-bottom:112px}#om .om-mebar{bottom:70px;max-width:calc(100% - 24px)}}
 `;
   document.head.appendChild(css);
   elOm=document.createElement('div');elOm.id='om';elOm.hidden=true;
-  elOm.innerHTML=`<div class="om-bar"></div><div class="om-row"><div class="om-hint" aria-live="polite"></div><div class="om-modes" role="group" aria-label="오프닝 선택"></div></div><div class="om-bd"><svg viewBox="-1.3 -1.3 16.6 16.6" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="오목판"><g id="omMain"></g><g id="omGhost"></g></svg></div>`;
+  elOm.innerHTML=`<div class="om-bar"></div><div class="om-mebar"></div><div class="om-row"><div class="om-hint" aria-live="polite"></div><div class="om-modes" role="group" aria-label="오프닝 선택"></div></div><div class="om-bd"><svg viewBox="-1.3 -1.3 16.6 16.6" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="오목판"><g id="omMain"></g><g id="omGhost"></g></svg></div>`;
   $('#stage').insertBefore(elOm,$('#fx'));
   elSvg=elOm.querySelector('svg');elMain=elOm.querySelector('#omMain');elGhost=elOm.querySelector('#omGhost');
-  elBar=elOm.querySelector('.om-bar');elHint=elOm.querySelector('.om-hint');elModes=elOm.querySelector('.om-modes');
+  elBar=elOm.querySelector('.om-bar');elBarMe=elOm.querySelector('.om-mebar');elHint=elOm.querySelector('.om-hint');elModes=elOm.querySelector('.om-modes');
   elSvg.addEventListener('click',onSvgClick);
   elModes.addEventListener('click',e=>{const b=e.target.closest('.om-m');if(!b)return;sendPick(+b.dataset.v)});
   document.addEventListener('keydown',e=>{if(e.code==='Escape'&&pend&&elOm&&!elOm.hidden)cancelPend()});

@@ -653,7 +653,7 @@ function recordText(v){
 /* ---------- 화면 (모든 참가자) ----------
    2D(SVG)와 3D(공통 테이블 가운데 체스판 + 클래식 기물)는 같은 상태(CS)를 보고 그림. 흑을 잡으면 판을 돌려 내 기물이 늘 아래 */
 let CS=null,sel=-1,pend=null,proP=QQ,msg='',msgUntil=0,msgTimer=null,flash=null,popOpen=false;   // CS: 지금 판, sel: 고른 내 기물 칸, pend: 미리 보기로 고른 수 {m,from,to,pro}, proP: 프로모션으로 고를 기물
-let elCh=null,elSvg=null,elMain=null,elGhost=null,elBar=null,elHint=null,elModes=null,lastBoard='',lastBar='',lastHint='',lastModes='';
+let elCh=null,elSvg=null,elMain=null,elGhost=null,elBar=null,elBarMe=null,elHint=null,elModes=null,lastBoard='',lastBar='',lastHint='',lastModes='';
 const OC={at:0,mk:'',ms:[]};   // OC.at: 상태를 받은 시각, mk·ms: 내가 둘 수 있는 수 캐시
 function buildS(c){
   const p=fromFEN(c.fen);
@@ -805,20 +805,22 @@ function drawGhost(){
 }
 const nm=i=>V.ps[i]?V.ps[i].n:'?';
 const colDot=col=>`<i class="dot ${col===0?'wht':col===1?'blk':'non'}"></i>`;
-/* 위쪽 이름 칸: 색·이름·시간·잡은 기물. 내 칸을 누르면 무승부 제안 */
-function barHTML(){
-  const me=myIdx(),c=CS,order=me===1?[1,0]:[0,1];
-  return order.map(i=>{
-    const p=V.ps[i];if(!p||i>1)return '';
-    const on=V.st==='play'&&V.t===i&&!introWait();
-    const st=V.st==='over'?(c.res&&c.res.w<0?'무승부':p.f===1?'승리':(p.sr===2?'시간 초과':p.sr===3?'탈주':p.sr?'항복':'패배')):'';
-    const cps=(c.cp[i]||[]).slice().sort((a,b)=>VAL[b]-VAL[a]);
-    const capt=cps.length?`<span class="cp">${cps.map(t=>pieceIcon(t,c.co[i]^1,15)).join('')}</span>`:'';
-    const dr=V.st==='play'&&c.dr===i?'<span class="dr" title="무승부 제안">½</span>':'';
-    const mine=i===me&&V.st==='play';
-    return `<div class="ch-p${on?' on':''}${i===me?' me':''}${mine?' tap':''}"${mine?' data-me="1"':''}>${colDot(c.co[i])}<b>${esc(p.n)}${i===me?' (나)':''}</b>${dr}<span class="w" data-ct="${i}"></span>${st?`<span class="st">${st}</span>`:''}${capt}${mine&&popOpen?`<span class="ch-pop"><button type="button" class="ch-drbtn" data-dr="1">½ ${c.dr===i?'제안 거두기':'무승부 제안'}</button></span>`:''}</div>`;
-  }).join('');
+/* 이름 칸: 색·이름·시간·잡은 기물. 상대 칸은 판 위쪽 가운데, 내 칸은 판 아래쪽 가운데. 내 칸을 누르면 무승부 제안 */
+function chipHTML(i){
+  const me=myIdx(),c=CS,p=V.ps[i];if(!p||i>1)return '';
+  const on=V.st==='play'&&V.t===i&&!introWait();
+  const st=V.st==='over'?(c.res&&c.res.w<0?'무승부':p.f===1?'승리':(p.sr===2?'시간 초과':p.sr===3?'탈주':p.sr?'항복':'패배')):'';
+  const cps=(c.cp[i]||[]).slice().sort((a,b)=>VAL[b]-VAL[a]);
+  const capt=cps.length?`<span class="cp">${cps.map(t=>pieceIcon(t,c.co[i]^1,15)).join('')}</span>`:'';
+  const dr=V.st==='play'&&c.dr===i?'<span class="dr" title="무승부 제안">½</span>':'';
+  const mine=i===me&&V.st==='play';
+  return `<div class="ch-p${on?' on':''}${i===me?' me':''}${mine?' tap':''}"${mine?' data-me="1"':''}>${colDot(c.co[i])}<b>${esc(p.n)}${i===me?' (나)':''}</b>${dr}<span class="w" data-ct="${i}"></span>${st?`<span class="st">${st}</span>`:''}${capt}${mine&&popOpen?`<span class="ch-pop"><button type="button" class="ch-drbtn" data-dr="1">½ ${c.dr===i?'제안 거두기':'무승부 제안'}</button></span>`:''}</div>`;
 }
+const seated=()=>{const me=myIdx();return me===0||me===1};
+function barHTML(){   // 위쪽: 상대 (관전자는 둘 다)
+  const me=myIdx();return seated()?chipHTML(1-me):chipHTML(0)+chipHTML(1);
+}
+function meBarHTML(){return seated()?chipHTML(myIdx()):''}   // 아래쪽: 나
 const WHY_SHORT={mate:'체크메이트',time:'시간 초과',surrender:'항복',desert:'탈주',stale:'스테일메이트',rep:'같은 국면 3번',fifty:'50수 규칙',dead:'기물 부족',agree:'합의',tdead:'기물 부족'};
 /* 안내 줄: 결과만 (누구 차례·체크·갈 수 있는 칸은 판이 보여 줌) */
 function hintText(){
@@ -852,7 +854,7 @@ function fit(){
 function drawAll(){
   if(!CS||!elMain)return;
   if(!Ch3.on){const bd=boardHTML();if(bd!==lastBoard){elMain.innerHTML=bd;lastBoard=bd}}
-  const bar=barHTML();if(bar!==lastBar){elBar.innerHTML=bar;lastBar=bar;clockTick()}   // 시간은 글에 넣지 않음 (매초 칸을 다시 만들면 누르는 중인 칸이 사라짐)
+  const top=barHTML(),mb=meBarHTML(),key=top+'\u0001'+mb;if(key!==lastBar){elBar.innerHTML=top;elBarMe.innerHTML=mb;lastBar=key;clockTick()}   // 시간은 글에 넣지 않음 (매초 칸을 다시 만들면 누르는 중인 칸이 사라짐)
   drawGhost();drawHint();fit();
 }
 
@@ -1151,7 +1153,7 @@ function ch3Layout(t){
   const key=base+','+top+','+flipped();
   if(key===Ch3.lay)return false;
   Ch3.lay=key;
-  const narrow=W<700,fy=top+2,fh=(narrow?Hh-80:Hh-58)-fy,fw=W-12;
+  const narrow=W<700,fy=top+2,fh=(narrow?Hh-116:Hh-58)-fy,fw=W-12;
   const pts=lay=>{const o=[];const E=BW,ty=.72;
     for(const x of [-E,E])for(const z of [-E,E])o.push([x,0,z],[x,TOP,z]);
     for(const x of [-HB+S/2,HB-S/2])o.push([x,TOP+1.6*S*.95,-HB+S/2],[x,TOP+1.6*S*.95,HB-S/2]);
@@ -1370,7 +1372,7 @@ G.live=()=>{
 /* 이름 칸의 시간 (매 프레임 글자만 바꿈). 10초 남으면 빨갛게 깜빡임 */
 function clockTick(){
   if(!elBar||!V||!V.c)return;
-  elBar.querySelectorAll('[data-ct]').forEach(el=>{const i=+el.dataset.ct,ms=remMs(i),t=fmtT(ms);if(el.textContent!==t)el.textContent=t;
+  elCh.querySelectorAll('.ch-bar [data-ct],.ch-mebar [data-ct]').forEach(el=>{const i=+el.dataset.ct,ms=remMs(i),t=fmtT(ms);if(el.textContent!==t)el.textContent=t;
     const low=V.st==='play'&&V.t===i&&V.c.run&&ms<=10000;if(el.parentNode.classList.contains('low')!==low)el.parentNode.classList.toggle('low',low)});
 }
 G.play=confirmPend;
@@ -1399,8 +1401,8 @@ G.init=()=>{
 .stage.ch{background:radial-gradient(ellipse at 50% 38%,#f3e4c2 0%,#e2c89a 70%,#d3b27c 100%)}
 .stage.ch.ch2d #cv,.stage.ch #dim{visibility:hidden}
 .stage.ch-intro .actions,.stage.ch-intro .myplate,.stage.ch-intro #ch .ch-row{opacity:0;pointer-events:none}
-.stage.ch .actions,.stage.ch .myplate,#ch .ch-row,#ch .ch-bar{transition:opacity .35s}
-#ch.intro .ch-bar{opacity:0}
+.stage.ch .actions,.stage.ch .myplate,#ch .ch-row,#ch .ch-bar,#ch .ch-mebar{transition:opacity .35s}
+#ch.intro .ch-bar,#ch.intro .ch-mebar{opacity:0}
 .stage.ch3d #ch svg.ch-board{display:none}
 .stage.ch3d #ch .ch-hint{flex:0 1 auto;background:rgba(255,250,240,.9);border:1px solid var(--line-strong,#cdb391);border-radius:99px;padding:4px 12px;box-shadow:0 2px 6px -2px rgba(59,42,31,.35)}
 .stage.ch .labels{visibility:hidden}
@@ -1411,7 +1413,10 @@ G.init=()=>{
 .stage.ch .myplate{max-width:calc(100% - 150px)}
 #ch{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 10px 82px;pointer-events:none;min-height:0}
 #ch[hidden]{display:none}
-#ch .ch-bar{min-height:44px;display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start;max-width:calc(100% - 188px);pointer-events:none}
+#ch .ch-bar{min-height:44px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;align-self:center;max-width:calc(100% - 188px);pointer-events:none}
+#ch .ch-mebar{position:absolute;left:50%;bottom:var(--plateB,14px);transform:translateX(-50%);z-index:2;display:flex;pointer-events:none;max-width:calc(100% - 188px)}
+#ch .ch-mebar:empty{display:none}
+#ch .ch-mebar .ch-pop{left:50%;top:auto;bottom:calc(100% + 4px);transform:translateX(-50%)}
 #ch .ch-p{position:relative;display:flex;align-items:center;gap:6px;padding:4px 10px 5px;border-radius:12px;background:rgba(255,250,240,.92);border:1.5px solid var(--line-strong,#cdb391);font-size:13px;line-height:1.15;white-space:nowrap;max-width:100%}
 #ch .ch-p.tap{pointer-events:auto;cursor:pointer}
 #ch .dot{width:13px;height:13px;border-radius:50%;flex:none;display:inline-block;vertical-align:-2px}
@@ -1440,17 +1445,19 @@ G.init=()=>{
 #ch .ch-bd{position:relative;flex:1;min-height:0;width:100%}
 #ch svg.ch-board{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none;filter:drop-shadow(0 6px 8px rgba(59,42,31,.35))}
 #ch .ch-co{font-size:.26px;font-weight:700;fill:#f0d6aa;text-anchor:middle;dominant-baseline:central;font-family:var(--f-num,monospace)}
-@media (max-width:520px){#ch .ch-p{font-size:12px;padding:3px 8px 4px;gap:5px}#ch .ch-m,#ch .ch-drbtn{height:32px;padding:0 10px;font-size:14px}#ch{padding-bottom:76px}#ch .ch-bar{max-width:calc(100% - 150px)}}
+@media (max-width:520px){#ch .ch-p{font-size:12px;padding:3px 8px 4px;gap:5px}#ch .ch-m,#ch .ch-drbtn{height:32px;padding:0 10px;font-size:14px}#ch .ch-bar{max-width:calc(100% - 150px)}}
+@media (max-width:520px){.stage.ch2d #ch .ch-bar{align-self:flex-start;width:calc(100% - 150px);max-width:none}}
+@media (max-width:699px){#ch{padding-bottom:112px}#ch .ch-mebar{bottom:70px;max-width:calc(100% - 24px)}}
 `;
   document.head.appendChild(css);
   elCh=document.createElement('div');elCh.id='ch';elCh.hidden=true;
-  elCh.innerHTML=`<div class="ch-bar"></div><div class="ch-row"><div class="ch-hint" aria-live="polite"></div><div class="ch-modes" role="group" aria-label="고르기"></div></div><div class="ch-bd"><svg class="ch-board" viewBox="-.5 -.5 9 9" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="체스판"><defs><radialGradient id="chChk"><stop offset="0" stop-color="#ff2a14" stop-opacity=".95"/><stop offset=".6" stop-color="#e01e14" stop-opacity=".5"/><stop offset="1" stop-color="#c8140a" stop-opacity="0"/></radialGradient></defs><g id="chMain"></g><g id="chGhost"></g></svg></div>`;
+  elCh.innerHTML=`<div class="ch-bar"></div><div class="ch-mebar"></div><div class="ch-row"><div class="ch-hint" aria-live="polite"></div><div class="ch-modes" role="group" aria-label="고르기"></div></div><div class="ch-bd"><svg class="ch-board" viewBox="-.5 -.5 9 9" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="체스판"><defs><radialGradient id="chChk"><stop offset="0" stop-color="#ff2a14" stop-opacity=".95"/><stop offset=".6" stop-color="#e01e14" stop-opacity=".5"/><stop offset="1" stop-color="#c8140a" stop-opacity="0"/></radialGradient></defs><g id="chMain"></g><g id="chGhost"></g></svg></div>`;
   $('#stage').insertBefore(elCh,$('#fx'));
   elSvg=elCh.querySelector('svg.ch-board');elMain=elCh.querySelector('#chMain');elGhost=elCh.querySelector('#chGhost');
-  elBar=elCh.querySelector('.ch-bar');elHint=elCh.querySelector('.ch-hint');elModes=elCh.querySelector('.ch-modes');
+  elBar=elCh.querySelector('.ch-bar');elBarMe=elCh.querySelector('.ch-mebar');elHint=elCh.querySelector('.ch-hint');elModes=elCh.querySelector('.ch-modes');
   elSvg.addEventListener('click',onSvgClick);
   elModes.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.pro)setPro(+b.dataset.pro);else if(b.dataset.dr)sendDraw()});
-  elBar.addEventListener('click',e=>{
+  for(const bar of [elBar,elBarMe])bar.addEventListener('click',e=>{
     const b=e.target.closest('[data-dr]');if(b){e.stopPropagation();sendDraw();return}
     if(e.target.closest('[data-me]')){e.chPop=1;popOpen=!popOpen;lastBar='';drawAll()}
   });

@@ -587,7 +587,7 @@ G.engine={
 /* ---------- 화면 (모든 참가자) ----------
    3D: 공통 테이블 가운데 19줄 바둑판 + 알, 내 쪽에서 비스듬히 내려다보는 자기 카메라. WebGL이 없으면 위에서 본 2D 판(SVG)
    튕기기: 내 알(가까이 누른 곳의 알)을 누른 채 당기면 알 뒤에 화살표. 끝까지 당기면 흔들리고 더 길어지지 않음 → 놓으면 튕김 */
-let OS=null,drag=null,elAk=null,elSvg=null,elMain=null,elBar=null,elHint=null,lastBar='',lastHint='',msg='',msgUntil=0,msgTimer=null;
+let OS=null,drag=null,elAk=null,elSvg=null,elMain=null,elBar=null,elBarMe=null,elHint=null,lastBar='',lastHint='',msg='',msgUntil=0,msgTimer=null;
 const MAXD=1.25;   // 끝까지 당긴 거리 (월드). 넘게 당겨도 더 세지지 않음
 const SEND_MS=90;   // 당기는 중 화살표를 방장에게 보내는 간격
 const myTurnNow=()=>!!(V&&V.ak&&V.st==='play'&&myReady()&&OS&&OS.ph==='aim');
@@ -852,16 +852,20 @@ function draw2D(){
 }
 
 /* ----- 위쪽 이름 칸: 알 색·이름·남은 알(●)·내 차례면 남은 시간 ----- */
+/* 이름 칸: 나는 판 아래쪽 가운데, 다른 사람은 위쪽 가운데(나 다음부터 시계 방향). 관전자는 모두 위쪽 */
+function chipHTML(i){
+  const me=myIdx(),np=npOf(),p=V.ps[i];if(!p)return '';
+  const on=V.st==='play'&&V.t===i&&!introWait(),col=OS.co[i],al=aliveS(i),c=stC(col);
+  const st=V.st==='over'?(OS.res&&OS.res.w<0?'무승부':p.f===1?'승리':(p.sr===3?'탈주':p.sr?'항복':np>2&&p.f>1?`${p.f}위`:'패배')):(V.st==='play'&&!OS.om&&np>2&&al===0?'탈락':'');
+  const dots=OS.om?'':Array.from({length:OS.n},(_,k)=>`<i class="pip${k<al?'':' gone'}"></i>`).join('');
+  return `<div class="ak-p${on?' on':''}${i===me?' me':''}"><i class="dot ${c.css}"></i><b>${esc(p.n)}${i===me?' (나)':''}</b>${dots?`<span class="pips">${dots}</span>`:''}<span class="w" data-ct="${i}"></span>${st?`<span class="st">${st}</span>`:''}</div>`;
+}
+const seatedMe=()=>{const me=myIdx();return me>=0&&me<npOf()};
 function barHTML(){
   const me=myIdx(),np=npOf(),b=Math.max(0,me),order=Array.from({length:np},(_,k)=>(b+k)%np);   // 나부터 시계 방향
-  return order.map(i=>{
-    const p=V.ps[i];if(!p)return '';
-    const on=V.st==='play'&&V.t===i&&!introWait(),col=OS.co[i],al=aliveS(i),c=stC(col);
-    const st=V.st==='over'?(OS.res&&OS.res.w<0?'무승부':p.f===1?'승리':(p.sr===3?'탈주':p.sr?'항복':np>2&&p.f>1?`${p.f}위`:'패배')):(V.st==='play'&&!OS.om&&np>2&&al===0?'탈락':'');
-    const dots=OS.om?'':Array.from({length:OS.n},(_,k)=>`<i class="pip${k<al?'':' gone'}"></i>`).join('');
-    return `<div class="ak-p${on?' on':''}${i===me?' me':''}"><i class="dot ${c.css}"></i><b>${esc(p.n)}${i===me?' (나)':''}</b>${dots?`<span class="pips">${dots}</span>`:''}<span class="w" data-ct="${i}"></span>${st?`<span class="st">${st}</span>`:''}</div>`;
-  }).join('');
+  return (seatedMe()?order.slice(1):order).map(chipHTML).join('');
 }
+function meBarHTML(){return seatedMe()?chipHTML(myIdx()):''}
 /* 안내 줄: 꼭 필요한 것만 (누구 차례인지는 이름 칸, 튕길 수 있는 알은 고리가 보여 줌) */
 function hintText(){
   if(Date.now()<msgUntil&&msg)return msg;
@@ -876,7 +880,7 @@ function hintText(){
 function drawHint(){if(!elHint)return;const h=hintText();if(h!==lastHint){elHint.textContent=h;lastHint=h}}
 function drawAll(){
   if(!OS||!elAk)return;
-  const bar=barHTML();if(bar!==lastBar){elBar.innerHTML=bar;lastBar=bar}
+  const top=barHTML(),mb=meBarHTML(),key=top+'\u0001'+mb;if(key!==lastBar){elBar.innerHTML=top;elBarMe.innerHTML=mb;lastBar=key}
   drawHint();fit2D();draw2D();
 }
 function fit2D(){
@@ -1085,7 +1089,7 @@ function ak3Layout(t){
   const [sx,sz]=mySide(),np=npOf(),om=OS&&OS.om?1:0,key=base+','+top+','+sx+','+sz+','+np+','+om;
   if(key===Ak3.lay)return false;
   Ak3.lay=key;
-  const narrow=W<700,fy=top+2,fh=(narrow?Hh-70:Hh-40)-fy,fw=W-6;
+  const narrow=W<700,fy=top+2,fh=(narrow?Hh-116:Hh-58)-fy,fw=W-6;
   let s=np>2?Math.min(fw/(2*(BW+.45)),fh/(2*(BW+.45))):Math.min(fw/(2*(BW+.08)),fh/(2*(BW+.45)));   // 3~4명은 네 쪽 모두 놓기 전 알 줄
   if(om){const ext=2*(BW+BGAP+2*BR),sV=Math.min(fw/(2*(BW+.08)),fh/ext),sH=Math.min(fw/ext,fh/(2*(BW+.1)));Ak3.bl=sH>sV?'h':'v';s=Math.max(sV,sH)*.97}   // 오목 모드: 바둑통까지 (넓은 화면은 판 옆, 좁은 화면은 판 위아래)
   const cam=Ak3.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(s*f);
@@ -1379,7 +1383,7 @@ G.live=()=>{
   const t=clock(),run=V.st==='play'&&(OS.ph==='aim'||OS.ph==='place')&&!introWait()&&Number.isInteger(V.t);
   if(Ak3.pl)Ak3.pl.forEach((a,i)=>{if(a&&!Ak3.plSnd[i]&&t-a.t0>=PL_MS*.7){Ak3.plSnd[i]=1;sndTap(2.4)}});   // 놓은 알이 판에 툭
     const left=run?Math.max(0,V.deadAt-t):0,txt=run?String(Math.ceil(left/1000)):'';
-  if(elBar)elBar.querySelectorAll('[data-ct]').forEach(el=>{const i=+el.dataset.ct,s=run&&V.t===i?txt:'';if(el.textContent!==s)el.textContent=s;
+  if(elBar)elAk.querySelectorAll('.ak-bar [data-ct],.ak-mebar [data-ct]').forEach(el=>{const i=+el.dataset.ct,s=run&&V.t===i?txt:'';if(el.textContent!==s)el.textContent=s;
     const low=run&&V.t===i&&left<=10000;if(el.parentNode.classList.contains('low')!==low)el.parentNode.classList.toggle('low',low)});
   const np=npOf();
   if(Ak3.shot){const k=Array.from({length:np},(_,q)=>aliveS(q)).join(',');if(k!==Ak3.aliveK){Ak3.aliveK=k;drawAll()}}   // 재생 중 알이 떨어지는 순간 점을 줄임
@@ -1426,7 +1430,7 @@ G.init=()=>{
 .stage.ak.ak2d #cv,.stage.ak #dim{visibility:hidden}
 .stage.ak.ak3d #cv{touch-action:none}
 .stage.ak-intro .actions,.stage.ak-intro .myplate,.stage.ak-intro #ak .ak-row{opacity:0;pointer-events:none}
-.stage.ak .actions,.stage.ak .myplate,#ak .ak-row,#ak .ak-bar{transition:opacity .35s}
+.stage.ak .actions,.stage.ak .myplate,#ak .ak-row,#ak .ak-bar,#ak .ak-mebar{transition:opacity .35s}
 .stage.ak3d #ak svg{display:none}
 .stage.ak3d #ak .ak-hint{flex:0 1 auto;background:rgba(255,250,240,.9);border:1px solid var(--line-strong,#cdb391);border-radius:99px;padding:4px 12px;box-shadow:0 2px 6px -2px rgba(59,42,31,.35)}
 .stage.ak:not(.frwait) .labels{visibility:hidden}
@@ -1437,7 +1441,9 @@ G.init=()=>{
 .specbar:not([hidden])~#ak .ak-bar{margin-top:30px}
 #ak{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 10px 82px;pointer-events:none;min-height:0}
 #ak[hidden]{display:none}
-#ak .ak-bar{min-height:44px;display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start;max-width:calc(100% - 188px);pointer-events:none}
+#ak .ak-bar{min-height:44px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;align-self:center;max-width:calc(100% - 188px);pointer-events:none}
+#ak .ak-mebar{position:absolute;left:50%;bottom:var(--plateB,14px);transform:translateX(-50%);z-index:2;display:flex;pointer-events:none;max-width:calc(100% - 188px)}
+#ak .ak-mebar:empty{display:none}
 #ak .ak-p{position:relative;display:flex;align-items:center;gap:6px;padding:4px 10px 5px;border-radius:12px;background:rgba(255,250,240,.92);border:1.5px solid var(--line-strong,#cdb391);font-size:13px;line-height:1.15;white-space:nowrap;max-width:100%}
 #ak .dot{width:13px;height:13px;border-radius:50%;flex:none;display:inline-block}
 #ak .dot.blk{background:#222;box-shadow:0 0 0 2px #fffaf0,0 0 0 3px #555}
@@ -1459,13 +1465,15 @@ G.init=()=>{
 #ak .ak-hint{min-width:0;font-size:13px;line-height:1.3;color:#5b4129;text-align:center;min-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 #ak .ak-bd{position:relative;flex:1;min-height:0;width:100%}
 #ak svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}
-@media (max-width:520px){#ak .ak-p{font-size:12px;padding:3px 8px 4px}#ak{padding-bottom:76px}#ak .pips{max-width:44px}}
+@media (max-width:520px){#ak .ak-p{font-size:12px;padding:3px 8px 4px}#ak .pips{max-width:44px}}
+@media (max-width:520px){.stage.ak2d #ak .ak-bar{align-self:flex-start;width:calc(100% - 150px);max-width:none}}
+@media (max-width:699px){#ak{padding-bottom:112px}#ak .ak-mebar{bottom:70px;max-width:calc(100% - 24px)}}
 `;
   document.head.appendChild(css);
   elAk=document.createElement('div');elAk.id='ak';elAk.hidden=true;
-  elAk.innerHTML=`<div class="ak-bar"></div><div class="ak-row"><div class="ak-hint" aria-live="polite"></div></div><div class="ak-bd"><svg viewBox="${-VX} ${-VY} ${2*VX} ${2*VY}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="알까기 판"><defs><pattern id="akHatch" width=".23" height=".23" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".075" height=".23" fill="#d6281e"/><animateTransform attributeName="patternTransform" type="translate" from="0 0" to=".23 0" dur="2.6s" repeatCount="indefinite" additive="sum"/></pattern><pattern id="akBar" width=".15" height=".15" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".15" height=".15" fill="#f2c230"/><rect width=".075" height=".15" fill="#1d1b19"/></pattern></defs><g id="akB"></g><g id="akS"></g></svg></div>`;
+  elAk.innerHTML=`<div class="ak-bar"></div><div class="ak-mebar"></div><div class="ak-row"><div class="ak-hint" aria-live="polite"></div></div><div class="ak-bd"><svg viewBox="${-VX} ${-VY} ${2*VX} ${2*VY}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="알까기 판"><defs><pattern id="akHatch" width=".23" height=".23" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".075" height=".23" fill="#d6281e"/><animateTransform attributeName="patternTransform" type="translate" from="0 0" to=".23 0" dur="2.6s" repeatCount="indefinite" additive="sum"/></pattern><pattern id="akBar" width=".15" height=".15" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".15" height=".15" fill="#f2c230"/><rect width=".075" height=".15" fill="#1d1b19"/></pattern></defs><g id="akB"></g><g id="akS"></g></svg></div>`;
   $('#stage').insertBefore(elAk,$('#fx'));
-  elSvg=elAk.querySelector('svg');elMain=elSvg;elBar=elAk.querySelector('.ak-bar');elHint=elAk.querySelector('.ak-hint');
+  elSvg=elAk.querySelector('svg');elMain=elSvg;elBar=elAk.querySelector('.ak-bar');elBarMe=elAk.querySelector('.ak-mebar');elHint=elAk.querySelector('.ak-hint');
   // 당기기: 3D(캔버스)와 2D(SVG) 모두 누르기 → 끌기 → 놓기. 누른 채 화면 밖으로 끌어도 이어짐
   const bind=(el,toW,ok)=>{
     let pid=null;
