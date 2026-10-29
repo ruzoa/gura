@@ -97,7 +97,6 @@ G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 같은 수의 칩으�
 G.modeDesc=['정한 판 수까지','정한 판 수까지'];
 G.noFast=true;
 G.oneBotLv=true;   // 봇은 쉬움 하나뿐: 대기실에서 난이도를 고르지 않음
-G.specNote='관전 중입니다. 쇼다운에서 펼친 카드만 보입니다.';
 const U=10;   // 가장 작은 칩: 모든 베팅·나누기가 이 단위
 G.defaults={chips:1000,sb:10,rounds:10,up:0,turn:30,pickfirst:0};
 G.roomSet=[
@@ -520,26 +519,10 @@ G.onKey=(act,e)=>{
   return false;
 };
 G.handMarks=()=>{};
-const sgn=x=>x>0?`+${x}`:x<0?`−${-x}`:'±0';
-/* 지금 내 족보 (공용 카드가 3장 이상일 때, 프리플랍은 페어만) */
-function curHand(cs,bd){
-  if(cs.length<2||cs.some(x=>x<0))return '';
-  if(bd.length<3)return rkOf(cs[0])===rkOf(cs[1])?'원 페어':'';
-  return handName(best([...cs,...bd]));
-}
 const isWin=(B,i)=>!!(B.ph==='show'&&B.rs&&B.rs.won[i]>0&&B.rs.pots.some(p=>!p.ret&&p.w.includes(i)));
 /* 정산 전 칩: 팟 칩이 도착하기 전에는 받은 만큼 빼고 보임 (결과가 연출을 앞지르지 않게) */
 const shownCh=(B,i)=>B.ph==='show'&&B.rs&&!V3.landed.has(i)&&T.ok&&ON?B.ch[i]-(B.rs.won[i]||0):B.ch[i];
-G.me=i=>{
-  $('#numpick').hidden=true;
-  const B=BV(),p=V.ps[i];if(!B||!p)return;
-  const ch=shownCh(B,i);
-  if(p.f){if(!p.sr)$('#meSub').innerHTML=V.st==='over'?`<b>${+p.f}위</b> · 칩 <b>${B.ch[i]}</b>개`:'칩이 떨어졌습니다. 남은 판을 지켜봅니다.';return}
-  const bt=B.bet[i]+(myMode()==='act'?betAmt():0),cs=B.hc[i]||[];
-  const hn=B.st[i]===1?'폴드':curHand(cs,B.bd);
-  const res=B.ph==='show'&&B.rs&&V3.landed.has(i)&&B.rs.won[i]>0?` <em class="w">+${B.rs.won[i]}</em>`:'';
-  $('#meSub').innerHTML=`칩 <b>${Math.max(0,ch-(myMode()==='act'?betAmt():0))}</b>개${bt?` · 베팅 <b>${bt}</b>`:''}${hn?` · <span class="pk-me">${hn}</span>`:''}${res}`;
-};
+G.me=()=>{$('#numpick').hidden=true};
 G.nameTag=()=>'';
 G.overRank=p=>{const B=V&&V.pk,why=p.sr?(p.sr===2?'시간 초과':p.sr===3?'탈주':'항복'):'';return `<span class="left">${why?why+' · ':''}칩 ${B?B.ch[p.i]:0}개</span>`};
 G.preView=()=>{
@@ -1177,8 +1160,6 @@ G.init=()=>{
 .seat .pkt i{font-style:normal;font-size:10.5px;font-weight:700;color:var(--muted)}.seat .pkt i.a{color:#9a5b00}.seat .pkt i.f{color:var(--muted);font-weight:600}
 .seat .pkt em{font-style:normal;font-family:var(--f-num);font-weight:700;font-size:12.5px}.seat .pkt em.w{color:#2c7d47}
 .stage.pk .seat.pk-fold{opacity:.62}
-.pk-me{font-weight:700}
-.myplate .me-sub em.w{font-style:normal;font-family:var(--f-num);font-weight:700;color:#2c7d47}
 #pkBet{position:absolute;left:50%;bottom:calc(var(--plateB,14px) + 62px);transform:translateX(-50%);z-index:8;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:18px;background:rgba(255,250,240,.94);border:1.5px solid var(--line-strong);box-shadow:0 4px 12px -4px rgba(59,42,31,.45)}
 #pkBet[hidden]{display:none}
 #pkBet .pk-amt{display:flex;align-items:center;gap:4px;min-width:84px;justify-content:center}

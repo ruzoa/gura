@@ -1014,14 +1014,7 @@ G.hud=inGame=>{
   om3Sync();
 };
 G.handMarks=()=>{};
-G.me=(i,h)=>{
-  $('#numpick').hidden=true;
-  const p=V.ps[i];if(!p||!V.o||!OS)return;
-  const c=OS.co[i];
-  if(p.f){if(!p.sr)$('#meSub').innerHTML=OS.res&&OS.res.w<0?'<b>무승부</b>입니다.':`<b>${+p.f}위</b>입니다.`;return}
-  $('#meSub').innerHTML=c?`<b>${c===1?'흑':'백'}</b>을 잡았습니다`:'오프닝 중입니다';
-};
-G.specNote='관전 중입니다. 두 사람의 대국을 지켜봅니다.';
+G.me=()=>{$('#numpick').hidden=true};
 /* 결과 창 순위 옆 글자: 비기면 둘 다 1위라 '무승부'로 알려 줌 */
 G.overRank=p=>{
   const r=V&&V.o&&V.o.res,t=p.sr===2?'시간 초과':p.sr===3?'탈주':p.sr?'항복':r&&r.w<0?'무승부':'';
@@ -1039,11 +1032,9 @@ G.buttons=()=>{
 G.live=()=>{
   if(IN.on){introTick();}
   if(!V||!V.o||!OS)return;
-  // 시계: 위쪽 이름 칸과 내 정보 칸의 시간 (매 프레임 조금씩)
+  // 시계: 위쪽 이름 칸의 시간 (매 프레임 조금씩)
   if(elBar)elBar.querySelectorAll('[data-ct]').forEach(el=>{const i=+el.dataset.ct,ms=remMs(i),t=fmtT(ms);if(el.textContent!==t)el.textContent=t;
     const low=V.st==='play'&&V.t===i&&V.o.run&&ms<=10000;if(el.parentNode.classList.contains('low')!==low)el.parentNode.classList.toggle('low',low)});   // 10초 남으면 이름 칸 시간이 빨갛게 깜빡임 (글 안내 대신)
-  const me=myIdx();
-  if(me>=0){const mt=$('#meTime');const t=V.st==='play'?fmtT(remMs(me)):'';if(mt.textContent!==t)mt.textContent=t}
 };
 G.play=confirmPend;
 G.pass=()=>{};

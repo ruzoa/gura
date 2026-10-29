@@ -662,7 +662,7 @@ G.handMarks=(i,h,hand)=>{
 const RT_CLS={'대부호':'r1','부호':'r2','평민':'r3','빈민':'r4','대빈민':'r5'};
 function rankTag(r,n){if(!(r>0))return '';const t=rankTitle(r,n);return `<span class="rtag ${RT_CLS[t]||''}">${t}</span>`}
 G.nameTag=p=>p&&p.pr&&!p.f?rankTag(p.pr,V.ps.length):'';
-G.me=i=>{const p=V.ps[i];if(p&&p.pr&&!p.f)$('#meSub').insertAdjacentHTML('afterbegin',rankTag(p.pr,V.ps.length))};
+G.me=()=>{};
 /* 결과 화면: 지난 판 계급 → 이번 계급 (▲ 올라감, ▼ 내려감) */
 G.overRank=p=>{
   const n=V.ps.length,t=rankTitle(p.f,n),was=p.pr?rankTitle(p.pr,n):'';

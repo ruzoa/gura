@@ -1298,14 +1298,7 @@ G.hud=inGame=>{
   drawAll();
 };
 G.handMarks=()=>{};
-G.me=(i,h)=>{
-  $('#numpick').hidden=true;
-  const p=V.ps[i];if(!p||!V.y)return;
-  if(p.f){if(!p.sr)$('#meSub').innerHTML=`<b>${+p.f}위</b>입니다.`;return}
-  const T=totals(scoreOf(i),V.y.yb[i]);
-  $('#meSub').innerHTML=`총점 <b>${T.total}</b>점 · <b>${V.y.dn[i]}</b>/${V.y.rd}칸`;
-};
-G.specNote='관전 중입니다. 모든 주사위와 점수가 보입니다.';
+G.me=()=>{$('#numpick').hidden=true};
 G.no3D=true;   // 공통 테이블 카메라로는 그리지 않음 (2D 화면이면 그리기를 쉬어서 배터리를 아낌)
 G.render3D=(t)=>{if(D3.on)d3Render(t);else if(T.ok)T.r.render(T.scene,T.cam)};   // 게임 중(3D)은 트레이·컵을 자기 카메라로, 대기실은 다른 게임처럼 공통 테이블
 G.buttons=()=>{

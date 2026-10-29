@@ -40,7 +40,6 @@ const cardEl=id=>id>=0?`<span class="card bjc" style="--rc:${SUIT_COL[suitOf(id)
 G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 같은 수의 칩으로 시작해서, 정한 판 수를 마쳤을 때 칩이 가장 많은 사람이 이깁니다</li><li><b>베팅</b> : 판마다 먼저 칩을 겁니다 (최소 10개). 내 앞의 칩 더미를 누르면 그 칩이 베팅 칸으로 가고, 베팅 칸의 칩을 누르면 돌아옵니다. [베팅]으로 확정합니다</li><li><b>카드</b> : 모두 두 장씩 앞면으로 받고, 딜러는 한 장을 엎어 둡니다. A는 1이나 11, J·Q·K는 10입니다. 카드는 정한 벌 수만큼 한 통에 섞어 판이 바뀌어도 이어 쓰고, 다음 판을 나눌 만큼 남지 않으면 다시 섞습니다</li><li><b>차례</b> : <b>히트</b>는 한 장 더, <b>스탠드</b>는 멈춤, <b>더블</b>은 처음 두 장일 때 건 칩을 두 배로 하고 딱 한 장만 더 받습니다. 21을 넘으면 <b>버스트</b>로 집니다</li><li><b>딜러</b> : 엎은 카드를 펼치고 16 이하면 반드시 더 받습니다. 봇 딜러는 17 이상이면 멈추고, 사람 딜러는 17 이상에서 더 받을지 고릅니다</li><li><b>정산</b> : 딜러보다 21에 가까우면 건 만큼 받고, 처음 두 장이 21(<b>블랙잭</b>)이면 1.5배를 받습니다. 같으면 무승부입니다. 딜러가 A나 10을 보이고 블랙잭이면 바로 정산합니다</li><li><b>사람 딜러</b> : 탁자 설정에서 켜면 참가자가 돌아가며 딜러를 맡아, 진 사람의 칩을 받고 이긴 사람에게 칩을 줍니다 (칩이 모자라면 가진 만큼 나눠 줌). 판 수를 인원의 배수로 하면 모두 같은 횟수만큼 딜러를 맡습니다</li><li><b>탈락</b> : 칩이 10개보다 적어지면 탈락합니다</li><li><b>시간 초과</b> : 베팅은 최소 칩(10개), 차례는 스탠드입니다</li><li>스플릿·인슈어런스는 없습니다</li></ol>';
 G.modeDesc=['정한 판 수까지','정한 판 수까지'];
 G.noFast=true;
-G.specNote='관전 중입니다. 딜러가 엎은 카드만 빼고 모두 보입니다.';
 const MIN=10;
 G.defaults={chips:100,rounds:8,turn:20,decks:2,hdeal:0};
 G.roomSet=[
@@ -455,15 +454,7 @@ function totalHTML(cs,st,dealer){
   if(st===3||(dealer&&isBJ(cs)))return '<b class="bj">블랙잭</b>';
   return `<b>${soft&&t<21?`${t-10}/${t}`:t}</b>`;
 }
-G.me=i=>{
-  $('#numpick').hidden=true;
-  const B=BV(),p=V.ps[i];if(!B||!p)return;
-  const ch=B.ch[i];
-  if(p.f){if(!p.sr)$('#meSub').innerHTML=V.st==='over'?`<b>${+p.f}위</b> · 칩 <b>${ch}</b>개`:'칩이 떨어졌습니다. 남은 판을 지켜봅니다.';return}
-  const bt=B.bt[i]||(B.ph==='bet'?betAmt():0),cs=B.hc[i]||[];
-  const res=B.ph==='settle'&&B.rs&&B.od.includes(i)?` <em class="${B.rs[i]>0?'w':B.rs[i]<0?'l':'p'}">${sgn(B.rs[i])}</em>`:'';
-  $('#meSub').innerHTML=`칩 <b>${ch}</b>개${bt?` · 베팅 <b>${bt}</b>`:''}${B.hd&&B.dl===i?' · 딜러':''}${cs.length?` · 카드 <span class="bj-me">${totalHTML(cs,B.st[i],false)}</span>`:''}${res}`;
-};
+G.me=()=>{$('#numpick').hidden=true};
 G.nameTag=(p,i)=>{const B=V&&V.st!=='wait'?V.bj:null;return B&&B.hd&&B.dl===i?'<span class="bj-dtag">딜러</span>':''};
 G.overRank=p=>{const B=V&&V.bj,why=p.sr?(p.sr===2?'시간 초과':p.sr===3?'탈주':'항복'):'';return `<span class="left">${why?why+' · ':''}칩 ${B?B.ch[p.i]:0}개</span>`};
 G.preView=()=>{
@@ -928,13 +919,12 @@ G.init=()=>{
 .bj-tag.dl{background:rgba(59,42,31,.88);border-color:#2d2219;color:#f4ead9}
 .bj-tag.dl b{color:#f4ead9}.bj-tag.dl .who{color:#d8c7ab}
 .bj-tag b{font-family:var(--f-num);font-size:14px;font-weight:700;color:var(--ink)}
-.bj-tag b.bust,.bj-me b.bust{font-family:var(--f-body);font-size:12.5px;color:var(--gura)}
-.bj-tag b.bj,.bj-me b.bj{font-family:var(--f-body);font-size:12.5px;color:#c08a17}
+.bj-tag b.bust{font-family:var(--f-body);font-size:12.5px;color:var(--gura)}
+.bj-tag b.bj{font-family:var(--f-body);font-size:12.5px;color:#c08a17}
 .bj-tag i{font-style:normal;font-size:11px;font-weight:600;color:var(--muted)}
 .bj-tag .who{font-size:11px;font-weight:700;color:var(--muted)}
-.bj-tag em,.r2 em,.myplate .me-sub em{font-style:normal;font-family:var(--f-num);font-weight:700;font-size:13px}
-.bj-tag em.w,.r2 em.w,.me-sub em.w{color:#2c7d47}.bj-tag em.l,.r2 em.l,.me-sub em.l{color:var(--gura)}.bj-tag em.p,.r2 em.p,.me-sub em.p{color:var(--muted);font-family:var(--f-body);font-size:12px}
-.bj-me b{font-family:var(--f-num)}.bj-me i{font-style:normal;color:var(--muted)}
+.bj-tag em,.r2 em{font-style:normal;font-family:var(--f-num);font-weight:700;font-size:13px}
+.bj-tag em.w,.r2 em.w{color:#2c7d47}.bj-tag em.l,.r2 em.l{color:var(--gura)}.bj-tag em.p,.r2 em.p{color:var(--muted);font-family:var(--f-body);font-size:12px}
 .seat .bjt{display:flex;align-items:baseline;gap:4px;font-size:11px;line-height:1.2}.seat .bjt:empty{display:none}
 .seat .bjt b{font-family:var(--f-num);font-size:13.5px;font-weight:700;color:var(--ink)}.seat .bjt b.bust{font-family:var(--f-body);font-size:12px;color:var(--gura)}.seat .bjt b.bj{font-family:var(--f-body);font-size:12px;color:#c08a17}.seat .bjt i{font-style:normal;font-size:10.5px;font-weight:600;color:var(--muted)}.seat .bjt em{font-style:normal;font-family:var(--f-num);font-weight:700;font-size:12.5px}.seat .bjt em.w{color:#2c7d47}.seat .bjt em.l{color:var(--gura)}.seat .bjt em.p{color:var(--muted);font-family:var(--f-body);font-size:11px}
 

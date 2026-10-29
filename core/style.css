@@ -530,11 +530,6 @@ body.kb .fan .card.cur{z-index:70!important}
 .emopad button small{position:absolute;right:3px;bottom:1px;font-family:var(--f-num);font-size:9px;color:var(--muted)}
 .emopad:disabled,.emopad button:disabled{opacity:.4}
 .myplate .me-name{font-family:var(--f-display);font-size:18px;line-height:1.1}
-.myplate .me-sub{font-size:13px;color:var(--muted)}
-.myplate .me-sub b{color:var(--ink);font-family:var(--f-num)}
-.myplate .me-time{font-family:var(--f-num);font-size:13px;font-weight:600;color:var(--ink)}
-.myplate .me-time.grace{color:var(--gura)}
-.myplate .me-time:empty{display:none}
 .myplate .bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:transparent}
 
 /* 선언 자음 고르기: 세로 휠 (W 위 = 이전 자음, S 아래 = 다음 자음) */

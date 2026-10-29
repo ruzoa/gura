@@ -42,11 +42,9 @@ function renderMe(){
   $('#me').hidden=!(V&&V.ps&&V.st!=='wait'&&mode!=='lobby');
   if(!V||!V.ps||V.st==='wait'||i<0){
     hand.innerHTML='';hand.dataset.key='';np.hidden=true;np.innerHTML='';layoutFan();
-    $('#meSub').textContent=mode==='lobby'?'상을 차리거나 찾아갑니다.':(V&&V.st!=='wait'&&i<0?(V.jn?'다음 판에 참가합니다.':G.specNote||'관전 중입니다. 다른 사람의 패는 볼 수 없습니다.'):'게임 시작을 기다리는 중입니다.');
     renderButtons();return;
   }
-  const p=V.ps[i],h=myHand();
-  $('#meSub').innerHTML=p.f?(p.sr?`${p.sr===2?'시간 초과로':p.sr===3?'탈주 처리되어':'항복해서'} <b>${+p.f}위</b>입니다. 남은 판을 지켜봅니다.`:`<b>${+p.f}위${G.rankTitle(p.f,V.ps.length)?' '+G.rankTitle(p.f,V.ps.length):''}</b>로 탈출했습니다.`):`<b>${h.length}</b>장`;
+  const h=myHand();
   syncCursor();
   // 같은 카드면 다시 그리지 않고 상태만 바꿔서 마우스 올림·애니메이션이 끊기지 않게
   const key=h.join(',');
@@ -333,18 +331,16 @@ function liveUI(t){
     const b=document.querySelector(`[data-tb="${i}"]`);if(b){const el=b.parentNode,w=el.offsetWidth+4,h=el.offsetHeight+4,rc=b.firstChild;if(rc.dataset.wh!==w+'x'+h){rc.dataset.wh=w+'x'+h;rc.setAttribute('width',w-3);rc.setAttribute('height',h-3)}
       b.style.setProperty('--off',(100*(1-f)).toFixed(1));b.classList.toggle('grace',grace)}};   // 이름표 테두리에도 같은 시간
   const meBar=$('#meBar');meBar.firstChild.style.width='0';meBar.classList.remove('grace');
-  let meT='',meG=false;
   if(V.st==='play'&&V.ps[V.t]&&!dealingV()){
     const g=V.graceAt-t,me=myIdx();
     const bar=V.t===me?meBar:document.querySelector(`[data-bar="${V.t}"]`);
-    if(g>0){if(V.t===me){meT=`대기 ${Math.ceil(g/1000)}초`;meG=true}if(bar){bar.classList.add('grace');bar.firstChild.style.width=Math.min(100,g/(V.cfg.grace*1000)*100)+'%'}if(V.t!==me)setRing(V.t,1,true)}
+    if(g>0){if(bar){bar.classList.add('grace');bar.firstChild.style.width=Math.min(100,g/(V.cfg.grace*1000)*100)+'%'}if(V.t!==me)setRing(V.t,1,true)}
     else{
       const left=Math.max(0,(V.deadAt-t)/1000);if(bar)bar.firstChild.style.width=Math.min(100,left/V.cfg.turn*100)+'%';if(V.t!==me)setRing(V.t,left/V.cfg.turn,false);
-      const sec=Math.ceil(left);if(V.t===me)meT=`${sec}초`;
+      const sec=Math.ceil(left);
       if(V.t===me&&sec<=5&&sec>0){if(sec!==lastWarnSec){lastWarnSec=sec;sfx('warn',sec<=2)}}else lastWarnSec=-1;
     }
   }
-  {const mt=$('#meTime');if(mt.textContent!==meT)mt.textContent=meT;mt.classList.toggle('grace',meG)}
   G.live();
   renderButtons();
 }

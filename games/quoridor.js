@@ -1002,13 +1002,7 @@ G.hud=inGame=>{
   q3Sync();
 };
 G.handMarks=()=>{};
-G.me=(i,h)=>{
-  $('#numpick').hidden=true;
-  const p=V.ps[i];if(!p||!V.q)return;
-  if(p.f){if(!p.sr)$('#meSub').innerHTML=V.q.dn[i]?`<b>${+p.f}위</b>로 도착했습니다.`:`<b>${+p.f}위</b>입니다.`;return}
-  $('#meSub').innerHTML=`남은 벽 <b>${+V.q.wl[i]}</b>개`;
-};
-G.specNote='관전 중입니다. 모든 말과 벽이 보입니다.';
+G.me=()=>{$('#numpick').hidden=true};
 G.usesDbl=true;   // 개인 설정 '두 번 눌러 놓기'를 게임 중 메뉴에 보임
 G.no3D=true;   // 3D 테이블을 쓰지 않음: 공통 코드가 그리기를 쉬어서 휴대폰 배터리를 아낌
 G.buttons=()=>{

@@ -1347,13 +1347,7 @@ G.hud=inGame=>{
   ch3Sync();
 };
 G.handMarks=()=>{};
-G.me=(i,h)=>{
-  $('#numpick').hidden=true;
-  const p=V.ps[i];if(!p||!V.c||!CS)return;
-  if(p.f){if(!p.sr)$('#meSub').innerHTML=CS.res&&CS.res.w<0?'<b>무승부</b>입니다.':`<b>${+p.f}위</b>입니다.`;return}
-  $('#meSub').innerHTML=`<b>${CS.co[i]===0?'백':'흑'}</b>을 잡았습니다`;
-};
-G.specNote='관전 중입니다. 두 사람의 대국을 지켜봅니다.';
+G.me=()=>{$('#numpick').hidden=true};
 G.overRank=p=>{
   const r=V&&V.c&&V.c.res,t=p.sr===2?'시간 초과':p.sr===3?'탈주':p.sr?'항복':r&&r.w<0?'무승부':'';
   return t?`<span class="left">${t}</span>`:'';
@@ -1371,8 +1365,6 @@ G.live=()=>{
   if(IN.on)introTick();
   if(!V||!V.c||!CS)return;
   clockTick();
-  const me=myIdx();
-  if(me>=0&&me<2){const mt=$('#meTime');const t=V.st==='play'?fmtT(remMs(me)):'';if(mt.textContent!==t)mt.textContent=t}
   if(flash&&!Ch3.on&&clock()-flash.at>720){flash=null;lastBoard='';drawAll()}
 };
 /* 이름 칸의 시간 (매 프레임 글자만 바꿈). 10초 남으면 빨갛게 깜빡임 */

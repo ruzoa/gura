@@ -1360,14 +1360,7 @@ G.hud=inGame=>{
   drawAll();
 };
 G.handMarks=()=>{};
-G.me=(i)=>{
-  $('#numpick').hidden=true;
-  const p=V.ps[i];if(!p||!V.ak||!OS)return;
-  if(p.f){if(!p.sr)$('#meSub').innerHTML=OS.res&&OS.res.w<0?'<b>무승부</b>입니다.':`<b>${+p.f}위</b>입니다.`;return}
-  const cn=CNAME[OS.co[i]]||'';
-  $('#meSub').innerHTML=OS.om?`<b>${cn}</b> · 내 돌 <b>${aliveS(i)}</b>개`:`<b>${cn}</b> · 남은 알 <b>${aliveS(i)}</b>개`;
-};
-G.specNote='관전 중입니다. 알까기를 지켜봅니다.';
+G.me=()=>{$('#numpick').hidden=true};
 G.overRank=p=>{
   const r=V&&V.ak&&V.ak.res,t=p.sr===3?'탈주':p.sr?'항복':r&&r.w<0?'무승부':'';
   return t?`<span class="left">${t}</span>`:'';
@@ -1379,7 +1372,7 @@ G.buttons=()=>{   // 튕기기는 버튼 없이 당겼다 놓음. 알을 놓을 
   play.hidden=!show;play.disabled=!can;play.classList.toggle('ready',can);
   if(show){if($('#playMain').textContent!=='놓기')$('#playMain').textContent='놓기';const sub=keyLabel(KEYS.play);if($('#playSub').textContent!==sub)$('#playSub').textContent=sub}
 };
-/* 매 프레임: 내 차례 남은 시간 (이름 칸·내 정보 칸), 2D 화면의 굴러가기 */
+/* 매 프레임: 내 차례 남은 시간 (이름 칸), 2D 화면의 굴러가기 */
 G.live=()=>{
   if(IN.on)introTick();
   if(!V||!V.ak||!OS)return;
@@ -1388,10 +1381,9 @@ G.live=()=>{
     const left=run?Math.max(0,V.deadAt-t):0,txt=run?String(Math.ceil(left/1000)):'';
   if(elBar)elBar.querySelectorAll('[data-ct]').forEach(el=>{const i=+el.dataset.ct,s=run&&V.t===i?txt:'';if(el.textContent!==s)el.textContent=s;
     const low=run&&V.t===i&&left<=10000;if(el.parentNode.classList.contains('low')!==low)el.parentNode.classList.toggle('low',low)});
-  const me=myIdx(),np=npOf();
-  if(Ak3.shot){const k=Array.from({length:np},(_,q)=>aliveS(q)).join(',');if(k!==Ak3.aliveK){Ak3.aliveK=k;drawAll();if(me>=0&&me<np)G.me(me)}}   // 재생 중 알이 떨어지는 순간 점·남은 알 수를 줄임
-  else if(Ak3.aliveK){Ak3.aliveK='';if(me>=0&&me<np)G.me(me)}
-  if(me>=0){const mt=$('#meTime'),s=run&&V.t===me?txt+'초':'';if(mt.textContent!==s)mt.textContent=s}
+  const np=npOf();
+  if(Ak3.shot){const k=Array.from({length:np},(_,q)=>aliveS(q)).join(',');if(k!==Ak3.aliveK){Ak3.aliveK=k;drawAll()}}   // 재생 중 알이 떨어지는 순간 점을 줄임
+  else if(Ak3.aliveK)Ak3.aliveK='';
   if(!Ak3.on){
     if(Ak3.shot){shotSounds(t)}
     if(Ak3.shot||drag||FLK||(OS.aim&&OS.ph==='aim')||myTurnNow()||(Ak3.pl&&Ak3.pl.some(Boolean)))draw2D();
