@@ -157,7 +157,7 @@ function rbSetItems(){   // main = 탁자 설정(관전 인원 등 탁자 공통
   const off=(k,v)=>!skip.has(k)&&D[k]!=null&&+D[k]!==+v;
   const common=new Set(COMMON_SET.map(d=>d.k));
   if(!g.noFast){const v=+c.fast?1:0;det.push({kind:'choice',k:'fast',label:'게임 모드',opts:OPT_LABEL.fast,desc:(g.modeDesc||MODE_DESC).map((d,i)=>`${OPT_LABEL.fast[i]}: ${d}`).join('<br>'),v,diff:!!v,act:o=>'mode'+o})}
-  for(const d of roomSetOf(g))if(!d.lever&&d.k!=='max'){   // 최대 인원은 의자 추가·빼기 키로 바꾸므로 판자에서 뺌
+  for(const d of roomSetOf(g,c))if(!d.lever){   // 최대 인원도 여기(탁자 설정 판자)에서 바꿈
     const v=+(c[d.k]??0);(common.has(d.k)?main:det).push({kind:'num',...d,v,diff:off(d.k,v)})}
   if(g.boardSet)det.push(...g.boardSet(c));
   else for(const d of g.ruleSet)if(!d.hidden)det.push(rbRuleItem(d,c,off));
@@ -395,7 +395,7 @@ function frontRulesScroll(ds,drag){
 function frontRulesUpdate(t,dt,lobby,wait){
   const P=T.rb,S=FR.rb;if(!P)return;
   if(S.on&&((!lobby&&!wait)||FR.warp||FR.spread||(lobby&&!FR.sit)||roomSetOpen||FR.browse)){S.on=false;S.drag=false}
-  const others=FR.ma.v<=.01&&FR.ka.v<=.01&&FR.pla.v<=.01&&[T.hostPad,T.chairPad,T.guestPad,T.sitPad].every(Q=>!Q||Q.a.v<=.01);
+  const others=FR.ma.v<=.01&&FR.ka.v<=.01&&FR.pla.v<=.01&&[T.hostPad,T.guestPad,T.sitPad].every(Q=>!Q||Q.a.v<=.01);
   const v=frontTween(FR.rba,S.on&&others?1:0,t,S.on?560:400),u=smooth(v);
   if(FR.rba.to===1&&v>0&&!S.up){S.up=1;sfx('btnUp')}if(FR.rba.to===0)S.up=0;
   P.g.visible=v>.01;if(!P.g.visible)return;

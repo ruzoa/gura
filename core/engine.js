@@ -25,6 +25,11 @@ function hostMoveSeat(i,a){
   const t=m.seat;m.seat=o.seat;o.seat=t;mark();
 }
 function dropSeat(k){for(const m of H.members)if(m.seat>k)m.seat--}   // 의자 하나를 뺌: 그 뒤 자리 번호를 한 칸씩 당김
+/* 최대 인원을 to로 줄일 때: 뒤쪽 빈 의자부터 하나씩 뺌(앉은 사람·봇은 자리 순서 그대로). 사람 수보다 적게는 못 줄임(호출하는 쪽이 막음) */
+function shrinkSeats(to){
+  fixSeats();let max=Math.max(+H.cfg.max||0,H.members.length);
+  while(max>to&&max>H.members.length){const used=new Set(H.members.map(m=>m.seat));let e=max-1;while(e>0&&used.has(e))e--;dropSeat(e);max--}
+}
 function hostAddBot(force){
   if(!force&&(H.phase!=='wait'||H.members.length>=H.cfg.max))return;
   const used=new Set(H.members.map(m=>m.name));

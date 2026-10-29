@@ -181,6 +181,7 @@ function setRoomCfg(k,v){
   v=Math.round(+v);if(!Number.isFinite(v))v=+(H.cfg[k]??cfg[k]);
   if(d.step>1)v=Math.round(v/d.step)*d.step;
   v=Math.max(lo,Math.min(d.hi,v));
+  if(k==='max'&&v<+H.cfg.max)shrinkSeats(v);   // 뒤쪽 빈 의자부터 뺌(앉은 사람·봇의 자리는 그대로)
   if(v!==+(H.cfg[k]??-1)){H.cfg={...H.cfg,[k]:v};saveRoomCfg(H.cfg);sfx('tick')}
   lastPanelHtml='';mark();
 }

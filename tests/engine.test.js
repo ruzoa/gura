@@ -364,6 +364,12 @@ for(let rep=0;rep<60;rep++){
   const n=2+(rep%7);
   ticks+=playOut('gura',n,{fast:rep%5===0?1:0,jokers:rep%5,maxn:[14,8,19,10,4][rep%5],grace:rep%4,turn:30,max:8},[0,1,2,1]);
 }
+{   // 최대 인원 줄이기: 뒤쪽 빈 의자부터 빠지고 앉은 사람·봇의 자리 순서는 그대로
+  hostNew(false,'t','t');H.cfg={...cfgFor('gura'),game:'gura',max:8};H.members=[{name:'a',host:true,seat:0},{name:'b',bot:true,seat:2},{name:'c',bot:true,seat:5}];
+  shrinkSeats(6);if(H.members.map(m=>m.seat).join()!=='0,2,5')fail('shrinkSeats 6: '+H.members.map(m=>m.seat));
+  H.cfg.max=6;shrinkSeats(3);if(H.members.map(m=>m.seat).join()!=='0,1,2')fail('shrinkSeats 3: '+H.members.map(m=>m.seat));
+  H.cfg.max=3;shrinkSeats(2);if(H.members.map(m=>m.seat).join()!=='0,1,2')fail('shrinkSeats 사람 수 아래로는 못 줄임');
+}
 console.log('ticks',ticks,'fails',fails);
 process.exit(fails?1:0);
 `,'run');
