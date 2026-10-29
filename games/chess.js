@@ -479,7 +479,7 @@ function hostPos(){
 const other=i=>1-i;
 const seatOfColor=col=>H.c.co[0]===col?0:1;
 function sameNames(a,b){return a.length===2&&b.length===2&&a.every(x=>b.includes(x))&&a[0]!==a[1]}
-/* 첫 판 백: 결과 화면에서 바로 시작하면 지난 판과 색을 바꿈, 아니면 공통 firstSeat (직접 고르기면 방장이 고른 사람, 아니면 랜덤) */
+/* 첫 판 백: 결과 화면에서 바로 시작하면 지난 판과 색을 바꿈, 아니면 공통 firstSeat (선택이면 방장이 고른 사람, 아니면 랜덤) */
 function pickWhite(again){
   const ns=H.players.slice(0,2).map(p=>p.name),L=H.cLast;
   if(again&&L&&L.ns&&sameNames(ns,L.ns))return ns.indexOf(L.b);

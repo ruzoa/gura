@@ -347,7 +347,7 @@ G.cardHTML=()=>'';G.drawFace=()=>{};G.cmpCard=()=>0;G.labelOf=()=>'';
 const other=i=>1-i;
 const aliveOf=(A,seat)=>A.st.filter(s=>s.s===seat&&!s.o).length;
 function sameNames(a,b){return a.length===2&&b.length===2&&a.every(x=>b.includes(x))&&a[0]!==a[1]}
-/* 먼저 튕길 사람: 결과 화면에서 바로 시작하면 진 사람(비기면 지난 판 선이 아닌 사람), 아니면 공통 firstSeat (직접 고르기면 방장이 고른 사람, 아니면 랜덤) */
+/* 먼저 튕길 사람: 결과 화면에서 바로 시작하면 진 사람(비기면 지난 판 선이 아닌 사람), 아니면 공통 firstSeat (선택이면 방장이 고른 사람, 아니면 랜덤) */
 function pickFirst(again){
   const ns=H.players.slice(0,2).map(p=>p.name),L=H.akLast;
   if(again&&L&&L.ns&&sameNames(ns,L.ns)){

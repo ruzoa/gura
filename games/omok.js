@@ -2,7 +2,7 @@
    공통 코드(index.html)가 GAMES.omok의 함수를 불러서 이 게임의 규칙·봇·화면을 그림.
    판: 15×15 또는 19×19. 칸 (r,c): r = 위에서 아래로 0~n-1, c = 왼쪽에서 오른쪽으로. 돌: 1 흑, 2 백 (0은 빈 칸)
    두 사람이 하는 게임이고 모든 화면이 같은 방향(아래가 1줄)으로 봄. 좌표는 'h8'처럼 가로 a~, 세로 1~(아래가 1)
-   방 설정(레버): 판 크기 sz, 3-3·4-4 b33, 장목(6목 이상) ov, 오프닝 op, 총 시간 tm(분), 추가 시간 inc(초), 선 플레이어 선택·무작위 pickfirst(쿼리도와 같은 공통 스위치: 켜면 방장이 대기실 목록의 [선]으로 고름)
+   방 설정(레버): 판 크기 sz, 3-3·4-4 b33, 장목(6목 이상) ov, 오프닝 op, 총 시간 tm(분), 추가 시간 inc(초), 선 플레이어 선택·무작위 pickfirst(쿼리도와 같은 공통 선택·무작위 버튼: 선택이면 방장이 대기실 목록의 [선]으로 고름)
    손패(hand)는 카드가 아니라 '돌 하나'를 뜻하는 표시: 공통 코드가 hand가 비면 끝난 사람으로 보기 때문에 게임 중에는 [0]으로 둠 */
 (function(){
 const G={id:'omok',name:'오목',short:'오목',lead:'렌주 금수와 스왑 오프닝까지',brand:'오목',brandPx:62,maxHi:2,noFast:true,firstPick:true};   // firstPick: 대기실 목록의 [선] 버튼을 씀 (룰렛 연출은 아직 없음: 랜덤이면 시작 안내로만 알림)   // 두 사람이 하는 게임 (게임 모드 선택 없음)
@@ -223,7 +223,7 @@ G.cardHTML=()=>'';G.drawFace=()=>{};G.cmpCard=()=>0;G.labelOf=()=>'';
 /* ---------- 방장 엔진 (규칙 처리) ---------- */
 const other=i=>1-i;
 function sameNames(a,b){return a.length===2&&b.length===2&&a.every(x=>b.includes(x))&&a[0]!==a[1]}
-/* 첫 선플레이어: 결과 화면에서 바로 시작하면 이긴 사람(비기면 서로 바꿈), 아니면 공통 firstSeat (직접 선택이면 방장이 고른 사람, 아니면 랜덤) */
+/* 첫 선플레이어: 결과 화면에서 바로 시작하면 이긴 사람(비기면 서로 바꿈), 아니면 공통 firstSeat (선택이면 방장이 고른 사람, 아니면 랜덤) */
 function pickFirst(again){
   const ps=H.players.slice(0,2),ns=ps.map(p=>p.name),L=H.oLast;
   if(again&&L&&L.ns&&sameNames(ns,L.ns)){
