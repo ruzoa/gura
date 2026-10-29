@@ -177,8 +177,9 @@ function frontWaitKey(k){
   if(k==='bot'){if(H.members.length>=max)setRoomCfg('max',max+1);hostAddBot();sfx('pick');return}   // 빈 의자가 없으면 의자를 하나 놓고 앉힘
   if(k==='chairUp'){setRoomCfg('max',max+1);sfx('key');return}
   if(k==='chairDn'){   // 빈 의자부터, 없으면 마지막 봇과 그 의자. 사람이 앉은 의자는 빼지 않음
-    if(max>Math.max(2,H.members.length)){setRoomCfg('max',max-1);sfx('key');return}
-    for(let i=H.members.length-1;i>=0;i--)if(H.members[i].bot){H.members.splice(i,1);if(max>2)H.cfg={...H.cfg,max:max-1};saveRoomCfg(H.cfg);lastPanelHtml='';mark();sfx('key');return}
+    fixSeats();
+    if(max>Math.max(2,H.members.length)){const used=new Set(H.members.map(m=>m.seat));let e=max-1;while(e>0&&used.has(e))e--;dropSeat(e);setRoomCfg('max',max-1);sfx('key');return}   // 뒤쪽 빈 의자를 빼고 앉은 사람은 그대로
+    for(let i=H.members.length-1;i>=0;i--)if(H.members[i].bot){const b=H.members.splice(i,1)[0];dropSeat(b.seat);if(max>2)H.cfg={...H.cfg,max:max-1};saveRoomCfg(H.cfg);lastPanelHtml='';mark();sfx('key');return}
     sfx('no');return}
 }
 /* 상치우기: 꾹 누르고 있으면 키가 점점 빨개지고 1초가 차면 치움. 일찍 떼면 원래 색으로 돌아감. 키보드 Enter·Space는 바로 */

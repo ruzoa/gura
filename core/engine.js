@@ -21,8 +21,10 @@ function fixSeats(){
 function hostMoveSeat(i,a){
   if(!H||H.phase!=='wait')return;const m=H.members[i];if(!m)return;fixSeats();
   if(a.t==='seat'){const k=+a.to;if(!Number.isInteger(k)||k<0||k>=Math.max(+H.cfg.max||0,H.members.length)||H.members.some(x=>x.seat===k))return;m.seat=k;mark();return}
-  const o=H.members[+a.with];if(!o||o===m)return;const t=m.seat;m.seat=o.seat;o.seat=t;mark();
+  const o=H.members[+a.with];if(!o||o===m||(a.n!=null&&o.name!==a.n))return;   // 그사이 사람이 바뀌었으면 무시
+  const t=m.seat;m.seat=o.seat;o.seat=t;mark();
 }
+function dropSeat(k){for(const m of H.members)if(m.seat>k)m.seat--}   // 의자 하나를 뺌: 그 뒤 자리 번호를 한 칸씩 당김
 function hostAddBot(force){
   if(!force&&(H.phase!=='wait'||H.members.length>=H.cfg.max))return;
   const used=new Set(H.members.map(m=>m.name));

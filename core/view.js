@@ -271,7 +271,7 @@ function showBubble(i,html,life,kind){
   const overRow=!spc&&V&&V.st==='over'&&!$('#panel').hidden?document.querySelector(`#panel .ranks li[data-i="${i}"]`):null;
   const tw=!overRow&&V&&V.st==='wait'&&frTableUI();   // 3D 대기실: 탁자 위 2D 이름표에 붙임
   const inWait=!tw&&(V&&V.st==='wait'||!!overRow);
-  const el=tw?(spc?document.querySelector(`#specBar [data-s="${i.slice(1)}"]`):document.querySelector(`#labels .wseat[data-w="${i}"]`)):overRow||(spc?document.querySelector(V&&V.st==='wait'?`#panel .specs [data-s="${i.slice(1)}"]`:`#specBar [data-s="${i.slice(1)}"]`):inWait?document.querySelector(`#panel .slots li[data-i="${i}"]`):i===myIdx()?$('#me'):document.querySelector(`#labels .seat[data-i="${i}"]`));
+  const el=tw?(spc?document.querySelector(`#specBar [data-s="${i.slice(1)}"]`):document.querySelector(`#labels .wseat[data-w="${seatNoOf(i)}"]`)):overRow||(spc?document.querySelector(V&&V.st==='wait'?`#panel .specs [data-s="${i.slice(1)}"]`:`#specBar [data-s="${i.slice(1)}"]`):inWait?document.querySelector(`#panel .slots li[data-i="${i}"]`):i===myIdx()?$('#me'):document.querySelector(`#labels .seat[data-i="${i}"]`));
   if(!el)return;
   const r0=el.getBoundingClientRect(),r=inWait&&!spc?{left:r0.right-70,top:r0.top,width:60,height:r0.height,right:r0.right,bottom:r0.bottom}:r0,lx=r.left-sr.left+r.width/2,ly=r.top-sr.top+r.height/2;
   // 이름표에서 테이블 가운데 쪽으로 풍선을 띄움
