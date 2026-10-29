@@ -76,17 +76,18 @@ function layoutFan(){
   const side=Math.max(mW,aW)+24;
   // 벌어짐 폭(화면 px): 가리킨 카드 기준으로 모든 카드가 이만큼(가까운 카드는 더) 벌어짐 → 양 끝이 화면 밖으로 안 밀리게 손패 폭에서 미리 뺌
   const S=edge?Math.round(8*Math.min(1.4,k)):0;
-  let step=n>1?Math.min(40,(Math.max(150,(W-24-2*S)/k)-60)/(n-1)):0;step=Math.max(step,9);
+  const SMAX=edge?24:40;   // 모서리에 걸친 손패는 왼쪽 위 글자만 보이게 촘촘히 모음
+  let step=n>1?Math.min(SMAX,(Math.max(150,(W-24-2*S)/k)-60)/(n-1)):0;step=Math.max(step,9);
   // 손패 양옆에 내 정보·버튼이 들어갈 자리가 있으면 옆(화면 아래 구석)에, 없으면 손패 위에. 바뀌어도 손패·테이블은 그대로
   // 가로 화면은 손패를 조금 좁혀서라도(모서리 글자가 보이는 간격 20 이상) 옆에 둠 → 버튼이 화면 가운데로 올라오지 않음
   let wide=W-((n-1)*step+60)*k>=2*side+16;
-  if(!wide&&W>Hs){const s2=(Math.max(150,(W-2*side-16)/k)-60)/(n-1||1);if(s2>=20||(Hs<560&&W/Hs>=1.6)){wide=true;step=Math.max(9,Math.min(40,s2))}}
+  if(!wide&&W>Hs){const s2=(Math.max(150,(W-2*side-16)/k)-60)/(n-1||1);if(s2>=20||(Hs<560&&W/Hs>=1.6)){wide=true;step=Math.max(9,Math.min(SMAX,s2))}}
   // 휘는 정도: 손패가 넓을수록 큰 원의 일부로 → 가로로 긴 화면에서도 양 끝이 과하게 내려가지 않음 (양 끝 기울기 약 20도)
   let R=Math.max(560,((n-1)*step+60)*1.45);
   let da=step/(R+44),half=da*(n-1)/2;
   let drop=(R+88)*(1-Math.cos(half));
-  // 모서리에 걸친 손패는 덜 휘게: 양 끝 카드가 가운데보다 14px(카드 기준) 넘게 내려가면 화면 밖으로 너무 숨음
-  if(edge)for(let it=0;it<8&&drop>14;it++){R*=1.6;da=step/(R+44);half=da*(n-1)/2;drop=(R+88)*(1-Math.cos(half))}
+  // 모서리에 걸친 손패는 덜 휘게: 양 끝 카드가 가운데보다 34px(카드 기준) 넘게 내려가면 화면 밖으로 너무 숨음
+  if(edge)for(let it=0;it<8&&drop>34;it++){R*=1.6;da=step/(R+44);half=da*(n-1)/2;drop=(R+88)*(1-Math.cos(half))}
   cards.forEach((c,i)=>{c.style.setProperty('--a',((i-(n-1)/2)*da).toFixed(4)+'rad');c.style.zIndex=i+1});
   FAN.n=n;FAN.stepPx=(R+44)*Math.sin(da)*k;FAN.half=30*k;   // 화면에서 카드 사이 가로 간격
   FAN.R=R;FAN.k=k;FAN.S=S;
@@ -117,6 +118,7 @@ function layoutFan(){
    가리키는 카드는 벌어지기 전 '원래 자리' 가로 위치(fanIdxAt)로 정함 → 카드가 움직여도 경계에서 떨리지 않음 */
 function applySpread(){
   const cards=[...$('#hand').children],f=FOC.i;
+  $('#hand').classList.toggle('hot',f>=0);   // 가리키면 모든 카드가 살짝 올라옴
   cards.forEach((c,j)=>{
     const d=j-f;
     if(f<0||d===0){c.style.removeProperty('--sp');c.classList.toggle('hov',f>=0&&d===0);return}

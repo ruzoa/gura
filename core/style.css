@@ -506,8 +506,9 @@ body.fs .info{display:none}
 body.kb .card.cur.match::after{top:-28px}
 .fan .card.sel{--ly:-30px}
 /* 가리키면(마우스 올림·터치 닿음) 살짝만 올라오고(.hov) 나머지 카드는 JS가 --sp로 벌려 줌(applySpread). 터치로 꾹 누르면 크게 올라와서 손가락에 안 가림(.peek) */
-.fan .card.hov{--hl:-10px}
-.fan .card.hov.faded,.fan .card.hov.peek{--hl:0px}
+.fan.hot .card{--hl:-5px}
+.fan .card.hov{--hl:-14px}   /* 가리킨 카드는 다른 카드보다 조금 더 */
+.fan.hot .card.faded,.fan .card.hov.faded,.fan .card.hov.peek{--hl:0px}
 .fan .card.peek{--ly:-34px;z-index:90!important;transition:transform .12s ease-out}
 .fan .card.sel.peek{--ly:-58px}
 @media (hover:none) and (pointer:coarse){
