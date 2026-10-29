@@ -509,7 +509,7 @@ G.engine={
 /* ---------- 화면 (모든 참가자) ---------- */
 const PIPS={0:[],1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
 let yCat=null,yHold=[false,false,false,false,false],yLock={rl:-1,tn:-1,at:0},yMsg='',yMsgUntil=0,yMsgTimer=null,yTumbleUntil=0;
-let elYz=null,elTurn=null,elDice=null,elRoll=null,elHint=null,elTbl=null,elLeft=null,elHold=null,elInfo=null,elCup=null,elRoll2=null,yInk={k:'',until:0},lastTurn='',lastDice='',lastRoll='',lastInfo='',lastBoard='',lastHint='';
+let elYz=null,elTurn=null,elDice=null,elRoll=null,elHint=null,elTbl=null,elLeft=null,elHold=null,elCup=null,elRoll2=null,yInk={k:'',until:0},lastTurn='',lastDice='',lastRoll='',lastBoard='',lastHint='';
 const scoreOf=i=>{const o={};if(V&&V.y&&V.y.sc[i])CATS.forEach((c,k)=>{o[c.id]=V.y.sc[i][k]});return o};
 const myTurnNow=()=>!!(V&&V.y&&V.st==='play'&&myReady());
 function say(txt){
@@ -657,6 +657,10 @@ function d3Build(){
       const a=new THREE.Mesh(pg,slotM);a.rotation.x=-Math.PI/2;a.position.set(sp[0],FLOOR+.004,sp[2]);a.renderOrder=1;root.add(a);D3.slots.push(a);
       const b=new THREE.Mesh(pg,heldM);b.rotation.x=-Math.PI/2;b.position.set(sp[0],FLOOR+.007,sp[2]);b.renderOrder=2;b.visible=false;root.add(b);D3.held.push(b);
     }
+    // 라운드·남은 굴림: 고정 칸 줄 바로 아래 펠트 위에 글자와 점을 그림 (2D 화면 요소 아님)
+    {const cv=document.createElement('canvas');cv.width=512;cv.height=192;const tex=new THREE.CanvasTexture(cv);tex.anisotropy=4;
+     const m=new THREE.Mesh(new THREE.PlaneGeometry(2.6,.975),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false}));
+     m.rotation.x=-Math.PI/2;m.position.set(0,FLOOR+.006,SLOT_Z+DS*.71+.62);m.renderOrder=2;m.visible=false;root.add(m);D3.info={m,cv,tex,key:''}}
     // 주사위: 모서리가 둥근 정육면체 + 외곽선. 면 순서 +x,-x,+y,-y,+z,-z = 3,4,1,6,2,5 (FACE_N과 같음)
     const dg=roundBox(DS,DRAD,8),mats=[3,4,1,6,2,5].map(v=>toon({map:pipTex(v),rim:.12}));
     D3.dice=[];
@@ -675,7 +679,10 @@ function d3Build(){
     D3.band=toon({color:0xc53026,rim:.2});
     const b1=new THREE.Mesh(new THREE.TorusGeometry(.57,.045,10,48),D3.band);b1.rotation.x=Math.PI/2;b1.position.y=.84;
     const b2=new THREE.Mesh(new THREE.TorusGeometry(.5,.035,10,48),toon({color:0xd9a441,rim:.2}));b2.rotation.x=Math.PI/2;b2.position.y=.13;
-    cup.add(body,hl,b1,b2);cup.scale.setScalar(CUP_K);root.add(cup);
+    cup.add(body,hl,b1,b2);
+    {const rim=new THREE.Mesh(new THREE.TorusGeometry(.61,.065,10,48),new THREE.MeshBasicMaterial({color:0xffd75a,transparent:true,opacity:0,depthWrite:false}));   // 오래 가만히 있으면 컵 테두리가 빛남 (굴리라는 힌트)
+     rim.rotation.x=Math.PI/2;rim.position.y=1.02;rim.visible=false;cup.add(rim);D3.rim=rim}
+    cup.scale.setScalar(CUP_K);root.add(cup);
     D3.cup={g:cup,p:CUP_REST.slice(),q:Q_ID,tw:null};
     cup.position.set(...CUP_REST);
     D3.cam=new THREE.PerspectiveCamera(36,1,.1,100);
@@ -918,7 +925,7 @@ function d3Layout(t){
     cam.setViewOffset(W,Hh,-ox,-oy,W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
     let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
     for(const p of pts){v.set(p[0],p[1],p[2]).project(cam);const x=(v.x+1)/2*W,y=(1-v.y)/2*Hh;x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y)}
-    const s=Math.max((x1-x0)/(fw*.97),(y1-y0)/(fh*.95));
+    const s=Math.max((x1-x0)/(fw*.97),(y1-y0)/(fh*(wide?.95:1.04)));   // 점수지가 아래로 오는 좁은 화면은 펠트 아래 가장자리를 점수지 밑으로 살짝 넣어 나무 테이블이 안 보이게
     d*=s;ox+=(fx+fw/2)-(x0+x1)/2;oy+=(fy+fh/2)-(y0+y1)/2;
   }
   cam.position.set(0,tgt.y+d*Math.sin(phi),tgt.z+d*Math.cos(phi));cam.lookAt(tgt);
@@ -930,11 +937,6 @@ function d3Layout(t){
 function placeHoldBtns(){
   if(!D3.W)return;
   const v=new THREE.Vector3(),cam=D3.cam,W=D3.W,Hh=D3.H;
-  if(elInfo){   // 고정 칸 줄 바로 아래 가운데
-    const sp=slotPos(2);v.set(sp[0],FLOOR,sp[2]+DS*.71).project(cam);
-    const x=Math.round((v.x+1)/2*W),y=Math.round((1-v.y)/2*Hh)+6,k=x+','+y;
-    if(elInfo.dataset.k!==k){elInfo.dataset.k=k;elInfo.style.left=x+'px';elInfo.style.top=y+'px'}
-  }
   if(elCup){   // 쉬고 있는 컵 위의 투명 버튼: 누르고 있으면 흔들고 떼면 던짐
     const on=rollOn();
     if(elCup.style.visibility!==(on?'':'hidden'))elCup.style.visibility=on?'':'hidden';
@@ -965,8 +967,40 @@ function drawHold(){
     if(b.getAttribute('aria-label')!==lab)b.setAttribute('aria-label',lab);
   });
 }
+/* 정보판(라운드·점)과 컵 테두리 빛 갱신 */
+function d3Info(t){
+  const I=D3.info;
+  if(I){
+    const d=infoData(),key=d?d.r+'|'+d.l:'';
+    if(key!==I.key){
+      I.key=key;I.m.visible=!!d;D3.dirty=true;
+      if(d){
+        const g=I.cv.getContext('2d'),w=512;g.clearRect(0,0,w,192);
+        g.textAlign='center';g.textBaseline='middle';g.font='700 58px sans-serif';
+        g.shadowColor='rgba(0,0,0,.5)';g.shadowBlur=8;g.fillStyle='#fffaf0';g.fillText(d.r,w/2,56);
+        for(let k=0;k<3;k++){
+          const x=w/2+(k-1)*64,y=138;g.beginPath();g.arc(x,y,19,0,7);
+          if(k<d.l){g.fillStyle='#f2b632';g.fill();g.shadowBlur=0;g.lineWidth=5;g.strokeStyle='#c98d10';g.stroke()}
+          else{g.shadowBlur=0;g.lineWidth=6;g.strokeStyle='rgba(255,250,240,.85)';g.stroke()}
+          g.shadowBlur=8;
+        }
+        I.tex.needsUpdate=true;
+      }
+    }
+  }
+  const R=D3.rim;
+  if(R){
+    const on=cupGlow();
+    if(on){const k=.5+.5*Math.sin(t/260);R.material.opacity=.4+.6*k;R.scale.setScalar(1+.05*k);R.visible=true;D3.dirty=true}
+    else if(R.visible){R.visible=false;D3.dirty=true}
+  }
+}
+/* 내 차례에 굴릴 수 있는데 한참 아무것도 안 하면 컵 테두리가 빛남 */
+let yIdleAt=0;
+const cupGlow=()=>D3.on&&!!D3.cup&&!D3.cup.tw&&A.st==='idle'&&canRoll()&&clock()-yIdleAt>6000;
 function d3Render(t){
   if(!D3.on||!T.ok)return;
+  d3Info(t);
   if(d3Layout(t))D3.dirty=true;
   const anim=d3Step(t);
   const blend=D3.from&&t-D3.fromAt<350?ease((t-D3.fromAt)/350):1;if(blend>=1)D3.from=null;
@@ -1097,9 +1131,11 @@ function introTick(){
   if(e>=INTRO.ui&&elYz.classList.contains('intro'))elYz.classList.remove('intro');
   if(IN0.fp&&e>=IN0.r0&&IN0.fp.tick(IN0.t0+e)&&!IN0.said){   // 닿는 소리, 멈추는 순간 한 번 가운데 안내
     IN0.said=true;$('#stage').classList.remove('yz-intro');
-    fxSay(IN0.fp.msg(),PCOL[IN0.fp.first%4]);
+    let at=null;
+    if(D3.on&&D3.W){const v=new THREE.Vector3(0,FLOOR,0).project(D3.cam);at={x:(v.x+1)/2*D3.W,y:(1-v.y)/2*D3.H+40}}   // 펠트 한가운데 (fxSay는 위로 40px 올려 그림)
+    fxSay(IN0.fp.msg(),PCOL[IN0.fp.first%4],at);
   }
-  if(e>=IN0.total){IN0.on=false;lastTurn='';lastBoard='';G.buttons()}
+  if(e>=IN0.total){IN0.on=false;lastTurn='';lastBoard='';yIdleAt=clock();G.buttons()}
   drawAll();
 }
 
@@ -1131,18 +1167,18 @@ function turnHTML(){
   const p=V.ps[t];if(!p)return '';
   const mine=t===myIdx();
   const who=`<span class="yz-chip yz-who${mine?' me':''}" style="--pc:${PCOL[t%4]}"><i class="dot"></i><b>${mine?'내 차례':esc(p.n)+' 차례'}</b></span>`;
-  return D3.on?who:who+roundChip(t)+pipsChip();   // 3D는 라운드·남은 굴림을 고정 칸 아래(infoHTML)에 보여 줌
+  return D3.on?who:who+roundChip(t)+pipsChip();   // 3D는 라운드·남은 굴림을 고정 칸 아래 펠트(infoData)에 보여 줌
 }
 const roundChip=t=>`<span class="yz-chip">${Math.min(V.y.dn[t]+1,V.y.rd)}/${V.y.rd}라운드</span>`;
 const pipsOf=()=>Array.from({length:3},(_,k)=>`<i class="pp${k<V.y.l?' on':''}"></i>`).join('');
 const pipsChip=()=>`<span class="yz-chip" role="img" aria-label="남은 굴림 ${V.y.l}번"><span class="yz-pips">${pipsOf()}</span></span>`;
-/* 3D: 주사위 고정 칸 아래 — 첫 줄 라운드, 둘째 줄 남은 굴림 점 3개. 시작 연출 중·게임이 끝난 뒤에는 비움 */
-function infoHTML(){
-  const Y=V&&V.y;if(!Y||V.st!=='play')return '';
+/* 3D: 주사위 고정 칸 아래 펠트 위 — 첫 줄 라운드, 둘째 줄 남은 굴림 점 3개. 시작 연출 중·게임이 끝난 뒤에는 비움 */
+function infoData(){
+  const Y=V&&V.y;if(!Y||V.st!=='play')return null;
   let t=V.t;
   if(introOn()&&!IN0.said){const e=clock()-IN0.t0;t=e<IN0.r0?-1:introIdx(e)}
-  if(t<0||!V.ps[t])return '';
-  return `<span class="rd">${Math.min(Y.dn[t]+1,Y.rd)}/${Y.rd}라운드</span><span class="yz-pips" role="img" aria-label="남은 굴림 ${Y.l}번">${pipsOf()}</span>`;
+  if(t<0||!V.ps[t])return null;
+  return {r:`${Math.min(Y.dn[t]+1,Y.rd)}/${Y.rd}라운드`,l:Y.l};
 }
 function diceHTML(){
   const Y=V.y,me=myIdx(),mineTurn=V.st==='play'&&V.t===me&&me>=0;
@@ -1202,7 +1238,6 @@ function drawAll(){
   drawHold();
   const r=rollHTML();if(r!==lastRoll){elRoll.innerHTML=r;lastRoll=r}
   elRoll.disabled=!rollOn();
-  const inf=D3.on?infoHTML():'';if(inf!==lastInfo){elInfo.innerHTML=inf;lastInfo=inf;D3.dirty=true}
   drawRoll2();
   const b=boardHTML();if(b!==lastBoard){elTbl.innerHTML=b;lastBoard=b}
   drawHint();
@@ -1211,6 +1246,7 @@ function drawAll(){
 G.preView=()=>{
   if(!V.y)return;
   const me=myIdx(),Y=V.y;
+  if(!PV||!PV.y||PV.y.tn!==Y.tn||PV.st!==V.st||PV.y.rl!==Y.rl)yIdleAt=clock();
   if(!PV||!PV.y||PV.y.tn!==Y.tn||PV.st!==V.st){
     // 차례가 바뀌었거나 새 판이 시작됨: 고른 칸과 고정 표시를 처음으로
     yCat=null;yLock={rl:-1,tn:-1,at:0};
@@ -1442,11 +1478,6 @@ G.init=()=>{
 #yz .yz-cup{position:absolute;display:none;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;pointer-events:auto}
 #yz.yz3 .yz-cup{display:block}
 #yz .yz-cup:focus-visible{outline:3px solid var(--focus);outline-offset:1px}
-#yz .yz-info{position:absolute;display:none;transform:translateX(-50%);flex-direction:column;align-items:center;gap:4px;pointer-events:none;color:#fffaf0;text-shadow:0 1px 2px rgba(0,0,0,.6);font-size:13px;font-weight:600;line-height:1.1;white-space:nowrap}
-#yz.yz3 .yz-info{display:flex}
-#yz .yz-info:empty{visibility:hidden}
-#yz .yz-info .yz-pips .pp{border-color:rgba(255,250,240,.85)}
-#yz .yz-info .yz-pips .pp.on{background:var(--mustard);border-color:var(--mustard-edge)}
 #yz.yz3 .yz-roll.down{transform:translateY(4px) scale(.97);box-shadow:0 0 0 3px var(--mustard)}
 #yz.yz3 .yz-card{flex:0 1 auto}
 #yz .yz-hold{position:absolute;inset:0;pointer-events:none}
@@ -1455,6 +1486,7 @@ G.init=()=>{
 #yz .yz-hold button::after{content:'고정';position:absolute;left:50%;top:100%;transform:translate(-50%,1px);font-size:11px;font-weight:700;letter-spacing:.06em;color:#ffe08a;text-shadow:0 1px 2px rgba(0,0,0,.7);visibility:hidden;white-space:nowrap}
 #yz .yz-hold button[aria-pressed="true"]::after{visibility:visible}
 @media (max-width:819px){
+  #yz.yz3 .yz-hint{height:0;overflow:visible;align-items:flex-end;justify-content:center;text-align:center;padding:0 0 6px;pointer-events:none}   /* 안내 글은 점수지 바로 위 펠트에 얹고, 그 자리는 비워 점수지가 나무 테이블 아랫부분을 덮게 */
   #yz.yz3 .yz-tbl td.c{height:21px;padding:1px 2px;font-size:12.5px}
   #yz.yz3 .yz-tbl td.c.f{font-size:14px}
   #yz.yz3 .yz-tbl th.lb{padding:1px 8px;font-size:12px}
@@ -1472,10 +1504,10 @@ G.init=()=>{
 `;
   document.head.appendChild(css);
   elYz=document.createElement('div');elYz.id='yz';elYz.hidden=true;
-  elYz.innerHTML=`<div class="yz-top"></div><div class="yz-main"><div class="yz-left"><div class="yz-row"><div class="yz-dice" role="group" aria-label="주사위"></div><button type="button" class="yz-roll" disabled></button></div><div class="yz-hint" aria-live="polite"></div></div><div class="yz-card"><table class="yz-tbl" aria-label="점수판"></table></div></div><div class="yz-hold" hidden>${[0,1,2,3,4].map(i=>`<button type="button" data-i="${i}" aria-pressed="false"></button>`).join('')}</div><div class="yz-info"></div><button type="button" class="yz-cup" aria-label="컵 (누르고 있으면 흔들고, 떼면 던짐)"></button>`;
+  elYz.innerHTML=`<div class="yz-top"></div><div class="yz-main"><div class="yz-left"><div class="yz-row"><div class="yz-dice" role="group" aria-label="주사위"></div><button type="button" class="yz-roll" disabled></button></div><div class="yz-hint" aria-live="polite"></div></div><div class="yz-card"><table class="yz-tbl" aria-label="점수판"></table></div></div><div class="yz-hold" hidden>${[0,1,2,3,4].map(i=>`<button type="button" data-i="${i}" aria-pressed="false"></button>`).join('')}</div><button type="button" class="yz-cup" aria-label="컵 (누르고 있으면 흔들고, 떼면 던짐)"></button>`;
   $('#stage').insertBefore(elYz,$('#fx'));
   elTurn=elYz.querySelector('.yz-top');elDice=elYz.querySelector('.yz-dice');elRoll=elYz.querySelector('.yz-roll');
-  elHint=elYz.querySelector('.yz-hint');elTbl=elYz.querySelector('.yz-tbl');elLeft=elYz.querySelector('.yz-left');elHold=elYz.querySelector('.yz-hold');elInfo=elYz.querySelector('.yz-info');elCup=elYz.querySelector('.yz-cup');
+  elHint=elYz.querySelector('.yz-hint');elTbl=elYz.querySelector('.yz-tbl');elLeft=elYz.querySelector('.yz-left');elHold=elYz.querySelector('.yz-hold');elCup=elYz.querySelector('.yz-cup');
   elRoll2=document.createElement('button');elRoll2.type='button';elRoll2.id='yzRoll2';elRoll2.className='act act-roll';elRoll2.disabled=true;
   $('#actions').insertBefore(elRoll2,$('#btnPlay'));
   elDice.addEventListener('click',e=>{const b=e.target.closest('.die');if(b)toggleHold(+b.dataset.i)});
@@ -1498,6 +1530,7 @@ G.init=()=>{
   addEventListener('keyup',e=>{if(D3.on&&typeof KEYS!=='undefined'&&e.code===KEYS.yroll)d3Release()});
   addEventListener('blur',()=>{if(D3.on)d3Release()});
   if(window.ResizeObserver){const ro=new ResizeObserver(()=>{D3.layDirty=true});[$('#stage'),elLeft,elRoll,elHint].forEach(x=>ro.observe(x))}
+  for(const ev of ['pointerdown','keydown'])document.addEventListener(ev,()=>{yIdleAt=clock()},{capture:true,passive:true});
   elTbl.addEventListener('click',e=>{const c=e.target.closest('td[data-c]');if(c)pickCat(c.dataset.c)});
   elTbl.addEventListener('keydown',e=>{
     if(e.key!=='Enter'&&e.key!==' ')return;
