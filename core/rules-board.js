@@ -44,6 +44,7 @@ function frontBuildRules(TG){
   const slit=new THREE.Mesh(new THREE.PlaneGeometry(2*(W/2+.165)+.08,.3),new THREE.MeshBasicMaterial({color:0x15100c}));slit.rotation.x=-Math.PI/2;slit.position.y=.0006;g.add(slit);
   const hitM=new THREE.MeshBasicMaterial({visible:false});
   const win=new THREE.Mesh(new THREE.PlaneGeometry(W,1),hitM);win.position.set(0,.5,.05);r.add(win);
+  lv.visible=false;xk.visible=xkO.visible=false;   // 레버·✕는 판 아래 2D 단추 줄(#bbar)로 옮김
   T.rb={g,r,cv,tex,plank,pOut,posts,xk,xkO,bk,bkO,pgs,win,px,lever:{g:lv,rod,at:-1e9,dir:1},key:'',fitL:0};
   rbFit(RB.L,true);
   g.visible=false;
@@ -59,15 +60,9 @@ function frontBuildRules(TG){
     b.addEventListener('pointerup',up);b.addEventListener('pointercancel',()=>{sy=null;FR.rb.drag=false});
     b.addEventListener('wheel',e=>{e.preventDefault();frontRulesScroll(e.deltaY*.0016,false);FR.rb.v=0},{passive:false});
   }
-  mk('frRbX','닫기').addEventListener('click',()=>frontRules(null));
   mk('frRbBack','뒤로').addEventListener('click',()=>{sfx('tick');frontRulesBack()});
   for(let k=0;k<RB_PG;k++)mk('frRbPg'+k,'').addEventListener('click',()=>frontRulesGo(k));
-  { const b=mk('frRbLever','다음 판자 (위로 밀면 이전 판자)');let sy=null;
-    b.addEventListener('pointerdown',e=>{sy=e.clientY;try{b.setPointerCapture(e.pointerId)}catch(_){}});
-    b.addEventListener('pointerup',e=>{if(sy==null)return;const dy=e.clientY-sy;sy=null;frontRulesPage(dy<-18?-1:1)});
-    b.addEventListener('pointercancel',()=>{sy=null});
-    b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();frontRulesPage(1)}});
-  }
+  mk('frRbTitle','게임 고르기').addEventListener('click',()=>{const S=FR.rb;if(!S.on||S.chg||S.mode!=='game')return;sfx('tick');S.fromList=true;frontRulesSet('list',null,0,true)});   // 게임 이름을 누르면 게임 목록 판
 }
 /* 화면 비율에 맞춰 판자 높이를 정함: 세로로 긴 화면은 판자를 길게 + 글자·장치를 크게 (폭은 그대로라 카메라가 더 멀어지지 않음) */
 function rbFitFor(a){const L=Math.max(1.6,Math.min(2.6,1.48/a-.2));return Math.round(L*20)/20}

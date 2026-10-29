@@ -31,7 +31,7 @@ function renderLabels(){
     if(i===me)return '';
     const on=V.st==='play'&&V.t===i&&activeV(i);
     const mu=emoMuted.has(p.n),note=p.dz&&!p.f?'탈주':p.aw&&!p.f?'연결 끊김':(p.no&&!String(p.no).startsWith('"')?p.no:'');   // 몇 장 냈는지는 표시하지 않음
-    return `<div class="seat${on?' on':''}${p.f?' out':''}${mu?' muted':''}" data-i="${i}"><button type="button" class="spk" data-spk="${i}" aria-pressed="${mu}" aria-label="${esc(p.n)} 이모티콘 ${mu?'켜기':'끄기'}" title="이모티콘 ${mu?'켜기':'끄기'}">${mu?SPK_OFF:SPK_ON}</button><div class="nm">${G.nameTag?G.nameTag(p,i):''}${esc(p.n)}<span class="ct">${p.f?(p.sr?(p.sr===2?'시간 초과':p.sr===3?'탈주':'항복'):G.finLabel(p.f,V.ps.length)):(+p.c+'장')}</span>${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="nt">${esc(note)}</div><svg class="ring" data-ring="${i}" viewBox="0 0 36 36" aria-hidden="true"><circle class="rb" cx="18" cy="18" r="15"/><circle class="rf" cx="18" cy="18" r="15"/></svg><svg class="tb" data-tb="${i}" aria-hidden="true"><rect x="1.5" y="1.5" width="10" height="10" rx="11" pathLength="100"/></svg></div>`;
+    return `<div class="seat${on?' on':''}${p.f?' out':''}${mu?' muted':''}" data-i="${i}"><div class="nm" role="button" tabindex="0" data-nk="${i}" aria-haspopup="true" title="${esc(p.n)} 설정">${G.nameTag?G.nameTag(p,i):''}${esc(p.n)}<span class="ct">${p.f?(p.sr?(p.sr===2?'시간 초과':p.sr===3?'탈주':'항복'):G.finLabel(p.f,V.ps.length)):(+p.c+'장')}</span>${p.f?`<span class="rk">${+p.f}위</span>`:''}</div><div class="nt">${esc(note)}</div><svg class="ring" data-ring="${i}" viewBox="0 0 36 36" aria-hidden="true"><circle class="rb" cx="18" cy="18" r="15"/><circle class="rf" cx="18" cy="18" r="15"/></svg><svg class="tb" data-tb="${i}" aria-hidden="true"><rect x="1.5" y="1.5" width="10" height="10" rx="11" pathLength="100"/></svg></div>`;
   }).join('');
   placeLabels();
 }
@@ -423,15 +423,20 @@ $('#btnPass').addEventListener('click',()=>G.pass());
 const DEFAULT_KEYS={play:'Space',pass:'KeyQ',pick:'KeyE',right:'KeyD',left:'KeyA'};
 for(const id of GAME_IDS)Object.assign(DEFAULT_KEYS,GAMES[id].keys);   // 게임에만 있는 키 (구라!, 선언 자음 등)
 EMOTES.forEach((em,i)=>{DEFAULT_KEYS['emo_'+em.k]=EMO_KEYS[i]});
-/* 키 설정 목록: 공통 + 지금 게임에만 있는 키 + 지금 게임에서 쓰는 이모티콘 */
-function keyActions(){return [
+/* 키 설정 목록: '전체' = 모든 게임이 같이 쓰는 키(카드·이모티콘), '게임별' = 게임마다 따로 있는 키 */
+let keyTab='all';
+function keyActionsAll(){return [
   {a:'play',n:'카드 내기',d:'고른 카드를 냅니다'},
   {a:'pass',n:'패스',d:'이번 차례를 넘깁니다'},
-  ...G.keyActions,
   {a:'pick',n:'카드 선택 / 취소',d:'커서가 있는 카드를 고르거나 풉니다'},
   {a:'right',n:'오른쪽 카드',d:'커서를 오른쪽으로 옮깁니다'},
   {a:'left',n:'왼쪽 카드',d:'커서를 왼쪽으로 옮깁니다'},
   ...EMOTES.filter(em=>!G.noEmotes.includes(em.k)).map(em=>({a:'emo_'+em.k,n:`이모티콘 ${em.e||em.t}`,d:`${em.n} 이모티콘을 보냅니다`}))]}
+function keyGroups(){   // 게임별: [{game, keys}] (지금 게임이 맨 위)
+  const ids=[G.id,...GAME_IDS.filter(id=>id!==G.id)];
+  return ids.map(id=>({id,name:GAMES[id].name,keys:GAMES[id].keyActions||[]})).filter(x=>x.keys.length);
+}
+function keyActions(){return [...keyActionsAll(),...keyGroups().flatMap(x=>x.keys)]}
 const RESERVED=new Set(['Escape','Tab','MetaLeft','MetaRight']);
 let KEYS={...DEFAULT_KEYS},listening=null;
 try{const s=JSON.parse(store('gura-keys2')||'null');if(s&&typeof s==='object')for(const k of Object.keys(DEFAULT_KEYS))if(typeof s[k]==='string'&&s[k])KEYS[k]=s[k]}catch(e){}
@@ -444,7 +449,9 @@ function keyLabel(c){
   return m[c]||c;
 }
 function renderKeys(){
-  $('#keyList').innerHTML=keyActions().map(k=>`<div class="keyrow"><span class="kn">${k.n}<span class="kd">${k.d}</span></span><button type="button" class="keycap${listening===k.a?' listen':''}" data-key="${k.a}">${listening===k.a?'키를 누르십시오':esc(keyLabel(KEYS[k.a]))}</button></div>`).join('');
+  const row=k=>`<div class="keyrow"><span class="kn">${k.n}<span class="kd">${k.d}</span></span><button type="button" class="keycap${listening===k.a?' listen':''}" data-key="${k.a}">${listening===k.a?'키를 누르십시오':esc(keyLabel(KEYS[k.a]))}</button></div>`;
+  document.querySelectorAll('#keyTabs button').forEach(b=>{const on=b.dataset.t===keyTab;b.setAttribute('aria-selected',on)});
+  $('#keyList').innerHTML=keyTab==='all'?keyActionsAll().map(row).join(''):keyGroups().map(x=>`<div class="keygrp"><h3>${esc(x.name)}</h3>${x.keys.map(row).join('')}</div>`).join('')||'<p class="note">게임별 키가 없습니다.</p>';
   $('#btnPass small').textContent=keyLabel(KEYS.pass);
   $('#btnGura small').textContent=keyLabel(KEYS.gura);
   renderButtons();
@@ -452,6 +459,7 @@ function renderKeys(){
 let keysReturn=null;
 function openKeys(){keysReturn=document.activeElement;listening=null;$('#keysOv').hidden=false;renderKeys();const f=$('#keyList [data-key]');if(f)f.focus()}
 function closeKeys(){listening=null;$('#keysOv').hidden=true;renderKeys();if(keysReturn&&keysReturn.focus)keysReturn.focus()}
+$('#keyTabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b||b.dataset.t===keyTab)return;keyTab=b.dataset.t;listening=null;renderKeys();sfx('tick')});
 $('#btnKeysLobby').addEventListener('click',openKeys);
 $('#btnKeysClose').addEventListener('click',closeKeys);
 $('#keysOv').addEventListener('click',e=>{if(e.target===e.currentTarget)closeKeys()});
@@ -550,18 +558,23 @@ document.addEventListener('click',e=>{if(!$('#logPanel').hidden&&!e.target.close
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#logPanel').hidden){closeLog();$('#btnLog').focus()}});
 /* 게임 방법 창 (메인 화면, 설정 메뉴) */
 let rulesReturn=null;
-function renderRules(id){
-  $('#rulesTabs').innerHTML=GAME_IDS.map(g=>`<button type="button" role="tab" aria-selected="${g===id}" data-g="${g}">${esc(GAMES[g].name)}</button>`).join('');
+function renderRules(id){   // 게임 제목 버튼 하나 → 누르면 게임 선택창
+  $('#rulesPickName').textContent=GAMES[id].name;
+  $('#rulesGames').innerHTML=GAME_IDS.map(g=>`<button type="button" role="option" aria-selected="${g===id}" data-g="${g}">${esc(GAMES[g].name)}</button>`).join('');
+  closeRulesPick();
   $('#rulesBody').innerHTML=gameOf(id).rulesHTML;
 }
+function closeRulesPick(){$('#rulesGames').hidden=true;$('#rulesPick').setAttribute('aria-expanded','false')}
 function openRules(){rulesReturn=document.activeElement;closeMenu();renderRules(mode==='lobby'?(GAME_IDS[cfg.gi]||'gura'):G.id);$('#rulesOv').hidden=false;$('#btnRulesClose').focus()}
 function closeRules(){$('#rulesOv').hidden=true;if(rulesReturn&&rulesReturn.focus)rulesReturn.focus()}
 $('#btnRulesLobby').addEventListener('click',openRules);
 $('#mRules').addEventListener('click',openRules);
 $('#btnRulesClose').addEventListener('click',closeRules);
-$('#rulesTabs').addEventListener('click',e=>{const b=e.target.closest('[data-g]');if(b){renderRules(b.dataset.g);sfx('tick')}});
+$('#rulesPick').addEventListener('click',e=>{e.stopPropagation();const l=$('#rulesGames'),open=l.hidden;l.hidden=!open;$('#rulesPick').setAttribute('aria-expanded',open);sfx('tick');if(open){const c=l.querySelector('[aria-selected="true"]');if(c)c.focus()}});
+$('#rulesGames').addEventListener('click',e=>{const b=e.target.closest('[data-g]');if(b){renderRules(b.dataset.g);sfx('tick');$('#rulesPick').focus()}});
+$('#rulesOv').addEventListener('click',e=>{if(!e.target.closest('.rpick'))closeRulesPick()});
 $('#rulesOv').addEventListener('click',e=>{if(e.target===e.currentTarget)closeRules()});
-document.addEventListener('keydown',e=>{if(!$('#rulesOv').hidden){if(e.key==='Escape'){e.preventDefault();closeRules()}e.stopImmediatePropagation()}},true);   // 창이 열려 있는 동안 게임 단축키 막기
+document.addEventListener('keydown',e=>{if(!$('#rulesOv').hidden){if(e.key==='Escape'){e.preventDefault();if(!$('#rulesGames').hidden){closeRulesPick();$('#rulesPick').focus()}else closeRules()}e.stopImmediatePropagation()}},true);   // 창이 열려 있는 동안 게임 단축키 막기
 /* 테이블 설정 메뉴 (진행 기록 버튼 왼쪽) */
 let leaveArmed=false,leaveTimer=null;
 function disarmLeave(){leaveArmed=false;clearTimeout(leaveTimer);const b=$('#mLeave');b.classList.remove('arm');b.querySelector('span').textContent='탁자 떠나기'}

@@ -441,7 +441,7 @@ function frontLayout(lobby,wait,host,t){
   if(showTitle){_v3.set(0,0,-4.9).project(T.cam);const far=(1-_v3.y)/2*Hh;tt.style.top=Math.max(64,Math.min(far*.46,Hh*.3))+'px';tt.style.opacity=k;tt.style.marginTop=(-(1-k)*60)+'px'}
   const standing=lobby&&!FR.sit&&FR.stand>.98&&!FR.warp&&!net.peer;   // 첫 화면: 탁자만
   const front=lobby&&FR.sit&&FR.stand<.05&&!FR.warp&&!FR.spread&&!net.peer;   // 앉아서 상차리기·찾아가기를 고름
-  el.classList.toggle('leaving',!(standing||front));$('#frFoot').hidden=!lobby;
+  el.classList.toggle('leaving',!(standing||front));$('#frFoot').hidden=!lobby||FR.rb.on||FR.list;   // 나무판·목록 판이 열려 있으면 닉네임 이름표는 숨김(판 아래 단추 줄과 겹침)
   frontPut($('#frTable'),standing,standing?frontRect(T.felt.mat,W,Hh):null,10);
   const seated=wait&&FR.stand<.05&&!FR.browse&&!FR.rb.on&&FR.rba.v<=.01;
   const leaned=front&&FR.lean>.9,kpUp=T.keypad&&T.keypad.g.position.y>.02;
@@ -455,9 +455,6 @@ function frontLayout(lobby,wait,host,t){
   T.keypad.keys.forEach((m,i)=>frontPut($('#frK'+i),kOn,kOn?frontRect(m,W,Hh):null,1,30,30));
   const lUp=leaned&&FR.list&&FR.pla.v>=.98,lr=lUp?frontListRooms():[];
   T.plist.rows.forEach((m,i)=>{const r=lr[(FR.lpage||0)*FR_ROWS+i],b=$('#frR'+i);frontPut(b,lUp&&!!r,lUp&&r?frontRect(m,W,Hh):null,0,40,30);if(r&&b.dataset.c!==r.code){b.dataset.c=r.code;b.setAttribute('aria-label',`${r.title} · ${gameOf(r.g).name} · ${r.n}/${r.max}`)}});
-  frontPut($('#frLever'),lUp,lUp?frontRect(T.plist.lever.g,W,Hh):null,10,56,64);
-  frontPut($('#frRef'),lUp,lUp?frontRect(T.plist.ref.g,W,Hh):null,10,48,48);
-  frontPut($('#frLx'),lUp,lUp?frontRect(T.plist.xk,W,Hh):null,10,48,48);
   const dOn=((front&&FR.lean>.9&&!FR.list&&FR.pla.v<=0&&FR.kmode==='num')||seated)&&FR.open>.98;
   frontPut($('#frBoard'),dOn,dOn?frontRect(T.board.screen,W,Hh):null,6);
   // 눈(위)·자물쇠(아래): 디스플레이 오른쪽 끝 칸
@@ -477,11 +474,22 @@ function frontLayout(lobby,wait,host,t){
   // 규칙 나무판: 판자(밀기·휠·목록 줄 고르기), ✕, 레버
   const rbUp=FR.rb.on&&FR.rba.v>=.98&&FR.lean>.9;
   frontPut($('#frRbWin'),rbUp,rbUp?frontRect(T.rb.win,W,Hh):null,0,40,40);
-  frontPut($('#frRbX'),rbUp,rbUp?frontRect(T.rb.xk,W,Hh):null,10,48,48);
   frontPut($('#frRbBack'),rbUp&&FR.rb.mode==='game'&&!!FR.rb.fromList,rbUp?frontRect(T.rb.bk,W,Hh):null,10,48,48);
   for(let k=0;k<RB_PG;k++){const b=T.rb.pgs[k],el=$('#frRbPg'+k),on=rbUp&&b.m.visible&&!FR.rb.chg;frontPut(el,on,on?frontRect(b.m,W,Hh):null,6,40,40);if(on&&el.dataset.l!==b.lab){el.dataset.l=b.lab;const L2=b.lab==='🎲'?'게임 설정':b.lab[0]==='⚙'?'탁자 설정':'규칙 '+b.lab+'쪽';el.setAttribute('aria-label',L2);el.title=L2}}
+  {const tOn=rbUp&&FR.rb.mode==='game'&&FR.rb.pg===rbNSet()&&!FR.rb.chg,el=$('#frRbTitle');   // 첫 규칙 판자 맨 위 게임 이름 → 게임 고르기
+   if(tOn){const [l,t2]=rbScreen(RB.CW*.12,50,W,Hh),[r,b]=rbScreen(RB.CW*.88,190,W,Hh);frontPut(el,true,{l,t:t2,r,b},0,60,40)}else frontPut(el,false,null,0)}
   rbLayoutSet(rbUp&&FR.rb.mode==='game'&&!!FR.rb.set&&FR.rb.pg<rbNSet()&&!FR.rb.chg,W,Hh);if(!rbUp)rbTag(null);
-  frontPut($('#frRbLever'),rbUp&&FR.rb.mode==='game',rbUp?frontRect(T.rb.lever.g,W,Hh):null,10,56,64);
+  {   // 판 아래 단추 줄: ◀ ▶ (쪽이 둘 이상일 때) · 새로고침(공개 탁자 목록만) · 닫기
+    const bar=$('#bbar'),rules=rbUp,on=rules||lUp,rc=on?(rules?frontRect(T.rb.win,W,Hh):frontRect(T.plist.board,W,Hh)):null;
+    if(!on){if(!bar.classList.contains('off'))bar.classList.add('off')}
+    else{
+      const pages=rules?rbPages():Math.ceil(frontListRooms().length/FR_ROWS);
+      $('#bbPrev').hidden=$('#bbNext').hidden=pages<=1;$('#bbRef').hidden=rules;
+      bar.classList.remove('off');
+      const bw=bar.offsetWidth||60,bh=48,cx=Math.round(Math.max(bw/2+8,Math.min(W-bw/2-8,(rc.l+rc.r)/2))),ty=Math.round(Math.min(Hh-bh-10,rc.b+12));
+      if(bar._x!==cx||bar._y!==ty){bar._x=cx;bar._y=ty;bar.style.left=cx+'px';bar.style.top=ty+'px'}
+    }
+  }
   st.classList.toggle('rbopen',FR.rba.v>.01);
   $('#frPad').classList.toggle('off',!pick&&!leaned&&!rbUp);
   // 홀로그램 글씨: 위에서부터 탁자 이름, 게임 이름 (그 아래가 게임 말)
@@ -541,6 +549,13 @@ $('#frBoard').addEventListener('click',()=>{
     if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(link).then(ok,()=>sfx('no'));else sfx('no');
   }
 });
+{   // 판 아래 단추 줄: 규칙 나무판이 열려 있으면 그 판, 아니면 공개 탁자 목록 판
+  const rb=()=>FR.rb.on;
+  $('#bbPrev').addEventListener('click',()=>{if(rb())frontRulesPage(-1);else frontListPage(-1)});
+  $('#bbNext').addEventListener('click',()=>{if(rb())frontRulesPage(1);else frontListPage(1)});
+  $('#bbRef').addEventListener('click',()=>frontListRefresh(true));
+  $('#bbX').addEventListener('click',()=>{sfx('tick');if(rb())frontRules(null);else frontList(false)});
+}
 $('#frEye').addEventListener('click',()=>{hideCode=!hideCode;store('gura-hidecode',hideCode?'1':'0');lastPanelHtml='';sfx('tick');render()});   // 번호 가리기 (내 화면에서만)
 $('#frLock').addEventListener('click',()=>{if(mode==='host'&&H&&H.online&&H.phase==='wait'){H.cfg={...H.cfg,pub:H.cfg.pub?0:1};sfx('lock');mark()}else sfx('no')});
 $('#frHolo').addEventListener('click',()=>{if(mode!=='host'){sfx('no');return}frontBrowse(!FR.browse)});

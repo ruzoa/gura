@@ -68,14 +68,29 @@ $('#emoPad').addEventListener('click',e=>{
 });
 document.addEventListener('click',e=>{if(!$('#emoPad').hidden&&!e.target.closest('#emoPad')&&!e.target.closest('#btnEmo')&&!e.target.closest('.emo-open')&&!e.target.closest('.wemo'))closeEmoPad()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#emoPad').hidden)closeEmoPad()});
-/* 이름표 옆 스피커: 그 사람 이모티콘 보기/끄기 */
-const SPK_ON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
-const SPK_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"/><line x1="16" y1="9" x2="22" y2="15"/><line x1="22" y1="9" x2="16" y2="15"/></svg>';
-$('#labels').addEventListener('click',e=>{
-  const b=e.target.closest('.spk');if(!b||!V||!V.ps)return;const i=+b.dataset.spk,p=V.ps[i];if(!p)return;
-  const mu=!emoMuted.has(p.n);mu?emoMuted.add(p.n):emoMuted.delete(p.n);
-  const s=b.closest('.seat');s.classList.toggle('muted',mu);b.innerHTML=mu?SPK_OFF:SPK_ON;b.setAttribute('aria-pressed',mu);
-  const t=`이모티콘 ${mu?'켜기':'끄기'}`;b.title=t;b.setAttribute('aria-label',`${p.n} ${t}`);
+/* 이름표(닉네임)를 누르면 그 사람 설정 창: 그 사람 이모티콘 보기/끄기 */
+function nickPopClose(){const el=$('#nickPop');if(el&&!el.hidden){el.hidden=true;el.dataset.i=''}}
+function nickPopOpen(nm){
+  const i=+nm.dataset.nk,p=V&&V.ps&&V.ps[i];if(!p)return;
+  let el=$('#nickPop');if(!el){el=document.createElement('div');el.id='nickPop';el.className='nickpop';el.setAttribute('role','dialog');$('#stage').appendChild(el)}
+  if(!el.hidden&&el.dataset.i===String(i)){nickPopClose();return}
+  const mu=emoMuted.has(p.n);
+  el.innerHTML=`<b>${esc(p.n)}</b><div class="np-r"><span>이모티콘</span><div class="seg" role="radiogroup" aria-label="${esc(p.n)} 이모티콘"><button type="button" role="radio" data-v="off" aria-checked="${mu}" aria-pressed="${mu}">끄기</button><button type="button" role="radio" data-v="on" aria-checked="${!mu}" aria-pressed="${!mu}">보기</button></div></div>`;
+  el.dataset.i=i;el.hidden=false;
+  const st=$('#stage').getBoundingClientRect(),r=nm.getBoundingClientRect(),w=el.offsetWidth||190;
+  el.style.left=Math.round(Math.max(8,Math.min(st.width-w-8,r.left-st.left+r.width/2-w/2)))+'px';el.style.top=Math.round(r.bottom-st.top+8)+'px';
+  sfx('tick');
+}
+$('#labels').addEventListener('click',e=>{const nm=e.target.closest('.seat .nm[data-nk]');if(nm)nickPopOpen(nm)});
+$('#labels').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.seat .nm[data-nk]')){e.preventDefault();nickPopOpen(e.target)}});
+document.addEventListener('click',e=>{if(!e.target.closest('#nickPop')&&!e.target.closest('.seat .nm[data-nk]'))nickPopClose()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')nickPopClose()});
+document.addEventListener('click',e=>{
+  const b=e.target.closest('#nickPop .seg button');if(!b||!V||!V.ps)return;const i=+$('#nickPop').dataset.i,p=V.ps[i];if(!p)return;
+  const mu=b.dataset.v==='off';if(mu===emoMuted.has(p.n))return;
+  mu?emoMuted.add(p.n):emoMuted.delete(p.n);
+  b.parentNode.querySelectorAll('button').forEach(x=>{const on=(x.dataset.v==='off')===mu;x.setAttribute('aria-pressed',on);x.setAttribute('aria-checked',on)});
+  document.querySelectorAll(`.seat[data-i="${i}"]`).forEach(s2=>s2.classList.toggle('muted',mu));
   if(mu){$('#bubbles').querySelectorAll(`.bubble.soft[data-i="${i}"],.bubble.q[data-i="${i}"]`).forEach(x=>x.remove());if(T&&T.bubbles)T.bubbles.filter(x=>x.i===i&&x.kind==='q').forEach(killBubble)}
   sfx('tick');
 });

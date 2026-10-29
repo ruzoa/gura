@@ -28,24 +28,16 @@ function frontBuildList(TG){
     const a=-Math.PI*.35,ex=64+32*Math.cos(a),ey=66+32*Math.sin(a);x.beginPath();x.moveTo(ex+20,ey-6);x.lineTo(ex-6,ey-22);x.lineTo(ex-2,ey+14);x.closePath();x.fill()});
   const refM=toon({color:0xb8925a,rim:.3}),rf=new THREE.Group();rf.position.set(-PW/2-.11,PL/2-.2,.04);b.add(rf);   // 왼쪽 옆 위 (레버는 오른쪽)
   const xT=canvasTex(128,128,(x,w,h)=>{x.fillStyle='#c9a46a';x.fillRect(0,0,w,h);x.strokeStyle='#5a3a1c';x.lineWidth=16;x.lineCap='round';x.beginPath();x.moveTo(38,38);x.lineTo(90,90);x.moveTo(90,38);x.lineTo(38,90);x.stroke()});
-  const lx=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.05,24),[brass,toon({map:xT,rim:.2}),brass]);lx.rotation.x=Math.PI/2;lx.position.set(PW/2+.1,PL/2-.2,.04);b.add(lx);hull(new THREE.CylinderGeometry(.088,.088,.06,24),lx,b).rotation.x=Math.PI/2;   // 닫기: 오른쪽 옆 위
+  const lx=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.05,24),[brass,toon({map:xT,rim:.2}),brass]);lx.rotation.x=Math.PI/2;lx.position.set(PW/2+.1,PL/2-.2,.04);b.add(lx);{const o=hull(new THREE.CylinderGeometry(.088,.088,.06,24),lx,b);o.rotation.x=Math.PI/2;lx.visible=o.visible=false}   // 닫기·새로고침·쪽 넘기기는 판 아래 2D 단추 줄(#bbar)로 옮김
   const rfm=new THREE.Mesh(new THREE.CylinderGeometry(.085,.085,.05,24),[refM,toon({map:refT,rim:.2}),refM]);rfm.rotation.x=Math.PI/2;rf.add(rfm);hull(new THREE.CylinderGeometry(.1,.1,.06,24),rfm,rf).rotation.x=Math.PI/2;
   // 판이 오르내릴 때 탁자 윗면 아래쪽은 잘라서 안 보이게 + 판이 나오는 틈
   const clipY=[new THREE.Plane(new THREE.Vector3(0,1,0),-.001)];
   b.traverse(o=>{if(o.material&&o.material!==hitM)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{m.clippingPlanes=clipY})});
   const slit=new THREE.Mesh(new THREE.PlaneGeometry(PW+.16,.22),new THREE.MeshBasicMaterial({color:0x15100c}));slit.rotation.x=-Math.PI/2;slit.position.y=.0005;g.add(slit);
-  T.plist={g,b,cv,tex,rows,xk:lx,ref:{g:rf,m:refM,at:-1e9,ang:0},lever:{g:lv,rod,knob,at:-1e9,dir:1},L:PL,W:PW,tilt:.08,key:'',flaps:[...Array(FR_ROWS)].map(()=>({to:['','',''],cur:['','',''],until:0,next:0,mid:0})),pick:-1,pickAt:0,drawn:''};
+  lv.visible=false;rf.visible=false;
+  T.plist={g,b,board,cv,tex,rows,xk:lx,ref:{g:rf,m:refM,at:-1e9,ang:0},lever:{g:lv,rod,knob,at:-1e9,dir:1},L:PL,W:PW,tilt:.08,key:'',flaps:[...Array(FR_ROWS)].map(()=>({to:['','',''],cur:['','',''],until:0,next:0,mid:0})),pick:-1,pickAt:0,drawn:''};
   const fr=$('#front');
   rows.forEach((m,i)=>{const bt=document.createElement('button');bt.type='button';bt.className='fr-hot off fr-key';bt.id='frR'+i;bt.addEventListener('click',()=>frontListPick(i));fr.insertBefore(bt,$('#frFoot'))});
-  {const bt=document.createElement('button');bt.type='button';bt.className='fr-hot off fr-key';bt.id='frRef';bt.setAttribute('aria-label','새로고침');bt.title='새로고침';fr.insertBefore(bt,$('#frFoot'));bt.addEventListener('click',()=>frontListRefresh(true))}
-  {const bt=document.createElement('button');bt.type='button';bt.className='fr-hot off fr-key';bt.id='frLx';bt.setAttribute('aria-label','닫기');bt.title='닫기';fr.insertBefore(bt,$('#frFoot'));bt.addEventListener('click',()=>frontList(false))}
-  { // 레버: 누르면 다음 쪽, 위로 밀면 이전 쪽
-    const bt=document.createElement('button');bt.type='button';bt.className='fr-hot off fr-key';bt.id='frLever';bt.setAttribute('aria-label','다음 쪽 (위로 밀면 이전 쪽)');fr.insertBefore(bt,$('#frFoot'));
-    let sy=null;bt.addEventListener('pointerdown',e=>{sy=e.clientY;try{bt.setPointerCapture(e.pointerId)}catch(_){}});
-    bt.addEventListener('pointerup',e=>{if(sy==null)return;const dy=e.clientY-sy;sy=null;frontListPage(dy<-18?-1:1)});
-    bt.addEventListener('pointercancel',()=>{sy=null});
-    bt.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();frontListPage(1)}});
-  }
 }
 function frontListRooms(){return (FR.lrooms||[]).filter(roomOpen)}
 const PL_POOL='가나다라마바사아자차카타파하구오목야추대부호블랙잭쿼리도0123456789';

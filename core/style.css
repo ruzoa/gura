@@ -54,10 +54,12 @@ button:disabled{cursor:not-allowed}
 .seat .nt{font-size:10.5px;color:var(--amber);font-weight:600;line-height:1.2}
 .seat .nt:empty{display:none}
 .seat{overflow:visible}
-/* 이름표 바깥 오른쪽 스피커 (이름표 크기는 그대로) */
-.seat .spk{position:absolute;left:100%;top:50%;margin:-12px 0 0 5px;width:24px;height:24px;border-radius:50%;border:1px solid var(--line-strong);background:rgba(255,250,240,.92);color:var(--ink);padding:0;display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:pointer;box-shadow:0 1px 3px rgba(59,42,31,.3)}
-.seat .spk svg{width:14px;height:14px}
-.seat.muted .spk{color:var(--muted);background:var(--well)}
+.seat .nm[data-nk]{cursor:pointer;pointer-events:auto}
+.seat.muted .nm{opacity:.55}
+.nickpop{position:absolute;z-index:6;display:flex;flex-direction:column;gap:8px;padding:10px 12px;min-width:176px;border-radius:var(--r-md);border:1.5px solid var(--line-strong);background:rgba(255,250,240,.97);box-shadow:0 8px 20px rgba(60,30,10,.3)}
+.nickpop[hidden]{display:none}
+.nickpop b{font-size:14px}
+.nickpop .np-r{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted)}
 .seat .ring{position:absolute;left:-30px;top:50%;width:26px;height:26px;margin-top:-13px;transform:rotate(-90deg);display:none}
 body.no3d .seat.on .ring{display:block}
 .ring circle{fill:none;stroke-width:4}
@@ -131,9 +133,13 @@ body.nofs .fsbtn.cfg{right:58px}
 .rulehead{font-family:var(--f-display);font-size:18px;color:var(--wood-dark);margin-top:8px}
 .log li.lg-sp{border-color:var(--wood);color:var(--wood-dark);font-weight:600}
 .gametag{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:99px;background:var(--wood-dark);color:var(--paper);margin-right:4px;vertical-align:1px}
-.rtabs{display:flex;gap:6px;margin:4px 0 10px}
-.rtabs button{flex:1;padding:8px 10px;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:var(--paper);font-weight:700;color:var(--ink)}
-.rtabs button[aria-selected="true"]{background:var(--mustard);border-color:var(--mustard-edge)}
+.rpick{position:relative;margin:4px 0 10px}
+.rpick-b{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border-radius:var(--r-sm);border:1.5px solid var(--mustard-edge);background:var(--mustard);font-size:17px;color:var(--ink)}
+.rpick-b b{font-family:var(--f-display);font-weight:400;font-size:20px}
+.rpick-l{position:absolute;z-index:5;left:0;right:0;top:calc(100% + 4px);display:flex;flex-direction:column;gap:4px;padding:6px;max-height:min(60vh,360px);overflow:auto;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:var(--paper);box-shadow:0 8px 20px rgba(60,30,10,.3)}
+.rpick-l button{padding:10px 12px;text-align:left;border-radius:8px;border:0;background:none;font-weight:700;color:var(--ink)}
+.rpick-l button[aria-selected="true"]{background:var(--mustard)}
+.rpick-l[hidden]{display:none}
 .verdict{position:absolute;left:50%;top:8px;z-index:9;transform:translateX(-50%);text-align:center;pointer-events:none;width:min(92%,460px);display:flex;flex-direction:column;gap:5px;align-items:center}
 .verdict .vw{font-size:14px;font-weight:600;box-shadow:0 3px 10px -4px rgba(28,18,10,.4);background:rgba(255,250,240,.95);border:1.5px solid var(--line-strong);padding:3px 12px;border-radius:99px}
 .verdict .vw b{color:var(--amber)}
@@ -249,6 +255,13 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .stage.holo #frPick,.stage.holo #frPrev,.stage.holo #frNext{touch-action:pan-y}   /* 게임 고르기: 말 위에서 옆으로 밀어도 브라우저가 가로채지 않게 */
 .fr-hot:focus-visible{outline:3px dashed var(--mustard);outline-offset:2px}
 .fr-hot.off{pointer-events:none;visibility:hidden}
+.bbar{position:absolute;z-index:3;display:flex;gap:10px;transform:translateX(-50%);pointer-events:auto}
+.bbar.off{pointer-events:none;visibility:hidden}
+.bbar button{width:48px;height:48px;padding:0;display:grid;place-items:center;border-radius:50%;border:2.5px solid #5a3a1c;background:radial-gradient(circle at 35% 30%,#e0bf86,#b8925a 70%);color:#4a2c14;font-size:20px;line-height:1;box-shadow:0 4px 0 #5a3a1c,0 6px 10px rgba(40,20,5,.35);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bbar button svg{width:24px;height:24px}
+.bbar button:active{transform:translateY(3px);box-shadow:0 1px 0 #5a3a1c}
+.bbar button[hidden]{display:none}
+.bbar button:focus-visible{outline:3px dashed var(--mustard);outline-offset:2px}
 .fr-foot{position:absolute;left:0;right:0;bottom:14px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 16px}
 .fr-nick{pointer-events:auto;display:flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:999px;border:1.5px solid var(--line-strong);background:rgba(255,250,240,.94);box-shadow:0 3px 0 rgba(110,69,38,.25);font-size:15px}
 .fr-nick small{color:var(--muted);font-size:13px}
@@ -461,6 +474,11 @@ div.nickline b{font-family:var(--f-display);font-weight:400;font-size:20px}
 .keyrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;background:var(--well);border-radius:var(--r-md)}
 .keyrow .kn{font-weight:600}
 .keyrow .kd{display:block;font-size:12px;color:var(--muted);font-weight:400}
+.rtabs{display:flex;gap:6px;margin:4px 0 10px}
+.rtabs button{flex:1;padding:8px 10px;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:var(--paper);font-weight:700;color:var(--ink)}
+.rtabs button[aria-selected="true"]{background:var(--mustard);border-color:var(--mustard-edge)}
+.keygrp{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.keygrp h3{margin:6px 0 0;font-family:var(--f-display);font-weight:400;font-size:18px;color:var(--wood-dark)}
 .keycap{min-width:96px;font-family:var(--f-num);font-size:15px;font-weight:600;padding:8px 12px;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:#fff;color:var(--ink);box-shadow:0 3px 0 var(--line-strong)}
 .keycap.listen{border-color:var(--mustard-edge);background:#fbe7b0;animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:.55}}
