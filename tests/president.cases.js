@@ -130,3 +130,29 @@ hostStart();
  if(pr.b!==1||pr.d!==2||pr.x!==3||pr.n1!==4||pr.n2!==5)fail('carry order '+JSON.stringify(pr));
  if(H.players[H.turn].name!=='n2')fail('daihinmin(newest) leads');
  if(!H.players.find(p=>p.name==='b').got)fail('exchange with newcomers');}
+
+// 라운드 점수: 대빈민 0점부터 한 계급씩 올라감, 정한 라운드를 마치면 최종 순위
+cfgP({fast:0,jokers:0,swap:1,r8:0,rev:0,run:0,lock:0,b11:0,rounds:2});H.members=[0,1,2].map(i=>({name:'p'+i,bot:false,conn:null,host:i===0}));
+H.lastRanks=null;H.scores=null;H.roundNo=0;H.setDone=false;
+hostStart();doSurrender(1);doSurrender(2);
+if(H.phase!=='over')fail('round 1 should end');
+if(H.scores.p0!==2||H.scores.p2!==1||H.scores.p1!==0)fail('round scores '+JSON.stringify(H.scores));
+if(H.setDone)fail('1/2 rounds is not the end');
+// 바로 시작(다시 하기): 계급·점수 유지
+hostStart();
+if(H.roundNo!==2||H.scores.p0!==2||!H.lastRanks||H.lastRanks.p0!==1)fail('restart keeps ranks and scores');
+H.players.forEach((p,i)=>{p.hand=[i]});
+doSurrender(0);doSurrender(1);
+if(H.phase!=='over'||!H.setDone)fail('2/2 rounds ends the set');
+{const s={ps:H.players.map(()=>({}))};GAMES.president.engine.snap(s,0,0);
+ if(s.rt!==2||s.sd!==1||s.ps.some((o,i)=>o.sc!==H.scores[H.players[i].name]))fail('snap rounds/scores '+JSON.stringify([s.rt,s.sd,s.ps.map(o=>o.sc),H.scores,H.phase]));}
+// 라운드를 모두 마친 뒤 다시 하면 점수·라운드만 새로, 계급은 유지
+hostStart();
+if(H.roundNo!==1||H.scores!==null&&Object.keys(H.scores).length&&H.setDone)fail('new set restarts rounds');
+if(!H.lastRanks)fail('new set keeps ranks');
+// 탁자를 나간 사람의 계급·점수는 지우고, 남은 사람은 유지 (끊긴 사람은 members에 남아 있음)
+H.phase='over';H.scores={p0:2,p1:3,p2:1};H.lastRanks={p0:1,p1:2,p2:3};
+H.members=H.members.filter(m=>m.name!=='p1');H.members[0].away=true;
+GAMES.president.engine.snap({ps:H.players.map(()=>({}))},0,0);
+if(H.lastRanks.p1!==undefined||H.scores.p1!==undefined)fail('leaver reset '+JSON.stringify([H.lastRanks,H.scores,H.members.map(m=>m.name)]));
+if(H.lastRanks.p0!==1||H.scores.p0!==2)fail('disconnected keeps rank');

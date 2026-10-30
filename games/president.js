@@ -140,9 +140,10 @@ const PNAME=['서양 룰','일본 룰'];
 const presetOf=c=>PRESETS.findIndex(P=>PKEYS.every(k=>(+c[k]||0)===P[k]));   // 0·1, 둘 다 아니면 -1(커스텀)
 const baseOf=c=>{const p=presetOf(c);return p>=0?p:(+c.pb?1:0)};
 const diffKeys=c=>{const P=PRESETS[baseOf(c)];return PKEYS.filter(k=>(+c[k]||0)!==P[k])};
-G.defaults={grace:0,turn:30,...PRESETS[1],pb:1};
+G.defaults={grace:0,turn:30,rounds:3,...PRESETS[1],pb:1};
 G.roomSet=[
   {k:'jokers',label:'조커',unit:'장',lo:0,hi:2,step:1,desc:'모든 숫자로 쓸 수 있는 와일드 카드. 혼자 내면 가장 강합니다'},
+  {k:'rounds',label:'라운드',unit:'판',lo:1,hi:20,step:1,desc:'정한 라운드를 마치면 계급 점수 합계로 최종 순위를 정합니다. 대빈민 0점에서 한 계급씩 올라갑니다'},
   {k:'turn',label:'제한 시간',unit:'초',lo:5,hi:120,step:5,desc:'제한 시간이 지나면 패스 <br> 먼저 내는 차례면 가장 약한 카드가 자동으로 나갑니다'}];
 /* 켜고 끄는 규칙 (방 설정의 세부 설정에서 보임. pb는 커스텀이 어느 룰에서 출발했는지만 기억) */
 G.ruleSet=[
@@ -173,8 +174,8 @@ function ruleLine(c){
   return `<b>${PNAME[baseOf(c)]}</b>${df.map(k=>` · <b class="pdiff">${esc(diffLabel(k,c))}</b>`).join('')}`;
 }
 const jkTxt=c=>{const d=diffKeys(c).includes('jokers');return `${d?'<b class="pdiff">':''}조커 ${+c.jokers||0}장${d?'</b>':''}`};
-G.cfgChips=c=>`<span class="chip">${jkTxt(c)}</span><span class="chip">제한 시간 <b>${+c.turn}초</b></span><span class="chip">규칙 ${ruleLine(c)}</span>`;
-G.cfgSum=c=>`${jkTxt(c)} · 제한 시간 ${+c.turn}초<br>규칙: ${ruleLine(c)}`;
+G.cfgChips=c=>`<span class="chip">${jkTxt(c)}</span><span class="chip"><b>${+c.rounds||1}라운드</b></span><span class="chip">제한 시간 <b>${+c.turn}초</b></span><span class="chip">규칙 ${ruleLine(c)}</span>`;
+G.cfgSum=c=>`${jkTxt(c)} · ${+c.rounds||1}라운드 · 제한 시간 ${+c.turn}초<br>규칙: ${ruleLine(c)}`;
 /* ---------- 방 설정의 룰 레버 (공통 코드가 G.settingsHTML·G.panelAct로 부름) ----------
    왼쪽 서양 룰 · 가운데 커스텀 · 오른쪽 일본 룰. 세부 설정은 펼쳐서 바꾸고, 출발한 룰과 다른 줄은 머스터드 색 + 원래 값 */
 const CUS_KEY='gura-president-custom',MORE_KEY='gura-president-more';
@@ -206,8 +207,9 @@ G.settingsHTML=(c,{stepRow})=>{
   return `<div class="rs-grid">${rs.filter(d=>d.k!=='jokers').map(stepRow).join('')}</div><div class="rulehead">게임 규칙</div>${lever}<p class="pl-sum">${ruleLine(c)}</p>${more}${det}`;
 };
 G.panelAct=a=>{
+  if(a==='again'&&mode==='host'&&H&&H.phase==='over'){clearSet();return false}   // 대기실로 가면 계급·점수 초기화 (바로 시작은 유지). 이어서 공통 코드가 대기실로 보냄
   if(a==='rankreset'){
-    if(mode==='host'&&H&&(H.phase==='wait'||H.phase==='over')&&H.lastRanks&&confirm('계급을 초기화할까요?\n다음 판은 카드 교환 없이 ♦3을 가진 사람부터 시작합니다.')){H.lastRanks=null;addLog('방장이 계급을 초기화했습니다.','sys');sfx('tick');lastPanelHtml='';mark()}
+    if(mode==='host'&&H&&(H.phase==='wait'||H.phase==='over')&&H.lastRanks&&confirm('계급과 점수를 초기화할까요?\n다음 판은 카드 교환 없이 ♦3을 가진 사람부터 시작합니다.')){clearSet();addLog('방장이 계급을 초기화했습니다.','sys');sfx('tick');lastPanelHtml='';mark()}
     return true;
   }
   if(a==='prmore'){MORE=!isMore();store(MORE_KEY,MORE?'1':'0');lastPanelHtml='';renderPanel();return true}
@@ -256,6 +258,13 @@ function rankOrder(names){
   return [...ranked,...names.map((n,i)=>i).filter(i=>!(lr[names[i]]>0))];
 }
 const rankIdx=()=>rankOrder(H.players.map(p=>p.name));
+/* 탁자를 나간 사람의 계급·점수 지우기 (끊겨서 자리만 비운 사람은 H.members에 남아 있으므로 유지) */
+function dropGone(){
+  const gone=o=>{if(o)for(const n in o)if(!H.members.some(m=>m.name===n))delete o[n]};
+  gone(H.lastRanks);gone(H.scores);
+  if(H.lastRanks&&!Object.keys(H.lastRanks).length)H.lastRanks=null;
+  if(H.scores&&!Object.keys(H.scores).length)H.scores=null;
+}
 function doExchange(idx){
   idx=idx||rankIdx();const n=H.players.length;H.xc=[];
   if(!H.cfg.swap||!idx)return null;
@@ -378,9 +387,19 @@ function doSurrender(i){
   if(H.tk&&trickDone()){endTrick();return}
   if(H.turn===i)goNext(i,false);else mark();
 }
+/* 라운드 점수: 대빈민 0점에서 한 계급씩 올라감 (n명이면 1위 n-1점). 이름으로 쌓아 다시 하기·재접속에도 이어짐 */
+function addScores(){
+  const n=H.players.length;H.scores=H.scores||{};
+  H.players.forEach(p=>{H.scores[p.name]=(H.scores[p.name]||0)+Math.max(0,n-(p.rank||n))});
+  H.setDone=(H.roundNo||1)>=Math.max(1,+H.cfg.rounds||1);
+}
+/* 계급·점수·라운드를 처음으로 (나가기·대기실로 가기·계급 초기화) */
+function clearSet(){H.lastRanks=null;H.scores=null;H.roundNo=0;H.setDone=false}
 function endGame(){
   H.phase='over';
   H.lastRanks={};H.players.forEach(p=>{H.lastRanks[p.name]=p.rank});
+  addScores();
+  if(H.setDone)addLog(`${H.roundNo}라운드를 모두 마쳤습니다.`,'sys');
   mark();
   H.players.forEach((p,i)=>{if(p.bot&&Math.random()<.5)botEmote(i,'gg',800+Math.random()*1600)});
 }
@@ -453,11 +472,12 @@ G.engine={
   /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
   start(){
     const n=H.players.length;
+    if(H.setDone){H.scores=null;H.roundNo=0;H.setDone=false}   // 정한 라운드를 마친 뒤 다시 하면 점수·라운드만 새로 (계급은 이어짐)
     const deck=shuffle([...Array(52).keys(),...Array(H.cfg.jokers).fill(0).map((_,k)=>JOKER_BASE+k)]),per=Math.floor(deck.length/n);
     H.players.forEach(p=>p.hand=deck.splice(0,per));
     const order=shuffle([...Array(n).keys()]);let k=0;while(deck.length)H.players[order[k++]].hand.push(deck.pop());
     Object.assign(H,{phase:'play',xc:[],log:[],seatNote:{},lp:null,tk:null,tkP:-1,lock:null,rev:false,b11:false,passes:0,rankNext:1,rankBottom:n,graceUntil:0,roundNo:(H.roundNo||0)+1});
-    addLog(`${n}명 ${H.roundNo}번째 판 시작${H.cfg.jokers?` (조커 ${H.cfg.jokers}장)`:''}.`,'sys');
+    addLog(`${n}명 ${H.roundNo}/${Math.max(1,+H.cfg.rounds||1)}라운드 시작${H.cfg.jokers?` (조커 ${H.cfg.jokers}장)`:''}.`,'sys');
     // 첫 판(또는 계급이 없는 사람이 있으면)은 ♦3을 가진 사람부터. 계급이 이어지면 교환 뒤 대빈민(또는 대부호)부터
     let first=H.players.findIndex(p=>p.hand.includes(0));
     const idx=rankIdx();
@@ -503,20 +523,21 @@ G.engine={
     if(me&&me.gave&&s.ps[you])s.ps[you].gv=me.gave.slice();   // 내가 준 카드 (나만 봄)
     if(H.xc&&H.xc.length)s.xc=H.xc.map(x=>x.slice());   // 누가 누구에게 몇 장 (모두 봄, 카드는 비공개)
     H.players.forEach((p,i)=>{const o=s.ps[i];if(!o)return;if(p.pr)o.pr=p.pr;if(p.fouled)o.fo=1;else if(p.fell)o.fo=2});
-    s.rk=H.lastRanks?1:0;
+    s.rk=H.lastRanks?1:0;s.rt=Math.max(1,+H.cfg.rounds||1);s.sd=H.setDone?1:0;
+    if(H.phase==='over')dropGone();
+    H.players.forEach((p,i)=>{const o=s.ps[i];if(o)o.sc=(H.scores&&H.scores[p.name])||0});
   },
   restore(){},
   emoPhase:ph=>ph==='play'||ph==='over',
   /* 다른 게임에서 바뀌어 올 때: 지난 판 계급은 새로 */
   /* 대기실: 다음 판에 받을 계급 (나간 사람은 빠지고, 새로 온 사람은 맨 아래) */
   waitSnap(s){
-    // 대기실에서 나간 사람의 계급은 지움 → 같은 이름으로 새로 들어와도(봇 이름 재사용 등) 맨 아래부터
-    if(H.lastRanks){for(const n in H.lastRanks)if(!H.members.some(m=>m.name===n))delete H.lastRanks[n];if(!Object.keys(H.lastRanks).length)H.lastRanks=null}
+    dropGone();   // 나간 사람의 계급·점수는 지움 → 같은 이름으로 새로 들어와도(봇 이름 재사용 등) 맨 아래부터
     s.rk=H.lastRanks?1:0;
     const ord=rankOrder(H.members.map(m=>m.name));
     if(ord)ord.forEach((j,k)=>{if(s.ps[j])s.ps[j].pr=k+1});
   },
-  reset(){H.lastRanks=null;H.roundNo=0}
+  reset(){clearSet()}
 };
 
 /* ---------- 화면 (모든 참가자) ---------- */
@@ -633,6 +654,7 @@ G.cues=(v,pv)=>{
 G.hud=()=>{
   const bd=$('#ruleBadges');let h='';
   if(V&&V.ps&&V.st==='play'){
+    h+=`<span class="rb">${+V.rd||1} / ${+V.rt||1} 라운드</span>`;
     if(V.rev)h+='<span class="rb rv">혁명 중</span>';
     if(V.b11)h+='<span class="rb">11 백</span>';
     if(V.lk&&V.lk.length)h+=`<span class="rb">묶기 ${V.lk.map(s=>SUITS[s]).join('')}</span>`;
@@ -668,11 +690,20 @@ G.overRank=p=>{
   const n=V.ps.length,t=rankTitle(p.f,n),was=p.pr?rankTitle(p.pr,n):'';
   const why=p.sr?(p.sr===2?'시간 초과':p.sr===3?'탈주':'항복'):p.fo===1?'반칙 탈출':p.fo===2?'도시오치':'';
   const mv=p.pr?(p.f<p.pr?' <b class="up">▲</b>':p.f>p.pr?' <b class="dn">▼</b>':''):'';
-  return `<span class="left">${why?why+' · ':''}${was&&was!==t?`<s>${was}</s> → `:''}${t}${mv}</span>`;
+  const pt=Math.max(0,n-p.f);
+  return `<span class="left">${why?why+' · ':''}${was&&was!==t?`<s>${was}</s> → `:''}${t}${mv} · +${pt}점 (합계 ${+p.sc||0})</span>`;
 };
 const leadTxt=()=>+V.cfg.dlead?'대빈민':'대부호';
 G.waitExtra=isHost=>V.rk?`<p class="rk-note">지난 판 계급을 이어서 합니다. 교환 뒤 ${leadTxt()}부터 시작하고, 새로 온 사람은 맨 아래 계급입니다.${isHost?' <button type="button" class="linkbtn" data-act="rankreset">계급 초기화</button>':''}</p>`:'';
-G.overExtra=()=>mode!=='host'?'':V.rk?`<p class="rk-note">바로 시작하면 이 계급으로 교환하고 ${leadTxt()}부터 시작합니다. <button type="button" class="linkbtn" data-act="rankreset">계급 초기화</button></p>`:'<p class="rk-note">계급을 초기화했습니다. 다음 판은 ♦3을 가진 사람부터 시작합니다.</p>';
+const finalRows=()=>{
+  const l=V.ps.map(p=>({n:p.n,sc:+p.sc||0})).sort((a,b)=>b.sc-a.sc);
+  let r=0;return l.map((x,i)=>{if(!i||x.sc!==l[i-1].sc)r=i+1;return `<li><span class="r">${r}위</span><span>${esc(x.n)}</span><span class="left">${x.sc}점</span></li>`}).join('');
+};
+G.overExtra=()=>{
+  const done=!!V.sd,rt=+V.rt||1,head=done?`<p class="rk-note"><b>${rt}라운드 최종 순위</b></p><ol class="ranks">${finalRows()}</ol>`:`<p class="rk-note">${+V.rd||1} / ${rt} 라운드를 마쳤습니다.</p>`;
+  if(mode!=='host')return head;
+  return head+(V.rk?`<p class="rk-note">바로 시작하면 ${done?'점수를 새로 세고 ':''}이 계급으로 교환하고 ${leadTxt()}부터 시작합니다. 대기실로 가면 계급과 점수가 초기화됩니다. <button type="button" class="linkbtn" data-act="rankreset">계급 초기화</button></p>`:'<p class="rk-note">계급을 초기화했습니다. 다음 판은 ♦3을 가진 사람부터 시작합니다.</p>');
+};
 G.buttons=()=>{
   const play=$('#btnPlay'),pass=$('#btnPass');
   const ready=myReady(),k=sel.size;
@@ -1132,7 +1163,7 @@ const BG={
   },
   // 대부호 방에 있는 동안만 재생 (방을 나가거나 다른 게임이 되면 멈춤). 소리 켜기/끄기도 여기서 따라감
   watch(){
-    const here=this.on&&!!V;   // 지금 화면의 게임이 대부호(enter/leave로 표시)이고 방 안일 때
+    const here=this.on&&!!V&&V.st!=='wait';   // 지금 화면의 게임이 대부호(enter/leave로 표시)이고 게임 중(대기실은 공통 배경음악)일 때
     if(!here){this.stop();return}
     if(!this.cur){if(this.ready()&&SND.ctx.state==='running')this.begin(V);else return}
     if(this.target(V)!==this.mode||this.wantB11(V)!==this.rv)this.sync(V);
@@ -1140,7 +1171,7 @@ const BG={
     if(lv!==this.lvl){this.lvl=lv;this.trim.gain.setTargetAtTime(lv,SND.ctx.currentTime,.08)}
   }
 };
-G.ownBgm=()=>!!V;   // 대부호 방에 있으면 공통 배경음악을 쉼
+G.ownBgm=()=>!!V&&V.st!=='wait';   // 대부호 게임 중에만 공통 배경음악을 쉼 (대기실은 공통 배경음악)
 if(typeof window!=='undefined'&&typeof Worker!=='undefined'&&typeof document!=='undefined'){
   BG.render();
   setInterval(()=>{try{BG.watch()}catch(e){}},250);
