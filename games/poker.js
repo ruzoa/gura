@@ -93,7 +93,7 @@ const handName=b=>b.cat===8&&Math.floor(b.v/15**4)%15===14?'로열 플러시':HA
 Object.assign(G,{eval5,best,handName});
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 같은 수의 칩으로 시작해서, 정한 판 수를 마쳤을 때 칩이 가장 많은 사람이 이깁니다. 칩을 다 잃으면 탈락합니다</li><li><b>카드</b> : 모두 카드 2장을 받고, 가운데에 공용 카드 5장이 차례로 펼쳐집니다. 내 카드 2장과 공용 카드 5장 중 가장 좋은 5장으로 겨룹니다</li><li><b>블라인드</b> : 딜러 버튼(D) 왼쪽 사람이 스몰 블라인드, 그다음 사람이 빅 블라인드(두 배)를 먼저 겁니다. 버튼은 판마다 왼쪽으로 옮깁니다. 둘이서 할 때는 버튼이 스몰 블라인드입니다</li><li><b>베팅</b> : 카드를 받은 뒤(프리플랍), 공용 카드 3장(플랍), 4번째(턴), 5번째(리버)를 펼친 뒤 한 바퀴씩 겁니다. <b>체크</b>는 더 걸지 않고 넘김, <b>콜</b>은 앞사람만큼 맞춤, <b>레이즈</b>는 더 올림, <b>폴드</b>는 이번 판을 포기합니다</li><li><b>내 카드</b> : 탁자 위에 엎어져 있습니다. 마우스를 올리거나 손가락을 대면 귀퉁이가 들려 숫자가 보이고, 카드 위에 무늬와 숫자가 떠오릅니다</li><li><b>손짓</b> : 내 카드를 위로 밀면 <b>폴드</b>, 내 앞의 탁자를 두 번 두드리면 <b>체크</b>, 베팅 칸의 칩을 앞으로 밀면 <b>콜</b>입니다. 내 앞의 칩 더미를 누르면 그 칩이 베팅 칸으로 가고(베팅 칸을 누르면 돌아옴), 콜할 만큼보다 많이 올리고 밀면 <b>레이즈</b>입니다. 최소 레이즈는 바로 앞에서 올린 만큼이고, 가진 칩을 모두 거는 <b>올인</b>은 언제든 됩니다 (노 리밋)</li><li><b>쇼다운</b> : 리버까지 남은 사람은 카드를 펼쳐 가장 좋은 사람이 팟을 가져갑니다. 같으면 나눕니다. 올인한 사람은 자기가 건 만큼만 겨루고, 그보다 더 걸린 칩(사이드 팟)은 나머지 사람끼리 겨룹니다</li><li><b>족보</b> (높은 것부터) : 스트레이트 플러시 · 포카드 · 풀 하우스 · 플러시 · 스트레이트 · 트리플 · 투 페어 · 원 페어 · 하이 카드. A는 가장 높고, A-2-3-4-5 스트레이트에서만 1로 씁니다</li><li><b>시간 초과</b> : 체크할 수 있으면 체크, 아니면 폴드입니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 같은 수의 칩으로 시작해서, 정한 판 수를 마쳤을 때 칩이 가장 많은 사람이 이깁니다. 칩을 다 잃으면 탈락합니다</li><li><b>카드</b> : 모두 카드 2장을 받고, 가운데에 공용 카드 5장이 차례로 펼쳐집니다. 내 카드 2장과 공용 카드 5장 중 가장 좋은 5장으로 겨룹니다</li><li><b>블라인드</b> : 딜러 버튼(D) 왼쪽 사람이 스몰 블라인드, 그다음 사람이 빅 블라인드(두 배)를 먼저 겁니다. 버튼은 판마다 왼쪽으로 옮깁니다. 둘이서 할 때는 버튼이 스몰 블라인드입니다</li><li><b>베팅</b> : 카드를 받은 뒤(프리플랍), 공용 카드 3장(플랍), 4번째(턴), 5번째(리버)를 펼친 뒤 한 바퀴씩 겁니다. <b>체크</b>는 더 걸지 않고 넘김, <b>콜</b>은 앞사람만큼 맞춤, <b>레이즈</b>는 더 올림, <b>폴드</b>는 이번 판을 포기합니다</li><li><b>내 카드</b> : 탁자 위에 엎어져 있습니다. 마우스를 올리거나 손가락을 대면 귀퉁이가 들려 숫자가 보이고, 카드 위에 무늬와 숫자가 떠오릅니다</li><li><b>손짓</b> : 내 카드를 위로 밀면 <b>폴드</b>, 내 앞의 탁자를 두 번 두드리면 <b>체크</b>, 베팅 칸의 칩을 앞으로 밀면 <b>콜</b>입니다. 내 앞의 칩 더미를 누르면 그 칩이 베팅 칸으로 가고(더미를 앞으로 끌면 가진 칩이 모두 올라가고)(베팅 칸을 누르면 돌아옴), 콜할 만큼보다 많이 올리고 밀면 <b>레이즈</b>입니다. 최소 레이즈는 바로 앞에서 올린 만큼이고, 가진 칩을 모두 거는 <b>올인</b>은 언제든 됩니다 (노 리밋)</li><li><b>쇼다운</b> : 리버까지 남은 사람은 카드를 펼쳐 가장 좋은 사람이 팟을 가져갑니다. 같으면 나눕니다. 올인한 사람은 자기가 건 만큼만 겨루고, 그보다 더 걸린 칩(사이드 팟)은 나머지 사람끼리 겨룹니다</li><li><b>족보</b> (높은 것부터) : 스트레이트 플러시 · 포카드 · 풀 하우스 · 플러시 · 스트레이트 · 트리플 · 투 페어 · 원 페어 · 하이 카드. A는 가장 높고, A-2-3-4-5 스트레이트에서만 1로 씁니다</li><li><b>시간 초과</b> : 체크할 수 있으면 체크, 아니면 폴드입니다</li></ol>';
 G.modeDesc=['정한 판 수까지','정한 판 수까지'];
 G.noFast=true;
 G.oneBotLv=true;   // 봇은 쉬움 하나뿐: 대기실에서 난이도를 고르지 않음
@@ -908,6 +908,7 @@ function frame3(now){
     if(e.launched)cardStep(e,now);
   }
   frameFlights(now);feltFrame(now);introFrame(now);myCardsFrame(now);knockFrame(now);
+  if(V3.bank)V3.bank.position.z=gestDz(now,'bank');   // 칩 더미도 끄는 손가락을 따라 앞으로 밀림
   {const P=V3.pend;if(P&&P.g)P.g.position.z=pendPos().z+(P.hold!==undefined?P.hold:gestDz(now,'bet'))}   // 앞으로 미는 베팅할 칩(밀어서 보냈으면 민 자리에 머묾)
   if(V3.bank){const a=now-V3.bounceAt;V3.bank.position.y=a>=0&&a<520?Math.abs(Math.sin(a/520*Math.PI*2))*.09*(1-a/520):0}
   if(ON&&BV()&&BV().ph==='show'&&V3.awarded!==BV().hn&&now>=V3.showAt)syncChips();
@@ -1014,7 +1015,7 @@ function gestMove(e){
     const cv=$('#cv');if(cv.style.cursor!==c)cv.style.cursor=c;return;
   }
   if(Math.hypot(e.clientX-GS.sx,e.clientY-GS.sy)>TAP_PX)GS.moved=true;
-  if(GS.moved&&(GS.kind==='card'||GS.kind==='bet')){const h=tablePt(e);if(h)GS.dz=Math.max(-1.1,Math.min(0,h.z-GS.hz))}
+  if(GS.moved&&(GS.kind==='card'||GS.kind==='bet'||(GS.kind==='bank'&&canStage()))){const h=tablePt(e);if(h)GS.dz=Math.max(-1.1,Math.min(0,h.z-GS.hz))}
 }
 function gestUp(e,cancel){
   if(GS.id!==e.pointerId)return;
@@ -1023,7 +1024,7 @@ function gestUp(e,cancel){
   if(cancel)return;
   if(kind==='card'){if(dz<-FOLD_DZ)gestFold();return}
   if(kind==='bet'){if(dz<-PUSH_DZ)gestPush(dz);else if(tap)takeChip();return}
-  if(kind==='bank'){if(tap)addChip(GS.d);return}
+  if(kind==='bank'){if(dz<-PUSH_DZ){GS.back=null;stageAll()}else if(tap)addChip(GS.d);return}
   if(kind==='table'&&tap){
     const t=clock(),dbl=t-GS.tapAt<DBL_MS&&Math.hypot(e.clientX-GS.tx,e.clientY-GS.ty)<60;
     GS.tapAt=dbl?-1e9:t;GS.tx=e.clientX;GS.ty=e.clientY;

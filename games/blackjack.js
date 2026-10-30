@@ -37,7 +37,7 @@ G.drawFace=function(g,w,h,id){
 const cardEl=id=>id>=0?`<span class="card bjc" style="--rc:${SUIT_COL[suitOf(id)]}"><span class="cn">${RK[rkOf(id)]}<i>${SUITS[suitOf(id)]}</i></span><span class="big">${rkOf(id)>=10?RK[rkOf(id)]:SUITS[suitOf(id)]}</span><span class="cn2" aria-hidden="true">${RK[rkOf(id)]}</span></span>`:'<span class="card bjc back" aria-label="엎은 카드"></span>';
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 같은 수의 칩으로 시작해서, 정한 판 수를 마쳤을 때 칩이 가장 많은 사람이 이깁니다</li><li><b>베팅</b> : 판마다 먼저 칩을 겁니다 (최소 10개). 내 앞의 칩 더미를 누르면 그 칩이 베팅할 칩 공간으로 가고(그 공간을 누르면 돌아옴), 그 칩을 앞으로 밀면 베팅합니다. [베팅]으로도 확정합니다</li><li><b>카드</b> : 모두 두 장씩 앞면으로 받고, 딜러는 한 장을 엎어 둡니다. A는 1이나 11, J·Q·K는 10입니다. 카드는 정한 벌 수만큼 한 통에 섞어 판이 바뀌어도 이어 쓰고, 다음 판을 나눌 만큼 남지 않으면 다시 섞습니다</li><li><b>차례</b> : <b>히트</b>는 한 장 더, <b>스탠드</b>는 멈춤, <b>더블</b>은 처음 두 장일 때 건 칩을 두 배로 하고 딱 한 장만 더 받습니다. 21을 넘으면 <b>버스트</b>로 집니다</li><li><b>손짓</b> : 내 앞 탁자를 두 번 두드리면 <b>히트</b>, 내 카드를 옆으로 쓸면 <b>스탠드</b>, 처음 두 장일 때 건 칩과 같은 칩을 베팅할 칩 공간에 올려 앞으로 밀면 <b>더블</b>입니다. 버튼과 키로도 할 수 있습니다</li><li><b>딜러</b> : 엎은 카드를 펼치고 16 이하면 반드시 더 받습니다. 봇 딜러는 17 이상이면 멈추고, 사람 딜러는 17 이상에서 더 받을지 고릅니다</li><li><b>정산</b> : 딜러보다 21에 가까우면 건 만큼 받고, 처음 두 장이 21(<b>블랙잭</b>)이면 1.5배를 받습니다. 같으면 무승부입니다. 딜러가 A나 10을 보이고 블랙잭이면 바로 정산합니다</li><li><b>사람 딜러</b> : 탁자 설정에서 켜면 참가자가 돌아가며 딜러를 맡아, 진 사람의 칩을 받고 이긴 사람에게 칩을 줍니다 (칩이 모자라면 가진 만큼 나눠 줌). 판 수를 인원의 배수로 하면 모두 같은 횟수만큼 딜러를 맡습니다</li><li><b>탈락</b> : 칩이 10개보다 적어지면 탈락합니다</li><li><b>시간 초과</b> : 베팅은 최소 칩(10개), 차례는 스탠드입니다</li><li>스플릿·인슈어런스는 없습니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 같은 수의 칩으로 시작해서, 정한 판 수를 마쳤을 때 칩이 가장 많은 사람이 이깁니다</li><li><b>베팅</b> : 판마다 먼저 칩을 겁니다 (최소 10개). 내 앞의 칩 더미를 누르면 그 칩이 베팅할 칩 공간으로 가고(그 공간을 누르면 돌아옴), 더미를 앞으로 끌면 가진 칩이 모두 올라가며, 올려 둔 칩을 앞으로 밀면 베팅합니다. [베팅]으로도 확정합니다</li><li><b>카드</b> : 모두 두 장씩 앞면으로 받고, 딜러는 한 장을 엎어 둡니다. A는 1이나 11, J·Q·K는 10입니다. 카드는 정한 벌 수만큼 한 통에 섞어 판이 바뀌어도 이어 쓰고, 다음 판을 나눌 만큼 남지 않으면 다시 섞습니다</li><li><b>차례</b> : <b>히트</b>는 한 장 더, <b>스탠드</b>는 멈춤, <b>더블</b>은 처음 두 장일 때 건 칩을 두 배로 하고 딱 한 장만 더 받습니다. 21을 넘으면 <b>버스트</b>로 집니다</li><li><b>손짓</b> : 내 앞 탁자를 두 번 두드리면 <b>히트</b>, 내 카드를 옆으로 쓸면 <b>스탠드</b>, 처음 두 장일 때 건 칩과 같은 칩을 베팅할 칩 공간에 올려 앞으로 밀면 <b>더블</b>입니다. 버튼과 키로도 할 수 있습니다</li><li><b>딜러</b> : 엎은 카드를 펼치고 16 이하면 반드시 더 받습니다. 봇 딜러는 17 이상이면 멈추고, 사람 딜러는 17 이상에서 더 받을지 고릅니다</li><li><b>정산</b> : 딜러보다 21에 가까우면 건 만큼 받고, 처음 두 장이 21(<b>블랙잭</b>)이면 1.5배를 받습니다. 같으면 무승부입니다. 딜러가 A나 10을 보이고 블랙잭이면 바로 정산합니다</li><li><b>사람 딜러</b> : 탁자 설정에서 켜면 참가자가 돌아가며 딜러를 맡아, 진 사람의 칩을 받고 이긴 사람에게 칩을 줍니다 (칩이 모자라면 가진 만큼 나눠 줌). 판 수를 인원의 배수로 하면 모두 같은 횟수만큼 딜러를 맡습니다</li><li><b>탈락</b> : 칩이 10개보다 적어지면 탈락합니다</li><li><b>시간 초과</b> : 베팅은 최소 칩(10개), 차례는 스탠드입니다</li><li>스플릿·인슈어런스는 없습니다</li></ol>';
 G.modeDesc=['정한 판 수까지','정한 판 수까지'];
 G.noFast=true;
 const MIN=10;
@@ -406,6 +406,12 @@ function addChip(d){
   const B=BV(),lim=myMode()==='bet'?myChips():B.bt[myIdx()];
   if(betAmt()+d>lim){sfx('no');return}
   pend.push(d);sfxChip(1);if(ON&&T.ok)flyMine(d,true);renderMe();
+}
+/* 가진 칩 전부(10 단위 내림)를 베팅할 칩 공간으로. 더블은 건 칩과 정확히 같아야 하므로 못 함 */
+function stageAll(){
+  const a=Math.floor(myChips()/MIN)*MIN;
+  if(!canBetNow()||a<MIN){sfx('no');return}
+  pend=greedy(a);sfxChip(3);renderMe();if(ON&&T.ok)syncChips();
 }
 function takeChip(){
   if(!canPendNow())return;
@@ -1042,7 +1048,7 @@ function topChipAt(ray,n){
 }
 /* ---------- 손짓 (버튼·키와 같은 일을 하는 추가 입력. 포커와 같은 방식) ----------
    내 앞 탁자를 두 번 두드리면 히트, 내 카드를 옆으로 쓸면 스탠드, 베팅할 칩 공간의 칩을 앞으로 밀면 베팅(내 차례 처음 두 장에서 건 칩과 같으면 더블).
-   칩 더미를 누르면 칩 하나가 베팅할 칩 공간으로, 그 공간을 누르면 돌아옴. 두드리는 소리는 내 차례가 아니어도 나고 아무 일도 없음 */
+   칩 더미를 누르면 칩 하나가 베팅할 칩 공간으로, 앞으로 끌면 가진 칩 전부(올인, 베팅 단계만), 그 공간을 누르면 돌아옴. 두드리는 소리는 내 차례가 아니어도 나고 아무 일도 없음 */
 const _ray=window.THREE?new THREE.Raycaster():null,_pl=window.THREE?new THREE.Plane(new THREE.Vector3(0,1,0),-.12):null,_hit=window.THREE?new THREE.Vector3():null;
 const GS={id:null,kind:'',d:0,sx:0,sy:0,hx:0,hz:0,dx:0,dz:0,vz:0,moved:false,back:null,tapAt:-1e9,tx:0,ty:0};
 const PUSH_DZ=.4,SWIPE_DX=.55,TAP_PX=10,DBL_MS=450,EDGE_PX=14;
@@ -1092,6 +1098,7 @@ function gestOff(now,kind){
 }
 /* 칩이 손가락을 따라 앞으로 밀리고, 쓰는 카드가 옆으로 밀림. 밀어서 보낸 칩은 민 자리에 머묾 */
 function handFrame(now){
+  if(V3.bank)V3.bank.position.z=gestOff(now,'bank');
   const P=V3.pend;if(P&&P.g)P.g.position.z=pendPos().z+(P.hold!==undefined?P.hold:gestOff(now,'bet'));
   const B=BV(),ss=swipeSeat(),ox=B&&ss!==null?gestOff(now,'card'):0,pre=B?B.rd+':'+ss+':':'';
   for(const [key,e] of V3.cards){
@@ -1121,7 +1128,7 @@ function gestMove(e){
   if(!GS.moved)return;
   const h=tablePt(e);if(!h)return;
   if(GS.kind==='card'||GS.kind==='other'){GS.dx=Math.max(-1.1,Math.min(1.1,h.x-GS.hx));GS.vz=h.z-GS.hz}
-  else if(GS.kind==='bet')GS.dz=Math.max(-1.1,Math.min(0,h.z-GS.hz));
+  else if(GS.kind==='bet'||(GS.kind==='bank'&&canPendNow()))GS.dz=Math.max(-1.1,Math.min(0,h.z-GS.hz));
 }
 function gestUp(e,cancel){
   if(GS.id!==e.pointerId)return;
@@ -1132,7 +1139,7 @@ function gestUp(e,cancel){
   if(kind==='card'){if(swipe)gestStand();return}
   if(kind==='other'){if(swipe)sfx('no');return}
   if(kind==='bet'){if(dz<-PUSH_DZ)gestPush(dz);else if(tap)takeChip();return}
-  if(kind==='bank'){if(tap)addChip(GS.d);return}
+  if(kind==='bank'){if(dz<-PUSH_DZ){GS.back=null;stageAll()}else if(tap)addChip(GS.d);return}
   if(kind==='table'&&tap){
     const t=clock(),dbl=t-GS.tapAt<DBL_MS&&Math.hypot(e.clientX-GS.tx,e.clientY-GS.ty)<60;
     GS.tapAt=dbl?-1e9:t;GS.tx=e.clientX;GS.ty=e.clientY;
@@ -1331,7 +1338,7 @@ G.init=()=>{
   elBet.addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b||b.disabled||!canBetNow())return;
     if(b.dataset.add){addChip(+b.dataset.add);return}
-    if(b.hasAttribute('data-all'))pend=greedy(Math.floor(myChips()/MIN)*MIN);else if(b.hasAttribute('data-clr'))pend=[];
+    if(b.hasAttribute('data-all')){stageAll();return}else if(b.hasAttribute('data-clr'))pend=[];
     sfxChip(1);renderMe();
   });
   $('#btnGura').addEventListener('click',()=>{if(ON)doAct('double')});
