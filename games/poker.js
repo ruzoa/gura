@@ -488,7 +488,7 @@ G.buttons=()=>{
   const R=myRange(),i=myIdx();
   let main='체크',sub=keyLabel(KEYS.play),rTxt='레이즈',rOn=false,rShow=true;
   if(B&&R&&i>=0&&!V.ps[i].f&&B.st[i]===0){
-    if(R.need>0){const c=Math.min(R.need,B.ch[i]);main=c>=B.ch[i]?'올인':'콜';sub=String(c)}
+    if(R.need>0){const c=Math.min(R.need,B.ch[i]);main=c>=B.ch[i]?'올인':'콜 '+c}   // 콜할 금액은 버튼 글자에 (작은 글씨는 휴대폰에서 숨겨짐)
     const r=raiseTarget();
     if(r&&R.open){rTxt=(B.cur===0?'베팅':'레이즈')+' '+(r.all?'올인':r.to);if(r.bad)rTxt=`최소 ${R.minTo}`;rOn=rd&&!r.bad}
     else if(m==='act')rShow=false;   // 다시 올릴 수 없음 (모자란 올인 뒤)
@@ -498,6 +498,7 @@ G.buttons=()=>{
   play.disabled=!rd;play.classList.toggle('ready',rd);pass.disabled=!rd;gb.disabled=!rOn;gb.classList.toggle('ready',false);
   if($('#playMain').textContent!==main)$('#playMain').textContent=main;
   if($('#playSub').textContent!==sub)$('#playSub').textContent=sub;
+  const row=$('#actions');if(row)row.classList.toggle('pkoff',m!=='act');   // 버튼 줄은 내 차례에만 (자리는 그대로, 나타나는 것이 곧 내 차례 신호)
   if(elBet){const on=!T.ok&&rd&&!!R&&R.open;if(elBet.hidden===on)elBet.hidden=!on;if(on)renderBet()}
 };
 /* WebGL이 없을 때만 쓰는 2D 칩 버튼 */
@@ -1088,6 +1089,7 @@ const CAM=()=>T.cam;
 G.render3D=t=>{
   if(ON&&V3.root){frame3(t);T.timerBg.visible=T.timerArc.visible=false}
   T.r.render(T.scene,T.cam);
+  if(ON)actFrame();
 };   // 남은 시간은 이름표 테두리와 베팅 칸 고리로 (자리 가장자리 고리는 숨김)
 /* 공통 코드가 다른 사람 자리에 카드 더미를 놓는데(손패 표시 1장) 포커는 카드를 펠트에 펼치므로 숨김 */
 G.field3D=v=>{
@@ -1205,15 +1207,27 @@ function numsFrame(B){
     el.style.left=Math.max(hw+4,Math.min(W-hw-4,(v3.x+1)/2*W))+'px';el.style.top=Math.max(hh+4,Math.min(Hh-hh-4,(1-v3.y)/2*Hh))+'px';
   });
 }
+/* 버튼 줄(폴드·체크/콜·레이즈)은 내 칩 더미 바로 위: 칩 기둥 맨 위(12개) 높이를 화면에 옮긴 자리에 버튼 아래 끝을 붙임.
+   기둥 높이와 상관없이 고정 높이로 재서 칩이 늘고 줄어도 버튼이 움직이지 않음 */
+let actKey='';
+function actFrame(){
+  const row=$('#actions'),st=$('#stage');if(!row||!st)return;
+  const on=!!(T.ok&&V3.root);st.classList.toggle('pk3',on);
+  if(!on){actKey='';return}
+  const v=new THREE.Vector3(0,12*CHIP_H+.04,BANK_Z-CHIP_R).project(CAM());
+  const x=Math.round((v.x+1)/2*st.clientWidth),y=Math.round((1-v.y)/2*st.clientHeight),k=x+','+y;
+  if(k!==actKey){actKey=k;st.style.setProperty('--pkAx',x+'px');st.style.setProperty('--pkAy',y+'px')}
+}
 G.live=()=>{
   const B=BV();if(!B)return;
   if(T.ok)layout();
   seatTags(B);numsFrame(B);
 };
-G.enter=()=>{ON=true;$('#stage').classList.add('pk');$('#numpick').hidden=true};
+G.enter=()=>{ON=true;actKey='';$('#stage').classList.add('pk');$('#numpick').hidden=true};
 G.leave=()=>{
   ON=false;if(typeof T!=='undefined'&&T.ok)clear3D();
-  const st=$('#stage');if(st)st.classList.remove('pk');
+  const st=$('#stage');if(st){st.classList.remove('pk','pk3');st.style.removeProperty('--pkAx');st.style.removeProperty('--pkAy')}
+  const row=$('#actions');if(row)row.classList.remove('pkoff');
   const pass=$('#btnPass'),gb=$('#btnGura');if(pass){setTxt(pass,'패스');pass.hidden=false}if(gb){setTxt(gb,'구라!');gb.hidden=true}
   if(elPeek){elPeek.hidden=true;elPeek.innerHTML='';elPeek.dataset.k=''}
   if(elBet)elBet.hidden=true;if(el2d){el2d.hidden=true;el2d.innerHTML='';el2d.dataset.k=''}if(elNums){elNums.innerHTML='';elNums.dataset.k=''}
@@ -1251,7 +1265,11 @@ G.init=()=>{
 #pkPeek b+b{animation-delay:-1.2s}
 #pkPeek b i{font-style:normal;font-family:sans-serif;font-size:24px}
 @keyframes pkFloat{0%,100%{translate:0 0}50%{translate:0 -5px}}
-.stage.pk #actions{display:none}
+.stage.pk #actions.pkoff{opacity:0;pointer-events:none}
+.stage.pk.pk3 #actions{left:var(--pkAx,50%);top:var(--pkAy,70%);right:auto;bottom:auto;transform:translate(-50%,-100%);transform-origin:50% 100%;gap:8px;transition:opacity .2s}
+.stage.pk.pk3 #actions .act{flex:none;height:44px;min-width:80px;padding:0 12px;font-size:18px;border-radius:12px}
+.stage.pk.pk3 #actions .act small{display:none}
+@media (max-width:480px){.stage.pk.pk3 #actions{gap:6px}.stage.pk.pk3 #actions .act{height:38px;min-width:64px;padding:0 9px;font-size:15px}}
 .stage.pk #cv{touch-action:none}
 #pk2d .r2{display:grid;grid-template-columns:96px auto 1fr;align-items:center;gap:8px;padding:5px 10px;border-radius:12px;background:#fffaf0;border:1px solid var(--line-strong)}
 #pk2d .r2.bd{background:#2f7550;color:#f4ead9;min-height:60px}
