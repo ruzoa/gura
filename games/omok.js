@@ -1087,7 +1087,7 @@ G.init=()=>{
 .stage.om .myplate{max-width:calc(100% - 150px)}
 #om{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 10px 82px;pointer-events:none;min-height:0}
 #om[hidden]{display:none}
-#om .om-bar{min-height:44px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;align-self:center;max-width:calc(100% - 188px);pointer-events:none}
+#om .om-bar{min-height:44px;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;align-content:flex-end;gap:6px;align-self:center;max-width:calc(100% - 188px);pointer-events:none}
 #om .om-mebar{position:absolute;left:50%;bottom:var(--plateB,14px);transform:translateX(-50%);z-index:2;display:flex;pointer-events:none;max-width:calc(100% - 188px)}
 #om .om-mebar:empty{display:none}
 #om .om-p{position:relative;display:flex;align-items:center;gap:6px;padding:4px 10px 5px;border-radius:12px;background:rgba(255,250,240,.92);border:1.5px solid var(--line-strong,#cdb391);font-size:13px;line-height:1.15;white-space:nowrap;max-width:100%}

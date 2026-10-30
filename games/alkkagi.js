@@ -1452,7 +1452,7 @@ G.init=()=>{
 .specbar:not([hidden])~#ak .ak-bar{margin-top:30px}
 #ak{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 10px 82px;pointer-events:none;min-height:0}
 #ak[hidden]{display:none}
-#ak .ak-bar{min-height:44px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;align-self:center;max-width:calc(100% - 188px);pointer-events:none}
+#ak .ak-bar{min-height:44px;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;align-content:flex-end;gap:6px;align-self:center;max-width:calc(100% - 188px);pointer-events:none}
 #ak .ak-mebar{position:absolute;left:50%;bottom:var(--plateB,14px);transform:translateX(-50%);z-index:2;display:flex;pointer-events:none;max-width:calc(100% - 188px)}
 #ak .ak-mebar:empty{display:none}
 #ak .ak-p{position:relative;display:flex;align-items:center;gap:6px;padding:4px 10px 5px;border-radius:12px;background:rgba(255,250,240,.92);border:1.5px solid var(--line-strong,#cdb391);font-size:13px;line-height:1.15;white-space:nowrap;max-width:100%}
@@ -1476,7 +1476,8 @@ G.init=()=>{
 #ak .ak-hint{min-width:0;font-size:13px;line-height:1.3;color:#5b4129;text-align:center;min-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 #ak .ak-bd{position:relative;flex:1;min-height:0;width:100%}
 #ak svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}
-@media (max-width:520px){#ak .ak-p{font-size:12px;padding:3px 8px 4px}#ak .pips{max-width:44px}}
+#ak .ak-p{min-height:26px}
+@media (max-width:520px){#ak .ak-p{font-size:12px;padding:3px 8px 4px;min-height:24px}#ak .pips{max-width:44px}}
 @media (max-width:520px){.stage.ak2d #ak .ak-bar{align-self:flex-start;width:calc(100% - 150px);max-width:none}}
 .stage.ak3d #ak .ak-row{order:-1}
 .stage.ak3d #ak.lay .ak-bar{transform:translateY(calc(var(--bs) - 100%));transition:transform .35s,opacity .35s}

@@ -1424,7 +1424,7 @@ G.init=()=>{
 .stage.ch .myplate{max-width:calc(100% - 150px)}
 #ch{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 10px 82px;pointer-events:none;min-height:0}
 #ch[hidden]{display:none}
-#ch .ch-bar{min-height:44px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;align-self:center;max-width:calc(100% - 188px);pointer-events:none}
+#ch .ch-bar{min-height:44px;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;align-content:flex-end;gap:6px;align-self:center;max-width:calc(100% - 188px);pointer-events:none}
 #ch .ch-mebar{position:absolute;left:50%;bottom:var(--plateB,14px);transform:translateX(-50%);z-index:2;display:flex;pointer-events:none;max-width:calc(100% - 188px)}
 #ch .ch-mebar:empty{display:none}
 #ch .ch-mebar .ch-pop{left:50%;top:auto;bottom:calc(100% + 4px);transform:translateX(-50%)}
