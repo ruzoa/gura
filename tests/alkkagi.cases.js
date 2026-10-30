@@ -303,7 +303,7 @@ for(const ag of [1,0]){
 {T.useBoard(1);const P=(x,z,s,t)=>({x,y:TOP+T.geomOf(t).h,z,s,o:0,g:0,t,w:0}),shot=(st,i,a,p)=>{const v=T.shotSpeed(st[i],p);return T.simulate(st,{i,vx:Math.cos(a)*v,vz:Math.sin(a)*v,p},()=>.5)};
  {const a=shot([P(0,1.5,0,7)],0,-Math.PI/2,.35),b=shot([P(0,1.5,0,1)],0,-Math.PI/2,.35);ok(1.5-a.fin[0].z<1.5-b.fin[0].z,'jang travels less '+(1.5-a.fin[0].z).toFixed(2)+' < '+(1.5-b.fin[0].z).toFixed(2))}
  {const a=shot([P(0,1,0,4),P(0,.3,1,7)],0,-Math.PI/2,.3),b=shot([P(0,1,0,4),P(0,.3,1,1)],0,-Math.PI/2,.3);ok(.3-a.fin[1].z<.3-b.fin[1].z,'heavy target moves less')}
- {const r=shot([P(0,1,0,4),P(.25,0,1,4)],0,-Math.PI/2,.35);eq(r.k,6,'spin frames');ok(Math.abs(r.fin[1].w)>.05,'glancing hit spins '+r.fin[1].w);
+ {const r=shot([P(0,1,0,4),P(.15,0,1,4)],0,-Math.PI/2,.35);eq(r.k,6,'spin frames');ok(Math.abs(r.fin[1].w)>.05,'glancing hit spins '+r.fin[1].w);
   const h=shot([P(0,1,0,4),P(0,0,1,4)],0,-Math.PI/2,.35);ok(Math.abs(h.fin[1].w)<.05,'head-on barely spins '+h.fin[1].w)}
  /* 손가락 무게: 같은 당김이면 졸로 칠 때 차가 차로 칠 때보다 덜 밀림, 장·졸 속도 차이는 2배 안쪽 */
  {const a=shot([P(0,1,0,1),P(0,.2,1,6)],0,-Math.PI/2,.5),b=shot([P(0,1,0,6),P(0,.2,1,6)],0,-Math.PI/2,.5);ok(.2-a.fin[1].z<(.2-b.fin[1].z)*.75,'jol pushes cha less '+(.2-a.fin[1].z).toFixed(2)+' < '+(.2-b.fin[1].z).toFixed(2))}
@@ -311,6 +311,12 @@ for(const ag of [1,0]){
  /* 반발: 같은 무게 정면이면 친 알이 조금 따라 들어감 (장기알 eJ: 친 알 속도/맞은 알 속도 = (1-e)/(1+e), 이동 거리비는 그 제곱) */
  {const g=T.geomOf(6),r=shot([P(0,1,0,6),P(0,.2,1,6)],0,-Math.PI/2,.5),ds=(1-r.fin[0].z)-(.8-2*g.r),dt=.2-r.fin[1].z,k=((1-T.PHY.eJ)/(1+T.PHY.eJ))**2;
   ok(ds/dt>k*.5&&ds/dt<k*2,'jang restitution follow-through '+(ds/dt).toFixed(3)+' ~ '+k.toFixed(3))}
+ /* 팔각 충돌: 상차림은 팔각끼리도 안 겹침, 변끼리 정면이면 안 돎, 같은 자리를 쳐도 맞은 알의 방향(각도)에 따라 결과가 다름, 꼭짓점이 비껴 맞으면 돎 */
+ {const st=T.jgSetup();for(let i=0;i<32;i++)for(let j=i+1;j<32;j++){const a={...st[i],rv:T.geomOf(st[i].t).rv},b={...st[j],rv:T.geomOf(st[j].t).rv};if(T.octHit(a,b))fail('alkkagi jang octagon overlap '+i+','+j)}}
+ {const h=shot([P(0,1,0,4),P(0,0,1,4)],0,-Math.PI/2,.4);ok(Math.abs(h.fin[0].w)<.02&&Math.abs(h.fin[1].w)<.02,'edge-on head-on no spin '+h.fin[1].w.toFixed(3))}
+ {const Q=(w)=>{const q=P(.15,0,1,4);q.w=w;return q},a=shot([P(0,1,0,4),Q(0)],0,-Math.PI/2,.4),b=shot([P(0,1,0,4),Q(Math.PI/8)],0,-Math.PI/2,.4);
+  ok(Math.hypot(a.fin[1].x-b.fin[1].x,a.fin[1].z-b.fin[1].z)>.02,'octagon angle changes outcome '+a.fin[1].x.toFixed(2)+','+a.fin[1].z.toFixed(2)+' vs '+b.fin[1].x.toFixed(2)+','+b.fin[1].z.toFixed(2))}
+ {const q=P(0,0,1,4);q.w=Math.PI/16;const r=shot([P(0,1,0,4),q],0,-Math.PI/2,.4);ok(Math.abs(r.fin[1].w-Math.PI/16)>.1,'corner hit spins '+r.fin[1].w.toFixed(2))}
  T.useBoard(0);}
 /* 엔진: 바로 튕기기(놓기 없음), 상태 전송에 종류·각도 */
 {mkRoom({pickfirst:1,md:2},undefined,true);
@@ -320,7 +326,7 @@ for(const ag of [1,0]){
 /* 장 떨어지면 패배: 상대 장을 떨어뜨리면 승리, 둘 다면 먼저 떨어진 쪽이 짐(같은 순간이면 튕긴 사람). 끄면 계속 */
 for(const jl of [1,0]){mkRoom({pickfirst:1,md:2,jang:jl},undefined,true);
  const A=H.ak,g=T.geomOf;A.st=[{x:0,y:TOP+g(4).h,z:-1.5,s:0,o:0,g:0,t:4,w:0},{x:0,y:TOP+g(7).h,z:-2.15,s:1,o:0,g:0,t:7,w:0},{x:1.5,y:TOP+g(1).h,z:-1,s:1,o:0,g:0,t:1,w:0},{x:1.5,y:TOP+g(7).h,z:1.5,s:0,o:0,g:0,t:7,w:0}];
- AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.45});
+ AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.7});
  if(!A.st[1].o){fail('alkkagi jang knock setup');continue}
  roll();
  if(jl){eq(H.phase,'over','jang down ends');eq(A.res.w,0,'jang knocker wins');eq(A.res.why,'jang','jang reason')}

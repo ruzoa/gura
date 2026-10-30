@@ -73,6 +73,28 @@ function groundAt(x,z){
 }
 const wrapA=a=>{a%=Math.PI;if(a>Math.PI/2)a-=Math.PI;else if(a<-Math.PI/2)a+=Math.PI;return a};
 const tiltOf=q=>{let t=Math.hypot(q.ax,q.az)%Math.PI;if(t>Math.PI/2)t=Math.PI-t;return t};
+/* 장기 알 팔각(위에서 본 아랫면): 꼭짓점 반지름 rv, 변까지 거리 rv·cos(π/8). 변의 법선은 kπ/4 − w (그림 jMesh의 yaw와 같은 기준: 주인 쪽 각도는 π/2의 배수라 팔각 모양에는 상관없음)
+   octHit(a,b): 겹치면 {p 겹친 깊이, ux,uz a→b 법선, cx,cz 닿은 점}, 아니면 null (분리축: 두 팔각의 변 법선 4개씩) */
+const OCT_C=Math.cos(Math.PI/8);
+function octVerts(q){const v=[];for(let k=0;k<8;k++){const a=Math.PI/8+k*Math.PI/4-q.w;v.push([q.x+q.rv*Math.cos(a),q.z+q.rv*Math.sin(a)])}return v}
+function octIn(q,x,z){const dx=x-q.x,dz=z-q.z,ap=q.rv*OCT_C+1e-6;for(let k=0;k<4;k++){const a=k*Math.PI/4-q.w;if(Math.abs(dx*Math.cos(a)+dz*Math.sin(a))>ap)return false}return true}
+function octHit(a,b){
+  const dx=b.x-a.x,dz=b.z-a.z,Q=Math.PI/4;
+  const hw=(q,ang)=>{let d=(ang-(Math.PI/8-q.w))%Q;if(d<0)d+=Q;return q.rv*Math.cos(Math.min(d,Q-d))};   // 팔각을 ang 방향으로 비춘 반폭 (가장 가까운 꼭짓점)
+  let best=1e9,bx=0,bz=0;
+  for(const q of [a,b])for(let k=0;k<4;k++){
+    const ang=k*Q-q.w,ux=Math.cos(ang),uz=Math.sin(ang);
+    const dp=dx*ux+dz*uz,o=hw(a,ang)+hw(b,ang)-Math.abs(dp);
+    if(o<=0)return null;
+    if(o<best){best=o;const sg=dp<0?-1:1;bx=ux*sg;bz=uz*sg}
+  }
+  // 닿은 점: 상대 팔각 안에 들어온 꼭짓점들의 가운데 (변끼리 나란히 닿으면 겹친 구간 가운데라 돌지 않음)
+  const va=octVerts(a),vb=octVerts(b);let cx=0,cz=0,n=0;
+  for(const [x,z] of vb)if(octIn(a,x,z)){cx+=x;cz+=z;n++}
+  for(const [x,z] of va)if(octIn(b,x,z)){cx+=x;cz+=z;n++}
+  if(n){cx/=n;cz/=n}else{const ha=a.rv*OCT_C;cx=a.x+bx*(ha-best/2);cz=a.z+bz*(ha-best/2)}
+  return {p:best,ux:bx,uz:bz,cx,cz};
+}
 const halfH=q=>{const t=tiltOf(q);return q.h*Math.cos(t)+q.r*Math.sin(t)};   // 기울어진 알의 반높이 (가장자리로 서면 높아짐)
 /* 한 번 튕기기: st(알 목록 {x,y,z,s,o,g, t 장기 알 종류, w 돈 각도})에서 shot.i번 알을 (vx,vz)로. 기울기 (ax,az): +x·+z 쪽 가장자리가 올라간 각도
    알마다 크기·무게(geomOf)가 다를 수 있음: 부딪힘은 무게 비율로 나눠 받음. 비껴 부딪히면 마찰로 돎(wy, 장기 알만 자취에 각도를 남김)
@@ -126,18 +148,36 @@ function simulate(st,shot,rnd){
     // 알끼리: 납작한 알(타원체) 두 개는 세로를 KY배로 늘리면 공 두 개가 됨 (크기가 다른 알은 두 알 합으로 잼: 반지름 합 rs, 세로 비율 ky)
     for(let it=0;it<2;it++)for(let i=0;i<S.length;i++){const a=S[i];if(a.g)continue;
       for(let j=i+1;j<S.length;j++){const b=S[j];if(b.g||(!a.aw&&!b.aw))continue;
-        const rs=a.r+b.r,ky=rs/(a.h+b.h);
-        const dx=b.x-a.x,dz=b.z-a.z,dh=Math.hypot(dx,dz);if(dh>rs+.02||Math.abs(b.y-a.y)>rs+.1)continue;
-        const ux=dh>1e-9?dx/dh:1,uz=dh>1e-9?dz/dh:0;
+        const rs=a.r+b.r,ky=rs/(a.h+b.h),oc=a.t&&b.t;
+        const dx=b.x-a.x,dz=b.z-a.z;let dh=Math.hypot(dx,dz);if(dh>(oc?a.rv+b.rv:rs)+.02||Math.abs(b.y-a.y)>rs+.1)continue;
+        let ux=dh>1e-9?dx/dh:1,uz=dh>1e-9?dz/dh:0,oh=null;
+        if(oc&&dh>1e-6){   // 장기 알: 수평 법선과 겹친 깊이는 팔각으로 (위아래 뜨는 계산은 그대로, 겹친 깊이를 '원끼리 거리'로 바꿔 넣음)
+          oh=octHit(a,b);if(!oh)continue;ux=oh.ux;uz=oh.uz;dh=Math.max(1e-6,rs-oh.p)}
         const la=a.r*Math.sin(a.ax*ux+a.az*uz),lb=b.r*Math.sin(-(b.ax*ux+b.az*uz));   // 서로를 향한 가장자리 높이
         const e=(b.y+lb)-(a.y+la),ey=e*ky,d=Math.hypot(dh,ey);
         if(d>=rs)continue;
-        const nx=dh>1e-9?dx/d:1,ny=ey/d,nz=dh>1e-9?dz/d:0;
+        const nx=dh>1e-9?ux*dh/d:1,ny=ey/d,nz=dh>1e-9?uz*dh/d:0;
         let rx=nx,ry=ky*ny,rz=nz;const rl=Math.hypot(rx,ry,rz);rx/=rl;ry/=rl;rz/=rl;
         // 기울어진 알의 면은 법선도 같이 기욺: 앞이 숙은 알(a)이 치면 상대를 위로, 상대(b)의 가장자리가 숙어 있으면 아래로
         {const ph=-((a.ax+b.ax)*ux+(a.az+b.az)*uz),hz=Math.hypot(rx,rz),be=Math.atan2(ry,hz)+Math.max(-1.2,Math.min(1.2,ph)),cb=Math.cos(be);rx=ux*cb;rz=uz*cb;ry=Math.sin(be)}
         const ov=rs-d,ka=b.m/(a.m+b.m),kb=a.m/(a.m+b.m);   // 겹친 만큼 무게 비율로 밀어냄 (가벼운 알이 더 밀림)
         a.x-=nx*ov*ka;a.z-=nz*ov*ka;a.y-=ny*ov*ka/ky;b.x+=nx*ov*kb;b.z+=nz*ov*kb;b.y+=ny*ov*kb/ky;
+        if(oh){   // 장기 알(팔각): 닿은 점에서 충격량 — 선속도 + 회전(wy, 닿은 점 속도 = 선속도 + (wy·rz, −wy·rx)), 회전 관성은 원판 ½·m·rv²
+          const rax=oh.cx-a.x,raz=oh.cz-a.z,rbx=oh.cx-b.x,rbz=oh.cz-b.z,Ia=.5*a.m*a.rv*a.rv,Ib=.5*b.m*b.rv*b.rv,cr=(qx,qz,nx_,nz_)=>qz*nx_-qx*nz_;
+          const rel=()=>[a.vx+a.wy*raz-b.vx-b.wy*rbz,a.vz-a.wy*rax-b.vz+b.wy*rbx];
+          let [wx,wz]=rel();const vn=wx*rx+wz*rz+(a.vy-b.vy)*ry;
+          if(vn>0){
+            const ca=cr(rax,raz,rx,rz),cb=cr(rbx,rbz,rx,rz),E=vn>.4?P.eJ:0,J=(1+E)*vn/(1/a.m+1/b.m+ca*ca/Ia+cb*cb/Ib),Ja=J/a.m,Jb=J/b.m;
+            a.vx-=Ja*rx;a.vy-=Ja*ry;a.vz-=Ja*rz;b.vx+=Jb*rx;b.vy+=Jb*ry;b.vz+=Jb*rz;a.wy-=J*ca/Ia;b.wy+=J*cb/Ib;
+            a.bx+=ux*P.tk*(-Ja*ry);a.bz+=uz*P.tk*(-Ja*ry);b.bx-=ux*P.tk*(Jb*ry);b.bz-=uz*P.tk*(Jb*ry);
+            // 마찰(접선 충격량): 닿은 점의 미끄러짐을 막음 → 비껴 맞으면 돌고 나가는 방향도 조금 바뀜
+            [wx,wz]=rel();const tx=-uz,tz=ux,vt=wx*tx+wz*tz,ta=cr(rax,raz,tx,tz),tb=cr(rbx,rbz,tx,tz),kt=1/a.m+1/b.m+ta*ta/Ia+tb*tb/Ib,jt=-Math.sign(vt)*Math.min(P.mu*J,Math.abs(vt)/kt);
+            a.vx+=jt*tx/a.m;a.vz+=jt*tz/a.m;b.vx-=jt*tx/b.m;b.vz-=jt*tz/b.m;a.wy+=jt*ta/Ia;b.wy-=jt*tb/Ib;
+            if(vn>.5)push('c',vn,step);
+            a.aw=b.aw=1;a.still=b.still=0;
+          }
+          continue;
+        }
         const vn=(a.vx-b.vx)*rx+(a.vy-b.vy)*ry+(a.vz-b.vz)*rz;
         if(vn>0){
           const E=vn>.4?(a.t||b.t?P.eJ:P.eSS):0,J=(1+E)*vn/(1/a.m+1/b.m),Ja=J/a.m,Jb=J/b.m;   // 충격량 J는 같고 속도 변화는 무게에 반비례 (같은 무게면 (1+E)vn/2)
@@ -622,7 +662,7 @@ function botStep(i,t){
   if(!doShot(i,b.i,b.fa,b.p))startTurn(turnAfter(A,i));
 }
 /* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
-G._test={geomOf,JM,jShotK,JSET,jgSetup,useBoard,BD,shotSpeed,mdOf,omGrid,omFive,omThreats,omLines,omTargets,omPlacePlan,omCands,omScore,omFull,simulate,reserves,shotCands,shotScore,botPick,placePlan,canPlace,gridXZ,botPlan,speedOf,groundAt,doShot,doSurrender,timeout,pickFirst,aliveOf,sideOfSeat,ownPt,freeAt,PHY,TOP,SH,SR,BW,PITCH,NL};
+G._test={geomOf,JM,jShotK,octHit,octVerts,JSET,jgSetup,useBoard,BD,shotSpeed,mdOf,omGrid,omFive,omThreats,omLines,omTargets,omPlacePlan,omCands,omScore,omFull,simulate,reserves,shotCands,shotScore,botPick,placePlan,canPlace,gridXZ,botPlan,speedOf,groundAt,doShot,doSurrender,timeout,pickFirst,aliveOf,sideOfSeat,ownPt,freeAt,PHY,TOP,SH,SR,BW,PITCH,NL};
 G.engine={
   /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
   start(){
