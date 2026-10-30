@@ -548,7 +548,7 @@ G.cues=(v,pv)=>{
 /* ---------- 탁자 배치 (월드 좌표, 나는 +z 쪽) ---------- */
 const O={x:0,z:0};                     // 공용 카드 가운데 = 탁자 정중앙
 const BD_DX=.66,S_BD=.74,POT={x:0,z:.86},DECK={x:0,z:-.92};
-const MY={x:0,z:2.1},MYBET={x:0,z:1.44},BANK_Z=4.3,BANK_X=[-.75,-.25,.25,.75],CHIP_R=.2,CHIP_H=.052;   // 내 카드는 다른 사람과 같은 거리(둘레), 칩 더미는 펠트 밖 나무 띠 위 내 앞(커진 펠트 바깥 4.3: 칩 기둥이 높아도 화면에서 베팅할 칩 공간을 가리지 않고, 펠트 가장자리 선에 걸치지 않게)
+const R_PILL=4.45,MY={x:0,z:2.1},MYBET={x:0,z:1.44},BANK_Z=4.3,BANK_X=[-.75,-.25,.25,.75],CHIP_R=.2,CHIP_H=.052;   // 내 카드는 다른 사람과 같은 거리(둘레), 칩 더미는 펠트 밖 나무 띠 위 내 앞(커진 펠트 바깥 4.3: 칩 기둥이 높아도 화면에서 베팅할 칩 공간을 가리지 않고, 펠트 가장자리 선에 걸치지 않게)
 const PEND={x:0,z:2.86};               // 베팅할 칩 공간: 내 카드와 칩 더미 사이. 걸기 전 칩만 올라가고, 위로 밀면 베팅 칸(MYBET, 베팅한 칩 공간)으로 옮겨져 그 자리에 머묾
 const pendPos=()=>PEND;
 const CW=.62*1.2,CH=.9*1.2;            // 카드 폭·높이 (크기 1일 때)
@@ -1152,18 +1152,17 @@ function seatTags(B){
     const old=el.querySelector('.pkt');if(old)old.remove();   // 둘째 줄(마지막 행동·족보)은 없앰: 이름표는 이름과 칩만
     el.classList.toggle('pk-fold',B.st[i]===1&&B.ph!=='show');
     const S=SP.get(i);
-    if(on3&&S&&!S.me){
-      const shw=B.hc[i]&&B.hc[i].some(x=>x>=0),q=cardPose(i,0,shw),half=CH*q.s/2+.07;   // 카드 바로 위(화면 위쪽)에
-      v3.set(S.x+(shw?S.ux*.32:0),.03,Math.min(S.z,q.z)-half).project(CAM());
+    if(on3&&S&&!S.me){   // 나무 띠의 앉은 자리(펠트 위 카드를 가리지 않게, 블랙잭과 같은 반지름)
+      v3.set(-S.ux*R_PILL,.05,-S.uz*R_PILL).project(CAM());
       const w=el.offsetWidth,hh=el.offsetHeight;
-      put.push({el,w,h:hh,x:Math.max(w/2+6,Math.min(W-w/2-6,(v3.x+1)/2*W)),y:(1-v3.y)/2*Hh-hh/2});   // 이름표 아래 끝이 카드 바깥쪽에 닿게
+      put.push({el,w,h:hh,x:Math.max(w/2+6,Math.min(W-w/2-6,(v3.x+1)/2*W)),y:(1-v3.y)/2*Hh,sg:-S.uz>=0?1:-1});
     }
   });
-  // 좁은 화면에서 이웃 이름표가 겹치면 위로 비킴
-  put.sort((a,b)=>b.y-a.y);
+  // 좁은 화면에서 이웃 이름표가 겹치면 한 칸 비킴(탁자 바깥쪽으로)
+  put.sort((a,b)=>Math.abs(a.x-W/2)-Math.abs(b.x-W/2));
   const done=[];
   for(const q of put){
-    for(let g=0;g<4&&done.some(o=>Math.abs(o.x-q.x)<(o.w+q.w)/2+4&&Math.abs(o.y-q.y)<(o.h+q.h)/2+2);g++)q.y-=q.h+3;
+    for(let g=0;g<4&&done.some(o=>Math.abs(o.x-q.x)<(o.w+q.w)/2+4&&Math.abs(o.y-q.y)<(o.h+q.h)/2+2);g++)q.y+=(q.h+3)*q.sg;
     done.push(q);q.el.style.left=q.x+'px';q.el.style.top=Math.max(q.h/2+6,Math.min(Hh-q.h/2-6,q.y))+'px';
   }
 }
