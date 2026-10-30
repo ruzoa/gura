@@ -25,16 +25,19 @@ G.fixCfg=(c,n,strict)=>{
 const NL=19,BW=2.3,GM=.3,TOP=.2,PITCH=(2*BW-2*GM)/(NL-1),SR=PITCH*.46,SH=SR*.52,KY=SR/SH;   // 줄 수, 판 반폭(틀 포함), 틀 안쪽 여백, 판 윗면 높이, 줄 간격, 알 반지름·반두께(오목 돌과 같은 비율: 줄 간격에 맞춤)
 const HOSHI=[3,9,15];   // 화점 (19줄)
 const FELT_Y=.016,FELT_R=3.15,TABLE_R=4.9;   // 공통 테이블: 펠트 윗면 높이·반지름, 탁자 반지름
-const PHY={g:32,aB:6.5,aF:11,eSS:.86,eG:.3,vmax:11,dt:1/240,fps:30,tmax:9,slope:.28,kT:700,cT:8,tk:7,mu:.25,aw:5,cw:1.2};   // 중력, 판·펠트 마찰 감속, 알끼리·바닥 튕김, 최고 속도, 계산 간격, 자취 장 수, 최대 길이(초), 미끄러질 때 앞이 숙는 정도, 기울기 복원·감쇠, 부딪힐 때 기우뚱, 알끼리 마찰(돎)·도는 알이 멈추는 정도
+const PHY={g:32,aB:6.5,aF:11,eSS:.86,eJ:.6,eG:.3,vmax:11,dt:1/240,fps:30,tmax:9,slope:.28,kT:700,cT:8,tk:7,mu:.25,aw:5,cw:1.2};   // 중력, 판·펠트 마찰 감속, 알끼리(바둑알·장기알)·바닥 튕김, 최고 속도, 계산 간격, 자취 장 수, 최대 길이(초), 미끄러질 때 앞이 숙는 정도, 기울기 복원·감쇠, 부딪힐 때 기우뚱, 알끼리 마찰(돎)·도는 알이 멈추는 정도
 const PMIN=.1;   // 이보다 약하게 당기고 놓으면 취소
 /* 장기 모드: 판·알은 장기 모드(games/janggi.js)와 같은 크기. 점 사이 JS, 9줄×10줄, 판(틀 포함) 반폭 JBX·반길이 JBZ (떨어지는 기준은 나무판 가장자리)
    알 종류 t: 1 졸·병 2 사 3 상 4 마 5 포 6 차 7 장. 반지름(꼭짓점까지) JPR·두께 JPT는 장기 모드와 같음. 부딪힘은 원으로(꼭짓점과 변 사이 JCR배)
-   무게는 부피(반지름²×두께)에 비례하고 차·포·마·상이 1. 튕기는 힘(충격량)은 같으니 속도 = 힘 ÷ 무게: 장은 느리고 졸은 빠름.
-   JIMP: 힘의 크기 (장을 끝까지 당기면 판 길이만큼 갈 정도). 쳐 보고 맞출 값 */
+   무게는 부피(반지름²×두께)에 비례하고 차·포·마·상이 1.
+   튕기기는 손가락(무게 JFM, 차와 같음)이 당긴 만큼의 속도로 알과 부딪히는 것: 알 속도 ∝ 2·JFM/(JFM+알 무게).
+   가벼운 졸은 손가락보다 크게 빨라지지 못해 운동량이 장의 절반쯤(큰 기물을 잘 못 밂), 장·졸 속도 차이는 약 1.8배.
+   JFU: 손가락 속도 크기 (장을 끝까지 당기면 판 길이만큼 갈 정도, 예전 '같은 충격량'일 때 장의 속도와 같게). 쳐 보고 맞출 값 */
 const JS=.46,JHX=4*JS,JHZ=4.5*JS,JBX=JHX+.36,JBZ=JHZ+.36;
 const JPR={1:.165,2:.165,3:.205,4:.205,5:.205,6:.205,7:.25},JPT={1:.075,2:.075,3:.09,4:.09,5:.09,6:.09,7:.105},JCR=.94;
 const JM={};for(const t in JPR)JM[t]=JPR[t]*JPR[t]*JPT[t]/(JPR[4]*JPR[4]*JPT[4]);
-const JIMP=1.35;
+const JFM=1,JFU=1.06;
+const jShotK=t=>JFU*2*JFM/(JFM+JM[t]);   // 장기 알: 당긴 정도의 속도(speedOf)에 곱하는 값 (차 1.06, 장 .78, 졸 1.38)
 const JNM=[['','졸','사','상','마','포','차','장'],['','병','사','상','마','포','차','장']],JHJ=[['','卒','士','象','馬','包','車','楚'],['','兵','士','象','馬','包','車','漢']];
 /* 알 하나의 크기: 반지름(부딪힘)·반두께·무게. 바둑알(t 없음)은 SR·SH·1 */
 const geomOf=t=>t?{r:JPR[t]*JCR,h:JPT[t]/2,m:JM[t],rv:JPR[t]}:{r:SR,h:SH,m:1,rv:SR};
@@ -57,8 +60,8 @@ function jit(t){   // -1~1, 잔잔하다 가끔 크게 (규칙적인 흔들림�
   return Math.max(-1,Math.min(1,a*.8+b*.6));
 }
 const speedOf=p=>PHY.vmax*Math.pow(Math.max(0,Math.min(1,p)),1.25);   // 당긴 정도 → 속도 (끝으로 갈수록 조금 더 세짐)
-/* 이 알을 p만큼 당겨 튕긴 속도: 바둑알은 speedOf 그대로, 장기 알은 같은 힘(충격량)을 무게로 나눔 */
-const shotSpeed=(q,p)=>q&&q.t?speedOf(p)*JIMP/JM[q.t]:speedOf(p);
+/* 이 알을 p만큼 당겨 튕긴 속도: 바둑알은 speedOf 그대로, 장기 알은 손가락과 부딪힌 속도(jShotK) */
+const shotSpeed=(q,p)=>q&&q.t?speedOf(p)*jShotK(q.t):speedOf(p);
 const CNAME_JG=['','초','한'];   // 장기 모드: 선(1)이 초, 다음(2)이 한
 const onBoardXZ=(x,z)=>Math.abs(x)<=BD.x&&Math.abs(z)<=BD.z;
 function groundAt(x,z){
@@ -137,7 +140,7 @@ function simulate(st,shot,rnd){
         a.x-=nx*ov*ka;a.z-=nz*ov*ka;a.y-=ny*ov*ka/ky;b.x+=nx*ov*kb;b.z+=nz*ov*kb;b.y+=ny*ov*kb/ky;
         const vn=(a.vx-b.vx)*rx+(a.vy-b.vy)*ry+(a.vz-b.vz)*rz;
         if(vn>0){
-          const E=vn>.4?P.eSS:0,J=(1+E)*vn/(1/a.m+1/b.m),Ja=J/a.m,Jb=J/b.m;   // 충격량 J는 같고 속도 변화는 무게에 반비례 (같은 무게면 (1+E)vn/2)
+          const E=vn>.4?(a.t||b.t?P.eJ:P.eSS):0,J=(1+E)*vn/(1/a.m+1/b.m),Ja=J/a.m,Jb=J/b.m;   // 충격량 J는 같고 속도 변화는 무게에 반비례 (같은 무게면 (1+E)vn/2)
           a.vx-=Ja*rx;a.vy-=Ja*ry;a.vz-=Ja*rz;b.vx+=Jb*rx;b.vy+=Jb*ry;b.vz+=Jb*rz;
           a.bx+=ux*P.tk*(-Ja*ry);a.bz+=uz*P.tk*(-Ja*ry);b.bx-=ux*P.tk*(Jb*ry);b.bz-=uz*P.tk*(Jb*ry);   // 가장자리를 위·아래로 치면 기우뚱
           if(SPIN){   // 비껴 부딪히면 닿은 곳의 미끄러짐을 마찰이 막아 두 알이 돎 (겉모습만, 나가는 방향은 그대로)
@@ -361,8 +364,8 @@ function botPlan(A,seat,rnd){
     const a=A.st[pk.i],b=pk.j>=0?A.st[pk.j]:{x:-a.x,z:-a.z,t:a.t},ga=geomOf(a.t),gb=geomOf(b.t),d=Math.hypot(b.x-a.x,b.z-a.z);
     const ang=Math.atan2(b.z-a.z,b.x-a.x)+(rnd()*2-1)*.12;
     const ex=Math.max(.6,Math.min(Math.abs(Math.abs(b.x)-BD.x),Math.abs(Math.abs(b.z)-BD.z))+.4);   // 맞은 알이 판 끝까지 갈 거리 (가까운 끝)
-    const vt=Math.sqrt(2*PHY.aB*ex),vs=Math.sqrt(vt*vt*(ga.m+gb.m)*(ga.m+gb.m)/(4*ga.m*ga.m*.86)+2*PHY.aB*d);   // 맞히기까지 줄어드는 속도 + 무게 비율로 넘겨주는 속도
-    let p=Math.pow(Math.min(1,vs*ga.m/(JIMP*PHY.vmax)),.8)*(.75+rnd()*.5);
+    const vt=Math.sqrt(2*PHY.aB*ex),vh=vt*(ga.m+gb.m)/((1+PHY.eJ)*ga.m),vs=Math.sqrt(vh*vh+2*PHY.aB*d);   // 정면으로 맞혀 넘겨줄 속도(무게·반발) + 맞히기까지 줄어드는 속도
+    let p=Math.pow(Math.min(1,vs/(jShotK(a.t)*PHY.vmax)),.8)*(.75+rnd()*.5);
     p=Math.max(.2,Math.min(1,p));
     return {i:pk.i,a:ang,p,fa:ang+spreadOf(p)*jit(rnd()*1e6)};
   }
@@ -619,7 +622,7 @@ function botStep(i,t){
   if(!doShot(i,b.i,b.fa,b.p))startTurn(turnAfter(A,i));
 }
 /* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
-G._test={geomOf,JM,JSET,jgSetup,useBoard,BD,shotSpeed,mdOf,omGrid,omFive,omThreats,omLines,omTargets,omPlacePlan,omCands,omScore,omFull,simulate,reserves,shotCands,shotScore,botPick,placePlan,canPlace,gridXZ,botPlan,speedOf,groundAt,doShot,doSurrender,timeout,pickFirst,aliveOf,sideOfSeat,ownPt,freeAt,PHY,TOP,SH,SR,BW,PITCH,NL};
+G._test={geomOf,JM,jShotK,JSET,jgSetup,useBoard,BD,shotSpeed,mdOf,omGrid,omFive,omThreats,omLines,omTargets,omPlacePlan,omCands,omScore,omFull,simulate,reserves,shotCands,shotScore,botPick,placePlan,canPlace,gridXZ,botPlan,speedOf,groundAt,doShot,doSurrender,timeout,pickFirst,aliveOf,sideOfSeat,ownPt,freeAt,PHY,TOP,SH,SR,BW,PITCH,NL};
 G.engine={
   /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
   start(){

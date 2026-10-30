@@ -305,6 +305,12 @@ for(const ag of [1,0]){
  {const a=shot([P(0,1,0,4),P(0,.3,1,7)],0,-Math.PI/2,.3),b=shot([P(0,1,0,4),P(0,.3,1,1)],0,-Math.PI/2,.3);ok(.3-a.fin[1].z<.3-b.fin[1].z,'heavy target moves less')}
  {const r=shot([P(0,1,0,4),P(.25,0,1,4)],0,-Math.PI/2,.35);eq(r.k,6,'spin frames');ok(Math.abs(r.fin[1].w)>.05,'glancing hit spins '+r.fin[1].w);
   const h=shot([P(0,1,0,4),P(0,0,1,4)],0,-Math.PI/2,.35);ok(Math.abs(h.fin[1].w)<.05,'head-on barely spins '+h.fin[1].w)}
+ /* 손가락 무게: 같은 당김이면 졸로 칠 때 차가 차로 칠 때보다 덜 밀림, 장·졸 속도 차이는 2배 안쪽 */
+ {const a=shot([P(0,1,0,1),P(0,.2,1,6)],0,-Math.PI/2,.5),b=shot([P(0,1,0,6),P(0,.2,1,6)],0,-Math.PI/2,.5);ok(.2-a.fin[1].z<(.2-b.fin[1].z)*.75,'jol pushes cha less '+(.2-a.fin[1].z).toFixed(2)+' < '+(.2-b.fin[1].z).toFixed(2))}
+ {const r=T.shotSpeed({t:1},.7)/T.shotSpeed({t:7},.7);ok(r>1.5&&r<2.1,'jol/jang speed ratio '+r.toFixed(2))}
+ /* 반발: 같은 무게 정면이면 친 알이 조금 따라 들어감 (장기알 eJ: 친 알 속도/맞은 알 속도 = (1-e)/(1+e), 이동 거리비는 그 제곱) */
+ {const g=T.geomOf(6),r=shot([P(0,1,0,6),P(0,.2,1,6)],0,-Math.PI/2,.5),ds=(1-r.fin[0].z)-(.8-2*g.r),dt=.2-r.fin[1].z,k=((1-T.PHY.eJ)/(1+T.PHY.eJ))**2;
+  ok(ds/dt>k*.5&&ds/dt<k*2,'jang restitution follow-through '+(ds/dt).toFixed(3)+' ~ '+k.toFixed(3))}
  T.useBoard(0);}
 /* 엔진: 바로 튕기기(놓기 없음), 상태 전송에 종류·각도 */
 {mkRoom({pickfirst:1,md:2},undefined,true);
