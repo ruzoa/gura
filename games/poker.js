@@ -586,7 +586,7 @@ function cardPose(seat,k,show){
 }
 
 /* ---------- 3D ---------- */
-const V3={toBet:0,toBank:0,pend:null,pring:null,mineIn:0,sent:false,sendBet:0,sendTot:0,cards:new Map(),flights:[],piles:new Map(),pot:null,potAmt:-1,potPend:0,bank:null,rings:new Map(),ringsKey:'',arc:null,arcQ:-1,arcSeat:-2,root:null,deck:null,btn:null,btnAt:null,hk:-1,awarded:-1,landed:new Set(),felt:null,mats:null,bounceAt:-1e9,lift:new Set(),knocks:[]};
+const V3={toBet:0,toBank:0,pend:null,mineIn:0,sent:false,sendBet:0,sendTot:0,cards:new Map(),flights:[],piles:new Map(),pot:null,potAmt:-1,potPend:0,bank:null,rings:new Map(),ringsKey:'',root:null,deck:null,btn:null,btnAt:null,hk:-1,awarded:-1,landed:new Set(),felt:null,mats:null,bounceAt:-1e9,lift:new Set(),knocks:[]};
 function chipMats(){
   if(V3.mats)return V3.mats;
   const geo=new THREE.CylinderGeometry(CHIP_R,CHIP_R,CHIP_H,28);
@@ -825,37 +825,15 @@ function spotRing(i){
   const S=SP.get(i);if(S){r.position.set(S.x,.021,S.z)}
   return r;
 }
-/* 내가 걸 차례면 베팅할 칩 공간에 금색 점선 고리(숨 쉬듯 밝아짐) */
-function dashRing(r0,r1,col,op){
-  const g=new THREE.Group(),mat=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false}),N=14,seg=Math.PI*2/N;
-  for(let j=0;j<N;j++){const m=new THREE.Mesh(new THREE.RingGeometry(r0,r1,8,1,j*seg,seg*.55),mat);m.rotation.x=-Math.PI/2;g.add(m)}
-  g.userData.mat=mat;return g;
-}
-function pendRing(now){
-  const B=BV(),on=!!(B&&B.ph==='bet'&&myMode()==='act'&&!busy()&&!dealingV()&&SP.has(myIdx()));
-  if(!on){if(V3.pring)V3.pring.visible=false;return}
-  if(!V3.pring){V3.pring=dashRing(.22,.255,0xf2c14e,.9);T.scene.add(V3.pring)}
-  const p=pendPos();V3.pring.position.set(p.x,.021,p.z);V3.pring.visible=true;V3.pring.userData.mat.opacity=.6+.35*Math.sin(now/180);
-}
-function turnTimer(now){
-  const B=BV(),i=V&&V.t,on=!!(B&&B.ph==='bet'&&V.st==='play'&&i>=0&&SP.has(i)&&!dealingV()&&!busy());
-  if(!on){if(V3.arc)V3.arc.visible=false;return}
-  const frac=Math.max(0,Math.min(1,(V.deadAt-now)/((+V.cfg.turn||30)*1000))),q=Math.round(frac*200)/200;
-  const mine=i===myIdx(),r0=mine?.28:.3,r1=mine?.32:.35;
-  if(!V3.arc){V3.arc=new THREE.Mesh(new THREE.RingGeometry(r0,r1,64),new THREE.MeshBasicMaterial({color:0xf2b632,side:THREE.DoubleSide,transparent:true,depthWrite:false}));V3.arc.rotation.x=-Math.PI/2;T.scene.add(V3.arc);V3.arcQ=-1}
-  if(q!==V3.arcQ||V3.arcSeat!==i){V3.arcQ=q;V3.arcSeat=i;V3.arc.geometry.dispose();V3.arc.geometry=new THREE.RingGeometry(r0,r1,64,1,Math.PI/2,Math.max(.001,q*Math.PI*2))}
-  const p=mine?pendPos():betPos(i);V3.arc.position.set(p.x,.023,p.z);V3.arc.visible=true;
-  V3.arc.material.color.set(frac<.25?0xcc3a2e:0xf2b632);
-}
+/* 차례 시간은 3D 고리 대신: 다른 사람은 이름표 테두리(공통), 나는 버튼 줄 위 바 게이지(timeBar) */
 function clear3D(){
   for(const e of V3.cards.values())killCard(e.g);V3.cards.clear();
   for(const f of V3.flights)killG(f.obj);V3.flights=[];
   for(const P of V3.piles.values())killG(P.g);V3.piles.clear();
   killG(V3.bank);V3.bank=null;killG(V3.pot);V3.pot=null;V3.potAmt=-1;V3.potPend=0;
   for(const r of V3.rings.values())killG(r);V3.rings.clear();dieOff();
-  if(V3.arc){killG(V3.arc);V3.arc=null}
   killG(V3.root);V3.root=null;V3.deck=V3.btn=null;V3.btnAt=null;
-  V3.hk=-1;V3.awarded=-1;V3.landed.clear();V3.toBet=V3.toBank=0;V3.mineIn=0;V3.sent=false;if(V3.pend)killG(V3.pend.g);V3.pend=null;if(V3.pring){killG(V3.pring);V3.pring=null}spKey='';IN.on=false;
+  V3.hk=-1;V3.awarded=-1;V3.landed.clear();V3.toBet=V3.toBank=0;V3.mineIn=0;V3.sent=false;if(V3.pend)killG(V3.pend.g);V3.pend=null;spKey='';IN.on=false;
   for(const k of V3.knocks)killG(k.m);V3.knocks=[];GS.id=null;GS.kind='';GS.back=null;PEEK.on=PEEK.hover=false;PEEK.from=PEEK.to=0;
   useFelt(false);
 }
@@ -929,7 +907,7 @@ function frame3(now){
     if(!e.launched&&now>=e.at&&e.to){e.launched=true;e.g.visible=true;e.tw={from:{...e.cur},to:e.to,t0:now,ms:e.to.f?460:400,lift:.38};sfx('flick')}
     if(e.launched)cardStep(e,now);
   }
-  frameFlights(now);feltFrame(now);turnTimer(now);pendRing(now);introFrame(now);myCardsFrame(now);knockFrame(now);
+  frameFlights(now);feltFrame(now);introFrame(now);myCardsFrame(now);knockFrame(now);
   {const P=V3.pend;if(P&&P.g)P.g.position.z=pendPos().z+(P.hold!==undefined?P.hold:gestDz(now,'bet'))}   // 앞으로 미는 베팅할 칩(밀어서 보냈으면 민 자리에 머묾)
   if(V3.bank){const a=now-V3.bounceAt;V3.bank.position.y=a>=0&&a<520?Math.abs(Math.sin(a/520*Math.PI*2))*.09*(1-a/520):0}
   if(ON&&BV()&&BV().ph==='show'&&V3.awarded!==BV().hn&&now>=V3.showAt)syncChips();
@@ -1217,6 +1195,19 @@ function actFrame(){
   const v=new THREE.Vector3(0,12*CHIP_H+.04,BANK_Z-CHIP_R).project(CAM());
   const x=Math.round((v.x+1)/2*st.clientWidth),y=Math.round((1-v.y)/2*st.clientHeight),k=x+','+y;
   if(k!==actKey){actKey=k;st.style.setProperty('--pkAx',x+'px');st.style.setProperty('--pkAy',y+'px')}
+  timeBar();
+}
+/* 내 차례 시간: 버튼 줄 바로 위(내 카드와 칩 더미 사이)의 가로 바. 시작 시각과의 차이로 줄어들고 1/4 남으면 빨강, 대기 시간은 회색 */
+let elTime=null;
+function timeBar(){
+  const row=$('#actions');if(!row)return;
+  if(!elTime||elTime.parentNode!==row){elTime=document.createElement('div');elTime.id='pkTime';elTime.setAttribute('aria-hidden','true');elTime.innerHTML='<i></i>';row.appendChild(elTime)}
+  const now=clock(),me=myIdx(),on=V&&V.st==='play'&&V.t===me&&myMode()==='act'&&!dealingV();
+  if(!on){if(elTime.dataset.f!=='')elTime.dataset.f='';return}
+  const g=V.graceAt-now,grace=g>0;
+  const f=grace?Math.min(1,g/((+V.cfg.grace||1)*1000)):Math.max(0,Math.min(1,(V.deadAt-now)/((+V.cfg.turn||30)*1000)));
+  const k=(grace?'g':f<.25?'r':'y')+Math.round(f*400);
+  if(elTime.dataset.f!==k){elTime.dataset.f=k;elTime.className=grace?'g':f<.25?'r':'';elTime.firstChild.style.transform=`scaleX(${f.toFixed(4)})`}
 }
 G.live=()=>{
   const B=BV();if(!B)return;
@@ -1227,7 +1218,7 @@ G.enter=()=>{ON=true;actKey='';$('#stage').classList.add('pk');$('#numpick').hid
 G.leave=()=>{
   ON=false;if(typeof T!=='undefined'&&T.ok)clear3D();
   const st=$('#stage');if(st){st.classList.remove('pk','pk3');st.style.removeProperty('--pkAx');st.style.removeProperty('--pkAy')}
-  const row=$('#actions');if(row)row.classList.remove('pkoff');
+  const row=$('#actions');if(row)row.classList.remove('pkoff');if(elTime){elTime.remove();elTime=null}
   const pass=$('#btnPass'),gb=$('#btnGura');if(pass){setTxt(pass,'패스');pass.hidden=false}if(gb){setTxt(gb,'구라!');gb.hidden=true}
   if(elPeek){elPeek.hidden=true;elPeek.innerHTML='';elPeek.dataset.k=''}
   if(elBet)elBet.hidden=true;if(el2d){el2d.hidden=true;el2d.innerHTML='';el2d.dataset.k=''}if(elNums){elNums.innerHTML='';elNums.dataset.k=''}
@@ -1269,6 +1260,11 @@ G.init=()=>{
 .stage.pk.pk3 #actions{left:var(--pkAx,50%);top:var(--pkAy,70%);right:auto;bottom:auto;transform:translate(-50%,-100%);transform-origin:50% 100%;gap:8px;transition:opacity .2s}
 .stage.pk.pk3 #actions .act{flex:none;height:44px;min-width:80px;padding:0 12px;font-size:18px;border-radius:12px}
 .stage.pk.pk3 #actions .act small{display:none}
+#pkTime{display:none}
+.stage.pk.pk3 #pkTime{display:block;position:absolute;left:50%;bottom:calc(100% + 8px);width:200px;height:6px;margin-left:-100px;border-radius:3px;background:rgba(59,42,31,.28);overflow:hidden;pointer-events:none}
+.stage.pk.pk3 #pkTime i{display:block;height:100%;background:#f2b632;transform-origin:0 50%}
+.stage.pk.pk3 #pkTime.r i{background:#cc3a2e}.stage.pk.pk3 #pkTime.g i{background:#9a8f80}
+@media (max-width:480px){.stage.pk.pk3 #pkTime{width:170px;margin-left:-85px;bottom:calc(100% + 6px)}}
 @media (max-width:480px){.stage.pk.pk3 #actions{gap:6px}.stage.pk.pk3 #actions .act{height:38px;min-width:64px;padding:0 9px;font-size:15px}}
 .stage.pk #cv{touch-action:none}
 #pk2d .r2{display:grid;grid-template-columns:96px auto 1fr;align-items:center;gap:8px;padding:5px 10px;border-radius:12px;background:#fffaf0;border:1px solid var(--line-strong)}
