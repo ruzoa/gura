@@ -490,10 +490,10 @@ G.cues=(v,pv)=>{
    거는 사람은 탁자 가운데를 중심으로 한 원호(180°)를 거는 사람 수로 똑같이 나눠 앉고(카드 받는 순서대로 딜러의 왼쪽 = 화면 오른쪽 끝에서 시계 방향),
    딜러는 그 맞은편(호의 안쪽 반대편). 카메라는 그대로 두고 배치 전체를 탁자 가운데 둘레로 돌려 내 자리가 늘 내 앞(아래 가운데)에 오게 함.
    내가 사람 딜러인 판은 180° 돌려 딜러 카드·칩·카드 통이 내 앞, 손님 호가 맞은편 */
-const R_HAND=1.55,R_BET=2.25,R_PILL=2.66;
+const R_HAND=2.1,R_BET=2.85,R_PILL=4.45,R_SUM=1.42;   // 카드·베팅 칸·이름표(나무 띠의 앉은 자리)·합계 표(카드 안쪽 펠트). 7명이어도 이웃 손 사이가 카드 크기 0.65로 3장까지 안 겹치게
 const DEALER_Z=-1.45,SHOE={x:1.9,z:-1.65},DISC={x:-1.9,z:-1.65},TRAY={x:0,z:-2.2};   // 표(딜러가 맞은편일 때의 자리)
-const BANK_Z=3.45,BANK_X=[-.75,-.25,.25,.75],CHIP_R=.2,CHIP_H=.052;   // 내 칩 더미는 카메라 쪽으로 물림: 칩 기둥이 높아도 화면에서 베팅할 칩 공간을 가리지 않게(천 확대 뒤에는 펠트 위). 늘 내 앞이라 돌리지 않음
-const PEND_Z=2.85;                     // 베팅할 칩 공간(내 칩 더미와 베팅한 칩 공간 사이). 걸기 전 칩만 올라가고, 건 뒤에는 베팅한 칩 공간(betPos)으로 옮겨져 누를 수 없음. 늘 내 앞이라 돌리지 않음
+const BANK_Z=4.35,BANK_X=[-.75,-.25,.25,.75],CHIP_R=.2,CHIP_H=.052;   // 내 칩 더미는 펠트 밖 나무 띠 위 내 앞(포커와 같음): 칩 기둥이 높아도 화면에서 베팅할 칩 공간을 가리지 않게. 늘 내 앞이라 돌리지 않음
+const PEND_Z=3.45;                     // 베팅할 칩 공간(내 칩 더미와 베팅한 칩 공간 사이). 걸기 전 칩만 올라가고, 건 뒤에는 베팅한 칩 공간(betPos)으로 옮겨져 누를 수 없음. 늘 내 앞이라 돌리지 않음
 const pendPos=()=>({x:0,z:PEND_Z});
 const CW=.62*1.2,CH=.9*1.2;            // 카드 폭·높이 (크기 1일 때)
 const S_ME=.8,S_DL=.8,S_OT=.65;        // 카드 크기: 나·딜러·다른 사람
@@ -505,9 +505,10 @@ const shoeAt=p=>MEDL?{x:Math.sign(p.x)*1.4,z:-1.45}:p;
 const wrapA=a=>{while(a>Math.PI)a-=2*Math.PI;while(a<=-Math.PI)a+=2*Math.PI;return a};
 const atC=(a,r)=>({x:Math.sin(a)*r,z:Math.cos(a)*r});   // 돌리기 전 (a = 아래 가운데에서 오른쪽으로 잰 각도)
 const atA=(a,r)=>M(atC(a,r));
-const faceA=i=>wrapA((SPOTS.get(i)||0)+ROT)*.3;   // 카드·칩이 놓이는 기울기: 내 쪽을 보도록 조금만 (모서리 숫자가 읽히게)
-/* 딜러 카드 줄에서 화면 아래(+)·위(−)로 off만큼. 딜러 카드는 늘 나를 향해 가로로 놓이므로 반지름 방향이 아니라 화면 위아래로 비켜야 카드와 안 겹침(내가 딜러면 앞뒤가 반대) */
-function dealerAt(off){const c=M({x:0,z:DEALER_Z});return {x:c.x,z:c.z+(MEDL?-off:off)}}
+const faceA=i=>wrapA((SPOTS.get(i)||0)+ROT);   // 카드가 놓이는 방향: 그 사람 자리에서 탁자 가운데를 향함(그 사람 쪽에서 똑바로 읽힘)
+const dealerRy=()=>MEDL?0:ROT;   // 딜러 카드: 거는 사람 쪽(호의 가운데)을 향함. 내가 딜러면 나를 향함
+/* 딜러 카드 줄에서 거는 사람 쪽(+)·딜러 뒤쪽(−)으로 off만큼. 딜러 카드는 그 방향을 보고 가로로 놓이므로 카드 줄과 안 겹침 */
+const dealerAt=off=>M({x:0,z:DEALER_Z+off});
 /* 자리마다 각도: 카드 받는 순서(B.od)대로 오른쪽 끝에서 시계 방향, 180°를 거는 사람 수로 똑같이 나눔 */
 function spotAngles(od){
   const n=od.length,st=Math.PI/Math.max(1,n),out=new Map();
@@ -532,7 +533,7 @@ function layout(B){
 /* 카드 자리: 옆으로 겹쳐 왼쪽 위 숫자가 보이게(카드가 늘면 더 겹침). 딜러는 딜러 자리 둘레 한 줄 */
 function cardPose(seat,k,n){
   const fan=s=>n>1?CW*s*Math.min(.42,1.05/(n-1)):0;
-  if(seat<0){const g=fan(S_DL),c=M({x:0,z:DEALER_Z});return {x:c.x+(k-(n-1)/2)*g,y:.02+k*.004,z:c.z,ry:0,s:S_DL}}
+  if(seat<0){const g=fan(S_DL),c=M({x:0,z:DEALER_Z}),ry=dealerRy(),o=(k-(n-1)/2)*g;return {x:c.x+Math.cos(ry)*o,y:.02+k*.004,z:c.z-Math.sin(ry)*o,ry,s:S_DL}}
   const a=SPOTS.get(seat)||0,s=seat===myIdx()?SC.me:SC.ot,g=fan(s),ry=faceA(seat);
   const c=atA(a,R_HAND),o=(k-(n-1)/2)*g;
   return {x:c.x+Math.cos(ry)*o,y:.02+k*.004,z:c.z-Math.sin(ry)*o,ry,s};
@@ -801,7 +802,7 @@ function clear3D(){
   killG(V3.root);V3.root=null;V3.rootFL=0;V3.shoe=V3.disc=null;
   V3.sf=-1;V3.rd=-1;V3.settled=-1;V3.landed.clear();V3.toBet=V3.toBank=0;spotKey='';ROT=0;MEDL=false;
   useFelt(false);
-  if(elTags){elTags.innerHTML='';elTags.dataset.k=''}
+  if(elTags)elTags.innerHTML='';
 }
 function sync3(v){
   const B=v.bj;if(!B||!T.ok)return;
@@ -890,26 +891,34 @@ function chipAt(e){
   return null;
 }
 
-/* ---------- 합계 표 (베팅 칸 아래), 이름표의 칩 ---------- */
+/* ---------- 펠트 위 표: 딜러 합계, 거는 사람 합계(카드 안쪽 펠트), 정산 결과(칩 위에 잠깐 떠오름), 내 칩 숫자 ----------
+   표마다 따로 만들고 바뀐 것만 고침(결과가 뜨는 움직임이 다른 표가 바뀔 때 다시 시작하지 않게) */
 function tagsFrame(){
   const B=BV();if(!elTags)return;
-  if(!B||!T.ok||!(V.st==='play'||V.st==='over')){if(elTags.dataset.k){elTags.innerHTML='';elTags.dataset.k=''}return}
+  if(!B||!T.ok||!(V.st==='play'||V.st==='over')){if(elTags.firstChild)elTags.innerHTML='';return}
   const me=myIdx(),st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight,list=[];
-  if(B.dc.length){const dn=B.hd&&B.dl===me?'딜러 · 나':'딜러';list.push({k:'d',html:`<span class="who">${dn}</span>${totalHTML(B.dc,0,true)}`,p:dealerAt(.66),on:B.ph==='dealer'&&V.t===B.dl})}
+  if(B.dc.length){const dn=B.hd&&B.dl===me?'딜러 · 나':'딜러';list.push({k:'d',c:' dl',html:`<span class="who">${dn}</span>${totalHTML(B.dc,0,true)}`,p:dealerAt(MEDL?.95:.66),on:B.ph==='dealer'&&V.t===B.dl})}
+  for(const i of B.od){
+    const cs=B.hc[i]||[];if(!cs.length||!SPOTS.has(i))continue;
+    list.push({k:'s'+i,html:totalHTML(cs,B.st[i],false)+(B.db[i]?'<i>더블</i>':''),p:atA(SPOTS.get(i),R_SUM),on:B.ph==='turn'&&V.t===i});
+    if(B.ph==='settle'&&B.rs){const x=B.rs[i]||0;list.push({k:'r'+B.rd+':'+i,c:' res',html:`<em class="${x>0?'w':x<0?'l':'p'}">${x?sgn(x):'무승부'}</em>`,p:betPos(i),on:false})}
+  }
   // 내 칩 숫자: 칩 더미 아래에 남은 칩, 베팅할 칩 공간 옆에 올려 둔 칩 (칩이 떠나고 도착하는 때에 맞춰 바뀜)
   if(me>=0&&V.ps[me]&&!V.ps[me].f&&!(B.hd&&B.dl===me)&&B.od.includes(me)&&V3.bank){
-    list.push({k:'c',c:' num',html:`<b>${bankAmt(B,me)}</b>`,p:{x:0,z:BANK_Z+.42},on:false});
+    list.push({k:'c',c:' num',html:`<b>${bankAmt(B,me)}</b>`,p:{x:0,z:BANK_Z+.36},on:false});
     if(V3.pend&&V3.pend.amt>0)list.push({k:'p',c:' num',html:`<b>${V3.pend.amt}</b>`,p:{x:.62,z:PEND_Z},on:false});
   }
-  const key=list.map(x=>x.k+x.html+(x.on?1:0)).join('|');
-  if(elTags.dataset.k!==key){elTags.innerHTML=list.map(x=>`<div class="bj-tag${x.on?' on':''}${x.k==='d'?' dl':''}${x.c||''}" data-k="${x.k}">${x.html}</div>`).join('');elTags.dataset.k=key}
-  const v3=new THREE.Vector3();
-  list.forEach(x=>{
-    const el=elTags.querySelector(`[data-k="${x.k}"]`);if(!el)return;
+  const have=new Map([...elTags.children].map(e=>[e.dataset.k,e])),v3=new THREE.Vector3();
+  for(const x of list){
+    let el=have.get(x.k);have.delete(x.k);
+    if(!el){el=document.createElement('div');el.dataset.k=x.k;elTags.appendChild(el)}
+    const cls='bj-tag'+(x.on?' on':'')+(x.c||'');if(el.className!==cls)el.className=cls;
+    if(el.dataset.h!==x.html){el.innerHTML=x.html;el.dataset.h=x.html}
     v3.set(x.p.x,.03,x.p.z).project(T.cam);
     const hw=el.offsetWidth/2,hh=el.offsetHeight/2;
     el.style.left=Math.max(hw+4,Math.min(W-hw-4,(v3.x+1)/2*W))+'px';el.style.top=Math.max(hh+4,Math.min(Hh-hh-4,(1-v3.y)/2*Hh))+'px';
-  });
+  }
+  for(const el of have.values())el.remove();
 }
 /* WebGL이 없을 때: 딜러와 모두의 카드를 2D로 */
 function render2D(){
@@ -927,22 +936,19 @@ G.hud=inGame=>{
   if(!on){if(T.ok)clear3D();if(elBet)elBet.hidden=true}
   render2D();
 };
-/* 이름표: 장수 대신 칩, 그 아래 줄에 카드 합계·정산. 3D면 이름표를 그 사람 베팅 칸 바로 아래로 옮김(공통 코드가 자리 가장자리에 놓은 뒤 매 프레임) */
+/* 이름표: 이름과 칩(칩 아이콘 + 개수)만. 3D면 그 사람이 앉은 나무 띠 자리(R_PILL)로 옮김(공통 코드가 자리 가장자리에 놓은 뒤 매 프레임). 합계·결과는 펠트 위(tagsFrame) */
+const CHIP_ICON='<svg class="bjci" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7.5" fill="#cc3a2e"/><circle cx="8" cy="8" r="5.6" fill="none" stroke="#fffaf0" stroke-width="2" stroke-dasharray="2.6 2.1"/><circle cx="8" cy="8" r="3.1" fill="none" stroke="#fffaf0" stroke-width=".9"/></svg>';
 function seatTags(B){
   const on3=T.ok&&(V.st==='play'||V.st==='over'),st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight,v3=on3?new THREE.Vector3():null,put=[];
   document.querySelectorAll('#labels .seat[data-i]').forEach(el=>{
     const i=+el.dataset.i,ct=el.querySelector('.ct'),p=V.ps[i];if(!ct||!p)return;
-    const t=p.sr?(p.sr===2?'시간 초과':p.sr===3?'탈주':'항복'):`칩 ${B.ch[i]}`;if(ct.textContent!==t)ct.textContent=t;
-    const cs=B.od.includes(i)?B.hc[i]||[]:[];
-    const r=B.ph==='settle'&&B.rs&&B.od.includes(i)?`<em class="${B.rs[i]>0?'w':B.rs[i]<0?'l':'p'}">${sgn(B.rs[i])}</em>`:'';
-    const h=cs.length?totalHTML(cs,B.st[i],false)+(B.db[i]?'<i>더블</i>':'')+r:'';
-    let x=el.querySelector('.bjt');if(!x){x=document.createElement('div');x.className='bjt';el.appendChild(x)}
-    if(x.dataset.h!==h){x.innerHTML=h;x.dataset.h=h}
-    const dlr=on3&&B.hd&&i===B.dl;   // 사람 딜러의 이름표는 딜러 카드 위(맞은편)
+    const t=p.sr?(p.sr===2?'시간 초과':p.sr===3?'탈주':'항복'):CHIP_ICON+B.ch[i];if(ct.dataset.h!==t){ct.innerHTML=t;ct.dataset.h=t}
+    const old=el.querySelector('.bjt');if(old)old.remove();
+    const dlr=on3&&B.hd&&i===B.dl;   // 사람 딜러의 이름표는 딜러 뒤 나무 띠
     if(on3&&(SPOTS.has(i)||dlr)){
-      const q=dlr?dealerAt(-.95):atA(SPOTS.get(i),R_PILL),sg=dlr?(MEDL?-1:1):(q.z>=0?1:-1);v3.set(q.x,.03,q.z).project(T.cam);
-      const w=el.offsetWidth,h=el.offsetHeight;   // 베팅 칸 바깥쪽(가까운 쪽 자리는 화면 아래, 먼 쪽 자리는 화면 위)으로 붙임
-      put.push({el,w,h,x:Math.max(w/2+6,Math.min(W-w/2-6,(v3.x+1)/2*W)),y:(1-v3.y)/2*Hh+(sg>0?h/2-10:-h/2+10),sg});
+      const q=dlr?M({x:0,z:-R_PILL}):atA(SPOTS.get(i),R_PILL),sg=q.z>=0?1:-1;v3.set(q.x,.05,q.z).project(T.cam);
+      const w=el.offsetWidth,h=el.offsetHeight;
+      put.push({el,w,h,x:Math.max(w/2+6,Math.min(W-w/2-6,(v3.x+1)/2*W)),y:(1-v3.y)/2*Hh,sg});
     }
   });
   // 좁은 화면에서 이웃 이름표가 겹치면 한 칸 비킴(탁자 바깥쪽으로)
@@ -968,7 +974,7 @@ G.leave=()=>{
   ON=false;if(typeof T!=='undefined'&&T.ok)clear3D();
   const st=$('#stage');if(st)st.classList.remove('bj');
   const pass=$('#btnPass'),gb=$('#btnGura');if(pass){setTxt(pass,'패스');pass.hidden=false}if(gb){setTxt(gb,'구라!');gb.hidden=true}
-  if(elBet)elBet.hidden=true;if(el2d){el2d.hidden=true;el2d.innerHTML='';el2d.dataset.k=''}if(elTags){elTags.innerHTML='';elTags.dataset.k=''}
+  if(elBet)elBet.hidden=true;if(el2d){el2d.hidden=true;el2d.innerHTML='';el2d.dataset.k=''}if(elTags)elTags.innerHTML='';
   if(typeof T!=='undefined'&&T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
   const cv=$('#cv');if(cv)cv.style.cursor='';
 };
@@ -991,8 +997,9 @@ G.init=()=>{
 .bj-tag .who{font-size:11px;font-weight:700;color:var(--muted)}
 .bj-tag em,.r2 em{font-style:normal;font-family:var(--f-num);font-weight:700;font-size:13px}
 .bj-tag em.w,.r2 em.w{color:#2c7d47}.bj-tag em.l,.r2 em.l{color:var(--gura)}.bj-tag em.p,.r2 em.p{color:var(--muted);font-family:var(--f-body);font-size:12px}
-.seat .bjt{display:flex;align-items:baseline;gap:4px;font-size:11px;line-height:1.2}.seat .bjt:empty{display:none}
-.seat .bjt b{font-family:var(--f-num);font-size:13.5px;font-weight:700;color:var(--ink)}.seat .bjt b.bust{font-family:var(--f-body);font-size:12px;color:var(--gura)}.seat .bjt b.bj{font-family:var(--f-body);font-size:12px;color:#c08a17}.seat .bjt i{font-style:normal;font-size:10.5px;font-weight:600;color:var(--muted)}.seat .bjt em{font-style:normal;font-family:var(--f-num);font-weight:700;font-size:12.5px}.seat .bjt em.w{color:#2c7d47}.seat .bjt em.l{color:var(--gura)}.seat .bjt em.p{color:var(--muted);font-family:var(--f-body);font-size:11px}
+.seat .ct .bjci{width:1.05em;height:1.05em;vertical-align:-2px;margin-right:3px}
+.bj-tag.res{background:rgba(255,250,240,.95);animation:bjRes 2.2s ease-out .45s both}
+@keyframes bjRes{0%{opacity:0;transform:translate(-50%,-30%)}15%{opacity:1;transform:translate(-50%,-90%)}75%{opacity:1;transform:translate(-50%,-140%)}100%{opacity:0;transform:translate(-50%,-170%)}}
 
 .bj-dtag{display:inline-block;font-size:10.5px;font-weight:700;line-height:1;padding:3px 6px 2px;border-radius:99px;margin-right:5px;vertical-align:1px;background:#3b2a1f;color:#f4ead9}
 @media (max-width:480px){.stage.bj .myplate{bottom:72px;max-width:calc(100% - 24px)}}
