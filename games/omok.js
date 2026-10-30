@@ -588,6 +588,16 @@ function chipHTML(i){
   const st=V.st==='over'?(o.res&&o.res.w<0?'무승부':p.f===1?'승리':(p.sr===2?'시간 초과':p.sr===3?'탈주':p.sr?'항복':'패배')):'';
   return `<div class="om-p${on?' on':''}${i===me?' me':''}">${stoneDot(o.co[i])}<b>${esc(p.n)}${i===me?' (나)':''}</b><span class="w" data-ct="${i}">${fmtT(remMs(i))}</span>${st?`<span class="st">${st}</span>`:''}</div>`;
 }
+/* 이름 칸을 판 위·아래 끝에서 일정 거리(CHIP_GAP)만큼 띄움. 카메라 자리를 새로 정할 때만 부름 (매 프레임 계산 없음)
+   topY·botY: 판 자리(물건 포함)의 화면 위·아래 끝(px). 위 칸은 아래 끝을, 내 칸은 위 끝을 맞춤 */
+const CHIP_GAP=10;
+function chipsAt(topY,botY){
+  const r=elOm,bar=r.querySelector('.om-bar'),mb=r.querySelector('.om-mebar');if(!bar||!mb)return;
+  const H=r.clientHeight,lim=H-(r.clientWidth<700?70:14)-(mb.offsetHeight||34);
+  r.style.setProperty('--bs',Math.max(bar.offsetHeight,Math.round(topY-CHIP_GAP-bar.offsetTop))+'px');
+  r.style.setProperty('--mt',Math.round(Math.min(botY+CHIP_GAP,lim))+'px');
+  r.classList.add('lay');
+}
 const seated=()=>{const me=myIdx();return me===0||me===1};
 function barHTML(){const me=myIdx();return seated()?chipHTML(1-me):chipHTML(0)+chipHTML(1)}
 function meBarHTML(){return seated()?chipHTML(myIdx()):''}
@@ -849,6 +859,7 @@ function om3Layout(t){
   cam.aspect=W/Hh;cam.position.set(0,TOP+d,0);cam.lookAt(0,TOP,0);
   const oy=(fy+fh/2)-Hh/2;
   cam.setViewOffset(W,Hh,0,-oy,W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
+  {const hv=(lay==='v'?ext:2*BW)*s/2,cy=fy+fh/2;chipsAt(cy-hv,cy+hv)}
   Om3.d=d;Om3.W=W;Om3.H=Hh;Om3.dirty=true;
   return true;
 }
@@ -1101,6 +1112,11 @@ G.init=()=>{
 #om .om-co{font-size:.46px;font-weight:700;fill:#6b4a26;text-anchor:middle;dominant-baseline:central;font-family:var(--f-num,monospace)}
 @media (max-width:520px){#om .om-p{font-size:12px;padding:3px 8px 4px}#om .om-m{height:32px;padding:0 10px;font-size:14px}}
 @media (max-width:520px){.stage.om2d #om .om-bar{align-self:flex-start;width:calc(100% - 150px);max-width:none}}
+.stage.om3d #om .om-row{order:-1}
+.stage.om3d #om.lay .om-bar{transform:translateY(calc(var(--bs) - 100%));transition:transform .35s,opacity .35s}
+.stage.om3d #om.lay .om-mebar{top:var(--mt);bottom:auto;transition:top .35s,opacity .35s}
+.stage.om3d .specbar:not([hidden])~#om .om-bar{margin-top:0}
+.stage.om3d .specbar:not([hidden])~#om .om-row{margin-top:30px}
 @media (max-width:699px){#om{padding-bottom:112px}#om .om-mebar{bottom:70px;max-width:calc(100% - 24px)}}
 `;
   document.head.appendChild(css);

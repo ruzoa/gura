@@ -860,6 +860,16 @@ function chipHTML(i){
   const dots=OS.om?'':Array.from({length:OS.n},(_,k)=>`<i class="pip${k<al?'':' gone'}"></i>`).join('');
   return `<div class="ak-p${on?' on':''}${i===me?' me':''}"><i class="dot ${c.css}"></i><b>${esc(p.n)}${i===me?' (나)':''}</b>${dots?`<span class="pips">${dots}</span>`:''}<span class="w" data-ct="${i}"></span>${st?`<span class="st">${st}</span>`:''}</div>`;
 }
+/* 이름 칸을 판 위·아래 끝에서 일정 거리(CHIP_GAP)만큼 띄움. 카메라 자리를 새로 정할 때만 부름 (매 프레임 계산 없음)
+   topY·botY: 판 자리(물건 포함)의 화면 위·아래 끝(px). 위 칸은 아래 끝을, 내 칸은 위 끝을 맞춤 */
+const CHIP_GAP=10;
+function chipsAt(topY,botY){
+  const r=elAk,bar=r.querySelector('.ak-bar'),mb=r.querySelector('.ak-mebar');if(!bar||!mb)return;
+  const H=r.clientHeight,lim=H-(r.clientWidth<700?70:14)-(mb.offsetHeight||34);
+  r.style.setProperty('--bs',Math.max(bar.offsetHeight,Math.round(topY-CHIP_GAP-bar.offsetTop))+'px');
+  r.style.setProperty('--mt',Math.round(Math.min(botY+CHIP_GAP,lim))+'px');
+  r.classList.add('lay');
+}
 const seatedMe=()=>{const me=myIdx();return me>=0&&me<npOf()};
 function barHTML(){
   const me=myIdx(),np=npOf(),b=Math.max(0,me),order=Array.from({length:np},(_,k)=>(b+k)%np);   // 나부터 시계 방향
@@ -1095,6 +1105,7 @@ function ak3Layout(t){
   const cam=Ak3.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(s*f);
   cam.aspect=W/Hh;cam.position.set(0,TOP+d,0);cam.up.set(-sx,0,-sz);cam.lookAt(0,TOP,0);
   cam.setViewOffset(W,Hh,0,-((fy+fh/2)-Hh/2),W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
+  {const hv=(om?(Ak3.bl==='v'?2*(BW+BGAP+2*BR)/2:BW+.1):BW+.45)*s,cy=fy+fh/2;chipsAt(cy-hv,cy+hv)}
   Ak3.d=d;Ak3.dirty=true;
   return true;
 }
@@ -1467,6 +1478,11 @@ G.init=()=>{
 #ak svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}
 @media (max-width:520px){#ak .ak-p{font-size:12px;padding:3px 8px 4px}#ak .pips{max-width:44px}}
 @media (max-width:520px){.stage.ak2d #ak .ak-bar{align-self:flex-start;width:calc(100% - 150px);max-width:none}}
+.stage.ak3d #ak .ak-row{order:-1}
+.stage.ak3d #ak.lay .ak-bar{transform:translateY(calc(var(--bs) - 100%));transition:transform .35s,opacity .35s}
+.stage.ak3d #ak.lay .ak-mebar{top:var(--mt);bottom:auto;transition:top .35s,opacity .35s}
+.stage.ak3d .specbar:not([hidden])~#ak .ak-bar{margin-top:0}
+.stage.ak3d .specbar:not([hidden])~#ak .ak-row{margin-top:30px}
 @media (max-width:699px){#ak{padding-bottom:112px}#ak .ak-mebar{bottom:70px;max-width:calc(100% - 24px)}}
 `;
   document.head.appendChild(css);

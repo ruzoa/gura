@@ -816,6 +816,16 @@ function chipHTML(i){
   const mine=i===me&&V.st==='play';
   return `<div class="ch-p${on?' on':''}${i===me?' me':''}${mine?' tap':''}"${mine?' data-me="1"':''}>${colDot(c.co[i])}<b>${esc(p.n)}${i===me?' (나)':''}</b>${dr}<span class="w" data-ct="${i}"></span>${st?`<span class="st">${st}</span>`:''}${capt}${mine&&popOpen?`<span class="ch-pop"><button type="button" class="ch-drbtn" data-dr="1">½ ${c.dr===i?'제안 거두기':'무승부 제안'}</button></span>`:''}</div>`;
 }
+/* 이름 칸을 판 위·아래 끝에서 일정 거리(CHIP_GAP)만큼 띄움. 카메라 자리를 새로 정할 때만 부름 (매 프레임 계산 없음)
+   topY·botY: 판 자리(물건 포함)의 화면 위·아래 끝(px). 위 칸은 아래 끝을, 내 칸은 위 끝을 맞춤 */
+const CHIP_GAP=10;
+function chipsAt(topY,botY){
+  const r=elCh,bar=r.querySelector('.ch-bar'),mb=r.querySelector('.ch-mebar');if(!bar||!mb)return;
+  const H=r.clientHeight,lim=H-(r.clientWidth<700?70:14)-(mb.offsetHeight||34);
+  r.style.setProperty('--bs',Math.max(bar.offsetHeight,Math.round(topY-CHIP_GAP-bar.offsetTop))+'px');
+  r.style.setProperty('--mt',Math.round(Math.min(botY+CHIP_GAP,lim))+'px');
+  r.classList.add('lay');
+}
 const seated=()=>{const me=myIdx();return me===0||me===1};
 function barHTML(){   // 위쪽: 상대 (관전자는 둘 다)
   const me=myIdx();return seated()?chipHTML(1-me):chipHTML(0)+chipHTML(1);
@@ -1170,6 +1180,7 @@ function ch3Layout(t){
   const b=measure(P,D);
   const cx=(b.x0+b.x1)/2,cy=(b.y0+b.y1)/2,tx=W/2,ty=fy+fh/2;
   cam.setViewOffset(W,Hh,Math.round(cx-tx),Math.round(cy-ty),W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
+  chipsAt(ty-(b.y1-b.y0)/2,ty+(b.y1-b.y0)/2);
   Ch3.d=D;Ch3.dirty=true;
   ch3Sync();   // 잡은 기물 자리가 바뀌었을 수 있음
   return true;
@@ -1447,6 +1458,11 @@ G.init=()=>{
 #ch .ch-co{font-size:.26px;font-weight:700;fill:#f0d6aa;text-anchor:middle;dominant-baseline:central;font-family:var(--f-num,monospace)}
 @media (max-width:520px){#ch .ch-p{font-size:12px;padding:3px 8px 4px;gap:5px}#ch .ch-m,#ch .ch-drbtn{height:32px;padding:0 10px;font-size:14px}#ch .ch-bar{max-width:calc(100% - 150px)}}
 @media (max-width:520px){.stage.ch2d #ch .ch-bar{align-self:flex-start;width:calc(100% - 150px);max-width:none}}
+.stage.ch3d #ch .ch-row{order:-1}
+.stage.ch3d #ch.lay .ch-bar{transform:translateY(calc(var(--bs) - 100%));transition:transform .35s,opacity .35s}
+.stage.ch3d #ch.lay .ch-mebar{top:var(--mt);bottom:auto;transition:top .35s,opacity .35s}
+.stage.ch3d .specbar:not([hidden])~#ch .ch-bar{margin-top:0}
+.stage.ch3d .specbar:not([hidden])~#ch .ch-row{margin-top:30px}
 @media (max-width:699px){#ch{padding-bottom:112px}#ch .ch-mebar{bottom:70px;max-width:calc(100% - 24px)}}
 `;
   document.head.appendChild(css);
