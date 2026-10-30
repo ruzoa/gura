@@ -258,9 +258,12 @@ function rankOrder(names){
   return [...ranked,...names.map((n,i)=>i).filter(i=>!(lr[names[i]]>0))];
 }
 const rankIdx=()=>rankOrder(H.players.map(p=>p.name));
-/* 탁자를 나간 사람의 계급·점수 지우기 (끊겨서 자리만 비운 사람은 H.members에 남아 있으므로 유지) */
+/* 탁자를 나간 사람의 계급·점수 지우기. 끊긴 사람은 유지: 대기실에선 H.members에 away로 남고,
+   게임 중·결과 화면에선 H.members에서 빠져도 H.players에 away로 남음('탁자 떠나기'로 판 중에 나가면 dzWhy 'out'이라 지움).
+   끊긴 채로 다음 판이 시작되면 그 판 자리에서 빠지므로 그때 지워짐 */
 function dropGone(){
-  const gone=o=>{if(o)for(const n in o)if(!H.members.some(m=>m.name===n))delete o[n]};
+  const keep=n=>H.members.some(m=>m.name===n)||(H.phase!=='wait'&&(H.players||[]).some(p=>p.name===n&&p.away&&p.dzWhy!=='out'));
+  const gone=o=>{if(o)for(const n in o)if(!keep(n))delete o[n]};
   gone(H.lastRanks);gone(H.scores);
   if(H.lastRanks&&!Object.keys(H.lastRanks).length)H.lastRanks=null;
   if(H.scores&&!Object.keys(H.scores).length)H.scores=null;

@@ -148,11 +148,15 @@ if(H.phase!=='over'||!H.setDone)fail('2/2 rounds ends the set');
  if(s.rt!==2||s.sd!==1||s.ps.some((o,i)=>o.sc!==H.scores[H.players[i].name]))fail('snap rounds/scores '+JSON.stringify([s.rt,s.sd,s.ps.map(o=>o.sc),H.scores,H.phase]));}
 // 라운드를 모두 마친 뒤 다시 하면 점수·라운드만 새로, 계급은 유지
 hostStart();
-if(H.roundNo!==1||H.scores!==null&&Object.keys(H.scores).length&&H.setDone)fail('new set restarts rounds');
-if(!H.lastRanks)fail('new set keeps ranks');
-// 탁자를 나간 사람의 계급·점수는 지우고, 남은 사람은 유지 (끊긴 사람은 members에 남아 있음)
-H.phase='over';H.scores={p0:2,p1:3,p2:1};H.lastRanks={p0:1,p1:2,p2:3};
-H.members=H.members.filter(m=>m.name!=='p1');H.members[0].away=true;
-GAMES.president.engine.snap({ps:H.players.map(()=>({}))},0,0);
-if(H.lastRanks.p1!==undefined||H.scores.p1!==undefined)fail('leaver reset '+JSON.stringify([H.lastRanks,H.scores,H.members.map(m=>m.name)]));
-if(H.lastRanks.p0!==1||H.scores.p0!==2)fail('disconnected keeps rank');
+if(H.roundNo!==1||H.setDone||H.scores!==null)fail('new set restarts rounds '+JSON.stringify([H.roundNo,H.setDone,H.scores]));
+if(!H.lastRanks||H.players[H.turn]===undefined)fail('new set keeps ranks');
+// 결과 화면: 탁자를 나간 사람은 지우고, 끊긴 사람(H.members에서는 빠지고 H.players에 away로 남음)은 유지
+{const sp=()=>{const s={ps:H.players.map(()=>({}))};GAMES.president.engine.snap(s,0,0)};
+ H.phase='over';H.scores={p0:2,p1:3,p2:1};H.lastRanks={p0:1,p1:2,p2:3};
+ H.players.forEach(p=>{p.away=false;p.dzWhy=undefined});
+ const pl1=H.players.find(p=>p.name==='p1'),pl2=H.players.find(p=>p.name==='p2');
+ pl1.away=true;pl2.away=true;H.members=H.members.filter(m=>m.name==='p0');   // p1은 끊김, p2는 나감(away지만 다음 판이 시작되면 빠짐)
+ pl2.dzWhy='out';sp();
+ if(H.lastRanks.p2!==undefined||H.scores.p2!==undefined)fail('leaver reset '+JSON.stringify([H.lastRanks,H.scores]));
+ if(H.lastRanks.p1!==2||H.scores.p1!==3)fail('disconnected keeps rank '+JSON.stringify([H.lastRanks,H.scores]));
+ if(H.lastRanks.p0!==1||H.scores.p0!==2)fail('present keeps rank');}
