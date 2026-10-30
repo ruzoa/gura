@@ -143,7 +143,7 @@ const diffKeys=c=>{const P=PRESETS[baseOf(c)];return PKEYS.filter(k=>(+c[k]||0)!
 G.defaults={grace:0,turn:30,rounds:3,...PRESETS[1],pb:1};
 G.roomSet=[
   {k:'jokers',label:'조커',unit:'장',lo:0,hi:2,step:1,desc:'모든 숫자로 쓸 수 있는 와일드 카드. 혼자 내면 가장 강합니다'},
-  {k:'rounds',label:'라운드',unit:'판',lo:1,hi:20,step:1,desc:'정한 라운드를 마치면 계급 점수 합계로 최종 순위를 정합니다. 대빈민 0점에서 한 계급씩 올라갑니다'},
+  {k:'rounds',label:'라운드',unit:'판',lo:1,hi:20,step:1,desc:'정한 라운드를 마치면 계급 점수 합계로 최종 순위를 정합니다 <br> 대빈민 0 · 빈민 1 · 평민 2 · 부호 3 · 대부호 4점. 동점이면 마지막 판 계급순. 라운드 중에는 새로 참가할 수 없습니다'},
   {k:'turn',label:'제한 시간',unit:'초',lo:5,hi:120,step:5,desc:'제한 시간이 지나면 패스 <br> 먼저 내는 차례면 가장 약한 카드가 자동으로 나갑니다'}];
 /* 켜고 끄는 규칙 (방 설정의 세부 설정에서 보임. pb는 커스텀이 어느 룰에서 출발했는지만 기억) */
 G.ruleSet=[
@@ -390,10 +390,17 @@ function doSurrender(i){
   if(H.tk&&trickDone()){endTrick();return}
   if(H.turn===i)goNext(i,false);else mark();
 }
-/* 라운드 점수: 대빈민 0점에서 한 계급씩 올라감 (n명이면 1위 n-1점). 이름으로 쌓아 다시 하기·재접속에도 이어짐 */
+/* 라운드 점수: 계급마다 정해진 점수 (대빈민 0 · 빈민 1 · 평민 2 · 부호 3 · 대부호 4). 인원이 달라도 같은 계급은 같은 점수.
+   이름으로 쌓아 다시 하기·재접속에도 이어짐 */
+const RANK_PTS={'대빈민':0,'빈민':1,'평민':2,'부호':3,'대부호':4};
+const rankPts=(r,n)=>RANK_PTS[rankTitle(r,n)]||0;
+/* 최종 순위: 점수 합계가 높은 순, 같으면 마지막 판 계급이 높은 사람(f가 작은 사람)이 앞섬 */
+const finalOrder=l=>l.slice().sort((a,b)=>b.sc-a.sc||a.f-b.f);
+/* 라운드가 이어지는 동안(첫 판이 끝났고 정한 라운드를 다 마치기 전) 결과 화면에서 새로 참가할 수 없음 */
+G.joinLocked=()=>!!(H&&H.phase==='over'&&H.roundNo>0&&!H.setDone);
 function addScores(){
   const n=H.players.length;H.scores=H.scores||{};
-  H.players.forEach(p=>{H.scores[p.name]=(H.scores[p.name]||0)+Math.max(0,n-(p.rank||n))});
+  H.players.forEach(p=>{H.scores[p.name]=(H.scores[p.name]||0)+rankPts(p.rank||n,n)});
   H.setDone=(H.roundNo||1)>=Math.max(1,+H.cfg.rounds||1);
 }
 /* 계급·점수·라운드를 처음으로 (나가기·대기실로 가기·계급 초기화) */
@@ -470,7 +477,7 @@ function botTurn(i){
 /* 카드 나누기 뒤 교환 연출 시간: 교환이 있는 판만 (방장이 그동안 제한 시간·봇을 멈춤) */
 const XMS=2100;
 G.dealExtra=()=>H.xc&&H.xc.length?XMS:0;
-G._test={newTrick,doPlay,doPass,doSurrender,botTurn,stateH,cardStr,doExchange,isFoulFinish,presetOf,diffKeys,PRESETS};
+G._test={finalOrder,rankPts,newTrick,doPlay,doPass,doSurrender,botTurn,stateH,cardStr,doExchange,isFoulFinish,presetOf,diffKeys,PRESETS};
 G.engine={
   /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
   start(){
@@ -526,7 +533,7 @@ G.engine={
     if(me&&me.gave&&s.ps[you])s.ps[you].gv=me.gave.slice();   // 내가 준 카드 (나만 봄)
     if(H.xc&&H.xc.length)s.xc=H.xc.map(x=>x.slice());   // 누가 누구에게 몇 장 (모두 봄, 카드는 비공개)
     H.players.forEach((p,i)=>{const o=s.ps[i];if(!o)return;if(p.pr)o.pr=p.pr;if(p.fouled)o.fo=1;else if(p.fell)o.fo=2});
-    s.rk=H.lastRanks?1:0;s.rt=Math.max(1,+H.cfg.rounds||1);s.sd=H.setDone?1:0;
+    s.rk=H.lastRanks?1:0;s.rt=Math.max(1,+H.cfg.rounds||1);s.sd=H.setDone?1:0;if(G.joinLocked())s.nj=1;
     if(H.phase==='over')dropGone();
     H.players.forEach((p,i)=>{const o=s.ps[i];if(o)o.sc=(H.scores&&H.scores[p.name])||0});
   },
@@ -693,14 +700,14 @@ G.overRank=p=>{
   const n=V.ps.length,t=rankTitle(p.f,n),was=p.pr?rankTitle(p.pr,n):'';
   const why=p.sr?(p.sr===2?'시간 초과':p.sr===3?'탈주':'항복'):p.fo===1?'반칙 탈출':p.fo===2?'도시오치':'';
   const mv=p.pr?(p.f<p.pr?' <b class="up">▲</b>':p.f>p.pr?' <b class="dn">▼</b>':''):'';
-  const pt=Math.max(0,n-p.f);
+  const pt=rankPts(p.f,n);
   return `<span class="left">${why?why+' · ':''}${was&&was!==t?`<s>${was}</s> → `:''}${t}${mv} · +${pt}점 (합계 ${+p.sc||0})</span>`;
 };
 const leadTxt=()=>+V.cfg.dlead?'대빈민':'대부호';
 G.waitExtra=isHost=>V.rk?`<p class="rk-note">지난 판 계급을 이어서 합니다. 교환 뒤 ${leadTxt()}부터 시작하고, 새로 온 사람은 맨 아래 계급입니다.${isHost?' <button type="button" class="linkbtn" data-act="rankreset">계급 초기화</button>':''}</p>`:'';
 const finalRows=()=>{
-  const l=V.ps.map(p=>({n:p.n,sc:+p.sc||0})).sort((a,b)=>b.sc-a.sc);
-  let r=0;return l.map((x,i)=>{if(!i||x.sc!==l[i-1].sc)r=i+1;return `<li><span class="r">${r}위</span><span>${esc(x.n)}</span><span class="left">${x.sc}점</span></li>`}).join('');
+  const l=finalOrder(V.ps.map(p=>({n:p.n,sc:+p.sc||0,f:+p.f||99})));
+  return l.map((x,i)=>`<li><span class="r">${i+1}위</span><span>${esc(x.n)}</span><span class="left">${x.sc}점${i&&x.sc===l[i-1].sc?' · 동점, 마지막 판 계급순':''}</span></li>`).join('');
 };
 G.overExtra=()=>{
   const done=!!V.sd,rt=+V.rt||1,head=done?`<p class="rk-note"><b>${rt}라운드 최종 순위</b></p><ol class="ranks">${finalRows()}</ol>`:`<p class="rk-note">${+V.rd||1} / ${rt} 라운드를 마쳤습니다.</p>`;

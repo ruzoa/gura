@@ -131,19 +131,23 @@ hostStart();
  if(H.players[H.turn].name!=='n2')fail('daihinmin(newest) leads');
  if(!H.players.find(p=>p.name==='b').got)fail('exchange with newcomers');}
 
+const G0=()=>GAMES.president;
 // 라운드 점수: 대빈민 0점부터 한 계급씩 올라감, 정한 라운드를 마치면 최종 순위
 cfgP({fast:0,jokers:0,swap:1,r8:0,rev:0,run:0,lock:0,b11:0,rounds:2});H.members=[0,1,2].map(i=>({name:'p'+i,bot:false,conn:null,host:i===0}));
 H.lastRanks=null;H.scores=null;H.roundNo=0;H.setDone=false;
 hostStart();doSurrender(1);doSurrender(2);
 if(H.phase!=='over')fail('round 1 should end');
-if(H.scores.p0!==2||H.scores.p2!==1||H.scores.p1!==0)fail('round scores '+JSON.stringify(H.scores));
+if(H.scores.p0!==4||H.scores.p2!==2||H.scores.p1!==0)fail('round scores (대부호4·평민2·대빈민0) '+JSON.stringify(H.scores));
+if(!G0().joinLocked())fail('late join locked between rounds');
+{const s={ps:H.players.map(()=>({}))};GAMES.president.engine.snap(s,0,0);if(s.nj!==1)fail('snap nj');}
 if(H.setDone)fail('1/2 rounds is not the end');
 // 바로 시작(다시 하기): 계급·점수 유지
 hostStart();
-if(H.roundNo!==2||H.scores.p0!==2||!H.lastRanks||H.lastRanks.p0!==1)fail('restart keeps ranks and scores');
+if(H.roundNo!==2||H.scores.p0!==4||!H.lastRanks||H.lastRanks.p0!==1)fail('restart keeps ranks and scores');
 H.players.forEach((p,i)=>{p.hand=[i]});
 doSurrender(0);doSurrender(1);
 if(H.phase!=='over'||!H.setDone)fail('2/2 rounds ends the set');
+if(G0().joinLocked())fail('join opens after the last round');
 {const s={ps:H.players.map(()=>({}))};GAMES.president.engine.snap(s,0,0);
  if(s.rt!==2||s.sd!==1||s.ps.some((o,i)=>o.sc!==H.scores[H.players[i].name]))fail('snap rounds/scores '+JSON.stringify([s.rt,s.sd,s.ps.map(o=>o.sc),H.scores,H.phase]));}
 // 라운드를 모두 마친 뒤 다시 하면 점수·라운드만 새로, 계급은 유지
@@ -160,3 +164,11 @@ if(!H.lastRanks||H.players[H.turn]===undefined)fail('new set keeps ranks');
  if(H.lastRanks.p2!==undefined||H.scores.p2!==undefined)fail('leaver reset '+JSON.stringify([H.lastRanks,H.scores]));
  if(H.lastRanks.p1!==2||H.scores.p1!==3)fail('disconnected keeps rank '+JSON.stringify([H.lastRanks,H.scores]));
  if(H.lastRanks.p0!==1||H.scores.p0!==2)fail('present keeps rank');}
+// 계급별 점수: 인원이 달라도 같은 계급은 같은 점수
+{const P=PT.rankPts;
+ if(P(1,4)!==4||P(2,4)!==3||P(3,4)!==1||P(4,4)!==0)fail('4p pts');
+ if(P(1,3)!==4||P(2,3)!==2||P(3,3)!==0)fail('3p pts');
+ if(P(3,6)!==2||P(4,6)!==2||P(5,6)!==1)fail('6p commoners same pts');}
+// 동점이면 마지막 판 계급이 높은 사람이 앞섬
+{const o=PT.finalOrder([{n:'a',sc:5,f:3},{n:'b',sc:7,f:4},{n:'c',sc:5,f:1}]).map(x=>x.n).join('');
+ if(o!=='bca')fail('tie-break by last rank '+o);}

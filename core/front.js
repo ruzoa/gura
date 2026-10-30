@@ -149,7 +149,7 @@ function frontWaitCan(k){
   if(k==='clear')return mode==='host';
   const sv=Array.isArray(V.sv)?V.sv:[],spm=+(V.cfg.spec??4);
   if(k==='spec')return myIdx()>=0&&mode!=='host'&&spm>0&&sv.length<spm;
-  if(k==='sit')return myIdx()<0&&!!V.spec&&n<max;
+  if(k==='sit')return myIdx()<0&&!!V.spec&&!V.nj&&n<max;   // V.nj: 라운드 중 도중 참가 막음 (대부호)
   if(k==='leave')return mode!=='host';
   if(k==='rset')return true;
   return false;

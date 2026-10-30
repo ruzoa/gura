@@ -84,6 +84,7 @@ function hostToSpec(conn){   // 대기실의 참가자 → 관전
 }
 function hostJoinSpec(conn,seat){   // 관전 → 참가 (대기실이나 게임이 끝난 뒤 빈 자리가 있을 때)
   if(!H||(H.phase!=='wait'&&H.phase!=='over'))return;
+  if(H.phase==='over'&&EG().joinLocked&&EG().joinLocked())return;   // 라운드가 이어지는 동안 도중 참가를 막는 게임 (대부호)
   const k=(H.specs||[]).findIndex(x=>x.conn===conn);if(k<0||H.members.length>=H.cfg.max)return;
   const sp=H.specs.splice(k,1)[0],nm={name:sp.name,bot:false,conn,cid:sp.cid,host:false};
   if(H.phase==='wait'&&Number.isInteger(seat)&&seat>=0&&seat<H.cfg.max&&!H.members.some(x=>x.seat===seat))nm.seat=seat;   // 고른 빈 자리에 앉음
