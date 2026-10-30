@@ -368,9 +368,9 @@ G.engine={
 };
 
 /* ================= 화면 (모든 참가자) =================
-   탁자는 둥근 그대로 두고 펠트에 블랙잭 무늬를 덮어 그림: 딜러는 맞은편, 거는 사람의 자리는 딜러를 둘러싼 부채꼴(가운데가 나).
-   모든 손이 펠트 가운데에 모여 좁은 화면에서도 다 보임. 합계는 카드 위가 아니라 베팅 칸 아래 작은 표(나는 내 정보 칸)
-   베팅: 내 앞의 칩 더미(10·50·100·500)를 누르면 한 개가 베팅 칸으로 날아가고, 베팅 칸을 누르면 마지막에 올린 칩이 돌아옴 → [베팅]으로 확정 */
+   탁자는 둥근 그대로 두고 펠트에 블랙잭 무늬를 덮어 그림: 딜러는 맞은편, 거는 사람의 자리는 딜러를 둘러싼 부채꼴(가운데가 나, 폭은 화면과 상관없이 고정).
+   합계는 카드 위가 아니라 베팅 칸 아래 작은 표(나는 내 정보 칸)
+   베팅: 내 앞의 칩 더미(10·50·100·500)의 맨 위 칩을 누르면 한 개가 베팅할 칩 공간으로 날아가고, 그 공간을 누르면 마지막에 올린 칩이 돌아옴 → [베팅]으로 확정하면 베팅한 칩 공간(베팅 칸)으로 옮겨져 누를 수 없음 */
 let ON=false,elTags=null,elBet=null,el2d=null,sentSq=-1,pend=[];
 const BV=()=>V&&V.bj&&V.ps?V.bj:null;
 const DEN=[10,50,100,500],DEN_C=['#cc3a2e','#2e7d4f','#2b2b2b','#6b3fa0'];
@@ -485,8 +485,8 @@ G.cues=(v,pv)=>{
 const C0={x:0,z:-2.0};                 // 부채꼴의 중심 (딜러 쪽)
 const R_HAND=2.75,R_BET=3.45,R_PILL=3.86,HALF=40*Math.PI/180,STEP=22*Math.PI/180;
 const DEALER_Z=-2.0,SHOE={x:1.9,z:-2.2},DISC={x:-1.9,z:-2.2},TRAY={x:0,z:-2.75};
-const BANK_Z=2.38,BANK_X=[-.75,-.25,.25,.75],CHIP_R=.2,CHIP_H=.052;
-const PEND_Z=2.02;                     // 베팅할 칩 공간(내 칩 더미와 베팅한 칩 공간 사이). 걸기 전 칩만 올라가고, 건 뒤에는 베팅한 칩 공간(betPos)으로 옮겨져 누를 수 없음
+const BANK_Z=3.45,BANK_X=[-.75,-.25,.25,.75],CHIP_R=.2,CHIP_H=.052;   // 내 칩 더미는 펠트 밖 나무 띠(포커와 같은 자리): 칩 기둥이 높아도 화면에서 베팅할 칩 공간을 가리지 않게
+const PEND_Z=2.25;                     // 베팅할 칩 공간(내 칩 더미와 베팅한 칩 공간 사이). 걸기 전 칩만 올라가고, 건 뒤에는 베팅한 칩 공간(betPos)으로 옮겨져 누를 수 없음
 const pendPos=()=>M({x:0,z:PEND_Z});
 const CW=.62*1.2,CH=.9*1.2;            // 카드 폭·높이 (크기 1일 때)
 const S_ME=.8,S_DL=.8,S_OT=.65;        // 카드 크기: 나·딜러·다른 사람
@@ -512,20 +512,14 @@ function spotAngles(od){
   }
   return out;
 }
-/* 화면 폭에 맞춘 부채꼴 반각: 가장 바깥 베팅 칸이 화면 안에 들어오게 (좁은 화면은 좁게) */
-let HALF_E=HALF,STEP_E=STEP;
-function fitHalf(){
-  if(!T.ok)return HALF;
-  const v=new THREE.Vector3();
-  for(let d=40;d>=14;d--){const a=d*Math.PI/180,p=atA(a,R_BET);v.set(1,0,p.z).project(T.cam);if(p.x+.42<=.94/Math.max(1e-6,v.x))return a}
-  return 14*Math.PI/180;
-}
+/* 부채꼴 반각은 화면 비율과 상관없이 고정: 어느 화면에서나 같은 자리에 앉은 것처럼. 좁은 화면은 양옆 자리가 잘리고 이름표는 화면 끝에 붙음(seatTags) */
+const HALF_E=HALF;let STEP_E=STEP;
 let SPOTS=new Map(),spotKey='',SC={me:S_ME,ot:S_OT};
 function layout(B){
   const me=myIdx();FL=B.hd&&me>=0&&B.dl===me?-1:1;
-  const st=$('#stage'),key=B.od.join(',')+'|'+me+'|'+FL+'|'+V.ps.length+'|'+st.clientWidth+'x'+st.clientHeight;
+  const key=B.od.join(',')+'|'+me+'|'+FL+'|'+V.ps.length;   // 화면 크기는 배치에 쓰지 않음
   if(key!==spotKey){
-    spotKey=key;HALF_E=fitHalf();
+    spotKey=key;
     const rest=B.od.filter(i=>i!==me),side=B.od.includes(me)?Math.max(1,...[-1,1].map(sg=>rest.filter(i=>{const v=wrapA(seatAngle(i));return sg<0?v<0:v>0}).length)):1;
     STEP_E=Math.min(STEP,HALF_E/Math.max(1,side));
     SPOTS=spotAngles(B.od);
@@ -624,9 +618,13 @@ function syncChips(){
   if(me>=0&&B.od.includes(me)&&!meDl&&SPOTS.has(me)){
     const placed=B.bt[me]||0;
     if(placed>0&&V3.pend&&V3.pend.g&&!V3.piles.get(me)){
-      const bp=betPos(me),pp=pendPos(),g=V3.pend.g,NP={amt:V3.pend.amt,g,pos:bp,flying:true};
-      V3.pend=null;V3.piles.set(me,NP);
-      fly(g,{x:pp.x,y:0,z:pp.z},{x:bp.x,y:0,z:bp.z},320,clock(),.35,()=>{NP.flying=false;V3.ringsKey=''});
+      const pp=pendPos(),g=V3.pend.g,a=V3.pend.amt;V3.pend=null;
+      if(a+V3.toBet===placed){   // 올려 둔 그대로 걸림: 그 칩이 베팅한 칩 공간으로
+        const bp=betPos(me),NP={amt:a,g,pos:bp,flying:true};V3.piles.set(me,NP);
+        fly(g,{x:pp.x,y:0,z:pp.z},{x:bp.x,y:0,z:bp.z},320,clock(),.35,()=>{NP.flying=false;V3.ringsKey=''});
+      }else{   // 다르게 걸림(시간 초과로 최소 칩 등): 올려 둔 칩은 칩 더미로 돌아가고, 건 칩은 칩 더미에서 따로 날아감(아래)
+        V3.toBank+=a;fly(g,{x:pp.x,y:0,z:pp.z},{x:0,y:.3,z:BANK_Z},300,clock(),.3,()=>{killG(g);V3.toBank=Math.max(0,V3.toBank-a);syncChips()});
+      }
     }
     const want=B.ph==='bet'&&!placed?Math.max(0,betAmt()-V3.toBet):0,Q=V3.pend;
     if(want>0){
@@ -637,8 +635,8 @@ function syncChips(){
     if(!SPOTS.has(i))continue;
     const amt=B.bt[i]||0;
     const P=V3.piles.get(i);
-    if(i!==me&&amt>(P?P.amt:0)&&!(P&&P.flying)){   // 다른 사람이 걸면 그 사람 자리에서 날아옴
-      const bp=betPos(i),g=pileGroup(amt),sp=seatPos(i,4.3);if(P)killG(P.g);
+    if(amt>(P?P.amt:0)&&!(P&&P.flying)&&(i!==me||!P)){   // 걸면 그 사람 자리(나는 내 칩 더미)에서 날아옴
+      const bp=betPos(i),g=pileGroup(amt),sp=i===me?{x:0,z:BANK_Z}:seatPos(i,4.3);if(P)killG(P.g);
       const NP={amt,g,pos:bp,flying:true};V3.piles.set(i,NP);
       fly(g,{x:sp.x,y:.3,z:sp.z},{x:bp.x,y:0,z:bp.z},420,clock(),.45,()=>{NP.flying=false;V3.ringsKey=''});
       continue;
@@ -844,15 +842,25 @@ function roundStart(B){
   const layer=$('#fx');while(layer.children.length>2)layer.firstChild.remove();layer.appendChild(d);setTimeout(()=>d.remove(),2300);
   if(myMode()==='bet'){V3.bounceAt=clock();sfxChip(3)}
 }
-/* 칩 누르기: 내 칩 더미 → 베팅, 베팅 칸 → 돌려받기 */
+/* 칩 더미 누르기는 기둥마다 맨 위 칩(날아가는 칩)만: 맨 위 칩 높이의 평면에서 그 칩 자리 + 위쪽(화면 위, -z)으로 조금 여유 */
+const _tp=window.THREE?new THREE.Plane(new THREE.Vector3(0,1,0),0):null,_th=window.THREE?new THREE.Vector3():null;
+function topChipAt(ray,n){
+  for(let k=0;k<4;k++){
+    if(!n[k])continue;
+    _tp.constant=-Math.min(n[k],12)*CHIP_H;if(!ray.intersectPlane(_tp,_th))continue;
+    const dx=_th.x-BANK_X[k],dz=_th.z-BANK_Z;
+    if(Math.abs(dx)<CHIP_R+.03&&dz>-CHIP_R-.12&&dz<CHIP_R&&(dz<0||Math.hypot(dx,dz)<CHIP_R+.03))return DEN[k];
+  }
+  return 0;
+}
+/* 칩 누르기: 내 칩 더미(맨 위 칩) → 베팅할 칩 공간, 베팅할 칩 공간 → 돌려받기 */
 const _ray=window.THREE?new THREE.Raycaster():null,_pl=window.THREE?new THREE.Plane(new THREE.Vector3(0,1,0),-.12):null,_hit=window.THREE?new THREE.Vector3():null;
 function chipAt(e){
   if(!ON||!T.ok||!BV()||myIdx()<0||!V3.bank)return null;
   const r=$('#cv').getBoundingClientRect();if(!r.width)return null;
   _ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},T.cam);
+  const d=topChipAt(_ray.ray,V3.bank.userData.n);if(d)return {d};
   if(!_ray.ray.intersectPlane(_pl,_hit))return null;
-  const n=V3.bank.userData.n;
-  for(let k=0;k<4;k++)if(n[k]&&Math.hypot(_hit.x-BANK_X[k],_hit.z-(BANK_Z+.1))<.27)return {d:DEN[k]};
   if(SPOTS.has(myIdx())){const b=pendPos();if(Math.hypot(_hit.x-b.x,_hit.z-b.z)<.3)return {bet:1}}   // 베팅할 칩 공간만 누를 수 있음(건 칩은 못 누름)
   return null;
 }
@@ -865,7 +873,7 @@ function tagsFrame(){
   if(B.dc.length){const dn=B.hd&&B.dl===me?'딜러 · 나':'딜러';list.push({k:'d',html:`<span class="who">${dn}</span>${totalHTML(B.dc,0,true)}`,p:M({x:0,z:DEALER_Z+.66}),on:B.ph==='dealer'&&V.t===B.dl})}
   // 내 칩 숫자: 칩 더미 아래에 남은 칩, 베팅할 칩 공간 옆에 올려 둔 칩 (칩이 떠나고 도착하는 때에 맞춰 바뀜)
   if(me>=0&&V.ps[me]&&!V.ps[me].f&&!(B.hd&&B.dl===me)&&B.od.includes(me)&&V3.bank){
-    list.push({k:'c',c:' num',html:`<b>${bankAmt(B,me)}</b>`,p:M({x:0,z:BANK_Z+.55}),on:false});
+    list.push({k:'c',c:' num',html:`<b>${bankAmt(B,me)}</b>`,p:M({x:0,z:BANK_Z+.42}),on:false});
     if(V3.pend&&V3.pend.amt>0)list.push({k:'p',c:' num',html:`<b>${V3.pend.amt}</b>`,p:M({x:.62,z:PEND_Z}),on:false});
   }
   const key=list.map(x=>x.k+x.html+(x.on?1:0)).join('|');
