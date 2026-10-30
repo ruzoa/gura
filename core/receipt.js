@@ -136,7 +136,7 @@ function rcPickSpot(cam,W,Hh){
   return rcSpotAt(L.a[0],cam,L.r[L.r.length-1]);   // 다 안 되면 첫 각도의 가장 안쪽 (탁자 위)
 }
 const _rcD=window.THREE?new THREE.Vector3():null,_rcR=window.THREE?new THREE.Vector3():null;
-const rcY=(x,z)=>x*x+z*z<3.18*3.18?.0195:.006;   // 펠트(반지름 3.15, 윗면 .016) 위면 그만큼 높게
+const rcY=(x,z)=>{const r=(T.felt&&T.felt.mat?3.15*T.felt.mat.scale.x:3.15)+.03;return x*x+z*z<r*r?.0195:.006};   // 펠트(반지름 3.15 × 지금 크기, 윗면 .016) 위면 그만큼 높게. 천 확대(블랙잭·포커)로 펠트가 커지면 따라감
 function rcRect(obj,cam,W,Hh){   // frontRect와 같지만 실제로 그린 카메라로
   _b3.setFromObject(obj);const box=_b3;let l=1e9,r=-1e9,tp=1e9,b=-1e9;
   for(let i=0;i<8;i++){_v3.set(i&1?box.max.x:box.min.x,i&2?box.max.y:box.min.y,i&4?box.max.z:box.min.z).project(cam);

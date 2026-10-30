@@ -547,7 +547,7 @@ G.cues=(v,pv)=>{
 /* ---------- 탁자 배치 (월드 좌표, 나는 +z 쪽) ---------- */
 const O={x:0,z:0};                     // 공용 카드 가운데 = 탁자 정중앙
 const BD_DX=.66,S_BD=.74,POT={x:0,z:.86},DECK={x:0,z:-.92};
-const MY={x:0,z:2.1},MYBET={x:0,z:1.44},BANK_Z=4.0,BANK_X=[-.75,-.25,.25,.75],CHIP_R=.2,CHIP_H=.052;   // 내 카드는 다른 사람과 같은 거리(둘레), 칩 더미는 펠트 밖 나무 띠 위 내 앞(칩 기둥이 높아도 화면에서 베팅할 칩 공간을 가리지 않게 4.0)
+const MY={x:0,z:2.1},MYBET={x:0,z:1.44},BANK_Z=4.3,BANK_X=[-.75,-.25,.25,.75],CHIP_R=.2,CHIP_H=.052;   // 내 카드는 다른 사람과 같은 거리(둘레), 칩 더미는 펠트 밖 나무 띠 위 내 앞(커진 펠트 바깥 4.3: 칩 기둥이 높아도 화면에서 베팅할 칩 공간을 가리지 않고, 펠트 가장자리 선에 걸치지 않게)
 const PEND={x:0,z:2.86};               // 베팅할 칩 공간: 내 카드와 칩 더미 사이. 걸기 전 칩만 올라가고, 위로 밀면 베팅 칸(MYBET, 베팅한 칩 공간)으로 옮겨져 그 자리에 머묾
 const pendPos=()=>PEND;
 const CW=.62*1.2,CH=.9*1.2;            // 카드 폭·높이 (크기 1일 때)
@@ -745,7 +745,7 @@ function cardStep(e,now){
 /* ---------- 펠트 무늬·덱·딜러 버튼 ---------- */
 function feltTex(){
   if(V3.felt)return V3.felt;
-  const W=1024,R=3.15,k=W/(2*R);
+  const W=1024,R=FELT_R1,k=W/(2*R);   // 커진 펠트 크기 기준으로 그림(천 확대)
   return V3.felt=canvasTex(W,W,(g,w,h)=>{
     const gr=g.createRadialGradient(w/2,h/2,80,w/2,h/2,w/2);gr.addColorStop(0,'#4f9e6e');gr.addColorStop(1,'#2f7550');g.fillStyle=gr;g.fillRect(0,0,w,h);
     // 월드 좌표(x, z)로 그림: 원통 윗면 UV는 u←z, v←x. 글자 없이 공용 카드 자리 다섯 칸과 금색 테두리만
@@ -755,14 +755,36 @@ function feltTex(){
     for(let j=0;j<5;j++){const x=(O.x+(j-2)*BD_DX)*100,z=O.z*100;rr(g,x-cw/2-4,z-chh/2-4,cw+8,chh+8,9);g.stroke()}
     g.strokeStyle='rgba(242,193,78,.7)';g.lineWidth=2.6;rr(g,(O.x-2*BD_DX)*100-cw/2-16,O.z*100-chh/2-16,4*BD_DX*100+cw+32,chh+32,22);g.stroke();
     g.setTransform(1,0,0,1,0,0);
-    g.strokeStyle='rgba(255,250,240,.5)';g.lineWidth=6;g.beginPath();g.arc(w/2,h/2,488,0,7);g.stroke();
-    g.strokeStyle='rgba(242,193,78,.55)';g.lineWidth=3;g.beginPath();g.arc(w/2,h/2,470,0,7);g.stroke();
   });
 }
+/* 펠트 가장자리 테두리 선: [반지름 비율, 두께 비율, 색, 투명도] (예전 그림의 488·470/512 자리) */
+const RIMS=[[488/512,6/512,0xfffaf0,.5],[470/512,3/512,0xf2c14e,.55]];
+/* ---------- 천 확대: 대기실에서 게임으로 들어오면 펠트(천)만 탁자 반지름과의 차이 절반만큼 커짐(카드·칩 자리는 그대로) ----------
+   그림은 커진 크기(FELT_R1) 기준으로 한 번만 그리고, 커지는 동안은 보이는 가운데만 잘라 씀(repeat·offset) → 금색 선·칸은 제자리.
+   가장자리 테두리 선만 펠트 끝을 따라 커짐(feltRims). 바로 시작은 커진 그대로, 대기실로 돌아가면(clear3D) 원래 크기 */
+const FELT_R0=3.15,FELT_R1=3.15+(4.9-3.15)/2,FELT_MS=900;
+const FE={on:false,t0:0,rims:null,r:FELT_R0};
+function feltRims(){
+  if(FE.rims)return FE.rims;
+  const g=new THREE.Group();
+  for(const [f,w,col,op] of RIMS){const m=new THREE.Mesh(new THREE.RingGeometry(f-w/2,f+w/2,128),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false}));m.rotation.x=-Math.PI/2;g.add(m)}
+  g.position.y=.0172;T.scene.add(g);return FE.rims=g;
+}
+function feltSize(r){
+  FE.r=r;const s=r/FELT_R0;
+  T.felt.mat.scale.set(s,1,s);if(T.felt.ink)T.felt.ink.scale.set(s,s,1);
+  const map=T.felt.mat.material[1].map;
+  if(FE.on&&map&&map!==T.felt.tex){const q=r/FELT_R1;map.repeat.set(q,q);map.offset.set((1-q)/2,(1-q)/2)}
+  if(FE.rims){FE.rims.scale.set(r,1,r);FE.rims.visible=FE.on}
+}
+function feltFrame(now){if(FE.on&&FE.r<FELT_R1)feltSize(FELT_R0+(FELT_R1-FELT_R0)*smooth((now-FE.t0)/FELT_MS))}
 function useFelt(on){
   if(!T.ok||!T.felt)return;
   const m=T.felt.mat.material[1],want=on?feltTex():T.felt.tex;
   if(m.map!==want){m.map=want;m.needsUpdate=true}
+  if(on&&!FE.on){FE.on=true;FE.t0=clock();feltRims();feltSize(FELT_R0)}
+  else if(on)feltSize(FE.r);   // 그림이 바뀌어도(블랙잭 앞뒤 뒤집기) 같은 크기로 잘라 씀
+  else if(FE.on){FE.on=false;feltSize(FELT_R0)}
 }
 function buildRoot(){
   if(!T.ok||V3.root)return;
@@ -906,7 +928,7 @@ function frame3(now){
     if(!e.launched&&now>=e.at&&e.to){e.launched=true;e.g.visible=true;e.tw={from:{...e.cur},to:e.to,t0:now,ms:e.to.f?460:400,lift:.38};sfx('flick')}
     if(e.launched)cardStep(e,now);
   }
-  frameFlights(now);turnTimer(now);pendRing(now);introFrame(now);myCardsFrame(now);knockFrame(now);
+  frameFlights(now);feltFrame(now);turnTimer(now);pendRing(now);introFrame(now);myCardsFrame(now);knockFrame(now);
   {const P=V3.pend;if(P&&P.g)P.g.position.z=pendPos().z+(P.hold!==undefined?P.hold:gestDz(now,'bet'))}   // 앞으로 미는 베팅할 칩(밀어서 보냈으면 민 자리에 머묾)
   if(V3.bank){const a=now-V3.bounceAt;V3.bank.position.y=a>=0&&a<520?Math.abs(Math.sin(a/520*Math.PI*2))*.09*(1-a/520):0}
   if(ON&&BV()&&BV().ph==='show'&&V3.awarded!==BV().hn&&now>=V3.showAt)syncChips();
@@ -1171,7 +1193,7 @@ function numsFrame(B){
   if(!elNums)return;
   const me=myIdx(),on=!!(T.ok&&B&&me>=0&&(V.st==='play'||V.st==='over')&&V.ps[me]&&!V.ps[me].f&&V3.bank);
   if(!on){if(elNums.dataset.k){elNums.innerHTML='';elNums.dataset.k=''}return}
-  const list=[{k:'c',x:0,z:BANK_Z+.42,t:bankAmt(B,me)}];
+  const list=[{k:'c',x:0,z:BANK_Z+.36,t:bankAmt(B,me)}];
   if(V3.pend&&V3.pend.amt>0)list.push({k:'p',x:.62,z:PEND.z,t:V3.pend.amt});
   const key=list.map(x=>x.k+x.t).join('|');
   if(elNums.dataset.k!==key){elNums.innerHTML=list.map(x=>`<div class="pk-num" data-k="${x.k}">${x.t}</div>`).join('');elNums.dataset.k=key}
