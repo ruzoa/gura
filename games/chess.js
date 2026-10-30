@@ -1156,6 +1156,7 @@ function ch3Layout(t){
   if(t-Ch3.layAt<100&&Ch3.lay)return false;
   Ch3.layAt=t;
   const st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight;if(!W||!Hh||!V||!V.c)return false;
+  elCh.classList.toggle('wide',W>Hh);   // 가로 화면: 안내 줄을 왼쪽 위 구석으로 빼서 위 칸이 맨 위 줄로 (판 자리가 위로 넓어짐)
   const sr=st.getBoundingClientRect(),bd=elCh.querySelector('.ch-bd').getBoundingClientRect();
   const base=[W,Hh].join(',');
   if(Ch3.topBase!==base){Ch3.topBase=base;Ch3.topMax=0}
@@ -1463,6 +1464,9 @@ G.init=()=>{
 .stage.ch3d #ch.lay .ch-mebar{top:var(--mt);bottom:auto;transition:top .35s,opacity .35s}
 .stage.ch3d .specbar:not([hidden])~#ch .ch-bar{margin-top:0}
 .stage.ch3d .specbar:not([hidden])~#ch .ch-row{margin-top:30px}
+.stage.ch3d #ch.wide .ch-row{position:absolute;left:16px;top:8px;width:auto;max-width:30%;justify-content:flex-start}
+.stage.ch3d #ch.wide .ch-bar{min-height:0}
+.stage.ch3d .specbar:not([hidden])~#ch.wide .ch-bar{margin-top:30px}
 @media (max-width:699px){#ch{padding-bottom:112px}#ch .ch-mebar{bottom:70px;max-width:calc(100% - 24px)}}
 `;
   document.head.appendChild(css);
