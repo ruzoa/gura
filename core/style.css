@@ -497,10 +497,13 @@ body.fs .info{display:none}
 
 /* 손패: 테이블 아래쪽에 부채꼴로 */
 .fan{position:absolute;left:0;right:0;bottom:0;height:var(--fh,150px);pointer-events:none;transform:scale(var(--k,1));transform-origin:50% 100%;z-index:6}
-.fan .card,.fan .card:hover,.fan .card.sel{position:absolute;left:50%;margin-left:-30px;bottom:var(--b,10px);pointer-events:auto;transform-origin:50% calc(100% + var(--R,600px));transform:translate(var(--dx,0px),var(--dy,0px)) rotate(calc(var(--ra,var(--a,0rad)) + var(--sp,0rad))) translateY(var(--ly,0px)) scale(var(--sc,1));-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;transition:transform .16s ease-out}
+.fan .card,.fan .card:hover,.fan .card.sel{position:absolute;left:50%;margin-left:-30px;bottom:var(--b,10px);pointer-events:auto;transform-origin:50% calc(100% + var(--R,600px));transform:translate(var(--dx,0px),var(--dy,0px)) rotate(calc(var(--ra,var(--a,0rad)) + var(--sp,0rad))) translateY(calc(var(--ly,0px) + var(--hl,0px))) scale(var(--sc,1));-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;transition:transform .16s ease-out}
 .fan,.fan .card{touch-action:none}
 .fan .card.match{--ly:-9px}
 .fan .card.combo{--ly:-14px;z-index:1}
+/* 가리킨 카드 한 장만 살짝 올라옴(.hov, applySpread). 손패 전체는 그대로 */
+.fan .card.hov{--hl:-14px}
+.fan .card.hov.faded,.fan .card.hov.peek{--hl:0px}
 .fan .card.faded{filter:grayscale(.6) brightness(.8);opacity:.55}
 .fan .card.faded,.fan .card.faded:hover,.fan .card.faded.peek{--ly:0px}
 body.kb .card.cur.match::after{top:-28px}
