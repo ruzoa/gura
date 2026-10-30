@@ -953,12 +953,20 @@ function myCardsFrame(now){
   if(!elPeek)return;
   const B=BV(),me=myIdx(),ids=B&&me>=0?(B.hc[me]||[]).filter(x=>x>=0):[],on=p>.02&&ids.length&&cs.length;
   if(!on){if(!elPeek.hidden)elPeek.hidden=true;return}
-  const key=ids.join(',');if(elPeek.dataset.k!==key){elPeek.innerHTML=ids.map(id=>`<b style="--rc:${SUIT_COL[suitOf(id)]}">${RK[rkOf(id)]}<i>${SUITS[suitOf(id)]}</i></b>`).join('');elPeek.dataset.k=key}
-  const v=new THREE.Vector3(MY.x,.6+.25*p,MY.z-.25+dz).project(CAM()),st=$('#stage');
+  const nm=peekHand(B,ids),key=ids.join(',')+'|'+nm;
+  if(elPeek.dataset.k!==key){elPeek.innerHTML=`<em>${nm}</em><span>${ids.map(id=>`<b style="--rc:${SUIT_COL[suitOf(id)]}">${RK[rkOf(id)]}<i>${SUITS[suitOf(id)]}</i></b>`).join('')}</span>`;elPeek.dataset.k=key}
+  const v=new THREE.Vector3(MY.x,.02+.04*p,MY.z-CH*S_ME/2-.02+dz).project(CAM()),st=$('#stage');   // 내 카드 위쪽 끝 바로 위
   elPeek.hidden=false;elPeek.style.left=((v.x+1)/2*st.clientWidth)+'px';elPeek.style.top=((1-v.y)/2*st.clientHeight)+'px';
   elPeek.style.opacity=p.toFixed(3);elPeek.style.setProperty('--ps',(.8+.2*p).toFixed(3));
 }
 
+/* 들어 볼 때의 족보: 내 두 장 + 탁자에 내려앉은 공용 카드(결과가 연출을 앞지르지 않게). 두 장뿐이면 페어인지만 */
+function peekHand(B,ids){
+  if(ids.length<2)return '';
+  const bd=(B.bd||[]).filter((id,k)=>{const e=V3.cards.get(B.hn+':b:'+k);return id>=0&&e&&e.launched&&!e.tw});
+  if(bd.length<3)return rkOf(ids[0])===rkOf(ids[1])?HAND_NAMES[1]:HAND_NAMES[0];
+  return handName(best([...ids,...bd]));
+}
 /* ---------- 손짓 ----------
    내 카드를 위(탁자 가운데 쪽)로 밀면 폴드, 내 앞 탁자를 두 번 두드리면 체크, 베팅 칸의 칩을 앞으로 밀면 콜·레이즈
    (올린 칩이 콜할 만큼보다 많으면 레이즈, 아니면 콜). 칩 더미를 누르면 칩 하나가 베팅 칸으로, 베팅 칸을 누르면 돌아옴 */
@@ -1028,8 +1036,9 @@ function gestUp(e,cancel){
   if(kind==='table'&&tap){
     const t=clock(),dbl=t-GS.tapAt<DBL_MS&&Math.hypot(e.clientX-GS.tx,e.clientY-GS.ty)<60;
     GS.tapAt=dbl?-1e9:t;GS.tx=e.clientX;GS.ty=e.clientY;
-    tone(dbl?520:440,.04,{type:'triangle',vol:.06});
-    if(dbl)gestCheck(tablePt(e));
+    const h=tablePt(e);
+    if(h){sfxKnock(onFelt(h));knock(h.x,h.z,false)}
+    if(dbl)gestCheck(h);
   }
 }
 function gestFold(){
@@ -1041,8 +1050,8 @@ function gestFold(){
 }
 function gestCheck(h){
   const R=myRange();
-  if(h)knock(h.x,h.z);
-  if(myMode()!=='act'||!myReady()||busy()||!R||R.need>0)return;   // 체크할 수 없으면 두드리는 소리·고리만(금지 소리 없음)
+  if(myMode()!=='act'||!myReady()||busy()||!R||R.need>0)return;   // 체크할 수 없으면 두드리는 소리·작은 고리만(금지 소리 없음)
+  if(h)knock(h.x,h.z,true);   // 체크가 되면 큰 고리
   send({t:'call'});
 }
 /* 베팅 칸의 칩을 앞으로 밂: 올린 칩이 콜할 만큼보다 많으면 레이즈, 아니면(올린 칩이 없어도) 콜 */
@@ -1055,12 +1064,18 @@ function gestPush(dz){
   sfxChip(2);keep();send({t:'call'});
 }
 /* 두드린 자리에 퍼지는 고리 */
-function knock(x,z){
-  const m=ringMesh(.12,.16,0xfffaf0,.8);m.position.set(x,.025,z);T.scene.add(m);
-  const t0=clock();V3.knocks.push({m,t0});
+/* 두드리면 언제나 그 자리에 작은 고리가 퍼짐. 체크가 되면 크게 */
+function knock(x,z,big){
+  const m=ringMesh(.12,.16,0xfffaf0,.8);m.position.set(x,onFelt({x,z})?.025:.006,z);T.scene.add(m);
+  const t0=clock();V3.knocks.push({m,t0,big:!!big});
+  if(V3.knocks.length>6)killG(V3.knocks.shift().m);   // 빨리 여러 번 쳐도 쌓이지 않게
 }
+/* 두드린 자리가 펠트인지(천 확대를 따라감) */
+const onFelt=h=>{const r=T.felt&&T.felt.mat?FELT_R0*T.felt.mat.scale.x:FELT_R0;return h.x*h.x+h.z*h.z<r*r};
+/* 두드리는 소리: 펠트는 블랙잭과 같은 낮고 둔한 '툭'(천 스치는 소리), 나무는 더 높고 단단한 '똑' */
+function sfxKnock(felt){if(felt){tone(230,.07,{type:'triangle',vol:.15,slide:120});hiss(.03,{freq:1100,vol:.05})}else{tone(620,.035,{type:'triangle',vol:.13,slide:420});tone(1250,.018,{type:'sine',vol:.04,at:.004})}}
 function knockFrame(now){
-  for(const k of [...V3.knocks]){const a=(now-k.t0)/420;if(a>=1){killG(k.m);V3.knocks.splice(V3.knocks.indexOf(k),1);continue}const s=1+a*2.2;k.m.scale.set(s,s,1);k.m.material.opacity=.8*(1-a)}
+  for(const k of [...V3.knocks]){const ms=k.big?560:340,a=(now-k.t0)/ms;if(a>=1){killG(k.m);V3.knocks.splice(V3.knocks.indexOf(k),1);continue}const s=k.big?1+a*3.6:.6+a*1.3;k.m.scale.set(s,s,1);k.m.material.opacity=.8*(1-a)}
 }
 /* ---------- 카메라: 자기 카메라 없이 공통 카메라(T.cam)로 그림 (고개 돌리기도 공통 코드가 처리) ----------
    자리는 화면과 상관없이 고정(RX). 이름표·누르기는 T.cam */
@@ -1117,6 +1132,7 @@ function introFrame(now){
 }
 
 /* ---------- 이름표: 자리 바깥에 칩·마지막 행동, 쇼다운이면 족보·받은 칩 ---------- */
+/* 마지막 행동·족보 글 (WebGL이 없을 때의 2D 줄 목록에서만) */
 function tagLine(B,i){
   if(B.st[i]===3)return '';
   if(B.ph==='show'&&B.rs){
@@ -1126,14 +1142,14 @@ function tagLine(B,i){
   const la=B.la[i];
   return la?`<i class="${la==='폴드'?'f':la==='올인'?'a':''}">${la}</i>`:'';
 }
+/* 이름표의 칩: 글자 대신 칩 아이콘(블랙잭과 같은 그림) */
+const CHIP_ICON='<svg class="pkci" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7.5" fill="#cc3a2e"/><circle cx="8" cy="8" r="5.6" fill="none" stroke="#fffaf0" stroke-width="2" stroke-dasharray="2.6 2.1"/><circle cx="8" cy="8" r="3.1" fill="none" stroke="#fffaf0" stroke-width=".9"/></svg>';
 function seatTags(B){
   const on3=T.ok&&(V.st==='play'||V.st==='over'),st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight,v3=on3?new THREE.Vector3():null,put=[];
   document.querySelectorAll('#labels .seat[data-i]').forEach(el=>{
     const i=+el.dataset.i,ct=el.querySelector('.ct'),p=V.ps[i];if(!ct||!p)return;
-    const t=p.sr?(p.sr===2?'시간 초과':p.sr===3?'탈주':'항복'):p.f&&V.st==='play'?'탈락':`칩 ${shownCh(B,i)}`;if(ct.textContent!==t)ct.textContent=t;
-    const h=tagLine(B,i);
-    let x=el.querySelector('.pkt');if(!x){x=document.createElement('div');x.className='pkt';el.appendChild(x)}
-    if(x.dataset.h!==h){x.innerHTML=h;x.dataset.h=h}
+    const t=p.sr?(p.sr===2?'시간 초과':p.sr===3?'탈주':'항복'):p.f&&V.st==='play'?'탈락':CHIP_ICON+shownCh(B,i);if(ct.dataset.h!==t){ct.innerHTML=t;ct.dataset.h=t}
+    const old=el.querySelector('.pkt');if(old)old.remove();   // 둘째 줄(마지막 행동·족보)은 없앰: 이름표는 이름과 칩만
     el.classList.toggle('pk-fold',B.st[i]===1&&B.ph!=='show');
     const S=SP.get(i);
     if(on3&&S&&!S.me){
@@ -1182,8 +1198,13 @@ function numsFrame(B){
   }
   for(const [i,P] of V3.piles)if(P&&P.g&&!P.flying&&P.amt>0)list.push({k:'b'+i,x:P.g.position.x,z:P.g.position.z,t:P.amt,o:i!==me});
   if(V3.pot&&V3.potAmt>0)list.push({k:'pot',x:POT.x,z:POT.z,t:V3.potAmt,o:1});
+  if(B.ph==='show'&&B.rs&&B.rs.best&&clock()>=V3.showAt)for(const [i,S] of SP){   // 쇼다운: 펼친 카드 안쪽(탁자 가운데 쪽) 펠트에 족보, 이긴 사람은 금색
+    const b=B.rs.best[i];if(!b||!B.rs.show.includes(i))continue;
+    const q=cardPose(i,0,true),d=CH*q.s/2+.16,u=S.me?{x:0,z:-1}:{x:S.ux,z:S.uz},cx=S.me?MY.x:S.x+S.ux*.32,cz=S.me?MY.z:S.z+S.uz*.32;
+    list.push({k:'h'+i,x:cx+u.x*d,z:cz+u.z*d,t:b.nm,a:'at',c:'hand'+(isWin(B,i)?' w':'')});
+  }
   const key=list.map(x=>x.k+':'+x.t).join('|');
-  if(elNums.dataset.k!==key){elNums.innerHTML=list.map(x=>`<div class="pk-num${x.o?' o':''}" data-k="${x.k}">${x.t}</div>`).join('');elNums.dataset.k=key}
+  if(elNums.dataset.k!==key){elNums.innerHTML=list.map(x=>`<div class="pk-num${x.o?' o':''}${x.c?' '+x.c:''}" data-k="${x.k}">${x.t}</div>`).join('');elNums.dataset.k=key}
   const W=elNums.clientWidth,Hh=elNums.clientHeight,v3=new THREE.Vector3(),cam=CAM();
   const scr=(x,y,z)=>{v3.set(x,y,z).project(cam);return [(v3.x+1)/2*W,(1-v3.y)/2*Hh]};
   // 카드·덱 위에는 숫자를 얹지 않음: 아래 자리가 겹치면 오른쪽, 그다음 위로 비킴
@@ -1258,6 +1279,7 @@ G.init=()=>{
   css.textContent=`
 .stage.pk #dim{display:none}
 .stage.pk .fan{display:none}
+.seat .pkci{width:12px;height:12px;vertical-align:-2px;margin-right:3px}
 .seat .pkt{display:flex;align-items:baseline;justify-content:center;gap:4px;font-size:11px;line-height:1.2}.seat .pkt:empty{display:none}
 .seat .pkt b{font-size:11.5px;font-weight:700;color:var(--ink)}
 .seat .pkt i{font-style:normal;font-size:10.5px;font-weight:700;color:var(--muted)}.seat .pkt i.a{color:#9a5b00}.seat .pkt i.f{color:var(--muted);font-weight:600}
@@ -1275,8 +1297,10 @@ G.init=()=>{
 @media (max-width:480px){#pkBet{bottom:128px;gap:6px;padding:7px 8px}#pkBet .pk-chip{width:44px;height:44px;font-size:13px}#pkBet .pk-amt{min-width:72px}#pkBet .pk-amt b{font-size:22px;min-width:48px}}
 #pk2d{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);z-index:5;display:flex;flex-direction:column;gap:6px;width:min(560px,calc(100% - 20px));max-height:calc(100% - 210px);overflow:auto;pointer-events:none}
 #pk2d[hidden]{display:none}
-#pkPeek{position:absolute;z-index:6;pointer-events:none;display:flex;gap:8px;transform:translate(-50%,-100%) scale(var(--ps,1));transform-origin:50% 100%}
+#pkPeek{position:absolute;z-index:6;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:5px;transform:translate(-50%,-100%) scale(var(--ps,1));transform-origin:50% 100%}
 #pkPeek[hidden]{display:none}
+#pkPeek>span{display:flex;gap:8px}
+#pkPeek em{font-style:normal;padding:1px 9px 2px;border-radius:99px;background:rgba(59,42,31,.85);color:#f4ead9;font-size:13px;font-weight:700;white-space:nowrap}#pkPeek em:empty{display:none}
 #pkPeek b{display:flex;align-items:baseline;gap:2px;padding:4px 10px 5px;border-radius:12px;background:rgba(255,252,245,.92);border:1.5px solid #e3d4bb;box-shadow:0 8px 16px -8px rgba(59,42,31,.55);color:var(--rc);font-family:var(--f-num);font-size:28px;font-weight:700;line-height:1;animation:pkFloat 2.4s ease-in-out infinite}
 #pkPeek b+b{animation-delay:-1.2s}
 #pkPeek b i{font-style:normal;font-family:sans-serif;font-size:24px}
@@ -1303,6 +1327,8 @@ G.init=()=>{
 #pk2d .card .big{font-size:20px;top:20px}
 #pk2d .card.back{background:#cc3a2e;border:2px solid #fffcf5}
 #pkNums{position:absolute;inset:0;pointer-events:none;z-index:4}
+.pk-num.hand{padding:1px 8px 2px;background:rgba(255,250,240,.92);border:1.5px solid var(--line-strong);color:var(--ink);font-family:var(--f-body);font-size:12px;box-shadow:0 2px 5px -2px rgba(59,42,31,.4)}
+.pk-num.hand.w{border-color:var(--mustard-edge);box-shadow:0 0 0 2px var(--mustard);color:#7a5200}
 .pk-num.o{font-size:11.5px;padding:0 6px 1px;background:rgba(59,42,31,.72)}
 .pk-num{position:absolute;transform:translate(-50%,-50%);padding:0 7px 1px;border-radius:99px;background:rgba(59,42,31,.82);color:#f4ead9;font-family:var(--f-num);font-size:13px;font-weight:700;line-height:1.25;white-space:nowrap}
 #pk2d .pk-d{display:inline-block;font-size:10px;font-weight:700;line-height:1;padding:3px 5px 2px;border-radius:99px;margin-right:4px;background:#fffaf0;color:#3b2a1f;border:1.5px solid #3b2a1f}
