@@ -807,8 +807,9 @@ function syncRings(B){
     g.position.set(p.x,.021,p.z);T.scene.add(g);V3.rings.push(g);V3.myRing=g;
   }
 }
-/* 베팅 시간: 내 베팅한 칩 공간 아래(내 쪽)에 남은 시간 바(오른쪽부터 줄어듦, 1/4 남으면 빨강). 걸기 전에만 */
-const BAR_W=.7,BAR_H=.05,BAR_DZ=.42;
+/* 베팅 시간: 베팅할 칩 공간(올려 둔 칩) 아래(내 쪽)에 남은 시간 바(오른쪽부터 줄어듦, 1/4 남으면 빨강). 걸기 전에만.
+   베팅한 칩 공간 바로 아래는 올려 둔 칩 기둥에 화면에서 가려져서(칩 30이면 바의 절반) 칩 앞쪽 펠트에 둠(2026-10-30 사용자와 정함) */
+const BAR_W=.7,BAR_H=.05,BAR_DZ=.3;
 function betTimer(now){
   const B=BV(),me=myIdx(),on=!!(B&&me>=0&&SPOTS.has(me)&&!MEDL&&myMode()==='bet'&&!busy()&&!dealingV());
   if(!on){if(V3.betArc)V3.betArc.visible=false;return}
@@ -818,8 +819,8 @@ function betTimer(now){
     g.userData.track=flat(BAR_W,0x1a1512,.45,0);g.userData.fill=flat(BAR_W,0xf2b632,.95,.002);
     T.scene.add(g);V3.betArc=g;
   }
-  const bp=betPos(me),g=V3.betArc,f=g.userData.fill;
-  g.position.set(bp.x-BAR_W/2,.024,bp.z+BAR_DZ);g.visible=true;
+  const pp=pendPos(),g=V3.betArc,f=g.userData.fill;
+  g.position.set(pp.x-BAR_W/2,.024,pp.z+BAR_DZ);g.visible=true;
   f.scale.x=Math.max(.001,frac);f.material.color.set(frac<.25?0xcc3a2e:0xf2b632);
 }
 function clear3D(){
