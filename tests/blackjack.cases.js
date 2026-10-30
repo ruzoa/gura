@@ -146,6 +146,24 @@ globalThis.playOutB=playOutB;
  hostNew(false,'t','t');H.cfg={...cfgFor('blackjack'),hdeal:1,game:'blackjack'};H.members=[{name:'p0',bot:false,conn:null,host:true}];hostStart();
  if(H.phase!=='wait'||H.members.length!==1)fail('bj human dealer needs 2')}
 
+// 시작 연출: 첫 판 3.5초·바로 시작 1.5초. 그동안 제한 시간·봇이 멈추고, 끝난 뒤에 베팅 시간이 처음부터
+{if(BJ.introMs(false)!==3500||BJ.introMs(true)!==1500)fail('bj intro lengths '+BJ.introMs(false)+' '+BJ.introMs(true));
+ hostNew(false,'t','t');H.cfg={...cfgFor('blackjack'),game:'blackjack'};
+ H.members=[{name:'p0',bot:false,conn:null,host:true,cid:''},{name:'b1',bot:true,lv:1,conn:null,host:false,cid:'c1'}];
+ const t0=NOW;hostStart();const B=H.bj;
+ if(H.dealUntil-t0!==3500)fail('bj intro dealUntil '+(H.dealUntil-t0));
+ if(H.deadline-t0!==H.cfg.turn*1000+3500)fail('bj intro pushes deadline '+(H.deadline-t0));
+ if(!B.botAt[1]||B.botAt[1]<t0+3500)fail('bj intro pushes bot bet time '+B.botAt);
+ while(NOW<t0+3400){NOW+=50;engineTick()}
+ if(B.ph!=='bet'||B.bt[1])fail('bj bot waits for intro '+B.ph+' '+B.bt);
+ if(!runTo(()=>B.bt[1]>0||B.ph!=='bet',8000))fail('bj bot bets after intro');
+ // 바로 시작(결과 화면에서)은 1.5초
+ hostNew(false,'t','t');H.cfg={...cfgFor('blackjack'),game:'blackjack'};
+ H.members=[{name:'p0',bot:false,conn:null,host:true,cid:''},{name:'b1',bot:true,lv:1,conn:null,host:false,cid:'c1'}];
+ hostStart();H.phase='over';const t1=NOW;hostStart();
+ if(H.dealUntil-t1!==1500||!H.dealAgain)fail('bj again intro '+(H.dealUntil-t1)+' '+H.dealAgain);
+ const s=snapFor(0);if(!s.dg||!(s.dk>0)||s.dk>1500)fail('bj again snap '+s.dg+' '+s.dk)}
+
 // 자리 배치: 180°를 거는 사람 수로 똑같이 나누고 카드 받는 순서대로 오른쪽 끝에서 시계 방향(각도가 줄어듦), 인원이 달라도 가운데 기준 대칭
 {const sa=BJ._test.spotAngles;
  for(const n of [1,2,3,4,5,6,7]){

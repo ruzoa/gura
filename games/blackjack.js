@@ -468,7 +468,7 @@ G.preView=()=>{
   const B=BV(),i=myIdx();if(!B)return;
   const fresh=!PV||!PV.bj||PV.bj.rd!==B.rd;
   if(fresh||B.ph!=='bet'||(i>=0&&B.bt[i]))pend=[];   // 새 판이거나 이미 걸었으면 비움
-  if(fresh&&PV&&B.ph==='bet'&&V.st==='play')setTimeout(()=>{if(BV()&&BV().rd===B.rd)roundStart(B)},0);   // 판 번호·칩 더미 튀기 (첫 판은 카드 나누기 대신 바로)
+  if(fresh&&PV&&B.ph==='bet'&&V.st==='play'&&!IN.on)setTimeout(()=>{if(BV()&&BV().rd===B.rd)roundStart(B)},0);   // 판 번호·칩 더미 튀기 (첫 판은 시작 연출이 끝날 때 `1 / 8판`을 띄움: IN.on이면 건너뜀)
 };
 G.postView=()=>{};
 G.logCue=txt=>{if(txt.includes('섞습니다')){sfx('riffle');setTimeout(()=>sfx('square'),700);return true}return false};
@@ -609,11 +609,11 @@ function syncChips(){
   const me=myIdx(),meDl=B.hd&&B.dl===me;
   if(me>=0&&!V.ps[me].f&&!meDl){
     const a=bankAmt(B,me),key=change(a).join(',');
-    if(!V3.bank||V3.bank.userData.key!==key){killG(V3.bank);V3.bank=stackGroup(a,BANK_Z,1,false);V3.bank.userData.key=key}
+    if(!V3.bank||V3.bank.userData.key!==key){killG(V3.bank);V3.bank=stackGroup(a,BANK_Z,1,false);V3.bank.userData.key=key;dropGroup(V3.bank,3)}
   }else if(V3.bank){killG(V3.bank);V3.bank=null}
   // 딜러 칩: 사람 딜러면 그 사람이 가진 칩, 봇 딜러는 넉넉히
   {const a=B.hd&&B.dl>=0?B.ch[B.dl]:2400,key=ROT.toFixed(3)+':'+change(a).join(',');
-   if(!V3.dstack||V3.dstack.userData.key!==key){killG(V3.dstack);V3.dstack=stackGroup(a,TRAY.z,-1,true);V3.dstack.userData.key=key}}
+   if(!V3.dstack||V3.dstack.userData.key!==key){killG(V3.dstack);V3.dstack=stackGroup(a,TRAY.z,-1,true);V3.dstack.userData.key=key;dropGroup(V3.dstack,7)}}
   if(B.ph==='settle')return;
   // 베팅할 칩 공간: 걸기 전 내 칩만. 건 뒤에는 이 칩이 그대로 베팅한 칩 공간으로 날아가 자리 잡음(그 뒤에는 누를 수 없음)
   if(me>=0&&B.od.includes(me)&&!meDl&&SPOTS.has(me)){
@@ -747,6 +747,7 @@ function buildRoot(){
   if(!T.ok||(V3.root&&V3.rootFL===ROT))return;
   killG(V3.root);V3.rootFL=ROT;
   const root=new THREE.Group();T.scene.add(root);V3.root=root;
+  if(IN.on&&!IN.again)root.position.y=rootDropY(clock()-IN.t0);   // 시작 연출 중에 다시 만들어져도 한 프레임 제자리에 보이지 않게
   const dark=toon({color:0x3a3430,rim:.2});
   // 카드 통(슈)과 버린 카드 더미
   const mk=(pos,ry)=>{const p=M(pos),g=new THREE.Group();g.position.set(p.x,0,p.z);g.rotation.y=ry;root.add(g);
@@ -801,6 +802,7 @@ function clear3D(){
   if(V3.betArc){killG(V3.betArc);V3.betArc=null}
   killG(V3.root);V3.root=null;V3.rootFL=0;V3.shoe=V3.disc=null;
   V3.sf=-1;V3.rd=-1;V3.settled=-1;V3.landed.clear();V3.toBet=V3.toBank=0;spotKey='';ROT=0;MEDL=false;
+  IN.on=false;
   useFelt(false);
   if(elTags)elTags.innerHTML='';
 }
@@ -849,7 +851,7 @@ function frame3(now){
     if(!e.launched&&now>=e.at&&e.to){e.launched=true;e.g.visible=true;e.tw={from:{...e.cur},to:e.to,t0:now,ms:420,lift:.38};sfx('flick')}
     if(e.launched)cardStep(e,now);
   }
-  frameFlights(now);feltFrame(now);betTimer(now);
+  frameFlights(now);feltFrame(now);betTimer(now);introFrame(now);
   // 베팅이 시작되면 내 칩 더미가 한 번 통통 튐
   if(V3.bank){const a=now-V3.bounceAt;V3.bank.position.y=a>=0&&a<520?Math.abs(Math.sin(a/520*Math.PI*2))*.09*(1-a/520):0}
 }
@@ -867,6 +869,79 @@ function roundStart(B){
   d.addEventListener('animationend',()=>d.remove());
   const layer=$('#fx');while(layer.children.length>2)layer.firstChild.remove();layer.appendChild(d);setTimeout(()=>d.remove(),2300);
   if(myMode()==='bet'){V3.bounceAt=clock();sfxChip(3)}
+}
+/* ---------- 시작 연출 (첫 판 전, 약 3.5초) ----------
+   카드 통·버린 더미가 딜러 쪽에 툭 내려앉음(0~0.6초) → 카드 통을 섞음(0.6~1.6초, 리플·스퀘어 소리) → 모두의 칩(내 칩 더미·딜러 칩 기둥)이 한꺼번에 하늘에서 떨어져 쌓임(1.6초~) → `1 / 8판`(3.0초) → 베팅.
+   바로 시작(결과 화면에서)은 통을 다시 차리지 않고 칩만 떨어지는 1.5초.
+   방장이 G.introMs만큼 제한 시간·봇·행동을 멈추고(core/engine.js), 화면은 G.intro가 시작 시각(t0)을 받아 시작 시각과의 차이로 그림.
+   칩마다 떨어지는 시각·기울기는 dealId(seed)로 정해 모든 화면이 같게 보임. 늦게 들어온 사람은 연출 없이 바로 보임(core/table3d.js dealCheck) */
+const INTRO_MS=3500,INTRO_AGAIN_MS=1500;
+G.introMs=again=>again?INTRO_AGAIN_MS:INTRO_MS;
+const ROOT_FALL=450,ROOT_BOUNCE=150,SHUF=[600,1600],DROP_H=4.5,DROP_MS=420,BOUNCE_MS=170;
+const IN={on:false,t0:0,total:0,again:false,seed:1,chipAt:0,fxAt:0,fx:false,said:{}};
+const rngOf=s=>()=>{s=(s+0x6D2B79F5)|0;let t=Math.imul(s^(s>>>15),1|s);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296};
+/* 카드 통·버린 더미가 떨어지는 높이: 떨어지며 빨라지고, 닿은 뒤 한 번 살짝 튐 */
+function rootDropY(e){
+  if(e<0)return 2.2;
+  if(e<ROOT_FALL){const k=e/ROOT_FALL;return 2.2*(1-k*k)}
+  if(e<ROOT_FALL+ROOT_BOUNCE){const b=(e-ROOT_FALL)/ROOT_BOUNCE;return Math.sin(b*Math.PI)*.05*(1-b)}
+  return 0;
+}
+G.intro=(t0,o)=>{
+  const B=BV();if(!B||B.ph!=='bet'||B.rd!==1)return;   // 판마다 카드를 나눌 때도 불림 → 첫 판 시작 연출만
+  const a=!!(o&&o.again);
+  Object.assign(IN,{on:true,t0,total:(o&&o.total)||G.introMs(a),again:a,seed:(o&&+o.seed)||1,fx:false,said:{}});
+  IN.chipAt=t0+(a?0:1600);IN.fxAt=t0+(a?1000:3000);
+  if(T.ok)for(const [g,salt] of [[V3.bank,3],[V3.dstack,7]])if(g){g.userData.drop=0;g.children.forEach(m=>{delete m.userData.dr});dropGroup(g,salt)}   // 이미 있는 칩 기둥(바로 시작)도 다시 떨어뜨림
+};
+/* 칩 기둥의 칩마다 떨어질 시각을 정함: 0~0.4초 안에서 제각각 + 아래 칩이 먼저(탑이 맞춰져 쌓임) */
+function dropGroup(g,salt){
+  if(!IN.on||!T.ok||!g||g.userData.drop)return;
+  g.userData.drop=1;
+  const rnd=rngOf(IN.seed*977+salt),spread=IN.again?200:400,gap=IN.again?12:16;
+  g.children.forEach(m=>{
+    const row=Math.max(0,Math.round((m.position.y-CHIP_H/2)/CHIP_H));
+    m.userData.dr={y:m.position.y,delay:rnd()*spread+row*gap,rx:(rnd()-.5)*1.4,rz:(rnd()-.5)*1.4};
+  });
+  stepDrop(g,clock());   // 만들자마자 첫 모습을 맞춤(아직 안 떨어진 칩이 제자리에 한 프레임 보이지 않게)
+}
+function stepDrop(g,now){
+  for(const m of g.children){
+    const d=m.userData.dr;if(!d||d.done)continue;
+    const e=now-(IN.chipAt+d.delay);
+    if(e<0){m.visible=false;continue}
+    m.visible=true;
+    if(e<DROP_MS){const k=e/DROP_MS;m.position.y=d.y+(DROP_H-d.y)*(1-k*k);m.rotation.x=d.rx*(1-k);m.rotation.z=d.rz*(1-k);m.scale.setScalar(Math.min(1,.05+k*8))}   // 떨어지며 빨라짐. 처음 잠깐 작게 시작해 화면 위에서 갑자기 나타나지 않게
+    else if(e<DROP_MS+BOUNCE_MS){const b=(e-DROP_MS)/BOUNCE_MS;m.position.y=d.y+Math.sin(b*Math.PI)*.04*(1-b);m.rotation.x=m.rotation.z=0;m.scale.setScalar(1)}   // 한 번만 짧게 튐
+    else{m.position.y=d.y;m.rotation.x=m.rotation.z=0;m.scale.setScalar(1);d.done=1}
+  }
+}
+function endIntro(){
+  if(!IN.on)return;IN.on=false;
+  if(T.ok){
+    if(V3.root)V3.root.position.y=0;
+    if(V3.shoe){V3.shoe.g.rotation.y=ROT-.35;V3.shoe.g.position.y=0}
+    for(const g of [V3.bank,V3.dstack])if(g)stepDrop(g,1e12);
+  }
+}
+function introFrame(now){
+  if(!IN.on)return;
+  const e=now-IN.t0;
+  if(e>=IN.total+150){endIntro();return}
+  const say=(k,at,fn)=>{if(e>=at&&!IN.said[k]){IN.said[k]=1;fn()}};
+  if(!IN.again){
+    if(V3.root)V3.root.position.y=rootDropY(e);
+    say('thud',ROOT_FALL,()=>tone(130,.12,{type:'triangle',vol:.1,slide:70}));
+    if(V3.shoe){   // 카드 통을 섞음: 좌우로 흔들며 살짝 들썩임
+      const p=clamp01((e-SHUF[0])/(SHUF[1]-SHUF[0])),on=e>=SHUF[0]&&e<SHUF[1];
+      V3.shoe.g.rotation.y=ROT-.35+(on?Math.sin(p*Math.PI*10)*.09*(1-p*.5):0);
+      V3.shoe.g.position.y=on?Math.abs(Math.sin(p*Math.PI*5))*.05:0;
+    }
+    say('riffle',SHUF[0],()=>sfx('riffle'));say('square',SHUF[0]+700,()=>sfx('square'));
+  }
+  const c0=IN.chipAt-IN.t0+DROP_MS;   // 가장 먼저 닿는 시각: 큰 짤랑 하나, 뒤이어 작은 소리 둘(칩마다 울리면 시끄러움)
+  say('c0',c0,()=>sfxChip(4));say('c1',c0+160,()=>sfxChip(2));say('c2',c0+330,()=>sfxChip(1));
+  if(T.ok)for(const g of [V3.bank,V3.dstack])if(g)stepDrop(g,now);
 }
 /* 칩 더미 누르기는 기둥마다 맨 위 칩(날아가는 칩)만: 맨 위 칩 높이의 평면에서 그 칩 자리 + 위쪽(화면 위, -z)으로 조금 여유 */
 const _tp=window.THREE?new THREE.Plane(new THREE.Vector3(0,1,0),0):null,_th=window.THREE?new THREE.Vector3():null;
@@ -968,10 +1043,11 @@ G.live=()=>{
   const B=BV();if(!B)return;
   if(T.ok)layout(B);
   tagsFrame();seatTags(B);autoBet();
+  if(IN.on){const now=clock();if(!IN.fx&&now>=IN.fxAt){IN.fx=true;roundStart(B)}if(now>=IN.t0+IN.total+150)endIntro()}   // `1 / 8판`은 칩이 다 쌓인 뒤(3D가 없어도 같은 시각)
 };
 G.enter=()=>{ON=true;$('#stage').classList.add('bj');$('#numpick').hidden=true};
 G.leave=()=>{
-  ON=false;if(typeof T!=='undefined'&&T.ok)clear3D();
+  ON=false;IN.on=false;if(typeof T!=='undefined'&&T.ok)clear3D();
   const st=$('#stage');if(st)st.classList.remove('bj');
   const pass=$('#btnPass'),gb=$('#btnGura');if(pass){setTxt(pass,'패스');pass.hidden=false}if(gb){setTxt(gb,'구라!');gb.hidden=true}
   if(elBet)elBet.hidden=true;if(el2d){el2d.hidden=true;el2d.innerHTML='';el2d.dataset.k=''}if(elTags)elTags.innerHTML='';
