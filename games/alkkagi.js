@@ -25,7 +25,7 @@ G.fixCfg=(c,n,strict)=>{
 const NL=19,BW=2.3,GM=.3,TOP=.2,PITCH=(2*BW-2*GM)/(NL-1),SR=PITCH*.46,SH=SR*.52,KY=SR/SH;   // 줄 수, 판 반폭(틀 포함), 틀 안쪽 여백, 판 윗면 높이, 줄 간격, 알 반지름·반두께(오목 돌과 같은 비율: 줄 간격에 맞춤)
 const HOSHI=[3,9,15];   // 화점 (19줄)
 const FELT_Y=.016,FELT_R=3.15,TABLE_R=4.9;   // 공통 테이블: 펠트 윗면 높이·반지름, 탁자 반지름
-const PHY={g:32,aB:6.5,aF:11,eSS:.86,eJ:.6,eG:.3,vmax:11,dt:1/240,fps:30,tmax:9,slope:.28,kT:700,cT:8,tk:7,mu:.25,aw:5,cw:1.2};   // 중력, 판·펠트 마찰 감속, 알끼리(바둑알·장기알)·바닥 튕김, 최고 속도, 계산 간격, 자취 장 수, 최대 길이(초), 미끄러질 때 앞이 숙는 정도, 기울기 복원·감쇠, 부딪힐 때 기우뚱, 알끼리 마찰(돎)·도는 알이 멈추는 정도
+const PHY={g:32,aB:6.5,aF:11,eSS:.86,eJ:.6,eG:.3,vmax:11,dt:1/240,fps:30,tmax:9,slope:.28,kT:700,cT:8,tk:7,mu:.25,aw:5,cw:1.2,miss:.2,kc:.012};   // 중력, 판·펠트 마찰 감속, 알끼리(바둑알·장기알)·바닥 튕김, 최고 속도, 계산 간격, 자취 장 수, 최대 길이(초), 미끄러질 때 앞이 숙는 정도, 기울기 복원·감쇠, 부딪힐 때 기우뚱, 알끼리 마찰(돎)·도는 알이 멈추는 정도, 장기 알: 끝까지 떨렸을 때 손가락이 가운데를 빗맞히는 거리(반지름 비율)·도는 알이 휘는 정도
 const PMIN=.1;   // 이보다 약하게 당기고 놓으면 취소
 /* 장기 모드: 판·알은 장기 모드(games/janggi.js)와 같은 크기. 점 사이 JS, 9줄×10줄, 판(틀 포함) 반폭 JBX·반길이 JBZ (떨어지는 기준은 나무판 가장자리)
    알 종류 t: 1 졸·병 2 사 3 상 4 마 5 포 6 차 7 장. 반지름(꼭짓점까지) JPR·두께 JPT는 장기 모드와 같음. 부딪힘은 원으로(꼭짓점과 변 사이 JCR배)
@@ -62,6 +62,9 @@ function jit(t){   // -1~1, 잔잔하다 가끔 크게 (규칙적인 흔들림�
 const speedOf=p=>PHY.vmax*Math.pow(Math.max(0,Math.min(1,p)),1.25);   // 당긴 정도 → 속도 (끝으로 갈수록 조금 더 세짐)
 /* 이 알을 p만큼 당겨 튕긴 속도: 바둑알은 speedOf 그대로, 장기 알은 손가락과 부딪힌 속도(jShotK) */
 const shotSpeed=(q,p)=>q&&q.t?speedOf(p)*jShotK(q.t):speedOf(p);
+/* 장기 알 튕길 때 처음 회전: 손 떨림 몫 j(−SPREAD~SPREAD, 떨림 폭이 p²에 비례하니 세게 칠수록 큼)만큼 손가락이 가운데를 빗맞힘 → 회전 = 충격량 × 빗맞은 거리 ÷ 회전 관성(½·m·rv²) = 2·v·빗맞은 거리 ÷ rv².
+   부호는 휘는 쪽이 떨린 쪽과 같게 (떨림이 더 커지는 쪽으로 휨: 세게 칠수록 불확정). 바둑알은 0 */
+const shotSpin=(q,v,j)=>q&&q.t&&Number.isFinite(j)?-2*v*PHY.miss*Math.max(-1,Math.min(1,j/SPREAD))/JPR[q.t]:0;
 const CNAME_JG=['','초','한'];   // 장기 모드: 선(1)이 초, 다음(2)이 한
 const onBoardXZ=(x,z)=>Math.abs(x)<=BD.x&&Math.abs(z)<=BD.z;
 function groundAt(x,z){
@@ -106,7 +109,7 @@ function simulate(st,shot,rnd){
   const ev=[],frames=[],every=Math.round(1/(P.fps*dt)),of={};   // of: 판에서 떨어진 시각(ms) {번호: ms} (화면이 남은 알 수를 그 순간에 줄임)
   const rec=()=>frames.push(S.map(q=>SPIN?[q.x,q.y,q.z,q.ax,q.az,q.w]:[q.x,q.y,q.z,q.ax,q.az]));
   const push=(k,v,step)=>{if(ev.length<60)ev.push([Math.round(step*dt*1000),k,Math.round(v*100)/100])};
-  const q0=S[shot.i];q0.vx=shot.vx;q0.vz=shot.vz;q0.aw=1;
+  const q0=S[shot.i];q0.vx=shot.vx;q0.vz=shot.vz;q0.aw=1;if(q0.t&&shot.wy)q0.wy=shot.wy;
   // 손가락으로 튕긴 알은 살짝 기우뚱 (앞이 숙거나 들림, 세게 칠수록 크게)
   {const sp=Math.hypot(shot.vx,shot.vz)||1,ux=shot.vx/sp,uz=shot.vz/sp,k=(rnd()*2-1)*(1.5+6*(shot.p||0));q0.bx=ux*k+(rnd()-.5)*2;q0.bz=uz*k+(rnd()-.5)*2}
   rec();
@@ -118,6 +121,8 @@ function simulate(st,shot,rnd){
       const he=halfH(q),gy=groundAt(q.x,q.z),onG=q.y-he<=gy+.015&&q.vy<=.3;   // 기울기가 줄어 반높이가 낮아져도 바닥에 닿은 채로 봄 (그러지 않으면 공중에서 계속 돎)
       if(onG){
         const sp=Math.hypot(q.vx,q.vz),dec=(gy>=TOP-1e-6?P.aB:P.aF)*dt;
+        if(q.t&&q.wy&&sp>1e-6){   // 도는 장기 알은 앞 가장자리가 움직이는 쪽(컬링처럼)으로 조금 휨: 속도에 수직, 크기 ∝ 회전 × 속도 (방향만 바꾸고 빠르기는 그대로)
+          const k=P.kc*q.wy*dt,nx=q.vx+k*q.vz,nz=q.vz-k*q.vx,nl=Math.hypot(nx,nz);q.vx=nx*sp/nl;q.vz=nz*sp/nl}
         if(sp<=dec){q.vx=q.vz=0}else{q.vx-=q.vx/sp*dec;q.vz-=q.vz/sp*dec}
         // 미끄러지는 알은 앞이 살짝 숙음(빠를수록). 바닥에 닿은 동안은 납작하게 돌아오려 함
         const f=Math.min(1,sp/P.vmax),tx=sp>1e-6?-P.slope*f*q.vx/sp:0,tz=sp>1e-6?-P.slope*f*q.vz/sp:0;
@@ -548,13 +553,13 @@ function eliminate(list,why){
   return false;
 }
 /* 튕기기: 물리를 끝까지 계산해 결과 자리와 자취를 담아 둠. 연출이 끝나면(tick) 다음 차례 */
-function doShot(seat,i,a,p){
+function doShot(seat,i,a,p,j){   // j: 그중 손 떨림 몫 (장기 알 처음 회전, 없으면 0)
   const A=H.ak,s=A.st[i];
   if(!s||s.s!==seat||s.o||s.u||!Number.isFinite(a)||!Number.isFinite(p))return false;
   p=Math.max(PMIN,Math.min(1,p));
   useBoard(A.jg);
   const v=shotSpeed(s,p),before=Array.from({length:A.np},(_,k)=>aliveOf(A,k));
-  const r=simulate(simSt(A.st),{i,vx:Math.cos(a)*v,vz:Math.sin(a)*v,p});
+  const r=simulate(simSt(A.st),{i,vx:Math.cos(a)*v,vz:Math.sin(a)*v,p,wy:shotSpin(s,v,j)});
   A.st=r.fin.map((q,k)=>{const o=A.st[k];if(o.u)return o;const n={x:q.x,y:q.y,z:q.z,s:q.s,o:o.o||q.o?1:0,g:o.g||q.g?1:0};if(o.t){n.t=o.t;n.w=q.w}return n});
   const after=before.map((_,k)=>aliveOf(A,k)),kn=before.reduce((n,b,k)=>k===seat?n:n+b-after[k],0),own=before[seat]-after[seat];   // 다른 사람 알 떨어진 수, 내 알 떨어진 수
   A.cnt++;A.sid++;
@@ -646,7 +651,7 @@ function timeout(){
 function botDo(i,b){   // 봇의 수를 둠: 놓기({pl}) 또는 튕기기. 못 두면 false
   if(!b)return false;
   if(b.pl)return doPlace(i,b.pl[0],b.pl[1]);
-  return doShot(i,b.i,b.fa,b.p);
+  return doShot(i,b.i,b.fa,b.p,b.fa-b.a);
 }
 function botShootNow(i){const A=H.ak;if(!botDo(i,A.bp||botPick(i)))startTurn(turnAfter(A,i))}
 /* 봇: 알을 고르고 천천히 당긴 뒤(상대 화면에도 손이 보임) 놓음. 오목 모드에서 놓기로 정했으면 바로 놓음 */
@@ -659,10 +664,10 @@ function botStep(i,t){
   const k=(t-A.bp.t0)/A.bp.dur;
   if(k<1){const e=1-Math.pow(1-Math.max(0,k),2),np=Math.round(A.bp.p*e*1000)/1000;if(!A.aim||A.aim.p!==np){A.aim={s:i,i:A.bp.i,a:A.bp.a,p:np,w:0};mark()}return}
   const b=A.bp;A.bp=null;
-  if(!doShot(i,b.i,b.fa,b.p))startTurn(turnAfter(A,i));
+  if(!doShot(i,b.i,b.fa,b.p,b.fa-b.a))startTurn(turnAfter(A,i));
 }
 /* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
-G._test={geomOf,JM,jShotK,octHit,octVerts,JSET,jgSetup,useBoard,BD,shotSpeed,mdOf,omGrid,omFive,omThreats,omLines,omTargets,omPlacePlan,omCands,omScore,omFull,simulate,reserves,shotCands,shotScore,botPick,placePlan,canPlace,gridXZ,botPlan,speedOf,groundAt,doShot,doSurrender,timeout,pickFirst,aliveOf,sideOfSeat,ownPt,freeAt,PHY,TOP,SH,SR,BW,PITCH,NL};
+G._test={geomOf,JM,jShotK,shotSpin,SPREAD,octHit,octVerts,JSET,jgSetup,useBoard,BD,shotSpeed,mdOf,omGrid,omFive,omThreats,omLines,omTargets,omPlacePlan,omCands,omScore,omFull,simulate,reserves,shotCands,shotScore,botPick,placePlan,canPlace,gridXZ,botPlan,speedOf,groundAt,doShot,doSurrender,timeout,pickFirst,aliveOf,sideOfSeat,ownPt,freeAt,PHY,TOP,SH,SR,BW,PITCH,NL};
 G.engine={
   /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
   start(){
@@ -693,7 +698,7 @@ G.engine={
       A.aim={s:seat,i:a.i,a:Math.round(+a.a*1000)/1000,p:Math.round(Math.max(0,Math.min(1,+a.p))*1000)/1000,w:a.w?1:0};mark();
     }else if(a.t==='shoot'){
       if(!Number.isInteger(a.i))return;
-      doShot(seat,a.i,+a.a,+a.p);
+      doShot(seat,a.i,+a.a,+a.p,+a.j||0);
     }
   },
   tick(t){
@@ -846,7 +851,7 @@ function dragEnd(cancel){
     if(!cancel&&d.L>.02)sndPickUp();return}
   const t=clock(),j=spreadOf(d.p)*jit(t+d.ph),a=baseAng(d)+j;   // 놓는 순간 손이 가리키던 방향 (j: 그중 떨림 몫)
   const q=OS.st[d.i];
-  sendAct({t:'shoot',i:d.i,a,p:d.p});
+  sendAct({t:'shoot',i:d.i,a,p:d.p,j:Math.round(j*1e5)/1e5});
   sndFlick();Ak3.flickAt=t;
   FLK={i:d.i,a,j,p:d.p,seat:myIdx(),t0:t,x:q.x,z:q.z,mine:true};
 }

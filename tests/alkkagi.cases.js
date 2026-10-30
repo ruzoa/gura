@@ -317,6 +317,12 @@ for(const ag of [1,0]){
  {const Q=(w)=>{const q=P(.15,0,1,4);q.w=w;return q},a=shot([P(0,1,0,4),Q(0)],0,-Math.PI/2,.4),b=shot([P(0,1,0,4),Q(Math.PI/8)],0,-Math.PI/2,.4);
   ok(Math.hypot(a.fin[1].x-b.fin[1].x,a.fin[1].z-b.fin[1].z)>.02,'octagon angle changes outcome '+a.fin[1].x.toFixed(2)+','+a.fin[1].z.toFixed(2)+' vs '+b.fin[1].x.toFixed(2)+','+b.fin[1].z.toFixed(2))}
  {const q=P(0,0,1,4);q.w=Math.PI/16;const r=shot([P(0,1,0,4),q],0,-Math.PI/2,.4);ok(Math.abs(r.fin[1].w-Math.PI/16)>.1,'corner hit spins '+r.fin[1].w.toFixed(2))}
+ /* 회전에 의한 휘어짐: 회전 없으면 곧게, 떨린 쪽으로 더 휨(세게 칠수록), 살살 치면 거의 곧게, 바둑알은 회전 없음 */
+ {const q=P(0,2,0,6),v=T.shotSpeed(q,1),r0=T.simulate([q],{i:0,vx:0,vz:-v,p:1,wy:0},()=>.5);ok(Math.abs(r0.fin[0].x)<1e-6,'no spin goes straight '+r0.fin[0].x);
+  const j=T.SPREAD,wp=T.shotSpin(q,v,j),wn=T.shotSpin(q,v,-j),rp=T.simulate([q],{i:0,vx:0,vz:-v,p:1,wy:wp},()=>.5),rn=T.simulate([q],{i:0,vx:0,vz:-v,p:1,wy:wn},()=>.5);
+  ok(rp.fin[0].x>.1&&rn.fin[0].x<-.1,'spin curves toward jitter side '+rp.fin[0].x.toFixed(2)+' / '+rn.fin[0].x.toFixed(2));
+  const vs=T.shotSpeed(q,.3),rs=T.simulate([q],{i:0,vx:0,vz:-vs,p:.3,wy:T.shotSpin(q,vs,T.SPREAD*.09)},()=>.5);ok(Math.abs(rs.fin[0].x)<.01,'gentle shot barely curves '+rs.fin[0].x.toFixed(3));
+  eq(T.shotSpin({},v,j),0,'baduk no spin')}
  T.useBoard(0);}
 /* 엔진: 바로 튕기기(놓기 없음), 상태 전송에 종류·각도 */
 {mkRoom({pickfirst:1,md:2},undefined,true);
