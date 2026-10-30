@@ -284,6 +284,45 @@ for(const ag of [1,0]){
    ok(T.omScore(C,1,{pl:[7,10]})>T.omScore(C,1,{pl:[12,4]})+1e5,'blocking beats ignoring a four')}
   for(let k=0;k<5;k++){const p=T.omPlacePlan(B,0,null,2);ok(p&&(p[0]===2||p[0]===7)&&p[1]===10,'hard place plan wins')}}
  const sc=T.omScore(A,0,{pl:[7,10]});ok(sc>T.omScore(A,0,{pl:[16,2]}),'extending a three beats a far corner '+sc);}
+/* ---------- 장기 모드 ---------- */
+/* 방 설정: 게임 모드 md(0 바둑·1 오목·2 장기), 예전 오목 스위치도 읽음. 오목·장기는 2명까지 */
+{eq(T.mdOf({md:2}),2,'md jang');eq(T.mdOf({omok:1}),1,'legacy omok');eq(T.mdOf({md:0,omok:0}),0,'baduk');
+ eq(AK.maxOf({md:2}),2,'jang max 2');eq(AK.fixCfg({md:2,max:4},2,true).max,2,'jang clamps max');eq(AK.fixCfg({md:2,max:2},3,true),null,'jang refused with 3 seated');
+ eq(T.mdOf(AK.fixCfg({md:2,max:4},3,false)),0,'jang dropped when too many');}
+/* 상차림: 한 쪽 16개(장 1), 모두 판 위, 서로 겹치지 않음, 1번 자리는 0번 자리를 판 가운데로 돌린 자리 */
+{T.useBoard(1);const st=T.jgSetup();eq(st.length,32,'jang pieces');
+ for(const s of [0,1]){eq(st.filter(q=>q.s===s).length,16,'per side '+s);eq(st.filter(q=>q.s===s&&q.t===7).length,1,'one jang '+s)}
+ ok(st.every(q=>Math.abs(q.x)<T.BD.x-T.geomOf(q.t).r&&Math.abs(q.z)<T.BD.z-T.geomOf(q.t).r),'all on board');
+ ok(st.slice(0,16).every(q=>q.z>0)&&st.slice(16).every(q=>q.z<0),'sides');
+ for(let k=0;k<16;k++)ok(Math.abs(st[k].x+st[k+16].x)<1e-9&&Math.abs(st[k].z+st[k+16].z)<1e-9&&st[k].t===st[k+16].t,'point mirror '+k);
+ for(let i=0;i<32;i++)for(let j=i+1;j<32;j++){const a=st[i],b=st[j];if(Math.hypot(a.x-b.x,a.z-b.z)<T.geomOf(a.t).r+T.geomOf(b.t).r+.02)fail('alkkagi jang overlap '+i+','+j)}
+ ok(T.JM[7]>T.JM[4]&&T.JM[4]>T.JM[1]&&Math.abs(T.JM[4]-1)<1e-9,'mass order');
+ ok(T.shotSpeed({t:7},.5)<T.shotSpeed({t:4},.5)&&T.shotSpeed({t:4},.5)<T.shotSpeed({t:1},.5),'heavier is slower');
+ T.useBoard(0);}
+/* 물리: 같은 힘이면 무거운 알이 덜 감, 무거운 알은 덜 밀림, 비껴 맞으면 돎(정면은 거의 안 돎) */
+{T.useBoard(1);const P=(x,z,s,t)=>({x,y:TOP+T.geomOf(t).h,z,s,o:0,g:0,t,w:0}),shot=(st,i,a,p)=>{const v=T.shotSpeed(st[i],p);return T.simulate(st,{i,vx:Math.cos(a)*v,vz:Math.sin(a)*v,p},()=>.5)};
+ {const a=shot([P(0,1.5,0,7)],0,-Math.PI/2,.35),b=shot([P(0,1.5,0,1)],0,-Math.PI/2,.35);ok(1.5-a.fin[0].z<1.5-b.fin[0].z,'jang travels less '+(1.5-a.fin[0].z).toFixed(2)+' < '+(1.5-b.fin[0].z).toFixed(2))}
+ {const a=shot([P(0,1,0,4),P(0,.3,1,7)],0,-Math.PI/2,.3),b=shot([P(0,1,0,4),P(0,.3,1,1)],0,-Math.PI/2,.3);ok(.3-a.fin[1].z<.3-b.fin[1].z,'heavy target moves less')}
+ {const r=shot([P(0,1,0,4),P(.25,0,1,4)],0,-Math.PI/2,.35);eq(r.k,6,'spin frames');ok(Math.abs(r.fin[1].w)>.05,'glancing hit spins '+r.fin[1].w);
+  const h=shot([P(0,1,0,4),P(0,0,1,4)],0,-Math.PI/2,.35);ok(Math.abs(h.fin[1].w)<.05,'head-on barely spins '+h.fin[1].w)}
+ T.useBoard(0);}
+/* 엔진: 바로 튕기기(놓기 없음), 상태 전송에 종류·각도 */
+{mkRoom({pickfirst:1,md:2},undefined,true);
+ const A=H.ak;eq(A.jg,1,'jang on');eq(A.np,2,'jang two players');eq(A.st.length,32,'pieces');eq(A.ph,'aim','aim from the start');eq(H.turn,0,'cho first');eq(A.co[0],1,'first is cho');
+ {const s=snapFor(1);eq(s.ak.jg,1,'jg sent');eq(s.ak.st[0].length,9,'type and angle sent');eq(s.ak.st[8][7],7,'jang type')}
+ AK.engine.act(0,{t:'shoot',i:11,a:-Math.PI/2,p:.3});eq(A.cnt,1,'shot');roll();eq(A.ph,'aim','roll ends');ok(A.st.every(q=>q.t>0),'types kept');}
+/* 장 떨어지면 패배: 상대 장을 떨어뜨리면 승리, 둘 다면 먼저 떨어진 쪽이 짐(같은 순간이면 튕긴 사람). 끄면 계속 */
+for(const jl of [1,0]){mkRoom({pickfirst:1,md:2,jang:jl},undefined,true);
+ const A=H.ak,g=T.geomOf;A.st=[{x:0,y:TOP+g(4).h,z:-1.5,s:0,o:0,g:0,t:4,w:0},{x:0,y:TOP+g(7).h,z:-2.15,s:1,o:0,g:0,t:7,w:0},{x:1.5,y:TOP+g(1).h,z:-1,s:1,o:0,g:0,t:1,w:0},{x:1.5,y:TOP+g(7).h,z:1.5,s:0,o:0,g:0,t:7,w:0}];
+ AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.45});
+ if(!A.st[1].o){fail('alkkagi jang knock setup');continue}
+ roll();
+ if(jl){eq(H.phase,'over','jang down ends');eq(A.res.w,0,'jang knocker wins');eq(A.res.why,'jang','jang reason')}
+ else{eq(H.phase,'play','jang rule off continues')}}
+for(const [t0,t1,w] of [[100,200,1],[300,120,0],[150,150,1]]){mkRoom({pickfirst:1,md:2,jang:1},undefined,true);
+ const A=H.ak;A.st.forEach(q=>{if(q.t===7){q.o=1;q.y=.05}});const k0=A.st.findIndex(q=>q.t===7&&q.s===0),k1=A.st.findIndex(q=>q.t===7&&q.s===1);
+ A.sh={id:1,by:0,i:0,a:0,p:.5,of:{[k0]:t0,[k1]:t1},tr:{},nf:1,ev:[],dur:0,t0:NOW};A.ph='roll';A.until=NOW;A.next=1;engineTick();
+ eq(H.phase,'over','both jang over');eq(A.res.w,w,'earlier jang loses '+t0+'/'+t1);}
 /* 봇끼리 끝까지 */
 function playOutA(over,lvs,np){
   np=np||2;
@@ -301,6 +340,10 @@ function playOutA(over,lvs,np){
   else if(w<0&&H.ak.res.why!=='full'&&rk.filter(r=>r===1).length<2)fail('alkkagi draw ranks '+rk);
   if(H.ak.om){   // 오목 모드: 이긴 사람은 오목을 가짐 (돌 수는 제한 없음, 떨어진 돌은 사라짐)
     if(w>=0&&!H.ak.res.why&&!T.omFive(T.omGrid(H.ak.st),w))fail('alkkagi omok winner without five');
+    return ticks;
+  }
+  if(H.ak.res.why==='jang'){   // 장기 모드 장 떨어지면 패배: 진 쪽 장은 떨어짐
+    if(!H.ak.st.some(q=>q.t===7&&q.s===1-w&&q.o))fail('alkkagi jang loser still has jang');
     return ticks;
   }
   const al=Array.from({length:np},(_,s)=>H.ak.st.filter(q=>q.s===s&&!q.o).length);

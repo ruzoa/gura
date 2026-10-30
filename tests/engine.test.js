@@ -313,6 +313,9 @@ console.log('alkkagi ticks',at,'ms',Date.now()-a0);
 let akt=0;const ak0=Date.now();
 akt+=playOutA({omok:1,turn:10,pickfirst:1},[0,0])+playOutA({omok:1,turn:10,pickfirst:0},[0,1])+playOutA({omok:1,turn:10,pickfirst:1},[2,0]);
 console.log('alkkagi omok ticks',akt,'ms',Date.now()-ak0);
+let jkt=0;const jk0=Date.now();
+for(let rep=0;rep<6;rep++)jkt+=playOutA({md:2,jang:rep%2,again:(rep>>1)%2,turn:[10,30][rep%2],pickfirst:rep%3===0?1:0},[[0,0],[1,2],[2,1]][rep%3]);   // 장기 모드 (봇은 쉬움만)
+console.log('alkkagi janggi ticks',jkt,'ms',Date.now()-jk0);
 `,'alkkagi.run');
 // 탈주: 나가기 버튼은 바로, 연결 끊김은 DESERT_WAIT(45초) 이어질 때 항복 처리 + 표시 (모든 게임).
 //  기다리는 동안 봇은 두지 않고 제한 시간은 그대로 흐름(멈추면 끊어서 시간을 벌 수 있음). 그 전에 돌아오면 그대로. 방장은 해당 없음
