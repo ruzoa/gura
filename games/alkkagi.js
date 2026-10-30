@@ -1002,7 +1002,7 @@ const CHIP_GAP=10;
 /* 탑뷰 판 자리: 판 가운데 = 화면 가운데. 위아래는 이름 칸 자리(안내 줄·위 칸 / 내 칸·버튼)를 같은 높이로 비우고 양옆은 조금만(휴대폰 8px, PC 16px).
    가로 화면(폭>높이)은 안내 줄을 왼쪽 위 구석에 두어(.wide) 위 여백을 위 칸 한 줄만큼으로 줄임 */
 function tvBox(r,p){
-  const W=r.clientWidth,Hh=r.clientHeight;r.classList.toggle('wide',W>Hh);   // 가로 화면: 안내 줄을 왼쪽 위 구석으로 빼서 위 칸이 맨 위 줄로
+  const W=r.clientWidth,Hh=r.clientHeight;r.classList.toggle('wide',W>Hh||(W>=700&&npOf()<=2));   // 가로 화면, 또는 PC·태블릿 폭의 2명 판: 안내 줄을 왼쪽 위 구석으로 빼서 위 칸이 맨 위 줄로 (위아래 여백을 칸 한 줄만큼으로)
   const narrow=W<700,bar=r.querySelector('.'+p+'-bar'),mb=r.querySelector('.'+p+'-mebar');
   const R=Math.max(bar.offsetTop+bar.offsetHeight+CHIP_GAP,(narrow?70:14)+(mb.offsetHeight||26)+CHIP_GAP),m=narrow?8:16;
   return {fw:W-2*m,fh:Hh-2*R,cy:Hh/2,R};
@@ -1281,12 +1281,12 @@ function ak3Layout(t){
   const fw=B.fw,fh=B.fh,fy=B.cy-fh/2;
   let s=Math.min(fw/(2*(BW+.08)),fh/(2*(BW+.45)));
   if(np>2){const full=Math.min(fw/(2*(BW+.45)),fh/(2*(BW+.45))),peek=Math.min(fw/(2*(BW+.3)),fh/(2*(BW+.45)));s=full<peek*.93?peek:full}   // 3~4명: 양옆 놓기 전 알 줄. 좁은 화면은 알 반쯤만 보이게 해서 판을 크게
-  if(OS&&OS.jg)s=Math.min(fw/(2*(JBX+.1)),fh/(2*(JBZ+.1)));   // 장기 모드: 장기판과 판 둘레 조금
+  if(OS&&OS.jg)s=Math.min(fw/(2*(JBX+.03)),fh/(2*(JBZ+.03)));   // 장기 모드: 장기판 끝까지 (둘레는 아주 조금)
   if(om){const ext=2*(BW+BGAP+2*BR),sV=Math.min(fw/(2*(BW+.08)),fh/ext),sH=Math.min(fw/ext,fh/(2*(BW+.1)));Ak3.bl=sH>sV?'h':'v';s=Math.max(sV,sH)*.97}   // 오목 모드: 바둑통까지 (넓은 화면은 판 옆, 좁은 화면은 판 위아래)
   const cam=Ak3.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(s*f);
   cam.aspect=W/Hh;cam.position.set(0,TOP+d,0);cam.up.set(-sx,0,-sz);cam.lookAt(0,TOP,0);
   cam.setViewOffset(W,Hh,0,-((fy+fh/2)-Hh/2),W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
-  {const hv=(OS&&OS.jg?JBZ+.1:om?(Ak3.bl==='v'?2*(BW+BGAP+2*BR)/2:BW+.1):BW+.45)*s,cy=fy+fh/2;chipsAt(cy-hv,cy+hv)}
+  {const hv=(OS&&OS.jg?JBZ+.03:om?(Ak3.bl==='v'?2*(BW+BGAP+2*BR)/2:BW+.1):BW+.45)*s,cy=fy+fh/2;chipsAt(cy-hv,cy+hv)}
   Ak3.d=d;Ak3.dirty=true;
   return true;
 }
