@@ -1067,7 +1067,7 @@ const CAM=()=>T.cam;
 G.render3D=t=>{
   if(ON&&V3.root){frame3(t);T.timerBg.visible=T.timerArc.visible=false}
   T.r.render(T.scene,T.cam);
-  if(ON)actFrame();
+  if(ON){actFrame();numsFrame(BV())}
 };   // 남은 시간은 이름표 테두리와 베팅 칸 고리로 (자리 가장자리 고리는 숨김)
 /* 공통 코드가 다른 사람 자리에 카드 더미를 놓는데(손패 표시 1장) 포커는 카드를 펠트에 펼치므로 숨김 */
 G.field3D=v=>{
@@ -1168,23 +1168,47 @@ G.hud=inGame=>{
   if(!on){if(T.ok)clear3D();if(elBet)elBet.hidden=true;if(elNums&&elNums.dataset.k){elNums.innerHTML='';elNums.dataset.k=''}}
   render2D();
 };
-/* 내 칩 숫자: 칩 더미 아래에 남은 칩, 베팅할 칩 공간 옆에 올려 둔 칩 (칩이 떠나고 도착하는 때에 맞춰 바뀜) */
+/* 칩 숫자: 모든 칩 더미 바로 아래(화면 기준)에 그 더미의 총액. 내 칩 더미(남은 칩)·각자 건 칩·팟.
+   베팅할 칩 공간은 아래가 버튼 줄이라 오른쪽. 0이면 숨기고, 날아가는 칩은 도착한 뒤에 셈(결과가 연출을 앞지르지 않게) */
 function numsFrame(B){
   if(!elNums)return;
-  const me=myIdx(),on=!!(T.ok&&B&&me>=0&&(V.st==='play'||V.st==='over')&&V.ps[me]&&!V.ps[me].f&&V3.bank);
+  const me=myIdx(),on=!!(T.ok&&ON&&V3.root&&B&&(V.st==='play'||V.st==='over'));
   if(!on){if(elNums.dataset.k){elNums.innerHTML='';elNums.dataset.k=''}return}
-  const list=[{k:'c',x:0,z:BANK_Z+.36,t:bankAmt(B,me)}];
-  if(V3.pend&&V3.pend.amt>0)list.push({k:'p',x:.62,z:PEND.z,t:V3.pend.amt});
-  const key=list.map(x=>x.k+x.t).join('|');
-  if(elNums.dataset.k!==key){elNums.innerHTML=list.map(x=>`<div class="pk-num" data-k="${x.k}">${x.t}</div>`).join('');elNums.dataset.k=key}
-  const W=elNums.clientWidth,Hh=elNums.clientHeight,v3=new THREE.Vector3();
+  const list=[];
+  if(me>=0&&V.ps[me]&&!V.ps[me].f&&V3.bank){
+    list.push({k:'c',x:0,z:BANK_Z+.36,t:bankAmt(B,me),a:'at'});
+    if(V3.pend&&V3.pend.amt>0)list.push({k:'p',x:.62,z:PEND.z,t:V3.pend.amt,a:'at'});
+  }
+  for(const [i,P] of V3.piles)if(P&&P.g&&!P.flying&&P.amt>0)list.push({k:'b'+i,x:P.g.position.x,z:P.g.position.z,t:P.amt,o:i!==me});
+  if(V3.pot&&V3.potAmt>0)list.push({k:'pot',x:POT.x,z:POT.z,t:V3.potAmt,o:1});
+  const key=list.map(x=>x.k+':'+x.t).join('|');
+  if(elNums.dataset.k!==key){elNums.innerHTML=list.map(x=>`<div class="pk-num${x.o?' o':''}" data-k="${x.k}">${x.t}</div>`).join('');elNums.dataset.k=key}
+  const W=elNums.clientWidth,Hh=elNums.clientHeight,v3=new THREE.Vector3(),cam=CAM();
+  const scr=(x,y,z)=>{v3.set(x,y,z).project(cam);return [(v3.x+1)/2*W,(1-v3.y)/2*Hh]};
+  // 카드·덱 위에는 숫자를 얹지 않음: 아래 자리가 겹치면 오른쪽, 그다음 위로 비킴
+  const avoid=[];
+  if(list.some(x=>x.a!=='at')){
+    const objs=[...[...V3.cards.values()].map(e=>e.g),V3.deck].filter(g=>g&&g.visible!==false&&g.parent);
+    for(const g of objs){_box.setFromObject(g);if(_box.isEmpty())continue;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+      for(let c=0;c<8;c++){const q=scr(c&1?_box.max.x:_box.min.x,c&2?_box.max.y:_box.min.y,c&4?_box.max.z:_box.min.z);x0=Math.min(x0,q[0]);x1=Math.max(x1,q[0]);y0=Math.min(y0,q[1]);y1=Math.max(y1,q[1])}
+      avoid.push([x0,y0,x1,y1])}
+  }
+  const hit=(cx,cy,hw,hh)=>avoid.some(r=>cx+hw>r[0]&&cx-hw<r[2]&&cy+hh>r[1]&&cy-hh<r[3]);
   list.forEach(x=>{
     const el=elNums.querySelector(`[data-k="${x.k}"]`);if(!el)return;
-    v3.set(x.x,.03,x.z).project(CAM());
     const hw=el.offsetWidth/2,hh=el.offsetHeight/2;
-    el.style.left=Math.max(hw+4,Math.min(W-hw-4,(v3.x+1)/2*W))+'px';el.style.top=Math.max(hh+4,Math.min(Hh-hh-4,(1-v3.y)/2*Hh))+'px';
+    let px,py;
+    if(x.a==='at'){[px,py]=scr(x.x,.03,x.z)}
+    else{
+      const n=x.k==='pot'?(V3.pot&&V3.pot.userData.n)||1:(V3.piles.get(+x.k.slice(1))||{g:{userData:{n:1}}}).g.userData.n||1;
+      const b=scr(x.x,0,x.z+CHIP_R),r=scr(x.x+CHIP_R,0,x.z),tp=scr(x.x,topY(Math.min(n,14)),x.z-CHIP_R);
+      const cand=[[b[0],b[1]+hh+3],[r[0]+hw+4,r[1]],[tp[0],tp[1]-hh-3]];   // 아래 → 오른쪽 → 위
+      [px,py]=cand.find(c=>!hit(c[0],c[1],hw,hh))||cand[0];
+    }
+    el.style.left=Math.round(Math.max(hw+4,Math.min(W-hw-4,px)))+'px';el.style.top=Math.round(Math.max(hh+4,Math.min(Hh-hh-4,py)))+'px';
   });
 }
+const _box=window.THREE?new THREE.Box3():null;
 /* 버튼 줄(폴드·체크/콜·레이즈)은 내 칩 더미 바로 위: 칩 기둥 맨 위(12개) 높이를 화면에 옮긴 자리에 버튼 아래 끝을 붙임.
    기둥 높이와 상관없이 고정 높이로 재서 칩이 늘고 줄어도 버튼이 움직이지 않음 */
 let actKey='';
@@ -1278,6 +1302,7 @@ G.init=()=>{
 #pk2d .card .big{font-size:20px;top:20px}
 #pk2d .card.back{background:#cc3a2e;border:2px solid #fffcf5}
 #pkNums{position:absolute;inset:0;pointer-events:none;z-index:4}
+.pk-num.o{font-size:11.5px;padding:0 6px 1px;background:rgba(59,42,31,.72)}
 .pk-num{position:absolute;transform:translate(-50%,-50%);padding:0 7px 1px;border-radius:99px;background:rgba(59,42,31,.82);color:#f4ead9;font-family:var(--f-num);font-size:13px;font-weight:700;line-height:1.25;white-space:nowrap}
 #pk2d .pk-d{display:inline-block;font-size:10px;font-weight:700;line-height:1;padding:3px 5px 2px;border-radius:99px;margin-right:4px;background:#fffaf0;color:#3b2a1f;border:1.5px solid #3b2a1f}
 `;
