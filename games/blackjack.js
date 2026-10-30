@@ -37,7 +37,7 @@ G.drawFace=function(g,w,h,id){
 const cardEl=id=>id>=0?`<span class="card bjc" style="--rc:${SUIT_COL[suitOf(id)]}"><span class="cn">${RK[rkOf(id)]}<i>${SUITS[suitOf(id)]}</i></span><span class="big">${rkOf(id)>=10?RK[rkOf(id)]:SUITS[suitOf(id)]}</span><span class="cn2" aria-hidden="true">${RK[rkOf(id)]}</span></span>`:'<span class="card bjc back" aria-label="엎은 카드"></span>';
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 같은 수의 칩으로 시작해서, 정한 판 수를 마쳤을 때 칩이 가장 많은 사람이 이깁니다</li><li><b>베팅</b> : 판마다 먼저 칩을 겁니다 (최소 10개). 내 앞의 칩 더미를 누르면 그 칩이 베팅 칸으로 가고, 베팅 칸의 칩을 누르면 돌아옵니다. [베팅]으로 확정합니다</li><li><b>카드</b> : 모두 두 장씩 앞면으로 받고, 딜러는 한 장을 엎어 둡니다. A는 1이나 11, J·Q·K는 10입니다. 카드는 정한 벌 수만큼 한 통에 섞어 판이 바뀌어도 이어 쓰고, 다음 판을 나눌 만큼 남지 않으면 다시 섞습니다</li><li><b>차례</b> : <b>히트</b>는 한 장 더, <b>스탠드</b>는 멈춤, <b>더블</b>은 처음 두 장일 때 건 칩을 두 배로 하고 딱 한 장만 더 받습니다. 21을 넘으면 <b>버스트</b>로 집니다</li><li><b>딜러</b> : 엎은 카드를 펼치고 16 이하면 반드시 더 받습니다. 봇 딜러는 17 이상이면 멈추고, 사람 딜러는 17 이상에서 더 받을지 고릅니다</li><li><b>정산</b> : 딜러보다 21에 가까우면 건 만큼 받고, 처음 두 장이 21(<b>블랙잭</b>)이면 1.5배를 받습니다. 같으면 무승부입니다. 딜러가 A나 10을 보이고 블랙잭이면 바로 정산합니다</li><li><b>사람 딜러</b> : 탁자 설정에서 켜면 참가자가 돌아가며 딜러를 맡아, 진 사람의 칩을 받고 이긴 사람에게 칩을 줍니다 (칩이 모자라면 가진 만큼 나눠 줌). 판 수를 인원의 배수로 하면 모두 같은 횟수만큼 딜러를 맡습니다</li><li><b>탈락</b> : 칩이 10개보다 적어지면 탈락합니다</li><li><b>시간 초과</b> : 베팅은 최소 칩(10개), 차례는 스탠드입니다</li><li>스플릿·인슈어런스는 없습니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 같은 수의 칩으로 시작해서, 정한 판 수를 마쳤을 때 칩이 가장 많은 사람이 이깁니다</li><li><b>베팅</b> : 판마다 먼저 칩을 겁니다 (최소 10개). 내 앞의 칩 더미를 누르면 그 칩이 베팅할 칩 공간으로 가고(그 공간을 누르면 돌아옴), 그 칩을 앞으로 밀면 베팅합니다. [베팅]으로도 확정합니다</li><li><b>카드</b> : 모두 두 장씩 앞면으로 받고, 딜러는 한 장을 엎어 둡니다. A는 1이나 11, J·Q·K는 10입니다. 카드는 정한 벌 수만큼 한 통에 섞어 판이 바뀌어도 이어 쓰고, 다음 판을 나눌 만큼 남지 않으면 다시 섞습니다</li><li><b>차례</b> : <b>히트</b>는 한 장 더, <b>스탠드</b>는 멈춤, <b>더블</b>은 처음 두 장일 때 건 칩을 두 배로 하고 딱 한 장만 더 받습니다. 21을 넘으면 <b>버스트</b>로 집니다</li><li><b>손짓</b> : 내 앞 탁자를 두 번 두드리면 <b>히트</b>, 내 카드를 옆으로 쓸면 <b>스탠드</b>, 처음 두 장일 때 건 칩과 같은 칩을 베팅할 칩 공간에 올려 앞으로 밀면 <b>더블</b>입니다. 버튼과 키로도 할 수 있습니다</li><li><b>딜러</b> : 엎은 카드를 펼치고 16 이하면 반드시 더 받습니다. 봇 딜러는 17 이상이면 멈추고, 사람 딜러는 17 이상에서 더 받을지 고릅니다</li><li><b>정산</b> : 딜러보다 21에 가까우면 건 만큼 받고, 처음 두 장이 21(<b>블랙잭</b>)이면 1.5배를 받습니다. 같으면 무승부입니다. 딜러가 A나 10을 보이고 블랙잭이면 바로 정산합니다</li><li><b>사람 딜러</b> : 탁자 설정에서 켜면 참가자가 돌아가며 딜러를 맡아, 진 사람의 칩을 받고 이긴 사람에게 칩을 줍니다 (칩이 모자라면 가진 만큼 나눠 줌). 판 수를 인원의 배수로 하면 모두 같은 횟수만큼 딜러를 맡습니다</li><li><b>탈락</b> : 칩이 10개보다 적어지면 탈락합니다</li><li><b>시간 초과</b> : 베팅은 최소 칩(10개), 차례는 스탠드입니다</li><li>스플릿·인슈어런스는 없습니다</li></ol>';
 G.modeDesc=['정한 판 수까지','정한 판 수까지'];
 G.noFast=true;
 const MIN=10;
@@ -396,14 +396,19 @@ const myChips=()=>{const B=BV(),i=myIdx();return B&&i>=0?B.ch[i]:0};
 function send(a){sendAct(a);const B=BV();sentSq=B?B.sq:-1;renderButtons()}
 function myDouble(){const B=BV(),i=myIdx();return !!B&&i>=0&&myMode()==='turn'&&(B.hc[i]||[]).length===2&&!B.st[i]&&B.ch[i]>=2*B.bt[i]}
 const canBetNow=()=>myMode()==='bet'&&!busy()&&!dealingV();
-/* 칩 올리기·내리기 (확정 전, 내 화면에서만) */
+/* 베팅할 칩 공간에 칩을 올릴 수 있을 때: 베팅 단계, 또는 내 차례 처음 두 장에서 더블할 수 있을 때(칩이 건 칩만큼 더 있을 때) */
+const canPendNow=()=>(myMode()==='bet'||myDouble())&&!busy()&&!dealingV();
+/* 올려 둔 칩이 칩 더미에서 빠진 것으로 칠 때 */
+const pendCounts=(B,i)=>i>=0&&((B.ph==='bet'&&!B.bt[i])||(B.ph==='turn'&&myDouble()));
+/* 칩 올리기·내리기 (확정 전, 내 화면에서만). 더블은 건 칩과 정확히 같아야 하므로 그 이상은 못 올림 */
 function addChip(d){
-  if(!canBetNow())return;
-  if(betAmt()+d>myChips()){sfx('no');return}
+  if(!canPendNow())return;
+  const B=BV(),lim=myMode()==='bet'?myChips():B.bt[myIdx()];
+  if(betAmt()+d>lim){sfx('no');return}
   pend.push(d);sfxChip(1);if(ON&&T.ok)flyMine(d,true);renderMe();
 }
 function takeChip(){
-  if(!canBetNow())return;
+  if(!canPendNow())return;
   if(!pend.length){sfx('no');return}
   const d=pend.pop();sfxChip(1);if(ON&&T.ok)flyMine(d,false);renderMe();
 }
@@ -467,7 +472,7 @@ G.overRank=p=>{const B=V&&V.bj,why=p.sr?(p.sr===2?'시간 초과':p.sr===3?'탈�
 G.preView=()=>{
   const B=BV(),i=myIdx();if(!B)return;
   const fresh=!PV||!PV.bj||PV.bj.rd!==B.rd;
-  if(fresh||B.ph!=='bet'||(i>=0&&B.bt[i]))pend=[];   // 새 판이거나 이미 걸었으면 비움
+  if(fresh||!pendCounts(B,i))pend=[];   // 새 판이거나 칩을 올릴 때가 아니면(이미 걸었거나 더블이 끝남) 비움
   if(fresh&&PV&&B.ph==='bet'&&V.st==='play'&&!IN.on)setTimeout(()=>{if(BV()&&BV().rd===B.rd)roundStart(B)},0);   // 판 번호·칩 더미 튀기 (첫 판은 시작 연출이 끝날 때 `1 / 8판`을 띄움: IN.on이면 건너뜀)
 };
 G.postView=()=>{};
@@ -542,7 +547,7 @@ const betPos=i=>atA(SPOTS.get(i)||0,R_BET);
 const rimPos=i=>atA(SPOTS.get(i)||0,4.3);   // 그 사람 쪽 탁자 가장자리: 칩이 날아오는 곳
 
 /* ---------- 3D ---------- */
-const V3={toBet:0,toBank:0,pend:null,cards:new Map(),flights:[],piles:new Map(),bank:null,dstack:null,ringsKey:'',rings:[],myRing:null,betArc:null,arcQ:-1,root:null,rootFL:0,shoe:null,disc:null,sf:-1,rd:-1,settled:-1,landed:new Set(),felt:{},mats:null,bounceAt:-1e9};
+const V3={toBet:0,toBank:0,pend:null,knocks:[],cards:new Map(),flights:[],piles:new Map(),bank:null,dstack:null,ringsKey:'',rings:[],myRing:null,betArc:null,arcQ:-1,root:null,rootFL:0,shoe:null,disc:null,sf:-1,rd:-1,settled:-1,landed:new Set(),felt:{},mats:null,bounceAt:-1e9};
 function chipMats(){
   if(V3.mats)return V3.mats;
   const geo=new THREE.CylinderGeometry(CHIP_R,CHIP_R,CHIP_H,28);
@@ -600,7 +605,7 @@ function flyMine(d,toBet){
 }
 /* 칩 더미·베팅 기둥을 지금 상태에 맞춤 */
 function bankAmt(B,me){
-  let a=B.ch[me]-(B.bt[me]||0)-(B.ph==='bet'&&!B.bt[me]?betAmt():0)-V3.toBank;
+  let a=B.ch[me]-(B.bt[me]||0)-(pendCounts(B,me)?betAmt():0)-V3.toBank;
   if(B.ph==='settle'&&B.rs&&B.od.includes(me)&&!V3.landed.has(me))a=B.ch[me]-B.rs[me]-(B.bt[me]||0);   // 정산 칩이 도착하기 전
   return Math.max(0,a);
 }
@@ -618,19 +623,33 @@ function syncChips(){
   // 베팅할 칩 공간: 걸기 전 내 칩만. 건 뒤에는 이 칩이 그대로 베팅한 칩 공간으로 날아가 자리 잡음(그 뒤에는 누를 수 없음)
   if(me>=0&&B.od.includes(me)&&!meDl&&SPOTS.has(me)){
     const placed=B.bt[me]||0;
+    const P0=V3.piles.get(me);
+    if(placed>0&&B.db[me]&&P0&&P0.g&&!P0.flying&&!P0.dbl&&P0.amt*2===placed){   // 더블: 올려 둔 칩(키·버튼으로 했으면 칩 더미에서)이 베팅한 칩 공간으로 날아가 얹힌 뒤 두 배 더미가 됨
+      const bp=betPos(me),Q0=V3.pend;let g,from;
+      if(Q0&&Q0.g&&Q0.amt===P0.amt){g=Q0.g;from={x:g.position.x,y:0,z:g.position.z};V3.pend=null}
+      else{g=pileGroup(P0.amt);from={x:0,y:.3,z:BANK_Z}}
+      P0.dbl=true;
+      fly(g,from,{x:bp.x,y:Math.min(P0.g.userData.n,14)*CHIP_H,z:bp.z},320,clock(),.35,()=>{killG(g);P0.dbl=false;V3.ringsKey='';syncChips()});
+    }
     if(placed>0&&V3.pend&&V3.pend.g&&!V3.piles.get(me)){
       const pp=pendPos(),g=V3.pend.g,a=V3.pend.amt;V3.pend=null;
-      if(a+V3.toBet===placed){   // 올려 둔 그대로 걸림: 그 칩이 베팅한 칩 공간으로
+      if(a+V3.toBet===placed){   // 올려 둔 그대로 걸림: 그 칩이 베팅한 칩 공간으로 (밀어서 걸었으면 민 자리에서)
         const bp=betPos(me),NP={amt:a,g,pos:bp,flying:true};V3.piles.set(me,NP);
-        fly(g,{x:pp.x,y:0,z:pp.z},{x:bp.x,y:0,z:bp.z},320,clock(),.35,()=>{NP.flying=false;V3.ringsKey=''});
+        fly(g,{x:pp.x,y:0,z:g.position.z},{x:bp.x,y:0,z:bp.z},320,clock(),.35,()=>{NP.flying=false;V3.ringsKey=''});
       }else{   // 다르게 걸림(시간 초과로 최소 칩 등): 올려 둔 칩은 칩 더미로 돌아가고, 건 칩은 칩 더미에서 따로 날아감(아래)
         V3.toBank+=a;fly(g,{x:pp.x,y:0,z:pp.z},{x:0,y:.3,z:BANK_Z},300,clock(),.3,()=>{killG(g);V3.toBank=Math.max(0,V3.toBank-a);syncChips()});
       }
     }
-    const want=B.ph==='bet'&&!placed?Math.max(0,betAmt()-V3.toBet):0,Q=V3.pend;
+    const want=pendCounts(B,me)?Math.max(0,betAmt()-V3.toBet):0,Q=V3.pend;
     if(want>0){
       if(!Q||Q.amt!==want){if(Q)killG(Q.g);const pp=pendPos(),g=pileGroup(want);g.position.set(pp.x,0,pp.z);V3.pend={amt:want,g}}
-    }else if(Q){killG(Q.g);V3.pend=null}
+    }else if(Q){
+      if(B.ph==='bet'||!Q.g||!Q.amt){killG(Q.g);V3.pend=null}
+      else{   // 더블을 안 하고 넘어감(히트·스탠드·시간 초과): 올려 둔 칩은 칩 더미로 돌아감
+        const g=Q.g,a=Q.amt;V3.pend=null;V3.toBank+=a;
+        fly(g,{x:g.position.x,y:0,z:g.position.z},{x:0,y:.3,z:BANK_Z},260,clock(),.3,()=>{killG(g);V3.toBank=Math.max(0,V3.toBank-a);syncChips()});
+      }
+    }
   }else if(V3.pend){killG(V3.pend.g);V3.pend=null}
   for(const i of B.od){
     if(!SPOTS.has(i))continue;
@@ -642,7 +661,7 @@ function syncChips(){
       fly(g,{x:sp.x,y:.3,z:sp.z},{x:bp.x,y:0,z:bp.z},420,clock(),.45,()=>{NP.flying=false;V3.ringsKey=''});
       continue;
     }
-    if(P&&P.flying)continue;
+    if(P&&(P.flying||P.dbl))continue;
     setPile(i,amt,betPos(i));
   }
   for(const [i,P] of V3.piles)if(!B.od.includes(i)){killG(P.g);V3.piles.delete(i)}
@@ -684,7 +703,7 @@ function cardSet(e,to,ms,lift){
 }
 function cardApply(e){
   const c=e.cur,g=e.g,ph=(1-c.f)*Math.PI;
-  g.position.set(c.x,c.y,c.z);g.scale.setScalar(c.s);
+  g.position.set(c.x+(e.ox||0),c.y,c.z);g.scale.setScalar(c.s);   // ox: 스탠드로 쓰는 손가락을 따라 옆으로 밀린 만큼
   _qa.setFromAxisAngle(_ax.y,c.ry);_qb.setFromAxisAngle(_ax.x,-Math.PI/2+c.tl);_qa.multiply(_qb);_qb.setFromAxisAngle(_ax.y,ph);_qa.multiply(_qb);
   g.quaternion.copy(_qa);
 }
@@ -768,7 +787,7 @@ function ringMesh(r0,r1,col,op,dashed){
 }
 function syncRings(B){
   const me=myIdx(),bet=i=>(B.bt[i]||0)>0&&!(V3.piles.get(i)||{}).flying;
-  const pendOn=me>=0&&SPOTS.has(me)&&B.ph==='bet'&&!B.bt[me]&&!MEDL;
+  const pendOn=me>=0&&SPOTS.has(me)&&pendCounts(B,me)&&!MEDL;   // 걸 때, 그리고 내 차례 처음 두 장에서 더블할 수 있을 때
   const key=[...SPOTS].map(([i,a])=>i+':'+a.toFixed(3)+':'+(bet(i)?1:0)).join(',')+'|'+ROT.toFixed(3)+'|'+(pendOn?1:0);
   if(V3.ringsKey===key)return;V3.ringsKey=key;
   V3.rings.forEach(killG);V3.rings=[];V3.myRing=null;
@@ -800,6 +819,7 @@ function clear3D(){
   if(V3.pend)killG(V3.pend.g);V3.pend=null;
   killG(V3.bank);V3.bank=null;killG(V3.dstack);V3.dstack=null;V3.rings.forEach(killG);V3.rings=[];V3.ringsKey='';V3.myRing=null;
   if(V3.betArc){killG(V3.betArc);V3.betArc=null}
+  for(const k of V3.knocks)killG(k.g);V3.knocks=[];GS.id=null;GS.kind='';GS.back=null;
   killG(V3.root);V3.root=null;V3.rootFL=0;V3.shoe=V3.disc=null;
   V3.sf=-1;V3.rd=-1;V3.settled=-1;V3.landed.clear();V3.toBet=V3.toBank=0;spotKey='';ROT=0;MEDL=false;
   IN.on=false;shufKill();
@@ -856,7 +876,7 @@ function frame3(now){
     if(!e.launched&&now>=e.at&&e.to){e.launched=true;e.g.visible=true;e.tw={from:{...e.cur},to:e.to,t0:now,ms:420,lift:.38};sfx('flick')}
     if(e.launched)cardStep(e,now);
   }
-  frameFlights(now);feltFrame(now);betTimer(now);introFrame(now);if(SHF)shufFrame(now);
+  frameFlights(now);feltFrame(now);betTimer(now);introFrame(now);if(SHF)shufFrame(now);knockFrame(now);handFrame(now);
   // 베팅이 시작되면 내 칩 더미가 한 번 통통 튐
   if(V3.bank){const a=now-V3.bounceAt;V3.bank.position.y=a>=0&&a<520?Math.abs(Math.sin(a/520*Math.PI*2))*.09*(1-a/520):0}
 }
@@ -1020,16 +1040,140 @@ function topChipAt(ray,n){
   }
   return 0;
 }
-/* 칩 누르기: 내 칩 더미(맨 위 칩) → 베팅할 칩 공간, 베팅할 칩 공간 → 돌려받기 */
+/* ---------- 손짓 (버튼·키와 같은 일을 하는 추가 입력. 포커와 같은 방식) ----------
+   내 앞 탁자를 두 번 두드리면 히트, 내 카드를 옆으로 쓸면 스탠드, 베팅할 칩 공간의 칩을 앞으로 밀면 베팅(내 차례 처음 두 장에서 건 칩과 같으면 더블).
+   칩 더미를 누르면 칩 하나가 베팅할 칩 공간으로, 그 공간을 누르면 돌아옴. 두드리는 소리는 내 차례가 아니어도 나고 아무 일도 없음 */
 const _ray=window.THREE?new THREE.Raycaster():null,_pl=window.THREE?new THREE.Plane(new THREE.Vector3(0,1,0),-.12):null,_hit=window.THREE?new THREE.Vector3():null;
-function chipAt(e){
-  if(!ON||!T.ok||!BV()||myIdx()<0||!V3.bank)return null;
+const GS={id:null,kind:'',d:0,sx:0,sy:0,hx:0,hz:0,dx:0,dz:0,vz:0,moved:false,back:null,tapAt:-1e9,tx:0,ty:0};
+const PUSH_DZ=.4,SWIPE_DX=.55,TAP_PX=10,DBL_MS=450,EDGE_PX=14;
+function tablePt(e){
+  if(!ON||!T.ok||!_ray||!BV())return null;
   const r=$('#cv').getBoundingClientRect();if(!r.width)return null;
   _ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},T.cam);
-  const d=topChipAt(_ray.ray,V3.bank.userData.n);if(d)return {d};
-  if(!_ray.ray.intersectPlane(_pl,_hit))return null;
-  if(SPOTS.has(myIdx())){const b=pendPos();if(Math.hypot(_hit.x-b.x,_hit.z-b.z)<.3)return {bet:1}}   // 베팅할 칩 공간만 누를 수 있음(건 칩은 못 누름)
+  return _ray.ray.intersectPlane(_pl,_hit)?_hit:null;
+}
+/* 쓸 수 있는 내 카드의 주인: 내 자리(딜러 판의 딜러 본인은 딜러 카드 = -1) */
+function swipeSeat(){
+  const B=BV(),me=myIdx();if(!B||me<0||!V.ps[me]||V.ps[me].f)return null;
+  if(B.hd&&B.dl===me)return -1;
+  return B.od.includes(me)?me:null;
+}
+/* 누른 자리의 카드 주인. 내 카드는 카드보다 조금 넓게(카드가 작아서), 남의 카드는 카드 안만 */
+function cardAt(h,seat){
+  const B=BV();let other=null;
+  for(const [key,e] of V3.cards){
+    if(e.dying||!e.launched||!e.cur)continue;
+    const [rd,s]=key.split(':').map(Number);if(rd!==B.rd)continue;
+    const c=e.cur;
+    if(s===seat){if(Math.abs(h.x-c.x)<CW*c.s/2+.28&&Math.abs(h.z-c.z)<CH*c.s/2+.28)return s}
+    else if(Math.hypot(h.x-c.x,h.z-c.z)<CH*c.s/2)other=s;
+  }
+  return other;
+}
+/* 누른 자리: bank(내 칩 더미, d = 칩 종류) | bet(베팅할 칩 공간) | card(내 카드) | other(남의 카드) | table(내 앞 빈 펠트) */
+function zoneAt(e){
+  const me=myIdx(),B=BV();if(!B||me<0||!V.ps[me]||V.ps[me].f)return null;
+  const h0=tablePt(e);if(!h0)return null;
+  const h={x:h0.x,z:h0.z},d=V3.bank?topChipAt(_ray.ray,V3.bank.userData.n):0;
+  if(d)return {kind:'bank',d,h};
+  const pp=pendPos();if(canPendNow()&&Math.hypot(h.x-pp.x,h.z-pp.z)<.32)return {kind:'bet',h};   // 베팅할 칩 공간만 누르거나 밀 수 있음(건 칩은 못 건드림)
+  const ss=swipeSeat(),cs=cardAt(h,ss);
+  if(cs!==null)return {kind:cs===ss?'card':'other',h};
+  const bp=SPOTS.has(me)?betPos(me):null;
+  if(h.z>.9&&Math.hypot(h.x,h.z)<3.95&&!(bp&&Math.hypot(h.x-bp.x,h.z-bp.z)<.35))return {kind:'table',h};
   return null;
+}
+/* 끌던 물건의 어긋남(카드는 옆으로, 칩은 앞뒤로): 끄는 중이면 그대로, 놓으면 시간에 맞춰 제자리로 */
+function gestOff(now,kind){
+  if(GS.kind===kind)return kind==='card'?GS.dx:GS.dz;
+  const b=GS.back;if(!b||b.kind!==kind)return 0;
+  const k=smooth((now-b.t0)/180);if(k>=1){GS.back=null;return 0}
+  return (kind==='card'?b.dx:b.dz)*(1-k);
+}
+/* 칩이 손가락을 따라 앞으로 밀리고, 쓰는 카드가 옆으로 밀림. 밀어서 보낸 칩은 민 자리에 머묾 */
+function handFrame(now){
+  const P=V3.pend;if(P&&P.g)P.g.position.z=pendPos().z+(P.hold!==undefined?P.hold:gestOff(now,'bet'));
+  const B=BV(),ss=swipeSeat(),ox=B&&ss!==null?gestOff(now,'card'):0,pre=B?B.rd+':'+ss+':':'';
+  for(const [key,e] of V3.cards){
+    const w=ox&&key.startsWith(pre)?ox:0;
+    if((e.ox||0)!==w){e.ox=w;if(!e.tw&&e.cur)cardApply(e)}
+  }
+}
+function sfxKnock(){tone(230,.07,{type:'triangle',vol:.15,slide:120});hiss(.03,{freq:1100,vol:.05})}
+function sfxSwipe(){hiss(.1,{freq:2600,sweep:900,vol:.09})}
+function gestDown(e){
+  if(!ON||e.button>0)return;
+  const z=zoneAt(e);if(!z)return;
+  if(z.kind==='card'&&(e.clientX<EDGE_PX||e.clientX>$('#stage').clientWidth-EDGE_PX))return;   // 화면 가장자리에서 시작한 쓸기는 브라우저 뒤로 가기와 겹침
+  Object.assign(GS,{id:e.pointerId,kind:z.kind,d:z.d||0,sx:e.clientX,sy:e.clientY,hx:z.h.x,hz:z.h.z,dx:0,dz:0,vz:0,moved:false,back:null});
+  try{$('#cv').setPointerCapture(e.pointerId)}catch(_){}
+}
+function gestMove(e){
+  if(!ON)return;
+  const cv=$('#cv');
+  if(GS.id!==e.pointerId){   // 마우스를 올려 둠: 누를 수 있는 곳이면 손가락 모양
+    if(e.pointerType!=='mouse')return;
+    const z=zoneAt(e),k=z&&z.kind,m=myMode();
+    const c=k==='bank'&&canPendNow()?'pointer':k==='bet'?'grab':k==='card'&&(m==='turn'||m==='dealer')?'grab':'';
+    if(cv.style.cursor!==c)cv.style.cursor=c;return;
+  }
+  if(Math.hypot(e.clientX-GS.sx,e.clientY-GS.sy)>TAP_PX)GS.moved=true;
+  if(!GS.moved)return;
+  const h=tablePt(e);if(!h)return;
+  if(GS.kind==='card'||GS.kind==='other'){GS.dx=Math.max(-1.1,Math.min(1.1,h.x-GS.hx));GS.vz=h.z-GS.hz}
+  else if(GS.kind==='bet')GS.dz=Math.max(-1.1,Math.min(0,h.z-GS.hz));
+}
+function gestUp(e,cancel){
+  if(GS.id!==e.pointerId)return;
+  const kind=GS.kind,dx=GS.dx,dz=GS.dz,vz=GS.vz,tap=!GS.moved&&!cancel;
+  GS.id=null;GS.kind='';GS.back=(dx||dz)&&kind!=='other'?{kind,dx,dz,t0:clock()}:null;
+  if(cancel)return;
+  const swipe=Math.abs(dx)>=SWIPE_DX&&Math.abs(vz)<=Math.abs(dx)*.58;   // 카드 한 장 폭 이상, 거의 수평(±30도)
+  if(kind==='card'){if(swipe)gestStand();return}
+  if(kind==='other'){if(swipe)sfx('no');return}
+  if(kind==='bet'){if(dz<-PUSH_DZ)gestPush(dz);else if(tap)takeChip();return}
+  if(kind==='bank'){if(tap)addChip(GS.d);return}
+  if(kind==='table'&&tap){
+    const t=clock(),dbl=t-GS.tapAt<DBL_MS&&Math.hypot(e.clientX-GS.tx,e.clientY-GS.ty)<60;
+    GS.tapAt=dbl?-1e9:t;GS.tx=e.clientX;GS.ty=e.clientY;
+    sfxKnock();
+    if(dbl)gestHit({x:GS.hx,z:GS.hz});
+  }
+}
+/* 두 번 두드림 = 히트. 내 차례가 아니면 두드리는 소리만 남(아무 일도 없음) */
+function gestHit(h){
+  const m=myMode();
+  if(m!=='turn'&&m!=='dealer')return;
+  if(!myReady()||busy())return;
+  if(m==='dealer'&&score(BV().dc).t>=21)return;
+  knock(h.x,h.z);send({t:'hit'});
+}
+/* 카드를 옆으로 쓺 = 스탠드 (카드는 쓴 만큼 밀렸다가 돌아옴). 딜러는 17 이상이어야 함 */
+function gestStand(){
+  const m=myMode();
+  if(m!=='turn'&&m!=='dealer'){sfx('no');return}
+  sfxSwipe();doAct('stand');
+}
+/* 베팅할 칩을 앞으로 밂 = 베팅 확정. 내 차례 처음 두 장이면 올린 칩이 건 칩과 같을 때 더블 */
+function gestPush(dz){
+  const m=myMode(),B=BV(),me=myIdx();
+  if(!myReady()||busy()){sfx('no');return}
+  const keep=()=>{GS.back=null;const P=V3.pend;if(P){P.hold=dz;setTimeout(()=>{if(P.hold!==undefined)delete P.hold},1500)}};   // 밀어서 보낸 칩은 제자리로 돌아오지 않고 민 자리에서 건 칩 공간으로 감(받아들여지지 않으면 1.5초 뒤 돌아옴)
+  if(m==='bet'){const a=betAmt();if(a<MIN){sfx('no');return}sfxChip(2);keep();send({t:'bet',a});return}
+  if(m==='turn'&&myDouble()&&betAmt()===B.bt[me]){sfxChip(3);keep();send({t:'double'});return}
+  sfx('no');
+}
+/* 두드린 자리에 퍼지는 고리 */
+function knock(x,z){
+  const g=ringMesh(.12,.16,0xfffaf0,.8,false);g.position.set(x,.025,z);T.scene.add(g);
+  V3.knocks.push({g,t0:clock()});
+}
+function knockFrame(now){
+  for(const k of [...V3.knocks]){
+    const a=(now-k.t0)/420;
+    if(a>=1){killG(k.g);V3.knocks.splice(V3.knocks.indexOf(k),1);continue}
+    const s=1+a*2.2;k.g.scale.set(s,1,s);k.g.userData.mat.opacity=.8*(1-a);
+  }
 }
 
 /* ---------- 펠트 위 표: 딜러 합계, 거는 사람 합계(카드 안쪽 펠트), 정산 결과(칩 위에 잠깐 떠오름), 내 칩 숫자 ----------
@@ -1126,11 +1270,13 @@ G.leave=()=>{
   if(elBet)elBet.hidden=true;if(el2d){el2d.hidden=true;el2d.innerHTML='';el2d.dataset.k=''}if(elTags)elTags.innerHTML='';
   if(typeof T!=='undefined'&&T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
   const cv=$('#cv');if(cv)cv.style.cursor='';
+  GS.id=null;GS.kind='';GS.back=null;
 };
 G.init=()=>{
   const css=document.createElement('style');
   css.textContent=`
 .stage.bj #dim{display:none}
+.stage.bj #cv{touch-action:none}   /* 두 번 두드리기·옆으로 쓸기를 브라우저가 확대·스크롤로 가로채지 않게 */
 .stage.bj .fan{display:none}
 #bjTags{position:absolute;inset:0;pointer-events:none;z-index:4}
 .bj-tag{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:baseline;gap:5px;padding:1px 8px 2px;border-radius:99px;background:rgba(255,250,240,.9);border:1.5px solid var(--line-strong);box-shadow:0 2px 5px -2px rgba(59,42,31,.4);white-space:nowrap;font-size:12px;line-height:1.2;transition:box-shadow .2s,border-color .2s}
@@ -1190,8 +1336,8 @@ G.init=()=>{
   });
   $('#btnGura').addEventListener('click',()=>{if(ON)doAct('double')});
   const cv=$('#cv');
-  cv.addEventListener('click',e=>{if(!ON||!canBetNow())return;const h=chipAt(e);if(!h)return;if(h.d)addChip(h.d);else takeChip()});
-  cv.addEventListener('pointermove',e=>{if(!ON)return;const h=e.pointerType==='mouse'&&canBetNow()?chipAt(e):null;const c=h?'pointer':'';if(cv.style.cursor!==c)cv.style.cursor=c});
+  cv.addEventListener('pointerdown',gestDown);cv.addEventListener('pointermove',gestMove);
+  cv.addEventListener('pointerup',e=>gestUp(e,false));cv.addEventListener('pointercancel',e=>gestUp(e,true));
 };
 
 (window.GAMES=window.GAMES||{}).blackjack=G;
