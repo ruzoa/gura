@@ -14,7 +14,9 @@ const C=(r,s)=>r*4+(s||0);   // r: 0=A, 1=2, …, 9=10, 10=J, 11=Q, 12=K
 /* 카드 순서를 정해 두기: 슈의 맨 끝부터 뽑으므로(pop) 뽑는 순서를 거꾸로 넣음 */
 const rig=list=>{const B=H.bj;B.shoe=[...B.shoe.filter(x=>!list.includes(x)),...list.slice().reverse()]};
 const mkB=(n,over)=>{hostNew(false,'t','t');H.cfg={...cfgFor('blackjack'),...over,game:'blackjack'};
-  H.members=[];for(let i=0;i<n;i++)H.members.push({name:'p'+i,bot:false,conn:null,host:i===0,cid:i?'c'+i:''});hostStart();return H.bj};
+  H.members=[];for(let i=0;i<n;i++)H.members.push({name:'p'+i,bot:false,conn:null,host:i===0,cid:i?'c'+i:''});hostStart();
+  if(H.dealUntil>NOW)NOW=H.dealUntil;   // 시작 연출 시간을 건너뜀(연출 길이를 바꿔도 테스트가 깨지지 않게)
+  return H.bj};
 const runTo=(cond,ms)=>{for(let k=0;k<(ms||60000)/50&&!cond();k++){NOW+=50;engineTick()}return cond()};
 const afterDealing=()=>runTo(()=>!dealing()&&H.bj.ph!=='deal',20000);
 // 1) 봇 딜러: 블랙잭 1.5배, 히트로 21이면 스탠드, 딜러 16은 받고 버스트
