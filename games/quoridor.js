@@ -785,9 +785,11 @@ function chipsAt(topY,botY){
   r.style.setProperty('--mt',Math.round(Math.min(botY+CHIP_GAP,lim))+'px');
   r.classList.add('lay');
 }
-/* 탑뷰 판 자리: 판 가운데 = 화면 가운데. 위아래는 이름 칸 자리(안내 줄·위 칸 / 내 칸·버튼)를 같은 높이로 비우고 양옆은 조금만(휴대폰 8px, PC 16px) */
+/* 탑뷰 판 자리: 판 가운데 = 화면 가운데. 위아래는 이름 칸 자리(안내 줄·위 칸 / 내 칸·버튼)를 같은 높이로 비우고 양옆은 조금만(휴대폰 8px, PC 16px).
+   가로 화면(폭>높이)은 안내 줄을 왼쪽 위 구석에 두어(.wide) 위 여백을 위 칸 한 줄만큼으로 줄임 */
 function tvBox(r,p){
-  const W=r.clientWidth,Hh=r.clientHeight,narrow=W<700,bar=r.querySelector('.'+p+'-bar'),mb=r.querySelector('.'+p+'-mebar');
+  const W=r.clientWidth,Hh=r.clientHeight;r.classList.toggle('wide',W>Hh);   // 가로 화면: 안내 줄을 왼쪽 위 구석으로 빼서 위 칸이 맨 위 줄로
+  const narrow=W<700,bar=r.querySelector('.'+p+'-bar'),mb=r.querySelector('.'+p+'-mebar');
   const R=Math.max(bar.offsetTop+bar.offsetHeight+CHIP_GAP,(narrow?70:14)+(mb.offsetHeight||26)+CHIP_GAP),m=narrow?8:16;
   return {fw:W-2*m,fh:Hh-2*R,cy:Hh/2,R};
 }
@@ -1116,6 +1118,9 @@ G.init=()=>{
 .stage.qd3d #qd.lay .qd-mebar{top:var(--mt);bottom:auto;transition:top .35s,opacity .35s}
 .stage.qd3d .specbar:not([hidden])~#qd .qd-bar{margin-top:0}
 .stage.qd3d .specbar:not([hidden])~#qd .qd-row{margin-top:30px}
+.stage.qd3d #qd.wide .qd-row{position:absolute;left:16px;top:8px;width:auto;max-width:30%;justify-content:flex-start}
+.stage.qd3d #qd.wide .qd-bar{min-height:0}
+.stage.qd3d .specbar:not([hidden])~#qd.wide .qd-bar{margin-top:30px}
 @media (max-width:699px){#qd{padding-bottom:112px}#qd .qd-mebar{bottom:70px;max-width:calc(100% - 24px)}}
 `;
   document.head.appendChild(css);

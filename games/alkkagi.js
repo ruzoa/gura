@@ -863,9 +863,11 @@ function chipHTML(i){
 /* 이름 칸을 판 위·아래 끝에서 일정 거리(CHIP_GAP)만큼 띄움. 카메라 자리를 새로 정할 때만 부름 (매 프레임 계산 없음)
    topY·botY: 판 자리(물건 포함)의 화면 위·아래 끝(px). 위 칸은 아래 끝을, 내 칸은 위 끝을 맞춤 */
 const CHIP_GAP=10;
-/* 탑뷰 판 자리: 판 가운데 = 화면 가운데. 위아래는 이름 칸 자리(안내 줄·위 칸 / 내 칸·버튼)를 같은 높이로 비우고 양옆은 조금만(휴대폰 8px, PC 16px) */
+/* 탑뷰 판 자리: 판 가운데 = 화면 가운데. 위아래는 이름 칸 자리(안내 줄·위 칸 / 내 칸·버튼)를 같은 높이로 비우고 양옆은 조금만(휴대폰 8px, PC 16px).
+   가로 화면(폭>높이)은 안내 줄을 왼쪽 위 구석에 두어(.wide) 위 여백을 위 칸 한 줄만큼으로 줄임 */
 function tvBox(r,p){
-  const W=r.clientWidth,Hh=r.clientHeight,narrow=W<700,bar=r.querySelector('.'+p+'-bar'),mb=r.querySelector('.'+p+'-mebar');
+  const W=r.clientWidth,Hh=r.clientHeight;r.classList.toggle('wide',W>Hh);   // 가로 화면: 안내 줄을 왼쪽 위 구석으로 빼서 위 칸이 맨 위 줄로
+  const narrow=W<700,bar=r.querySelector('.'+p+'-bar'),mb=r.querySelector('.'+p+'-mebar');
   const R=Math.max(bar.offsetTop+bar.offsetHeight+CHIP_GAP,(narrow?70:14)+(mb.offsetHeight||26)+CHIP_GAP),m=narrow?8:16;
   return {fw:W-2*m,fh:Hh-2*R,cy:Hh/2,R};
 }
@@ -1487,6 +1489,9 @@ G.init=()=>{
 .stage.ak3d #ak.lay .ak-mebar{top:var(--mt);bottom:auto;transition:top .35s,opacity .35s}
 .stage.ak3d .specbar:not([hidden])~#ak .ak-bar{margin-top:0}
 .stage.ak3d .specbar:not([hidden])~#ak .ak-row{margin-top:30px}
+.stage.ak3d #ak.wide .ak-row{position:absolute;left:16px;top:8px;width:auto;max-width:30%;justify-content:flex-start}
+.stage.ak3d #ak.wide .ak-bar{min-height:0}
+.stage.ak3d .specbar:not([hidden])~#ak.wide .ak-bar{margin-top:30px}
 @media (max-width:699px){#ak{padding-bottom:112px}#ak .ak-mebar{bottom:70px;max-width:calc(100% - 24px)}}
 `;
   document.head.appendChild(css);
