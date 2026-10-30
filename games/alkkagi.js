@@ -863,6 +863,12 @@ function chipHTML(i){
 /* 이름 칸을 판 위·아래 끝에서 일정 거리(CHIP_GAP)만큼 띄움. 카메라 자리를 새로 정할 때만 부름 (매 프레임 계산 없음)
    topY·botY: 판 자리(물건 포함)의 화면 위·아래 끝(px). 위 칸은 아래 끝을, 내 칸은 위 끝을 맞춤 */
 const CHIP_GAP=10;
+/* 탑뷰 판 자리: 판 가운데 = 화면 가운데. 위아래는 이름 칸 자리(안내 줄·위 칸 / 내 칸·버튼)를 같은 높이로 비우고 양옆은 조금만(휴대폰 8px, PC 16px) */
+function tvBox(r,p){
+  const W=r.clientWidth,Hh=r.clientHeight,narrow=W<700,bar=r.querySelector('.'+p+'-bar'),mb=r.querySelector('.'+p+'-mebar');
+  const R=Math.max(bar.offsetTop+bar.offsetHeight+CHIP_GAP,(narrow?70:14)+(mb.offsetHeight||26)+CHIP_GAP),m=narrow?8:16;
+  return {fw:W-2*m,fh:Hh-2*R,cy:Hh/2,R};
+}
 function chipsAt(topY,botY){
   const r=elAk,bar=r.querySelector('.ak-bar'),mb=r.querySelector('.ak-mebar');if(!bar||!mb)return;
   const H=r.clientHeight,lim=H-(r.clientWidth<700?70:14)-(mb.offsetHeight||34);
@@ -1092,15 +1098,12 @@ function ak3Layout(t){
   if(t-Ak3.layAt<100&&Ak3.lay)return false;
   Ak3.layAt=t;
   const st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight;if(!W||!Hh||!V||!V.ak)return false;
-  const sr=st.getBoundingClientRect(),bd=elAk.querySelector('.ak-bd').getBoundingClientRect();
-  const base=[W,Hh].join(',');
-  if(Ak3.topBase!==base){Ak3.topBase=base;Ak3.topMax=0}
-  const top=Math.max(Math.round(bd.top-sr.top),Ak3.topMax);Ak3.topMax=top;
-  const [sx,sz]=mySide(),np=npOf(),om=OS&&OS.om?1:0,key=base+','+top+','+sx+','+sz+','+np+','+om;
+  const B=tvBox(elAk,'ak'),[sx,sz]=mySide(),np=npOf(),om=OS&&OS.om?1:0,key=[W,Hh,B.R,sx,sz,np,om].join(',');
   if(key===Ak3.lay)return false;
   Ak3.lay=key;
-  const narrow=W<700,fy=top+2,fh=(narrow?Hh-116:Hh-58)-fy,fw=W-6;
-  let s=np>2?Math.min(fw/(2*(BW+.45)),fh/(2*(BW+.45))):Math.min(fw/(2*(BW+.08)),fh/(2*(BW+.45)));   // 3~4명은 네 쪽 모두 놓기 전 알 줄
+  const fw=B.fw,fh=B.fh,fy=B.cy-fh/2;
+  let s=Math.min(fw/(2*(BW+.08)),fh/(2*(BW+.45)));
+  if(np>2){const full=Math.min(fw/(2*(BW+.45)),fh/(2*(BW+.45))),peek=Math.min(fw/(2*(BW+.3)),fh/(2*(BW+.45)));s=full<peek*.93?peek:full}   // 3~4명: 양옆 놓기 전 알 줄. 좁은 화면은 알 반쯤만 보이게 해서 판을 크게
   if(om){const ext=2*(BW+BGAP+2*BR),sV=Math.min(fw/(2*(BW+.08)),fh/ext),sH=Math.min(fw/ext,fh/(2*(BW+.1)));Ak3.bl=sH>sV?'h':'v';s=Math.max(sV,sH)*.97}   // 오목 모드: 바둑통까지 (넓은 화면은 판 옆, 좁은 화면은 판 위아래)
   const cam=Ak3.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(s*f);
   cam.aspect=W/Hh;cam.position.set(0,TOP+d,0);cam.up.set(-sx,0,-sz);cam.lookAt(0,TOP,0);

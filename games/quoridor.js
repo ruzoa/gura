@@ -356,7 +356,7 @@ const rc=(r,c,k)=>{for(let t=0;t<k;t++){const nr=c,nc=8-r;r=nr;c=nc}return [r,c]
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const VB={x:-.9,y:-.4,w:10.3};   // 보드 그림 범위: 왼쪽·아래에 좌표 글자 자리를 둠
 let QS=null,viewK=0,qMode='move',qOri=0,pend=null,hov=null,qMsg='',qMsgUntil=0,qMsgTimer=null;   // pend: 미리 보기 {k:0 이동|1 벽, r, c, o}
-let elQd=null,elSvg=null,elMain=null,elGhost=null,elBar=null,elHint=null,elModes=null,lastBoard='',lastBar='',lastHint='',lastModes='';
+let elQd=null,elSvg=null,elMain=null,elGhost=null,elBar=null,elBarMe=null,elHint=null,elModes=null,lastBoard='',lastBar='',lastHint='',lastModes='';
 function buildS(q){
   const B=mkB();for(const w of q.w)(w[2]===0?B.hw:B.vw)[w[0]][w[1]]=1;
   return {n:q.n,cnt:q.cnt,sd:q.sd,pos:q.pos,done:q.dn,wl:q.wl.slice(),B,walls:q.w,lm:q.lm};
@@ -498,13 +498,15 @@ function boardHTML(S,me){
   }
   return out.join('');
 }
-function barHTML(q,me){
-  return V.ps.map((p,i)=>{
-    if(i>=q.cnt&&p.f)return '';
-    const on=introWait()?introIdx(clock()-IN.t0)===i:V.st==='play'&&V.t===i&&!p.f;   // 시작 연출 중: 주사위가 멈춘 뒤에야 첫 차례 이름표가 켜짐
-    return `<div class="qd-p${on?' on':''}${i===me?' me':''}${p.f?' out':''}" style="--pc:${PCOL[i%4]}"><i class="dot"></i><b>${esc(p.n)}${i===me?' (나)':''}</b>${p.f?`<span class="w">${p.sr===2?'시간 초과':p.sr===3?'탈주':p.sr?'항복':(+p.f)+'위'}</span>`:`<span class="w">벽 ${+q.wl[i]}</span>`}${on?'<span class="tb"><i></i></span>':''}</div>`;
-  }).join('');
+/* 이름 칸: 나는 판 아래쪽, 다른 사람은 판 위쪽(나 다음부터 차례대로). 관전자는 모두 위쪽. 판 끝에서 CHIP_GAP 띄움(chipsAt) */
+function chipHTML(q,me,i){
+  const p=V.ps[i];if(!p||(i>=q.cnt&&p.f))return '';
+  const on=introWait()?introIdx(clock()-IN.t0)===i:V.st==='play'&&V.t===i&&!p.f;   // 시작 연출 중: 주사위가 멈춘 뒤에야 첫 차례 이름표가 켜짐
+  return `<div class="qd-p${on?' on':''}${i===me?' me':''}${p.f?' out':''}" style="--pc:${PCOL[i%4]}"><i class="dot"></i><b>${esc(p.n)}${i===me?' (나)':''}</b>${p.f?`<span class="w">${p.sr===2?'시간 초과':p.sr===3?'탈주':p.sr?'항복':(+p.f)+'위'}</span>`:`<span class="w">벽 ${+q.wl[i]}</span>`}${on?'<span class="tb"><i></i></span>':''}</div>`;
 }
+const seatedQ=me=>me>=0&&me<V.ps.length;
+function barHTML(q,me){const n=V.ps.length,b=Math.max(0,me),order=Array.from({length:n},(_,k)=>(b+k)%n);return (seatedQ(me)?order.slice(1):order).map(i=>chipHTML(q,me,i)).join('')}
+function meBarHTML(q,me){return seatedQ(me)?chipHTML(q,me,me):''}
 function hintText(me){   // 안내·알림 원칙: 차례·할 수 있는 행동·남은 시간은 화면(고리·초록 점·버튼·빨간 선)이 보여 주므로 글은 결과만
   if(Date.now()<qMsgUntil&&qMsg)return qMsg;
   if(!V||!V.q)return '';
@@ -555,7 +557,7 @@ function drawAll(){
   if(!QS||!elMain)return;
   const me=myIdx();
   if(!Q3.on){const bd=boardHTML(QS,me);if(bd!==lastBoard){elMain.innerHTML=bd;lastBoard=bd}}   // 3D 화면이면 2D 보드는 그리지 않음
-  const bar=barHTML(V.q,me);if(bar!==lastBar){elBar.innerHTML=bar;lastBar=bar}
+  const top=barHTML(V.q,me),mb=meBarHTML(V.q,me),key=top+'\u0001'+mb;if(key!==lastBar){elBar.innerHTML=top;elBarMe.innerHTML=mb;lastBar=key}
   drawGhost();drawHint();fit();
 }
 /* ---------- 3D 보드: 공통 원목 테이블 위에 놓고, 바로 위(90도)에서 내려다보는 자기 카메라로 그림 ----------
@@ -773,28 +775,40 @@ function q3Marks(){
   Q3.dirty=true;
 }
 /* 카메라: 보드(+보관대)가 '보드 자리'(위 HUD 아래, 휴대폰은 내 정보 칸 위)에 꽉 차게. 4명 휴대폰은 양옆 보관대를 조금만 보이게 */
+/* 이름 칸을 판 위·아래 끝에서 일정 거리(CHIP_GAP)만큼 띄움. 카메라 자리를 새로 정할 때만 부름 (매 프레임 계산 없음)
+   topY·botY: 판 자리(물건 포함)의 화면 위·아래 끝(px). 위 칸은 아래 끝을, 내 칸은 위 끝을 맞춤 */
+const CHIP_GAP=10;
+function chipsAt(topY,botY){
+  const r=elQd,bar=r.querySelector('.qd-bar'),mb=r.querySelector('.qd-mebar');if(!bar||!mb)return;
+  const H=r.clientHeight,lim=H-(r.clientWidth<700?70:14)-(mb.offsetHeight||34);
+  r.style.setProperty('--bs',Math.max(bar.offsetHeight,Math.round(topY-CHIP_GAP-bar.offsetTop))+'px');
+  r.style.setProperty('--mt',Math.round(Math.min(botY+CHIP_GAP,lim))+'px');
+  r.classList.add('lay');
+}
+/* 탑뷰 판 자리: 판 가운데 = 화면 가운데. 위아래는 이름 칸 자리(안내 줄·위 칸 / 내 칸·버튼)를 같은 높이로 비우고 양옆은 조금만(휴대폰 8px, PC 16px) */
+function tvBox(r,p){
+  const W=r.clientWidth,Hh=r.clientHeight,narrow=W<700,bar=r.querySelector('.'+p+'-bar'),mb=r.querySelector('.'+p+'-mebar');
+  const R=Math.max(bar.offsetTop+bar.offsetHeight+CHIP_GAP,(narrow?70:14)+(mb.offsetHeight||26)+CHIP_GAP),m=narrow?8:16;
+  return {fw:W-2*m,fh:Hh-2*R,cy:Hh/2,R};
+}
 function q3Layout(t){
   if(t-Q3.layAt<100&&Q3.lay)return false;   // 보드 자리 크기가 바뀌었는지 자주 확인 (시작 직후 위쪽 목록이 그려지면서 자리가 바뀜)
   Q3.layAt=t;
   const st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight;if(!W||!Hh||!V||!V.q)return false;
-  const sr=st.getBoundingClientRect(),bd=elQd.querySelector('.qd-bd').getBoundingClientRect();
   const q=V.q,sides=new Set();for(let i=0;i<q.cnt;i++)if(q.pos[i])sides.add((q.sd[i]+viewK)&3);
-  // 보드 자리 위쪽 끝: 화면 크기·참가한 변이 같으면 아래로만 옮김 (위쪽 이름 목록이 '벽 10'→'벽 9'처럼 줄어들 때마다 보드가 들썩이지 않게)
-  const base=[W,Hh,[...sides].sort().join('')].join(',');
-  if(Q3.topBase!==base){Q3.topBase=base;Q3.topMax=0}
-  const top=Math.max(Math.round(bd.top-sr.top),Q3.topMax);Q3.topMax=top;
-  const key=base+','+top;
+  const B=tvBox(elQd,'qd'),key=[W,Hh,[...sides].sort().join(''),B.R].join(',');
   if(key===Q3.lay)return false;
   Q3.lay=key;
-  const narrow=W<700,fy=top+2,fh=(narrow?Hh-78:Hh-8)-fy,fw=W-8;
+  const fw=B.fw,fh=B.fh,fy=B.cy-fh/2;
   // 보드와 보관함이 다 들어오게. 좁은 화면(휴대폰 세로)에서는 양옆 보관함을 벽 끝만 보이게 해서 보드를 크게
   const hy=(sides.has(0)||sides.has(2)?TO:BH)+.05,side=sides.has(1)||sides.has(3);
   const full=Math.min(fw/(2*((side?TO:BH)+.05)),fh/(2*hy)),peek=Math.min(fw/(2*(BH+(side?PEEK:0))),fh/(2*hy));
-  const ppu=(side&&full<peek*.93?peek:full)*.97/(U*BS);   // 화면 1px에 해당하는 월드 크기의 역수 (보드 높이에서)
+  const sc=(side&&full<peek*.93?peek:full)*.97,ppu=sc/(U*BS);   // 화면 1px에 해당하는 월드 크기의 역수 (보드 높이에서)
   const cam=Q3.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(ppu*f);
   cam.aspect=W/Hh;cam.position.set(0,TOP*BS+d,0);cam.lookAt(0,TOP*BS,0);
   const ox=W/2-W/2,oy=(fy+fh/2)-Hh/2;
   cam.setViewOffset(W,Hh,-ox,-oy,W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
+  chipsAt(fy+fh/2-hy*sc,fy+fh/2+hy*sc);
   Q3.d=d;Q3.W=W;Q3.H=Hh;Q3.dirty=true;
   return true;
 }
@@ -1015,7 +1029,7 @@ G.buttons=()=>{
 G.live=()=>{
   if(IN.on){introTick();return}
   if(elHint&&V&&V.st==='play'&&V.t===myIdx())drawHint();   // 남은 시간 안내
-  const bar=elBar&&elBar.querySelector('.qd-p.on .tb i');
+  const bar=elQd&&elQd.querySelector('.qd-bar .qd-p.on .tb i,.qd-mebar .qd-p.on .tb i');
   if(bar&&V&&V.st==='play'){const left=Math.max(0,(V.deadAt-clock())/1000);bar.style.width=Math.min(100,left/(V.cfg.turn||30)*100)+'%'}
 };
 G.play=confirmPend;
@@ -1054,8 +1068,8 @@ G.init=()=>{
 .stage.qd{background:radial-gradient(ellipse at 50% 38%,#f3e4c2 0%,#e2c89a 70%,#d3b27c 100%)}
 .stage.qd.qd2d #cv,.stage.qd #dim{visibility:hidden}   /* 3D 캔버스는 WebGL 없이 2D로 하는 게임 중에만 숨김 (대기실은 다른 게임처럼 테이블이 보임) */
 .stage.qd-intro .actions,.stage.qd-intro .myplate,.stage.qd-intro #qd .qd-row{opacity:0;pointer-events:none}
-.stage.qd .actions,.stage.qd .myplate,#qd .qd-row,#qd .qd-bar{transition:opacity .35s}
-#qd.intro .qd-bar{opacity:0}
+.stage.qd .actions,.stage.qd .myplate,#qd .qd-row,#qd .qd-bar,#qd .qd-mebar{transition:opacity .35s}
+#qd.intro .qd-bar,#qd.intro .qd-mebar{opacity:0}
 .stage.qd3d #qd svg,.stage.qd3d #qd .qd-modes{display:none}
 .stage.qd3d #qd .qd-hint{flex:0 1 auto;background:rgba(255,250,240,.9);border:1px solid var(--line-strong,#cdb391);border-radius:99px;padding:4px 12px;box-shadow:0 2px 6px -2px rgba(59,42,31,.35)}
 .stage.qd .labels{visibility:hidden}
@@ -1066,7 +1080,9 @@ G.init=()=>{
 .stage.qd .myplate{max-width:calc(100% - 150px)}
 #qd{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 10px 82px;pointer-events:none;min-height:0}
 #qd[hidden]{display:none}
-#qd .qd-bar{min-height:44px;display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start;max-width:calc(100% - 188px);pointer-events:none}
+#qd .qd-bar{min-height:44px;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;align-content:flex-end;gap:6px;align-self:center;max-width:calc(100% - 188px);pointer-events:none}
+#qd .qd-mebar{position:absolute;left:50%;bottom:var(--plateB,14px);transform:translateX(-50%);z-index:2;display:flex;pointer-events:none;max-width:calc(100% - 188px)}
+#qd .qd-mebar:empty{display:none}
 #qd .qd-p{position:relative;display:flex;align-items:center;gap:6px;padding:4px 10px 6px;border-radius:12px;background:rgba(255,250,240,.92);border:1.5px solid var(--line-strong,#cdb391);font-size:13px;line-height:1.15;overflow:hidden;white-space:nowrap;max-width:100%}
 #qd .qd-p .dot{width:12px;height:12px;border-radius:50%;background:var(--pc);box-shadow:0 0 0 2px #fffaf0,0 0 0 3px var(--pc);flex:none}
 #qd .qd-p b{font-weight:600;overflow:hidden;text-overflow:ellipsis;max-width:9em}
@@ -1093,14 +1109,21 @@ G.init=()=>{
 .qd-rec pre{margin:0;max-height:min(30vh,220px);overflow:auto;padding:10px 12px;border-radius:var(--r-sm,10px);background:var(--well,#f3e7d2);font-family:var(--f-num,monospace);font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:keep-all;user-select:text;-webkit-user-select:text}
 #qd .qd-pulse{animation:qdPulse 1.3s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
 @keyframes qdPulse{0%,100%{opacity:.95;transform:scale(1)}50%{opacity:.35;transform:scale(1.18)}}
-@media (max-width:520px){#qd .qd-p{font-size:12px;padding:3px 8px 5px}#qd .qd-m{height:32px;padding:0 10px;font-size:14px}#qd{padding-bottom:76px}}
+@media (max-width:520px){#qd .qd-p{font-size:12px;padding:3px 8px 5px}#qd .qd-m{height:32px;padding:0 10px;font-size:14px}}
+@media (max-width:520px){.stage.qd2d #qd .qd-bar{align-self:flex-start;width:calc(100% - 150px);max-width:none}}
+.stage.qd3d #qd .qd-row{order:-1}
+.stage.qd3d #qd.lay .qd-bar{transform:translateY(calc(var(--bs) - 100%));transition:transform .35s,opacity .35s}
+.stage.qd3d #qd.lay .qd-mebar{top:var(--mt);bottom:auto;transition:top .35s,opacity .35s}
+.stage.qd3d .specbar:not([hidden])~#qd .qd-bar{margin-top:0}
+.stage.qd3d .specbar:not([hidden])~#qd .qd-row{margin-top:30px}
+@media (max-width:699px){#qd{padding-bottom:112px}#qd .qd-mebar{bottom:70px;max-width:calc(100% - 24px)}}
 `;
   document.head.appendChild(css);
   elQd=document.createElement('div');elQd.id='qd';elQd.hidden=true;
-  elQd.innerHTML=`<div class="qd-bar"></div><div class="qd-row"><div class="qd-hint" aria-live="polite"></div><div class="qd-modes" role="group" aria-label="행동 고르기"></div></div><div class="qd-bd"><svg viewBox="${VB.x} ${VB.y} ${VB.w} ${VB.w}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="쿼리도 보드"><g id="qdMain"></g><g id="qdGhost"></g></svg></div>`;
+  elQd.innerHTML=`<div class="qd-bar"></div><div class="qd-mebar"></div><div class="qd-row"><div class="qd-hint" aria-live="polite"></div><div class="qd-modes" role="group" aria-label="행동 고르기"></div></div><div class="qd-bd"><svg viewBox="${VB.x} ${VB.y} ${VB.w} ${VB.w}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="쿼리도 보드"><g id="qdMain"></g><g id="qdGhost"></g></svg></div>`;
   $('#stage').insertBefore(elQd,$('#fx'));
   elSvg=elQd.querySelector('svg');elMain=elQd.querySelector('#qdMain');elGhost=elQd.querySelector('#qdGhost');
-  elBar=elQd.querySelector('.qd-bar');elHint=elQd.querySelector('.qd-hint');elModes=elQd.querySelector('.qd-modes');
+  elBar=elQd.querySelector('.qd-bar');elBarMe=elQd.querySelector('.qd-mebar');elHint=elQd.querySelector('.qd-hint');elModes=elQd.querySelector('.qd-modes');
   elSvg.addEventListener('click',onSvgClick);
   elSvg.addEventListener('pointermove',onSvgMove);
   elSvg.addEventListener('pointerleave',()=>hoverAt(null,null));

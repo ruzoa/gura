@@ -591,6 +591,12 @@ function chipHTML(i){
 /* 이름 칸을 판 위·아래 끝에서 일정 거리(CHIP_GAP)만큼 띄움. 카메라 자리를 새로 정할 때만 부름 (매 프레임 계산 없음)
    topY·botY: 판 자리(물건 포함)의 화면 위·아래 끝(px). 위 칸은 아래 끝을, 내 칸은 위 끝을 맞춤 */
 const CHIP_GAP=10;
+/* 탑뷰 판 자리: 판 가운데 = 화면 가운데. 위아래는 이름 칸 자리(안내 줄·위 칸 / 내 칸·버튼)를 같은 높이로 비우고 양옆은 조금만(휴대폰 8px, PC 16px) */
+function tvBox(r,p){
+  const W=r.clientWidth,Hh=r.clientHeight,narrow=W<700,bar=r.querySelector('.'+p+'-bar'),mb=r.querySelector('.'+p+'-mebar');
+  const R=Math.max(bar.offsetTop+bar.offsetHeight+CHIP_GAP,(narrow?70:14)+(mb.offsetHeight||26)+CHIP_GAP),m=narrow?8:16;
+  return {fw:W-2*m,fh:Hh-2*R,cy:Hh/2,R};
+}
 function chipsAt(topY,botY){
   const r=elOm,bar=r.querySelector('.om-bar'),mb=r.querySelector('.om-mebar');if(!bar||!mb)return;
   const H=r.clientHeight,lim=H-(r.clientWidth<700?70:14)-(mb.offsetHeight||34);
@@ -844,14 +850,10 @@ function om3Layout(t){
   if(t-Om3.layAt<100&&Om3.lay)return false;
   Om3.layAt=t;
   const st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight;if(!W||!Hh||!V||!V.o)return false;
-  const sr=st.getBoundingClientRect(),bd=elOm.querySelector('.om-bd').getBoundingClientRect();
-  const base=[W,Hh].join(',');
-  if(Om3.topBase!==base){Om3.topBase=base;Om3.topMax=0}
-  const top=Math.max(Math.round(bd.top-sr.top),Om3.topMax);Om3.topMax=top;
-  const key=base+','+top+','+myIdx();
+  const B=tvBox(elOm,'om'),key=[W,Hh,B.R,myIdx()].join(',');
   if(key===Om3.lay)return false;
   Om3.lay=key;
-  const narrow=W<700,fy=top+2,fh=(narrow?Hh-114:Hh-54)-fy,fw=W-8;
+  const fw=B.fw,fh=B.fh,fy=B.cy-fh/2;
   const ext=2*(BW+BGAP+2*BR),sV=Math.min(fw/(2*BW),fh/ext),sH=Math.min(fw/ext,fh/(2*BW));
   const lay=sH>sV?'h':'v',s=Math.max(sV,sH)*.97;
   Om3.layout=lay;placeBowls(lay);
@@ -859,7 +861,7 @@ function om3Layout(t){
   cam.aspect=W/Hh;cam.position.set(0,TOP+d,0);cam.lookAt(0,TOP,0);
   const oy=(fy+fh/2)-Hh/2;
   cam.setViewOffset(W,Hh,0,-oy,W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
-  {const hv=(lay==='v'?ext:2*BW)*s/2,cy=fy+fh/2;chipsAt(cy-hv,cy+hv)}
+  {const hv=BW*s,cy=fy+fh/2;chipsAt(cy-hv,cy+hv)}   // 바둑통은 모서리(휴대폰)·옆(PC)이라 이름 칸은 판 끝에 맞춤
   Om3.d=d;Om3.W=W;Om3.H=Hh;Om3.dirty=true;
   return true;
 }
