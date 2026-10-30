@@ -72,7 +72,7 @@ G.keyActions=[
 
 /* ---------- 방장 엔진 ---------- */
 const DEAL_PER=260;   // 처음 나눌 때 카드 한 장 간격 (ms)
-const REVEAL_MS=900,DRAW_MS=850,SETTLE_MS=3600,SHUF_MS=1600;
+const REVEAL_MS=900,DRAW_MS=850,SETTLE_MS=3600,SHUF_MS=2000;   // SHUF_MS: 다시 섞는 판에 더 멈추는 시간(화면은 가운데 섞기 SF.END 1.9초)
 const nm=i=>H.players[i]?H.players[i].name:'';
 const canBot=(p,t)=>!!p&&p.bot&&!(p.away&&t<p.awayAt+AWAY_WAIT);   // 끊긴 사람은 기다리는 동안 봇이 대신하지 않음
 const alive=i=>!!H.players[i]&&!H.players[i].finished;
@@ -471,7 +471,7 @@ G.preView=()=>{
   if(fresh&&PV&&B.ph==='bet'&&V.st==='play'&&!IN.on)setTimeout(()=>{if(BV()&&BV().rd===B.rd)roundStart(B)},0);   // 판 번호·칩 더미 튀기 (첫 판은 시작 연출이 끝날 때 `1 / 8판`을 띄움: IN.on이면 건너뜀)
 };
 G.postView=()=>{};
-G.logCue=txt=>{if(txt.includes('섞습니다')){sfx('riffle');setTimeout(()=>sfx('square'),700);return true}return false};
+G.logCue=txt=>{if(txt.includes('섞습니다')){if(T.ok&&ON&&txt.startsWith('카드를 다시'))return true;sfx('riffle');setTimeout(()=>sfx('square'),700);return true}return false};   // 판 시작 때 다시 섞으면 소리는 가운데 섞기 연출이 냄(shufFrame)
 G.cues=(v,pv)=>{
   const A=v.bj,P=pv.bj;if(!A||!P)return;
   const me=myIdx();
@@ -802,7 +802,7 @@ function clear3D(){
   if(V3.betArc){killG(V3.betArc);V3.betArc=null}
   killG(V3.root);V3.root=null;V3.rootFL=0;V3.shoe=V3.disc=null;
   V3.sf=-1;V3.rd=-1;V3.settled=-1;V3.landed.clear();V3.toBet=V3.toBank=0;spotKey='';ROT=0;MEDL=false;
-  IN.on=false;
+  IN.on=false;shufKill();
   useFelt(false);
   if(elTags)elTags.innerHTML='';
 }
@@ -812,14 +812,19 @@ function sync3(v){
   const me=myIdx(),now=clock();
   if(V3.rd!==B.rd){for(const P of V3.piles.values())killG(P.g);V3.piles.clear();if(V3.pend)killG(V3.pend.g);V3.pend=null;V3.landed.clear();V3.rd=B.rd;V3.toBet=V3.toBank=0}
   syncRings(B);
-  // 카드 통·버린 더미 높이, 다시 섞으면 버린 카드가 통으로
+  // 카드 통·버린 더미 높이. 판을 시작하며 다시 섞으면 가운데 섞기(버린 더미·통의 카드가 가운데로 모여 섞인 뒤 통으로), 판 도중 카드가 떨어지면(드묾) 버린 카드가 통으로 날아가기만
   stackH(V3.shoe.st,B.sh/B.tot,.04);stackH(V3.disc.st,Math.min(B.ds,B.tot)/B.tot,.0);
   const sh=M(shoeAt(SHOE)),dc=M(shoeAt(DISC));
-  if(V3.sf>=0&&V3.sf!==B.sf){
+  if(V3.sf>=0&&V3.sf!==B.sf&&IN.on){}   // 바로 시작: 섞기 연출 없음
+  else if(V3.sf>=0&&V3.sf!==B.sf&&B.sr&&B.ph==='deal'&&dealingV()){
+    const a=V3.lastDs||0,b=V3.lastSh||0;
+    shufStart(V.dealAt-(+v.dm||0),'gather',{fd:a+b>0?a/(a+b):1},+v.di||1);
+  }else if(V3.sf>=0&&V3.sf!==B.sf){
     const g=new THREE.Mesh(new THREE.BoxGeometry(.56,.2,.81),[toon({color:0x3a3430}),toon({color:0x3a3430}),T.back,toon({color:0x3a3430}),toon({color:0x3a3430}),toon({color:0x3a3430})]);T.scene.add(g);
     fly(g,{x:dc.x,y:.1,z:dc.z},{x:sh.x,y:.15,z:sh.z},700,now,.8,()=>killG(g));
   }
-  V3.sf=B.sf;
+  V3.sf=B.sf;V3.lastDs=B.ds;V3.lastSh=B.sh;
+  if(SHF)shufFrame(now);   // 상태가 바뀌어 통 높이를 다시 정했으면 섞는 중인 모습으로 바로 맞춤
   const want=new Map();
   const push=(seat,list)=>list.forEach((id,k)=>want.set(B.rd+':'+seat+':'+k,{seat,k,id,n:list.length}));
   B.od.forEach(i=>push(i,B.hc[i]||[]));push(-1,B.dc||[]);
@@ -851,7 +856,7 @@ function frame3(now){
     if(!e.launched&&now>=e.at&&e.to){e.launched=true;e.g.visible=true;e.tw={from:{...e.cur},to:e.to,t0:now,ms:420,lift:.38};sfx('flick')}
     if(e.launched)cardStep(e,now);
   }
-  frameFlights(now);feltFrame(now);betTimer(now);introFrame(now);
+  frameFlights(now);feltFrame(now);betTimer(now);introFrame(now);if(SHF)shufFrame(now);
   // 베팅이 시작되면 내 칩 더미가 한 번 통통 튐
   if(V3.bank){const a=now-V3.bounceAt;V3.bank.position.y=a>=0&&a<520?Math.abs(Math.sin(a/520*Math.PI*2))*.09*(1-a/520):0}
 }
@@ -870,14 +875,81 @@ function roundStart(B){
   const layer=$('#fx');while(layer.children.length>2)layer.firstChild.remove();layer.appendChild(d);setTimeout(()=>d.remove(),2300);
   if(myMode()==='bet'){V3.bounceAt=clock();sfxChip(3)}
 }
+/* ---------- 가운데 섞기 (첫 판 시작·판을 시작하며 다시 섞을 때. 바로 시작은 없음) ----------
+   카드 더미가 탁자 가운데로(시작: 위에서 떨어짐 'sky', 다시 섞기: 버린 더미·통에서 한 장씩 모임 'gather') → 반으로 나눠 좌우로 →
+   리플(양쪽 더미의 아래 카드부터 1~2장씩 번갈아 떨어져 한 더미) → 톡 모으기 → 카드 통으로 미끄러져 들어감(통의 카드 높이가 그때 차오름).
+   가운데는 화면 기준(월드 좌표, 배치 회전과 무관)이라 어디에 앉아도 내 앞 가운데에서 섞임. 몇 벌이어도 20장만 그림.
+   시작 시각과의 차이로 그리고, 순서·흔들림은 연출 번호(seed)로 정해 모든 화면이 같음 */
+const SF={IN:500,SPLIT:700,RIF:1300,SQ:1450,END:1900},SF_N=20,SF_S=.7,SF_DY=.006,SF_X=.42,SF_C={x:0,z:-.15};
+let SHF=null;
+function shufKill(){if(SHF){SHF.cards.forEach(c=>killCard(c.e.g));SHF=null}}
+function shufStart(t0,mode,src,seed){shufKill();SHF={t0,mode,src:src||{},seed:seed||1,cards:[],made:false,said:{}}}
+function shufMake(){
+  const S=SHF,rnd=rngOf(S.seed*131+5),n=SF_N,half=Math.ceil(n/2);
+  // 리플 순서(아래부터): 왼쪽(0)·오른쪽(1) 더미에서 1~2장씩 번갈아
+  const seq=[];let L=half,R=n-half,side=rnd()<.5?0:1;
+  while(L+R>0){
+    if(side===0&&!L)side=1;else if(side===1&&!R)side=0;
+    const run=1+(rnd()<.35?1:0);
+    for(let r=0;r<run&&(side?R:L);r++){seq.push(side);if(side)R--;else L--}
+    side^=1;
+  }
+  const cnt=[0,0];
+  seq.forEach((sd,k)=>{
+    const hi=cnt[sd]++,idx0=sd?hi:(n-half)+hi;   // 나누기 전: 오른쪽 몫이 아래, 왼쪽 몫이 위
+    const g=makeCard(new THREE.Vector3(0,-1,0),Math.PI/2,0,SF_S);g.userData.man=true;g.visible=false;
+    S.cards.push({e:{g,cur:{x:0,y:-1,z:0,ry:0,s:SF_S,f:0,tl:0}},k,side:sd,hi,idx0,
+      land:SF.SPLIT+(k+1)*(SF.RIF-SF.SPLIT)/n,fromDisc:rnd()<(S.src.fd??1),jx:(rnd()-.5)*.05,jry:(rnd()-.5)*.12});
+  });
+  S.made=true;
+}
+const lerp=(a,b,k)=>a+(b-a)*k;
+function shufFrame(now){
+  const S=SHF;if(!S||!T.ok||!V3.shoe)return;
+  const e=now-S.t0,B=BV();
+  if(e>=SF.END+60||!B){shufKill();if(V3.shoe&&B)stackH(V3.shoe.st,B.sh/B.tot,.04);return}
+  if(!S.made)shufMake();
+  const say=(k,at,fn)=>{if(e>=at&&!S.said[k]){S.said[k]=1;fn()}};
+  if(S.mode==='sky')say('tap',400,()=>tone(190,.07,{type:'triangle',vol:.07,slide:120}));
+  say('riffle',SF.SPLIT,()=>sfx('riffle'));say('square',SF.RIF,()=>sfx('square'));say('in',SF.END-80,()=>hiss(.08,{freq:1800,q:1,vol:.05}));
+  // 통의 카드 높이: 모이는 동안은 비고, 더미가 들어갈 때 차오름
+  stackH(V3.shoe.st,(B.sh/B.tot)*smooth((e-(SF.END-300))/300),.04);
+  const sh=M(shoeAt(SHOE)),dc=M(shoeAt(DISC)),C=SF_C,n=S.cards.length;
+  for(const c of S.cards){
+    const q=c.e.cur,yi=.02+c.idx0*SF_DY,yk=.02+c.k*SF_DY,sx=c.side?SF_X:-SF_X;
+    let vis=true;q.ry=0;q.s=SF_S;q.z=C.z;q.tl=0;
+    // 반쪽 더미에서 아래 카드가 빠지면 남은 카드가 내려앉음
+    const gone=S.cards.reduce((a,o)=>a+(o.side===c.side&&o.hi<c.hi&&e>=o.land-110?1:0),0),yh=.02+(c.hi-gone)*SF_DY;
+    if(e<SF.IN){
+      if(S.mode==='sky'){const p=clamp01((e-0)/400);q.x=0;q.y=yi+2.2*(1-p*p);vis=e>=0}
+      else{
+        const d=c.idx0*10,p=smooth((e-d)/300),f=c.fromDisc?{x:dc.x,z:dc.z,ry:ROT+.35}:{x:sh.x,z:sh.z,ry:ROT-.35};
+        vis=e>=d;q.x=lerp(f.x,C.x,p);q.z=lerp(f.z,C.z,p);q.y=lerp(.3,yi,p)+Math.sin(p*Math.PI)*.5;q.ry=f.ry+wrapA(0-f.ry)*p;q.s=lerp(.55,SF_S,p);
+      }
+    }else if(e<SF.SPLIT){const p=smooth((e-SF.IN)/(SF.SPLIT-SF.IN));q.x=sx*p;q.y=lerp(yi,.02+c.hi*SF_DY,p)}
+    else if(e<SF.SQ){
+      const st=c.land-110;
+      if(e<st){q.x=sx;q.y=yh}
+      else if(e<c.land){const p=smooth((e-st)/110);q.x=lerp(sx,c.jx,p);q.y=lerp(yh+.03,yk,p)+Math.sin(p*Math.PI)*.04;q.ry=c.jry*p}
+      else if(e<SF.RIF){q.x=c.jx;q.y=yk;q.ry=c.jry}
+      else{const p=smooth((e-SF.RIF)/(SF.SQ-SF.RIF));q.x=lerp(c.jx,0,p);q.ry=lerp(c.jry,0,p);q.y=yk-Math.sin(p*Math.PI)*.012}   // 톡 모으기
+    }else{
+      const p=smooth((e-SF.SQ)/(SF.END-SF.SQ)),ty=.04+.34*(B.sh/B.tot)+c.k*.002;
+      q.x=lerp(C.x,sh.x,p);q.z=lerp(C.z,sh.z,p);q.y=lerp(yk,ty,p)+Math.sin(p*Math.PI)*.18;q.ry=wrapA(ROT-.35)*p;q.s=lerp(SF_S,.5,p);
+      vis=e<SF.END;
+    }
+    if(q.x==null)q.x=0;
+    c.e.g.visible=vis;if(vis)cardApply(c.e);
+  }
+}
 /* ---------- 시작 연출 (첫 판 전, 약 3.5초) ----------
-   카드 통·버린 더미가 딜러 쪽에 툭 내려앉음(0~0.6초, 첫 판은 버린 더미가 비어 카드 통만 보임) → 카드 통을 섞음(0.6~1.6초, 리플·스퀘어 소리) → 모두의 칩(내 칩 더미·딜러 칩 기둥)이 한꺼번에 하늘에서 떨어져 쌓임(1.6초~) → `1 / 8판`(3.0초) → 베팅.
-   바로 시작(결과 화면에서)은 통을 다시 차리지 않고 칩만 떨어지는 1.5초.
+   카드 통·버린 더미가 딜러 쪽에 툭 내려앉음(0~0.6초, 첫 판은 버린 더미가 비어 카드 통만 보임) → 카드 더미가 가운데에 떨어져 섞인 뒤 통으로 들어감(0.45~2.35초, shufStart 'sky') → 모두의 칩(내 칩 더미·딜러 칩 기둥)이 한꺼번에 하늘에서 떨어져 쌓임(1.8초~) → `1 / 8판`(3.0초) → 베팅.
+   바로 시작(결과 화면에서)은 통을 다시 차리지 않고 섞기도 없이 칩만 떨어지는 1.5초.
    방장이 G.introMs만큼 제한 시간·봇·행동을 멈추고(core/engine.js), 화면은 G.intro가 시작 시각(t0)을 받아 시작 시각과의 차이로 그림.
    칩마다 떨어지는 시각·기울기는 dealId(seed)로 정해 모든 화면이 같게 보임. 늦게 들어온 사람은 연출 없이 바로 보임(core/table3d.js dealCheck) */
 const INTRO_MS=3500,INTRO_AGAIN_MS=1500;
 G.introMs=again=>again?INTRO_AGAIN_MS:INTRO_MS;
-const ROOT_FALL=450,ROOT_BOUNCE=150,SHUF=[600,1600],DROP_H=4.5,DROP_MS=420,BOUNCE_MS=170;
+const ROOT_FALL=450,ROOT_BOUNCE=150,DROP_H=4.5,DROP_MS=420,BOUNCE_MS=170;
 const IN={on:false,t0:0,total:0,again:false,seed:1,chipAt:0,fxAt:0,fx:false,said:{}};
 const rngOf=s=>()=>{s=(s+0x6D2B79F5)|0;let t=Math.imul(s^(s>>>15),1|s);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296};
 /* 카드 통·버린 더미가 떨어지는 높이: 떨어지며 빨라지고, 닿은 뒤 한 번 살짝 튐 */
@@ -891,7 +963,8 @@ G.intro=(t0,o)=>{
   const B=BV();if(!B||B.ph!=='bet'||B.rd!==1)return;   // 판마다 카드를 나눌 때도 불림 → 첫 판 시작 연출만
   const a=!!(o&&o.again);
   Object.assign(IN,{on:true,t0,total:(o&&o.total)||G.introMs(a),again:a,seed:(o&&+o.seed)||1,fx:false,said:{}});
-  IN.chipAt=t0+(a?0:1600);IN.fxAt=t0+(a?1000:3000);
+  IN.chipAt=t0+(a?0:1800);IN.fxAt=t0+(a?1000:3000);
+  if(!a)shufStart(t0+ROOT_FALL,'sky',null,IN.seed);   // 통이 내려앉으면 카드가 가운데에 떨어져 섞임
   if(T.ok)for(const [g,salt] of [[V3.bank,3],[V3.dstack,7]])if(g){g.userData.drop=0;g.children.forEach(m=>{delete m.userData.dr});dropGroup(g,salt)}   // 이미 있는 칩 기둥(바로 시작)도 다시 떨어뜨림
 };
 /* 칩 기둥의 칩마다 떨어질 시각을 정함: 0~0.4초 안에서 제각각 + 아래 칩이 먼저(탑이 맞춰져 쌓임) */
@@ -920,7 +993,6 @@ function endIntro(){
   if(!IN.on)return;IN.on=false;
   if(T.ok){
     if(V3.root)V3.root.position.y=0;
-    if(V3.shoe){V3.shoe.g.rotation.y=ROT-.35;V3.shoe.g.position.y=0}
     for(const g of [V3.bank,V3.dstack])if(g)stepDrop(g,1e12);
   }
 }
@@ -932,12 +1004,6 @@ function introFrame(now){
   if(!IN.again){
     if(V3.root)V3.root.position.y=rootDropY(e);
     say('thud',ROOT_FALL,()=>tone(130,.12,{type:'triangle',vol:.1,slide:70}));
-    if(V3.shoe){   // 카드 통을 섞음: 좌우로 흔들며 살짝 들썩임
-      const p=clamp01((e-SHUF[0])/(SHUF[1]-SHUF[0])),on=e>=SHUF[0]&&e<SHUF[1];
-      V3.shoe.g.rotation.y=ROT-.35+(on?Math.sin(p*Math.PI*10)*.09*(1-p*.5):0);
-      V3.shoe.g.position.y=on?Math.abs(Math.sin(p*Math.PI*5))*.05:0;
-    }
-    say('riffle',SHUF[0],()=>sfx('riffle'));say('square',SHUF[0]+700,()=>sfx('square'));
   }
   const c0=IN.chipAt-IN.t0+DROP_MS;   // 가장 먼저 닿는 시각: 큰 짤랑 하나, 뒤이어 작은 소리 둘(칩마다 울리면 시끄러움)
   say('c0',c0,()=>sfxChip(4));say('c1',c0+160,()=>sfxChip(2));say('c2',c0+330,()=>sfxChip(1));
@@ -968,14 +1034,21 @@ function chipAt(e){
 
 /* ---------- 펠트 위 표: 딜러 합계, 거는 사람 합계(카드 안쪽 펠트), 정산 결과(칩 위에 잠깐 떠오름), 내 칩 숫자 ----------
    표마다 따로 만들고 바뀐 것만 고침(결과가 뜨는 움직임이 다른 표가 바뀔 때 다시 시작하지 않게) */
+/* 자리에 닿은 카드만 셈(카드가 날아가는 중이거나 아직 통에 있으면 합계에 넣지 않음: 결과가 연출을 앞지르지 않게) */
+function landedOf(B,seat,cs){
+  if(!T.ok)return cs;
+  let n=0;while(n<cs.length){const e=V3.cards.get(B.rd+':'+seat+':'+n);if(!e||!e.launched||e.tw)break;n++}
+  return cs.slice(0,n);
+}
 function tagsFrame(){
   const B=BV();if(!elTags)return;
   if(!B||!T.ok||!(V.st==='play'||V.st==='over')){if(elTags.firstChild)elTags.innerHTML='';return}
   const me=myIdx(),st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight,list=[];
-  if(B.dc.length){const dn=B.hd&&B.dl===me?'딜러 · 나':'딜러';list.push({k:'d',c:' dl',html:`<span class="who">${dn}</span>${totalHTML(B.dc,0,true)}`,p:dealerAt(MEDL?.95:.66),on:B.ph==='dealer'&&V.t===B.dl})}
+  const dcs=landedOf(B,-1,B.dc);
+  if(dcs.length){const dn=B.hd&&B.dl===me?'딜러 · 나':'딜러';list.push({k:'d',c:' dl',html:`<span class="who">${dn}</span>${totalHTML(dcs,0,true)}`,p:dealerAt(MEDL?.95:.66),on:B.ph==='dealer'&&V.t===B.dl})}
   for(const i of B.od){
-    const cs=B.hc[i]||[];if(!cs.length||!SPOTS.has(i))continue;
-    list.push({k:'s'+i,html:totalHTML(cs,B.st[i],false)+(B.db[i]?'<i>더블</i>':''),p:atA(SPOTS.get(i),R_SUM),on:B.ph==='turn'&&V.t===i});
+    const cs=landedOf(B,i,B.hc[i]||[]);if(!cs.length||!SPOTS.has(i))continue;
+    list.push({k:'s'+i,html:totalHTML(cs,cs.length===(B.hc[i]||[]).length?B.st[i]:0,false)+(B.db[i]&&cs.length===(B.hc[i]||[]).length?'<i>더블</i>':''),p:atA(SPOTS.get(i),R_SUM),on:B.ph==='turn'&&V.t===i});
     if(B.ph==='settle'&&B.rs){const x=B.rs[i]||0;list.push({k:'r'+B.rd+':'+i,c:' res',html:`<em class="${x>0?'w':x<0?'l':'p'}">${x?sgn(x):'무승부'}</em>`,p:betPos(i),on:false})}
   }
   // 내 칩 숫자: 칩 더미 아래에 남은 칩, 베팅할 칩 공간 옆에 올려 둔 칩 (칩이 떠나고 도착하는 때에 맞춰 바뀜)
