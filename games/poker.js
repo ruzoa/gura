@@ -914,9 +914,9 @@ function frame3(now){
   if(ON&&BV()&&BV().ph==='show'&&V3.awarded!==BV().hn&&now>=V3.showAt)syncChips();
 }
 /* ---------- 내 카드: 탁자 위에 엎어 둠 ----------
-   마우스를 올리거나 손가락을 대면 가까운 귀퉁이만 휘어 올라가 숫자가 보이고, 카드 위 공중에 무늬와 숫자가 뜸.
-   휘기: 카드 판을 잘게 나눠 앞면 오른쪽 아래 귀퉁이(엎으면 내 쪽 왼쪽 귀퉁이)에서 PEEK_L 안쪽을 둥글게 말아 올림 */
-const PEEK_L=.42,PEEK_A=2.1,PEEK_MS=200,PU={x:.31/Math.hypot(.31,.52),y:-.52/Math.hypot(.31,.52)},PEEK_D=PU.x*.31-PU.y*.45;
+   마우스를 올리거나 손가락을 대면 내 쪽 아래 모서리가 휘어 올라가 숫자가 보이고, 카드 위 공중에 무늬와 숫자가 뜸.
+   휘기: 카드 판을 잘게 나눠 앞면 아래 끝(엎으면 내 쪽 모서리)에서 PEEK_L 안쪽을 모서리와 나란히 둥글게 말아 올림 */
+const PEEK_L=.34,PEEK_A=2.1,PEEK_MS=200,PU={x:0,y:-1},PEEK_D=.45;   // PU: 말리는 방향(앞면 아래쪽), PEEK_D: 카드 가운데에서 아래 모서리까지
 function bendable(e){
   const ch=e.g.children;
   for(let j=0;j<3;j++){const o=ch[j].geometry.parameters,geo=new THREE.PlaneGeometry(o.width,o.height,8,12);geo.userData.base=Float32Array.from(geo.attributes.position.array);ch[j].geometry=geo;ch[j].frustumCulled=false}
@@ -989,7 +989,7 @@ function zoneAt(e){
   if(Math.hypot(h.x-PEND.x,h.z-PEND.z)<.3)return {kind:'bet',h};   // 베팅할 칩 공간만 누르거나 밀 수 있음(건 칩은 못 건드림)
   const hw=.62*S_ME*1.08/2+.62*S_ME/2+.04,hh=.9*S_ME/2+.04;
   if(myCards().length&&Math.abs(h.x-MY.x)<hw&&Math.abs(h.z-MY.z)<hh)return {kind:'card',h};
-  if(h.z>1.05&&Math.hypot(h.x,h.z)<3.05)return {kind:'table',h};
+  if(Math.hypot(h.x,h.z)<4.9)return {kind:'table',h};   // 두드리기는 탁자 전체(천·나무 띠)
   return null;
 }
 /* 끌던 물건의 앞뒤 어긋남: 끄는 중이면 그대로, 놓으면 시간에 맞춰 제자리로 */
@@ -1041,8 +1041,8 @@ function gestFold(){
 }
 function gestCheck(h){
   const R=myRange();
-  if(myMode()!=='act'||!myReady()||busy()||!R||R.need>0){sfx('no');return}
   if(h)knock(h.x,h.z);
+  if(myMode()!=='act'||!myReady()||busy()||!R||R.need>0)return;   // 체크할 수 없으면 두드리는 소리·고리만(금지 소리 없음)
   send({t:'call'});
 }
 /* 베팅 칸의 칩을 앞으로 밂: 올린 칩이 콜할 만큼보다 많으면 레이즈, 아니면(올린 칩이 없어도) 콜 */
