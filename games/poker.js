@@ -429,7 +429,7 @@ G.engine={
    다른 사람은 맞은편 호(弧)를 따라 앉은 순서대로(폭은 화면에 들어오게 fitRx). 카드 위에는 글자를 두지 않음:
    내 족보·칩은 내 정보 칸, 다른 사람의 칩·마지막 행동·족보는 그 자리 바깥 이름표
    레이즈: 내 칩 더미를 누르면 한 개가 베팅 칸으로 날아가고, 베팅 칸을 누르면 마지막에 올린 칩이 돌아옴 → [레이즈] */
-let ON=false,el2d=null,elBet=null,sentSq=-1,pend=[];
+let ON=false,el2d=null,elBet=null,elNums=null,sentSq=-1,pend=[];
 const BV=()=>V&&V.pk&&V.ps?V.pk:null;
 const DEN=[10,50,100,500],DEN_C=['#cc3a2e','#2e7d4f','#2b2b2b','#6b3fa0'];
 const sum=a=>a.reduce((x,y)=>x+y,0);
@@ -453,7 +453,7 @@ function raiseTarget(){
   const p=betAmt(),to=p>0?B.bet[i]+p:R.minTo;
   return {to:Math.min(to,R.maxTo),all:to>=R.maxTo,bad:p>0&&to<R.minTo&&to<R.maxTo,R};
 }
-function send(a){sendAct(a);const B=BV();sentSq=B?B.sq:-1;pend=[];renderButtons();renderMe();if(ON&&T.ok)syncChips()}
+function send(a){sendAct(a);const B=BV(),me=myIdx();sentSq=B?B.sq:-1;V3.sendBet=B&&me>=0?B.bet[me]||0:0;V3.sendTot=B&&me>=0?B.tot[me]||0:0;pend=[];renderButtons();renderMe();if(ON&&T.ok)syncChips()}
 const canStage=()=>{const R=myRange();return myMode()==='act'&&!busy()&&myReady()&&!!R&&R.open};
 /* 칩 올리기·내리기 (확정 전, 내 화면에서만) */
 function addChip(d){
@@ -548,6 +548,8 @@ G.cues=(v,pv)=>{
 const O={x:0,z:0};                     // 공용 카드 가운데 = 탁자 정중앙
 const BD_DX=.66,S_BD=.74,POT={x:0,z:.86},DECK={x:0,z:-.92};
 const MY={x:0,z:2.1},MYBET={x:0,z:1.44},BANK_Z=3.45,BANK_X=[-.75,-.25,.25,.75],CHIP_R=.2,CHIP_H=.052;   // 내 카드는 다른 사람과 같은 거리(둘레), 칩 더미는 펠트 밖 나무 띠 위 내 앞
+const PEND={x:0,z:2.88};               // 베팅할 칩 공간: 내 카드와 칩 더미 사이. 걸기 전 칩만 올라가고, 위로 밀면 베팅 칸(MYBET, 베팅한 칩 공간)으로 옮겨져 그 자리에 머묾
+const pendPos=()=>PEND;
 const CW=.62*1.2,CH=.9*1.2;            // 카드 폭·높이 (크기 1일 때)
 const S_ME=.82,S_OT=.58,S_SHOW=.7,RZ=2.25;
 let SP=new Map(),spKey='',RX=2.9;
@@ -592,7 +594,7 @@ function cardPose(seat,k,show){
 }
 
 /* ---------- 3D ---------- */
-const V3={toBet:0,toBank:0,cards:new Map(),flights:[],piles:new Map(),pot:null,potAmt:-1,potPend:0,bank:null,rings:new Map(),ringsKey:'',arc:null,arcQ:-1,arcSeat:-2,root:null,deck:null,btn:null,btnAt:null,hk:-1,awarded:-1,landed:new Set(),felt:null,mats:null,bounceAt:-1e9,lift:new Set(),knocks:[]};
+const V3={toBet:0,toBank:0,pend:null,pring:null,mineIn:0,sendBet:0,sendTot:0,cards:new Map(),flights:[],piles:new Map(),pot:null,potAmt:-1,potPend:0,bank:null,rings:new Map(),ringsKey:'',arc:null,arcQ:-1,arcSeat:-2,root:null,deck:null,btn:null,btnAt:null,hk:-1,awarded:-1,landed:new Set(),felt:null,mats:null,bounceAt:-1e9,lift:new Set(),knocks:[]};
 function chipMats(){
   if(V3.mats)return V3.mats;
   const geo=new THREE.CylinderGeometry(CHIP_R,CHIP_R,CHIP_H,28);
@@ -638,29 +640,53 @@ function setPile(i,amt){
   if(P.g)P.g.position.set(pos.x,0,pos.z);
   V3.piles.set(i,P);return P;
 }
-/* 내 칩 하나가 더미 ↔ 베팅 칸으로. 떠나는 쪽은 바로 빼고, 받는 쪽은 도착하면 채움(잔상 없음) */
+/* 내 칩 하나가 더미 ↔ 베팅할 칩 공간으로. 떠나는 쪽은 바로 빼고, 받는 쪽은 도착하면 채움(잔상 없음) */
 function flyMine(d,toBet){
-  const me=myIdx(),bp=betPos(me),k=DEN.indexOf(d),bn=(V3.bank&&V3.bank.userData.n[k])||0;
+  const bp=pendPos(),k=DEN.indexOf(d),bn=(V3.bank&&V3.bank.userData.n[k])||0;
   const bank={x:BANK_X[k],y:topY(Math.min(12,bn+(toBet?1:0))),z:BANK_Z};
-  const P=V3.piles.get(me),pn=P&&P.g?P.g.userData.n:0,pile={x:bp.x,y:topY(pn+(toBet?0:1)),z:bp.z};
+  const P=V3.pend,pn=P&&P.g?P.g.userData.n:0,pile={x:bp.x,y:topY(pn+(toBet?0:1)),z:bp.z};
   if(toBet)V3.toBet+=d;else V3.toBank+=d;
   const m=chipMesh(d);T.scene.add(m);
   fly(m,toBet?bank:pile,toBet?pile:bank,230,clock(),.32,()=>{killG(m);if(toBet)V3.toBet=Math.max(0,V3.toBet-d);else V3.toBank=Math.max(0,V3.toBank-d);syncChips()});
   syncChips();
 }
+/* 내 칩 더미에 남은 칩: 올려 둔 칩(보내는 중이면 건 칩 공간으로 날아갈 때까지 올려 둔 그대로)은 뺌 */
+const bankAmt=(B,me)=>Math.max(0,shownCh(B,me)-(myMode()==='act'&&!busy()?betAmt():V3.pend&&V3.pend.g?V3.pend.amt:0)-V3.toBank);
 const homeOf=i=>{const S=SP.get(i);if(!S)return {x:0,y:.3,z:0};return S.me?{x:0,y:.3,z:BANK_Z}:{x:S.x,y:.25,z:S.z}};
+/* 내 행동이 받아들여짐: 올려 둔 칩이 건 칩 공간(베팅 칸)으로, 이번 베팅 차례가 끝났으면 팟으로 날아감. 건 칩이 없으면 치움 */
+function settlePend(B,me,now){
+  const Q=V3.pend;V3.pend=null;if(!Q||!Q.g)return;
+  const g=Q.g,from={x:g.position.x,y:0,z:g.position.z},placed=B.bet[me]||0,add=Math.max(0,(B.tot[me]||0)-V3.sendTot);
+  if(!add){killG(g);return}
+  if(B.ph==='bet'&&placed>V3.sendBet){
+    const bp=betPos(me),d=placed-V3.sendBet;V3.mineIn+=d;
+    fly(g,from,{x:bp.x,y:0,z:bp.z},320,now,.3,()=>{killG(g);V3.mineIn=Math.max(0,V3.mineIn-d);syncChips()});
+  }else{
+    V3.potPend+=add;
+    fly(g,from,{x:POT.x,y:.05,z:POT.z},COLLECT_MS-80,now,.25,()=>{killG(g);V3.potPend=Math.max(0,V3.potPend-add);syncChips()});
+  }
+}
 /* 팟 금액: 베팅 차례 중이면 지난 차례까지 모인 칩, 정산 중이면 정산 전 팟. 날아오는 중인 칩은 도착하면 더함 */
 function potTarget(B){return B.ph==='show'&&B.rs?(V3.awarded===B.hn?0:B.rs.pot):sum(B.tot)-sum(B.bet)}
 function syncChips(){
   const B=BV();if(!B||!T.ok)return;
   const me=myIdx();
   if(me>=0&&!V.ps[me].f){
-    const a=Math.max(0,shownCh(B,me)-(myMode()==='act'?betAmt():0)-V3.toBank),key=change(a).join(',');
+    const a=bankAmt(B,me),key=change(a).join(',');
     if(!V3.bank||V3.bank.userData.key!==key){killG(V3.bank);V3.bank=stackGroup(a);V3.bank.userData.key=key}
   }else if(V3.bank){killG(V3.bank);V3.bank=null}
   const now=clock();
+  // 베팅할 칩 공간: 걸기 전 내 칩만. 행동이 받아들여지면 건 칩 공간(또는 팟)으로 날아감
+  {const Q=V3.pend;
+   if(me>=0&&SP.has(me)&&!V.ps[me].f){
+     if(myMode()==='act'&&!busy()){
+       const want=Math.max(0,betAmt()-V3.toBet);
+       if(want>0){if(!Q||Q.amt!==want){if(Q)killG(Q.g);const pp=pendPos(),g=pileGroup(want);g.position.set(pp.x,0,pp.z);V3.pend={amt:want,g}}}
+       else if(Q){killG(Q.g);V3.pend=null}
+     }else if(Q&&!busy())settlePend(B,me,now);
+   }else if(Q){killG(Q.g);V3.pend=null}}
   for(const i of SP.keys()){
-    const amt=B.ph==='show'?0:i===me&&myMode()==='act'?B.bet[i]+Math.max(0,betAmt()-V3.toBet):B.bet[i]||0;
+    const amt=B.ph==='show'?0:i===me?Math.max(0,(B.bet[i]||0)-V3.mineIn):B.bet[i]||0;
     const P=V3.piles.get(i);
     if(P&&P.flying)continue;
     if(P&&P.g&&amt<P.amt&&amt===0){   // 베팅 차례가 끝남: 팟으로 모임
@@ -784,14 +810,26 @@ function spotRing(i){
   const S=SP.get(i);if(S){r.position.set(S.x,.021,S.z)}
   return r;
 }
+/* 내가 걸 차례면 베팅할 칩 공간에 금색 점선 고리(숨 쉬듯 밝아짐) */
+function dashRing(r0,r1,col,op){
+  const g=new THREE.Group(),mat=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false}),N=14,seg=Math.PI*2/N;
+  for(let j=0;j<N;j++){const m=new THREE.Mesh(new THREE.RingGeometry(r0,r1,8,1,j*seg,seg*.55),mat);m.rotation.x=-Math.PI/2;g.add(m)}
+  g.userData.mat=mat;return g;
+}
+function pendRing(now){
+  const B=BV(),on=!!(B&&B.ph==='bet'&&myMode()==='act'&&!busy()&&!dealingV()&&SP.has(myIdx()));
+  if(!on){if(V3.pring)V3.pring.visible=false;return}
+  if(!V3.pring){V3.pring=dashRing(.25,.285,0xf2c14e,.9);T.scene.add(V3.pring)}
+  const p=pendPos();V3.pring.position.set(p.x,.021,p.z);V3.pring.visible=true;V3.pring.userData.mat.opacity=.6+.35*Math.sin(now/180);
+}
 function turnTimer(now){
   const B=BV(),i=V&&V.t,on=!!(B&&B.ph==='bet'&&V.st==='play'&&i>=0&&SP.has(i)&&!dealingV()&&!busy());
   if(!on){if(V3.arc)V3.arc.visible=false;return}
   const frac=Math.max(0,Math.min(1,(V.deadAt-now)/((+V.cfg.turn||30)*1000))),q=Math.round(frac*200)/200;
-  const mine=i===myIdx(),r0=mine?.36:.3,r1=mine?.42:.35;
+  const mine=i===myIdx(),r0=mine?.31:.3,r1=mine?.35:.35;
   if(!V3.arc){V3.arc=new THREE.Mesh(new THREE.RingGeometry(r0,r1,64),new THREE.MeshBasicMaterial({color:0xf2b632,side:THREE.DoubleSide,transparent:true,depthWrite:false}));V3.arc.rotation.x=-Math.PI/2;T.scene.add(V3.arc);V3.arcQ=-1}
   if(q!==V3.arcQ||V3.arcSeat!==i){V3.arcQ=q;V3.arcSeat=i;V3.arc.geometry.dispose();V3.arc.geometry=new THREE.RingGeometry(r0,r1,64,1,Math.PI/2,Math.max(.001,q*Math.PI*2))}
-  const p=betPos(i);V3.arc.position.set(p.x,.023,p.z);V3.arc.visible=true;
+  const p=mine?pendPos():betPos(i);V3.arc.position.set(p.x,.023,p.z);V3.arc.visible=true;
   V3.arc.material.color.set(frac<.25?0xcc3a2e:0xf2b632);
 }
 function clear3D(){
@@ -802,7 +840,7 @@ function clear3D(){
   for(const r of V3.rings.values())killG(r);V3.rings.clear();dieOff();
   if(V3.arc){killG(V3.arc);V3.arc=null}
   killG(V3.root);V3.root=null;V3.deck=V3.btn=null;V3.btnAt=null;
-  V3.hk=-1;V3.awarded=-1;V3.landed.clear();V3.toBet=V3.toBank=0;spKey='';IN.on=false;
+  V3.hk=-1;V3.awarded=-1;V3.landed.clear();V3.toBet=V3.toBank=0;V3.mineIn=0;if(V3.pend)killG(V3.pend.g);V3.pend=null;if(V3.pring){killG(V3.pring);V3.pring=null}spKey='';IN.on=false;
   for(const k of V3.knocks)killG(k.m);V3.knocks=[];GS.id=null;GS.kind='';GS.back=null;PEEK.on=PEEK.hover=false;PEEK.from=PEEK.to=0;
   useFelt(false);
 }
@@ -823,7 +861,7 @@ function sync3(v){
   layout();buildRoot();useFelt(true);
   const me=myIdx(),now=clock();
   if(V3.hk!==B.hn){
-    for(const P of V3.piles.values())killG(P.g);V3.piles.clear();V3.landed.clear();V3.potPend=0;V3.hk=B.hn;V3.toBet=V3.toBank=0;
+    for(const P of V3.piles.values())killG(P.g);V3.piles.clear();V3.landed.clear();V3.potPend=0;V3.hk=B.hn;V3.toBet=V3.toBank=0;V3.mineIn=0;if(V3.pend)killG(V3.pend.g);V3.pend=null;
     killG(V3.pot);V3.pot=null;V3.potAmt=-1;
   }
   if(B.ph==='show'&&V3.showFor!==B.hn){V3.showFor=B.hn;V3.showAt=now+(B.rs&&B.rs.show.length?1500:450)}   // 카드를 펼친 뒤 팟이 감
@@ -876,8 +914,8 @@ function frame3(now){
     if(!e.launched&&now>=e.at&&e.to){e.launched=true;e.g.visible=true;e.tw={from:{...e.cur},to:e.to,t0:now,ms:e.to.f?460:400,lift:.38};sfx('flick')}
     if(e.launched)cardStep(e,now);
   }
-  frameFlights(now);turnTimer(now);introFrame(now);myCardsFrame(now);knockFrame(now);
-  {const me=myIdx(),P=V3.piles.get(me);if(P&&P.g&&!P.flying)P.g.position.z=betPos(me).z+gestDz(now,'bet')}   // 앞으로 미는 베팅 칩
+  frameFlights(now);turnTimer(now);pendRing(now);introFrame(now);myCardsFrame(now);knockFrame(now);
+  {const P=V3.pend;if(P&&P.g)P.g.position.z=pendPos().z+(P.hold!==undefined?P.hold:gestDz(now,'bet'))}   // 앞으로 미는 베팅할 칩(밀어서 보냈으면 민 자리에 머묾)
   if(V3.bank){const a=now-V3.bounceAt;V3.bank.position.y=a>=0&&a<520?Math.abs(Math.sin(a/520*Math.PI*2))*.09*(1-a/520):0}
   if(ON&&BV()&&BV().ph==='show'&&V3.awarded!==BV().hn&&now>=V3.showAt)syncChips();
 }
@@ -938,13 +976,13 @@ function tablePt(e){
   _ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},CAM());
   return _ray.ray.intersectPlane(_pl,_hit)?_hit:null;
 }
-/* 누른 자리: card(내 카드) | bet(내 베팅 칸) | bank(내 칩 더미, d = 칩 종류) | table(내 앞 펠트) */
+/* 누른 자리: card(내 카드) | bet(내 베팅할 칩 공간) | bank(내 칩 더미, d = 칩 종류) | table(내 앞 펠트) */
 function zoneAt(e){
   const me=myIdx();if(me<0||!V.ps[me]||V.ps[me].f)return null;
   const h=tablePt(e);if(!h)return null;
   const n=V3.bank?V3.bank.userData.n:[0,0,0,0];
   for(let k=0;k<4;k++)if(n[k]&&Math.hypot(h.x-BANK_X[k],h.z-(BANK_Z+.1))<.27)return {kind:'bank',d:DEN[k],h};
-  if(Math.hypot(h.x-MYBET.x,h.z-MYBET.z)<.34)return {kind:'bet',h};
+  if(Math.hypot(h.x-PEND.x,h.z-PEND.z)<.34)return {kind:'bet',h};   // 베팅할 칩 공간만 누르거나 밀 수 있음(건 칩은 못 건드림)
   const hw=.62*S_ME*1.08/2+.62*S_ME/2+.04,hh=.9*S_ME/2+.04;
   if(myCards().length&&Math.abs(h.x-MY.x)<hw&&Math.abs(h.z-MY.z)<hh)return {kind:'card',h};
   if(h.z>1.05&&Math.hypot(h.x,h.z)<3.05)return {kind:'table',h};
@@ -981,7 +1019,7 @@ function gestUp(e,cancel){
   GS.id=null;GS.kind='';GS.back=dz?{kind,dz,t0:clock()}:null;
   if(cancel)return;
   if(kind==='card'){if(dz<-FOLD_DZ)gestFold();return}
-  if(kind==='bet'){if(dz<-PUSH_DZ)gestPush();else if(tap)takeChip();return}
+  if(kind==='bet'){if(dz<-PUSH_DZ)gestPush(dz);else if(tap)takeChip();return}
   if(kind==='bank'){if(tap)addChip(GS.d);return}
   if(kind==='table'&&tap){
     const t=clock(),dbl=t-GS.tapAt<DBL_MS&&Math.hypot(e.clientX-GS.tx,e.clientY-GS.ty)<60;
@@ -1004,12 +1042,13 @@ function gestCheck(h){
   send({t:'call'});
 }
 /* 베팅 칸의 칩을 앞으로 밂: 올린 칩이 콜할 만큼보다 많으면 레이즈, 아니면(올린 칩이 없어도) 콜 */
-function gestPush(){
+function gestPush(dz){
   const R=myRange();
   if(myMode()!=='act'||!myReady()||busy()||!R){sfx('no');return}
-  if(betAmt()>R.need){const r=raiseTarget();if(!r||!r.R.open||r.bad){sfx('no');return}sfxChip(3);send(r.all?{t:'raise',all:1}:{t:'raise',a:r.to});return}
+  const keep=()=>{GS.back=null;if(V3.pend)V3.pend.hold=dz};   // 밀어서 보낸 칩은 제자리로 돌아오지 않고 민 자리에서 건 칩 공간으로 감
+  if(betAmt()>R.need){const r=raiseTarget();if(!r||!r.R.open||r.bad){sfx('no');return}sfxChip(3);keep();send(r.all?{t:'raise',all:1}:{t:'raise',a:r.to});return}
   if(R.need<=0){sfx('no');return}   // 걸 칩이 없으면 체크는 두드리기로
-  sfxChip(2);send({t:'call'});
+  sfxChip(2);keep();send({t:'call'});
 }
 /* 두드린 자리에 퍼지는 고리 */
 function knock(x,z){
@@ -1129,13 +1168,30 @@ function render2D(){
 }
 G.hud=inGame=>{
   const on=!!(inGame&&BV());
-  if(!on){if(T.ok)clear3D();if(elBet)elBet.hidden=true}
+  if(!on){if(T.ok)clear3D();if(elBet)elBet.hidden=true;if(elNums&&elNums.dataset.k){elNums.innerHTML='';elNums.dataset.k=''}}
   render2D();
 };
+/* 내 칩 숫자: 칩 더미 아래에 남은 칩, 베팅할 칩 공간 옆에 올려 둔 칩 (칩이 떠나고 도착하는 때에 맞춰 바뀜) */
+function numsFrame(B){
+  if(!elNums)return;
+  const me=myIdx(),on=!!(T.ok&&B&&me>=0&&(V.st==='play'||V.st==='over')&&V.ps[me]&&!V.ps[me].f&&V3.bank);
+  if(!on){if(elNums.dataset.k){elNums.innerHTML='';elNums.dataset.k=''}return}
+  const list=[{k:'c',x:0,z:BANK_Z+.5,t:bankAmt(B,me)}];
+  if(V3.pend&&V3.pend.amt>0)list.push({k:'p',x:.62,z:PEND.z,t:V3.pend.amt});
+  const key=list.map(x=>x.k+x.t).join('|');
+  if(elNums.dataset.k!==key){elNums.innerHTML=list.map(x=>`<div class="pk-num" data-k="${x.k}">${x.t}</div>`).join('');elNums.dataset.k=key}
+  const W=elNums.clientWidth,Hh=elNums.clientHeight,v3=new THREE.Vector3();
+  list.forEach(x=>{
+    const el=elNums.querySelector(`[data-k="${x.k}"]`);if(!el)return;
+    v3.set(x.x,.03,x.z).project(CAM());
+    const hw=el.offsetWidth/2,hh=el.offsetHeight/2;
+    el.style.left=Math.max(hw+4,Math.min(W-hw-4,(v3.x+1)/2*W))+'px';el.style.top=Math.max(hh+4,Math.min(Hh-hh-4,(1-v3.y)/2*Hh))+'px';
+  });
+}
 G.live=()=>{
   const B=BV();if(!B)return;
   if(T.ok)layout();
-  seatTags(B);
+  seatTags(B);numsFrame(B);
 };
 G.enter=()=>{ON=true;$('#stage').classList.add('pk');$('#numpick').hidden=true};
 G.leave=()=>{
@@ -1143,7 +1199,7 @@ G.leave=()=>{
   const st=$('#stage');if(st)st.classList.remove('pk');
   const pass=$('#btnPass'),gb=$('#btnGura');if(pass){setTxt(pass,'패스');pass.hidden=false}if(gb){setTxt(gb,'구라!');gb.hidden=true}
   if(elPeek){elPeek.hidden=true;elPeek.innerHTML='';elPeek.dataset.k=''}
-  if(elBet)elBet.hidden=true;if(el2d){el2d.hidden=true;el2d.innerHTML='';el2d.dataset.k=''}
+  if(elBet)elBet.hidden=true;if(el2d){el2d.hidden=true;el2d.innerHTML='';el2d.dataset.k=''}if(elNums){elNums.innerHTML='';elNums.dataset.k=''}
   document.querySelectorAll('#labels .seat .pkt').forEach(x=>x.remove());document.querySelectorAll('#labels .seat.pk-fold').forEach(x=>x.classList.remove('pk-fold'));
   if(typeof T!=='undefined'&&T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
   const cv=$('#cv');if(cv)cv.style.cursor='';
@@ -1190,9 +1246,12 @@ G.init=()=>{
 #pk2d .card .cn{font-size:12px;left:3px;top:1px}#pk2d .card .cn i{font-size:9px}
 #pk2d .card .big{font-size:20px;top:20px}
 #pk2d .card.back{background:#cc3a2e;border:2px solid #fffcf5}
+#pkNums{position:absolute;inset:0;pointer-events:none;z-index:4}
+.pk-num{position:absolute;transform:translate(-50%,-50%);padding:0 7px 1px;border-radius:99px;background:rgba(59,42,31,.82);color:#f4ead9;font-family:var(--f-num);font-size:13px;font-weight:700;line-height:1.25;white-space:nowrap}
 #pk2d .pk-d{display:inline-block;font-size:10px;font-weight:700;line-height:1;padding:3px 5px 2px;border-radius:99px;margin-right:4px;background:#fffaf0;color:#3b2a1f;border:1.5px solid #3b2a1f}
 `;
   document.head.appendChild(css);
+  elNums=document.createElement('div');elNums.id='pkNums';elNums.setAttribute('aria-hidden','true');$('#stage').insertBefore(elNums,$('#fx'));
   elPeek=document.createElement('div');elPeek.id='pkPeek';elPeek.hidden=true;elPeek.setAttribute('aria-label','내 카드');$('#stage').insertBefore(elPeek,$('#fx'));
   el2d=document.createElement('div');el2d.id='pk2d';el2d.hidden=true;el2d.setAttribute('aria-live','polite');$('#stage').insertBefore(el2d,$('#fx'));
   elBet=document.createElement('div');elBet.id='pkBet';elBet.hidden=true;elBet.setAttribute('role','group');elBet.setAttribute('aria-label','레이즈');
