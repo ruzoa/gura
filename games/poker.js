@@ -1083,7 +1083,7 @@ const CAM=()=>T.cam;
 G.render3D=t=>{
   if(ON&&V3.root){frame3(t);T.timerBg.visible=T.timerArc.visible=false}
   T.r.render(T.scene,T.cam);
-  if(ON){actFrame();numsFrame(BV())}
+  if(ON){actFrame();const B=BV();numsFrame(B);if(B)seatTags(B)}   // 고개를 돌려도 이름표·숫자가 자리에 붙어 있게 매 프레임
 };   // 남은 시간은 이름표 테두리와 베팅 칸 고리로 (자리 가장자리 고리는 숨김)
 /* 공통 코드가 다른 사람 자리에 카드 더미를 놓는데(손패 표시 1장) 포커는 카드를 펠트에 펼치므로 숨김 */
 G.field3D=v=>{
@@ -1155,7 +1155,7 @@ function seatTags(B){
     if(on3&&S&&!S.me){   // 나무 띠의 앉은 자리(펠트 위 카드를 가리지 않게, 블랙잭과 같은 반지름)
       v3.set(-S.ux*R_PILL,.05,-S.uz*R_PILL).project(CAM());
       const w=el.offsetWidth,hh=el.offsetHeight;
-      put.push({el,w,h:hh,x:Math.max(w/2+6,Math.min(W-w/2-6,(v3.x+1)/2*W)),y:(1-v3.y)/2*Hh,sg:-S.uz>=0?1:-1});
+      put.push({el,w,h:hh,x:(v3.x+1)/2*W,y:(1-v3.y)/2*Hh,sg:-S.uz>=0?1:-1});   // 화면 끝에 붙이지 않고 자리에 고정(잘린 자리는 고개를 돌려 봄)
     }
   });
   // 좁은 화면에서 이웃 이름표가 겹치면 한 칸 비킴(탁자 바깥쪽으로)
@@ -1163,7 +1163,7 @@ function seatTags(B){
   const done=[];
   for(const q of put){
     for(let g=0;g<4&&done.some(o=>Math.abs(o.x-q.x)<(o.w+q.w)/2+4&&Math.abs(o.y-q.y)<(o.h+q.h)/2+2);g++)q.y+=(q.h+3)*q.sg;
-    done.push(q);q.el.style.left=q.x+'px';q.el.style.top=Math.max(q.h/2+6,Math.min(Hh-q.h/2-6,q.y))+'px';
+    done.push(q);q.el.style.left=q.x+'px';q.el.style.top=q.y+'px';
   }
 }
 /* WebGL이 없을 때: 공용 카드와 모두의 카드를 2D로 */
