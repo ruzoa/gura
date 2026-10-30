@@ -549,6 +549,7 @@ function pieceSvg(t,col,cx,cy,r,op,down){   // down: 글자를 거꾸로 (상대
 }
 /* 상차림 단추: 자기 쪽에서 본 왼쪽부터 읽는 이름 (마상마상 …) */
 const suBtns=()=>SU_NAME.map((n,v)=>`<button type="button" class="jg-m su${suSel===v?' on':''}" data-su="${v}" aria-pressed="${suSel===v}">${n}</button>`).join('');
+const suLine='<i class="jg-sut" aria-hidden="true"><b></b></i>';   // 3D 단추 아래 남은 상차림 시간 (내 이름 칸을 숨기는 동안)
 
 /* ----- 2D (SVG): 점 사이 = 1, 판은 (0,0)~(8,9) ----- */
 const dXY=i=>{const x=X(i),y=Y(i);return flipped()?[8-x,y]:[x,9-y]};
@@ -643,7 +644,7 @@ function drawHint(){
   if(!elHint)return;
   const h=hintText();if(h!==lastHint){elHint.textContent=h;lastHint=h}
   const m=modesHTML();if(m!==lastModes){elModes.innerHTML=m;lastModes=m}
-  const u=mySetTurn()&&Jg3.on?suBtns():'';if(u!==lastSu){elSu.innerHTML=u;lastSu=u}
+  const u=mySetTurn()&&Jg3.on?suBtns():'';if(u!==lastSu){elSu.innerHTML=u?u+suLine:'';lastSu=u;elJg.classList.toggle('suon',!!u);clockTick()}
 }
 function fit(){
   if(!elJg||elJg.hidden)return;
@@ -660,7 +661,7 @@ function drawAll(){
 
 /* ---------- 3D: 공통 원목 테이블 가운데 장기판 + 팔각 알, 거의 바로 위에서 보는 자기 카메라 ----------
    단위: 월드 그대로. 점 사이 S. 내 쪽 끝 줄이 화면 아래(+z). 잡은 기물은 판 옆(넓은 화면: 내가 잡은 것 오른쪽, 상대가 잡은 것 왼쪽) 또는 앞뒤(좁은 화면) */
-const S=.46,HX=4*S,HZ=4.5*S,BX=HX+.36,BZ=HZ+.62,TOP=.15,PY=TOP+.012,GS=.62;   // 앞뒤 여백이 넓음: 내 쪽 끝 줄 아래 나무 띠에 상차림 단추. PY: 알 바닥(판 윗면·표시 원보다 위)
+const S=.46,HX=4*S,HZ=4.5*S,BX=HX+.36,BZ=HZ+.36,TOP=.15,PY=TOP+.012,GS=.62;   // PY: 알 바닥(판 윗면·표시 원보다 위)
 const GY=()=>T.felt&&T.felt.mat?T.felt.mat.position.y+.013:.02;   // 잡은 알 바닥: 탁자 천 윗면 위
 const PR={1:.165,2:.165,3:.205,4:.205,5:.205,6:.205,7:.25},PHT={1:.075,2:.075,3:.09,4:.09,5:.09,6:.09,7:.105};   // 알 반지름(꼭짓점까지)·두께: 장 > 차·포·마·상 > 사·졸
 const Jg3={on:false,built:false,fail:false,root:null,cam:null,dirty:true,lastR:0,lay:'',layAt:0,d:12,layout:'h',pcs:new Map(),grave:[[],[]],anim:[],flipT:null,mvN:-1,suK:'',ph:''};
@@ -876,7 +877,8 @@ function j3Marks(){
   Jg3.dirty=true;
 }
 /* 카메라: 바로 위에서 내려다봄 (오목·쿼리도와 같은 탑뷰). 판 가운데 = 화면 가운데, 위아래는 이름 칸 자리를 같은 높이로 비우고 양옆은 조금만(tvBox).
-   잡은 알은 판 옆(넓은 화면) 또는 판 앞뒤(좁은 화면) 중 판이 더 크게 보이는 쪽. 상차림 단추는 내 쪽 끝 줄 아래 나무 띠 가운데(.jg-su) */
+   잡은 알은 판 옆(넓은 화면) 또는 판 앞뒤(좁은 화면) 중 판이 더 크게 보이는 쪽.
+   상차림 단추(.jg-su)는 내 쪽 판 끝에 걸침(가운데가 판 끝선). 판을 줄이지 않게 고르는 동안은 내 이름 칸을 숨기고 단추 아래 시간 선으로 남은 시간을 보여 줌 */
 function tvBox(r){
   const W=r.clientWidth,Hh=r.clientHeight;r.classList.toggle('wide',W>Hh);
   const narrow=W<700,bar=r.querySelector('.jg-bar'),mb=r.querySelector('.jg-mebar');
@@ -899,9 +901,9 @@ function j3Layout(t){
   cam.aspect=W/Hh;cam.clearViewOffset();cam.position.set(0,PY+d,0);cam.lookAt(0,PY,0);
   cam.setViewOffset(W,Hh,0,-(B.cy-Hh/2),W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
   {const hv=(lay==='v'?BZ+GZW:BZ)*s;chipsAt(B.cy-hv,B.cy+hv)}
-  // 상차림 단추 자리: 내 쪽 끝 줄 알 아래 끝과 판 끝 사이 가운데, 폭은 판 선 폭
-  const zs=(HZ+PR[CHA]+BZ)/2;elJg.style.setProperty('--sux',Math.round(W/2)+'px');elJg.style.setProperty('--suy',Math.round(B.cy+zs*s)+'px');
-  elJg.style.setProperty('--suw',Math.round(2*HX*s)+'px');elJg.style.setProperty('--suh',Math.round(Math.max(22,(BZ-HZ-PR[CHA])*s*.86))+'px');
+  // 상차림 단추 자리: 가운데가 내 쪽 판 끝선, 폭은 판 선 폭
+  elJg.style.setProperty('--sux',Math.round(W/2)+'px');elJg.style.setProperty('--suy',Math.round(B.cy+BZ*s)+'px');
+  elJg.style.setProperty('--suw',Math.round(2*HX*s)+'px');elJg.style.setProperty('--suh',(W<700?28:32)+'px');
   Jg3.d=d;Jg3.dirty=true;
   j3Sync();
   return true;
@@ -1106,6 +1108,8 @@ function clockTick(){
   if(!elBar||!V||!V.c)return;
   elJg.querySelectorAll('.jg-bar [data-ct],.jg-mebar [data-ct]').forEach(el=>{const i=+el.dataset.ct,ms=remMs(i),t=fmtT(ms);if(el.textContent!==t)el.textContent=t;
     const low=V.st==='play'&&V.t===i&&(V.c.run||V.c.ph==='set')&&ms<=(V.c.ph==='set'?5000:10000);if(el.parentNode.classList.contains('low')!==low)el.parentNode.classList.toggle('low',low)});
+  const sb=elSu&&elSu.querySelector('.jg-sut');
+  if(sb){const ms=remMs(myIdx()),k=Math.max(0,Math.min(1,ms/SET_MS));sb.firstChild.style.transform=`scaleX(${k.toFixed(4)})`;const low=ms<=5000;if(sb.classList.contains('low')!==low)sb.classList.toggle('low',low)}
 }
 G.play=()=>{if(inSet())confirmSetup();else confirmPend()};
 G.pass=()=>{};
@@ -1125,7 +1129,7 @@ G.leave=()=>{
   if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
   if(Jg3.root)Jg3.root.visible=false;Jg3.on=false;Jg3.anim=[];
   $('#btnPass').hidden=false;
-  if(elJg){elJg.hidden=true;lastBoard='';lastBar='';lastHint='';lastModes='';lastSu=''}
+  if(elJg){elJg.hidden=true;elJg.classList.remove('suon');if(elSu)elSu.innerHTML='';lastBoard='';lastBar='';lastHint='';lastModes='';lastSu=''}
 };
 G.init=()=>{
   const css=document.createElement('style');
@@ -1171,6 +1175,12 @@ G.init=()=>{
 #jg .jg-su:empty{display:none}
 #jg .jg-su .jg-m.su{flex:1 1 0;min-width:0;height:100%;padding:0 2px;justify-content:center;font-size:clamp(11px,calc(var(--suh,28px)*.5),15px);border-width:1.5px;border-radius:8px;pointer-events:auto}
 .stage.jg-intro #jg .jg-su{opacity:0;pointer-events:none}
+#jg .jg-su:not(:empty){animation:jgFade .35s ease-out}
+@keyframes jgFade{from{opacity:0}}
+#jg.suon .jg-mebar{opacity:0;pointer-events:none}
+#jg .jg-sut{position:absolute;left:6px;right:6px;bottom:-8px;height:3px;border-radius:2px;background:rgba(59,42,31,.2);overflow:hidden;pointer-events:none}
+#jg .jg-sut b{display:block;height:100%;background:#c08a17;transform-origin:left center}
+#jg .jg-sut.low b{background:#c0281c;animation:jgBlink 1s steps(2,start) infinite}
 #jg .jg-m.su.on{background:var(--mustard,#f2b632);border-color:var(--mustard-edge,#c08a17)}
 #jg .jg-row{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;width:100%;pointer-events:none;min-height:44px}
 .stage.jg3d #jg .jg-row{height:44px;min-height:0;flex:none;align-items:flex-start;padding-top:4px;overflow:visible;position:relative;z-index:1}
