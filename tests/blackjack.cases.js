@@ -145,3 +145,24 @@ globalThis.playOutB=playOutB;
  if(!runTo(()=>H.phase==='over',600000))fail('bj solo finish');
  hostNew(false,'t','t');H.cfg={...cfgFor('blackjack'),hdeal:1,game:'blackjack'};H.members=[{name:'p0',bot:false,conn:null,host:true}];hostStart();
  if(H.phase!=='wait'||H.members.length!==1)fail('bj human dealer needs 2')}
+
+// 자리 배치: 180°를 거는 사람 수로 똑같이 나누고 카드 받는 순서대로 오른쪽 끝에서 시계 방향(각도가 줄어듦), 인원이 달라도 가운데 기준 대칭
+{const sa=BJ._test.spotAngles;
+ for(const n of [1,2,3,4,5,6,7]){
+   const od=Array.from({length:n},(_,k)=>k+10),m=sa(od),a=od.map(i=>m.get(i)),st=Math.PI/n;
+   for(let k=1;k<n;k++)if(Math.abs(a[k-1]-a[k]-st)>1e-9)fail(`bj spot step n=${n} k=${k}`);
+   if(Math.abs(a[0]+a[n-1])>1e-9)fail('bj spot symmetric n='+n);
+   if(Math.abs(a[0]-a[n-1])>Math.PI+1e-9)fail('bj spot within 180 n='+n);
+   if(n>1&&a[0]<=0)fail('bj first seat on the right n='+n);
+ }
+ if(sa([3]).get(3)!==0)fail('bj solo seat centered')}
+// 최대 인원: 봇 딜러 7명, 사람 딜러 8명. 사람 딜러를 끄려는데 8명이 앉아 있으면 못 끔, 저장된 설정을 불러올 때는 사람 딜러를 켬
+{const G2=BJ;
+ if(G2.maxOf({hdeal:0})!==7||G2.maxOf({hdeal:1})!==8)fail('bj maxOf');
+ if(G2.fixCfg({hdeal:0,max:8},7,true).max!==7)fail('bj fixCfg clamps max');
+ if(G2.fixCfg({hdeal:0,max:8},8,true)!==null)fail('bj fixCfg strict refuses');
+ const f=G2.fixCfg({hdeal:0,max:8},8,false);if(f.hdeal!==1||f.max!==8)fail('bj fixCfg loads with human dealer');
+ if(G2.fixCfg({hdeal:1,max:8},8,true).max!==8)fail('bj fixCfg keeps 8 with human dealer')}
+// 7명(봇 딜러)·8명(사람 딜러)도 끝까지
+playOutB(7,{rounds:3,hdeal:0,chips:200,max:7},[1,0,2]);
+playOutB(8,{rounds:3,hdeal:1,chips:200,max:8},[1,0,2]);
