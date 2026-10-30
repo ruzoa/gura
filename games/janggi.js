@@ -880,7 +880,7 @@ function j3Marks(){
    잡은 알은 판 옆(넓은 화면) 또는 판 앞뒤(좁은 화면) 중 판이 더 크게 보이는 쪽.
    상차림 단추(.jg-su)는 내 쪽 판 끝에 걸침(가운데가 판 끝선). 판을 줄이지 않게 고르는 동안은 내 이름 칸을 숨기고 단추 아래 시간 선으로 남은 시간을 보여 줌 */
 function tvBox(r){
-  const W=r.clientWidth,Hh=r.clientHeight;r.classList.toggle('wide',W>Hh);
+  const W=r.clientWidth,Hh=r.clientHeight;r.classList.toggle('wide',W>Hh||W>=700);   // 가로 화면, 또는 폭 700px 이상의 2명 판: 안내 줄을 왼쪽 위 구석으로 빼서 위 칸이 맨 위 줄로 (위아래 여백을 칸 한 줄만큼으로)
   const narrow=W<700,bar=r.querySelector('.jg-bar'),mb=r.querySelector('.jg-mebar');
   const R=Math.max(bar.offsetTop+bar.offsetHeight+CHIP_GAP,(narrow?70:14)+(mb.offsetHeight||26)+CHIP_GAP),m=narrow?8:16;
   return {fw:W-2*m,fh:Hh-2*R,cy:Hh/2,R};

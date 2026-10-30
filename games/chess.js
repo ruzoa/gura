@@ -1156,7 +1156,7 @@ function ch3Layout(t){
   if(t-Ch3.layAt<100&&Ch3.lay)return false;
   Ch3.layAt=t;
   const st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight;if(!W||!Hh||!V||!V.c)return false;
-  elCh.classList.toggle('wide',W>Hh);   // 가로 화면: 안내 줄을 왼쪽 위 구석으로 빼서 위 칸이 맨 위 줄로 (판 자리가 위로 넓어짐)
+  elCh.classList.toggle('wide',W>Hh||W>=700);   // 가로 화면, 또는 폭 700px 이상의 2명 판: 안내 줄을 왼쪽 위 구석으로 빼서 위 칸이 맨 위 줄로 (위아래 여백을 칸 한 줄만큼으로)
   const sr=st.getBoundingClientRect(),bd=elCh.querySelector('.ch-bd').getBoundingClientRect();
   const base=[W,Hh].join(',');
   if(Ch3.topBase!==base){Ch3.topBase=base;Ch3.topMax=0}
