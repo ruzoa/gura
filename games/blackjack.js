@@ -553,7 +553,7 @@ const betPos=i=>atA(SPOTS.get(i)||0,R_BET);
 const rimPos=i=>atA(SPOTS.get(i)||0,4.3);   // 그 사람 쪽 탁자 가장자리: 칩이 날아오는 곳
 
 /* ---------- 3D ---------- */
-const V3={toBet:0,toBank:0,pend:null,knocks:[],cards:new Map(),flights:[],piles:new Map(),bank:null,dstack:null,ringsKey:'',rings:[],myRing:null,betArc:null,arcQ:-1,root:null,rootFL:0,shoe:null,disc:null,sf:-1,rd:-1,settled:-1,landed:new Set(),felt:{},mats:null,bounceAt:-1e9};
+const V3={toBet:0,toBank:0,pend:null,knocks:[],cards:new Map(),flights:[],piles:new Map(),bank:null,dstack:null,ringsKey:'',rings:[],myRing:null,betArc:null,root:null,rootFL:0,shoe:null,disc:null,sf:-1,rd:-1,settled:-1,landed:new Set(),felt:{},mats:null,bounceAt:-1e9};
 function chipMats(){
   if(V3.mats)return V3.mats;
   const geo=new THREE.CylinderGeometry(CHIP_R,CHIP_R,CHIP_H,28);
@@ -784,7 +784,7 @@ function buildRoot(){
   killG(V3.dstack);V3.dstack=null;
 }
 function stackH(m,frac,base){const h=Math.max(.004,frac*.34);m.scale.y=h;m.position.y=base+h/2;m.visible=frac>0}
-/* 베팅 칸 동그라미: 걸기 전 점선(흰색) → 걸면 실선(내 칸은 금색). 내가 걸 차례면 베팅할 칩 공간에 금색 점선 고리가 따로 하나 더(숨 쉬듯 밝아지고 시간 고리가 두름) */
+/* 베팅한 칩 공간 동그라미: 걸기 전 점선(흰색) → 걸면 실선(내 칸은 금색). 베팅할 칩 공간에는 표시가 없고(투명한 누르는 자리만), 더블할 수 있을 때만 금색 점선 고리 */
 function ringMesh(r0,r1,col,op,dashed){
   const g=new THREE.Group(),mat=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false});
   const N=dashed?14:1,seg=Math.PI*2/N;
@@ -793,7 +793,7 @@ function ringMesh(r0,r1,col,op,dashed){
 }
 function syncRings(B){
   const me=myIdx(),bet=i=>(B.bt[i]||0)>0&&!(V3.piles.get(i)||{}).flying;
-  const pendOn=me>=0&&SPOTS.has(me)&&pendCounts(B,me)&&!MEDL;   // 걸 때, 그리고 내 차례 처음 두 장에서 더블할 수 있을 때
+  const pendOn=me>=0&&SPOTS.has(me)&&B.ph==='turn'&&pendCounts(B,me)&&!MEDL;   // 내 차례 처음 두 장에서 더블할 수 있을 때만(걸 때는 표시 없이 투명한 누르는 자리만)
   const key=[...SPOTS].map(([i,a])=>i+':'+a.toFixed(3)+':'+(bet(i)?1:0)).join(',')+'|'+ROT.toFixed(3)+'|'+(pendOn?1:0);
   if(V3.ringsKey===key)return;V3.ringsKey=key;
   V3.rings.forEach(killG);V3.rings=[];V3.myRing=null;
@@ -807,16 +807,20 @@ function syncRings(B){
     g.position.set(p.x,.021,p.z);T.scene.add(g);V3.rings.push(g);V3.myRing=g;
   }
 }
-/* 베팅 시간: 내 베팅할 칩 공간 둘레에 남은 시간 고리(줄어듦) + 그 칸이 숨 쉬듯 밝아짐 */
+/* 베팅 시간: 내 베팅한 칩 공간 아래(내 쪽)에 남은 시간 바(오른쪽부터 줄어듦, 1/4 남으면 빨강). 걸기 전에만 */
+const BAR_W=.7,BAR_H=.05,BAR_DZ=.42;
 function betTimer(now){
-  const B=BV(),on=!!(B&&V3.myRing&&myMode()==='bet'&&!busy()&&!dealingV());
-  if(V3.myRing)V3.myRing.userData.mat.opacity=on?.6+.35*Math.sin(now/180):.9;
+  const B=BV(),me=myIdx(),on=!!(B&&me>=0&&SPOTS.has(me)&&!MEDL&&myMode()==='bet'&&!busy()&&!dealingV());
   if(!on){if(V3.betArc)V3.betArc.visible=false;return}
-  const frac=Math.max(0,Math.min(1,(V.deadAt-now)/((+V.cfg.turn||20)*1000))),q=Math.round(frac*200)/200;
-  if(!V3.betArc){V3.betArc=new THREE.Mesh(new THREE.RingGeometry(.31,.35,64),new THREE.MeshBasicMaterial({color:0xf2b632,side:THREE.DoubleSide,transparent:true,depthWrite:false}));V3.betArc.rotation.x=-Math.PI/2;T.scene.add(V3.betArc);V3.arcQ=-1}
-  if(q!==V3.arcQ){V3.arcQ=q;V3.betArc.geometry.dispose();V3.betArc.geometry=new THREE.RingGeometry(.31,.35,64,1,Math.PI/2,Math.max(.001,q*Math.PI*2))}
-  const p=pendPos();V3.betArc.position.set(p.x,.023,p.z);V3.betArc.visible=true;
-  V3.betArc.material.color.set(frac<.25?0xcc3a2e:0xf2b632);
+  const frac=Math.max(0,Math.min(1,(V.deadAt-now)/((+V.cfg.turn||20)*1000)));
+  if(!V3.betArc){
+    const g=new THREE.Group(),flat=(w,col,op,y)=>{const geo=new THREE.PlaneGeometry(w,BAR_H);geo.translate(w/2,0,0);const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.y=y;g.add(m);return m};
+    g.userData.track=flat(BAR_W,0x1a1512,.45,0);g.userData.fill=flat(BAR_W,0xf2b632,.95,.002);
+    T.scene.add(g);V3.betArc=g;
+  }
+  const bp=betPos(me),g=V3.betArc,f=g.userData.fill;
+  g.position.set(bp.x-BAR_W/2,.024,bp.z+BAR_DZ);g.visible=true;
+  f.scale.x=Math.max(.001,frac);f.material.color.set(frac<.25?0xcc3a2e:0xf2b632);
 }
 function clear3D(){
   for(const e of V3.cards.values())killCard(e.g);V3.cards.clear();
