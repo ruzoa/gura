@@ -102,7 +102,7 @@ function newRound(){
     let d=-1;for(let k=1;k<=n;k++){const j=((B.dl<0?-1:B.dl)+k+n)%n;if(alive(j)){d=j;break}}
     B.dl=d;
   }
-  B.order=seatOrder();
+  B.order=seatOrder();B.seats=B.order.slice();   // 화면 자리는 판 시작 때 순서로 고정(베팅 중 누가 나가도 다시 나누지 않음)
   B.disc+=B.dc.length+B.hc.reduce((a,h)=>a+h.length,0);   // 지난 판 카드는 버린 더미로
   Object.assign(B,{bt:Array(n).fill(0),hc:Array.from({length:n},()=>[]),st:Array(n).fill(0),db:Array(n).fill(0),rs:null,dc:[],dr:0,ph:'bet',nextAt:0,auto:false,stop:false,shufRd:0,botAt:Array(n).fill(0)});
   B.order.forEach(i=>{if(H.players[i].bot)B.botAt[i]=t+rand(700,2400)});
@@ -360,7 +360,7 @@ G.engine={
     const B=H.bj;if(!B)return;
     s.gr=0;s.dl=Math.max(0,Math.round(H.deadline-t));
     const dc=B.dc.slice();if(!B.dr&&!(B.hd&&you>=0&&you===B.dl)&&dc.length>1)dc[1]=-1;   // 엎은 카드는 사람 딜러 본인만 봄
-    s.bj={ph:B.ph,rd:B.rd,rds:B.rds,hd:B.hd?1:0,dl:B.dl,ch:B.ch.slice(),bt:B.bt.slice(),hc:B.hc.map(h=>h.slice()),st:B.st.slice(),db:B.db.slice(),dc,dr:B.dr,rs:B.rs?B.rs.slice():null,od:B.order.slice(),sq:B.sq,sh:B.shoe.length,ds:B.disc,tot:52*B.dk,sf:B.sf,sr:B.shufRd===B.rd?1:0};
+    s.bj={ph:B.ph,rd:B.rd,rds:B.rds,hd:B.hd?1:0,dl:B.dl,ch:B.ch.slice(),bt:B.bt.slice(),hc:B.hc.map(h=>h.slice()),st:B.st.slice(),db:B.db.slice(),dc,dr:B.dr,rs:B.rs?B.rs.slice():null,od:B.order.slice(),so:(B.seats||B.order).slice(),sq:B.sq,sh:B.shoe.length,ds:B.disc,tot:52*B.dk,sf:B.sf,sr:B.shufRd===B.rd?1:0};
     // 베팅은 모두 동시에: 아직 안 건 사람에게는 자기 차례로 보냄 (제한 시간·내 차례 표시)
     if(B.ph==='bet'&&you>=0&&B.order.includes(you)&&!B.bt[you]&&alive(you))s.t=you;
     else if(H.turn>=0&&H.phase==='play')s.t=H.turn;
@@ -375,7 +375,7 @@ G.engine={
 };
 
 /* ================= 화면 (모든 참가자) =================
-   탁자는 둥근 그대로 두고 펠트에 블랙잭 무늬를 덮어 그림: 딜러는 맞은편, 거는 사람의 자리는 딜러를 둘러싼 부채꼴(가운데가 나, 폭은 화면과 상관없이 고정).
+   탁자는 둥근 그대로 두고 펠트에 블랙잭 무늬를 덮어 그림: 딜러는 맞은편, 거는 사람은 180°를 인원 수로 나눈 자리(배치를 돌려 내 자리가 늘 내 앞).
    합계는 카드 위가 아니라 베팅 칸 아래 작은 표(나는 내 정보 칸)
    베팅: 내 앞의 칩 더미(10·50·100·500)의 맨 위 칩을 누르면 한 개가 베팅할 칩 공간으로 날아가고, 그 공간을 누르면 마지막에 올린 칩이 돌아옴 → [베팅]으로 확정하면 베팅한 칩 공간(베팅 칸)으로 옮겨져 누를 수 없음 */
 let ON=false,elTags=null,elBet=null,el2d=null,sentSq=-1,pend=[];
@@ -506,8 +506,8 @@ const wrapA=a=>{while(a>Math.PI)a-=2*Math.PI;while(a<=-Math.PI)a+=2*Math.PI;retu
 const atC=(a,r)=>({x:Math.sin(a)*r,z:Math.cos(a)*r});   // 돌리기 전 (a = 아래 가운데에서 오른쪽으로 잰 각도)
 const atA=(a,r)=>M(atC(a,r));
 const faceA=i=>wrapA((SPOTS.get(i)||0)+ROT)*.3;   // 카드·칩이 놓이는 기울기: 내 쪽을 보도록 조금만 (모서리 숫자가 읽히게)
-/* 딜러 쪽 물건: 딜러 카드 자리에서 탁자 가운데 쪽(+)·바깥쪽(−)으로 off만큼 */
-function dealerAt(off){const c=M({x:0,z:DEALER_Z}),d=Math.hypot(c.x,c.z)||1;return {x:c.x-c.x/d*off,z:c.z-c.z/d*off}}
+/* 딜러 카드 줄에서 화면 아래(+)·위(−)로 off만큼. 딜러 카드는 늘 나를 향해 가로로 놓이므로 반지름 방향이 아니라 화면 위아래로 비켜야 카드와 안 겹침(내가 딜러면 앞뒤가 반대) */
+function dealerAt(off){const c=M({x:0,z:DEALER_Z});return {x:c.x,z:c.z+(MEDL?-off:off)}}
 /* 자리마다 각도: 카드 받는 순서(B.od)대로 오른쪽 끝에서 시계 방향, 180°를 거는 사람 수로 똑같이 나눔 */
 function spotAngles(od){
   const n=od.length,st=Math.PI/Math.max(1,n),out=new Map();
@@ -516,14 +516,14 @@ function spotAngles(od){
 }
 let SPOTS=new Map(),spotKey='',SC={me:S_ME,ot:S_OT};
 function layout(B){
-  const me=myIdx(),spots=spotAngles(B.od);
+  const me=myIdx(),so=B.so||B.od,spots=spotAngles(so);
   MEDL=!!(B.hd&&me>=0&&B.dl===me);
   ROT=MEDL?Math.PI:(spots.has(me)?-spots.get(me):0);
-  const key=B.od.join(',')+'|'+me+'|'+ROT.toFixed(3)+'|'+V.ps.length;   // 화면 크기는 배치에 쓰지 않음
+  const key=so.join(',')+'|'+me+'|'+ROT.toFixed(3)+'|'+V.ps.length;   // 화면 크기는 배치에 쓰지 않음
   if(key!==spotKey){
     spotKey=key;SPOTS=spots;
     // 카드 크기는 고정(나 0.8·다른 사람 0.65), 자리가 좁을 때만 이웃 손과 안 겹치게 줄임 (손 폭 ≈ 카드 1.45장)
-    const sp=Math.PI/Math.max(1,B.od.length)*R_HAND,u=CW*1.45;
+    const sp=Math.PI/Math.max(1,so.length)*R_HAND,u=CW*1.45;
     SC.ot=Math.min(S_OT,Math.max(.42,sp/u*.95));SC.me=Math.min(S_ME,Math.max(SC.ot,2*sp/u*.95-SC.ot));
     V3.ringsKey='';
   }
@@ -699,9 +699,11 @@ function cardStep(e,now){
 }
 /* ---------- 펠트 무늬·딜러 쪽 물건 ---------- */
 function feltTex(){
-  const fk=ROT.toFixed(2);if(V3.felt[fk])return V3.felt[fk];
+  const fk=ROT.toFixed(2);if(V3.felt.k===fk)return V3.felt.tex;
+  const old=V3.felt.tex;if(old)setTimeout(()=>old.dispose(),0);   // 지난 각도 그림은 버림(새 그림으로 바뀐 뒤)
+  V3.felt.k=fk;
   const W=1024,R=FELT_R1,k=W/(2*R);   // 커진 펠트 크기 기준으로 그림(천 확대)
-  return V3.felt[fk]=canvasTex(W,W,(g,w,h)=>{
+  return V3.felt.tex=canvasTex(W,W,(g,w,h)=>{
     const gr=g.createRadialGradient(w/2,h/2,80,w/2,h/2,w/2);gr.addColorStop(0,'#5aa877');gr.addColorStop(1,'#3a8257');g.fillStyle=gr;g.fillRect(0,0,w,h);
     // 월드 좌표(x, z)로 그림: 원통 윗면 UV는 u←z, v←x. 글자는 넣지 않고 딜러 쪽 금색 두 줄 선만
     g.setTransform(0,-k/100,k/100,0,w/2,h/2);
@@ -938,7 +940,7 @@ function seatTags(B){
     if(x.dataset.h!==h){x.innerHTML=h;x.dataset.h=h}
     const dlr=on3&&B.hd&&i===B.dl;   // 사람 딜러의 이름표는 딜러 카드 위(맞은편)
     if(on3&&(SPOTS.has(i)||dlr)){
-      const q=dlr?dealerAt(-.95):atA(SPOTS.get(i),R_PILL),sg=dlr?(Math.abs(wrapA(ROT))>Math.PI/2?-1:1):(q.z>=0?1:-1);v3.set(q.x,.03,q.z).project(T.cam);
+      const q=dlr?dealerAt(-.95):atA(SPOTS.get(i),R_PILL),sg=dlr?(MEDL?-1:1):(q.z>=0?1:-1);v3.set(q.x,.03,q.z).project(T.cam);
       const w=el.offsetWidth,h=el.offsetHeight;   // 베팅 칸 바깥쪽(가까운 쪽 자리는 화면 아래, 먼 쪽 자리는 화면 위)으로 붙임
       put.push({el,w,h,x:Math.max(w/2+6,Math.min(W-w/2-6,(v3.x+1)/2*W)),y:(1-v3.y)/2*Hh+(sg>0?h/2-10:-h/2+10),sg});
     }
