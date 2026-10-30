@@ -429,7 +429,7 @@ G.engine={
 /* ---------- 화면 (모든 참가자) ----------
    2D(SVG)와 3D(공통 테이블 가운데 장기판 + 팔각 알)는 같은 상태(CS)를 보고 그림. 한을 잡으면 판을 돌려 내 기물이 늘 아래, 글자는 늘 내 쪽에서 바로 읽힘 */
 let CS=null,sel=-1,pend=null,suSel=-1,msg='',msgUntil=0,msgTimer=null,flash=null,popOpen=false;   // sel: 고른 내 기물 점, pend: 미리 보기 수 {m,from,to}, suSel: 고른 상차림(미리 보기)
-let elJg=null,elSvg=null,elMain=null,elGhost=null,elBar=null,elBarMe=null,elHint=null,elModes=null,lastBoard='',lastBar='',lastHint='',lastModes='';
+let elSu=null,lastSu='',elJg=null,elSvg=null,elMain=null,elGhost=null,elBar=null,elBarMe=null,elHint=null,elModes=null,lastBoard='',lastBar='',lastHint='',lastModes='';
 const OC={at:0,mk:'',ms:{ok:[],bad:[]}};   // OC.at: 상태를 받은 시각, ms: 내가 둘 수 있는 수(ok)·반복 금수(bad)
 const NOMS={ok:[],bad:[]};
 function buildS(c){
@@ -543,13 +543,12 @@ const SZ={1:.36,2:.36,3:.45,4:.45,5:.45,6:.45,7:.54};   // 판 한 칸(점 사�
 const INKC=['#17684f','#b5241b'];
 const FONT='"Noto Serif KR","Noto Serif CJK KR","Source Han Serif K","Nanum Myeongjo","Batang","AppleMyungjo",serif';
 function octPts(cx,cy,r){const o=[];for(let k=0;k<8;k++){const a=Math.PI/8+k*Math.PI/4;o.push((cx+r*Math.cos(a)).toFixed(3)+','+(cy+r*Math.sin(a)).toFixed(3))}return o.join(' ')}
-function pieceSvg(t,col,cx,cy,r,op){
-  const ch=HJ[col][t],fs=r*(t===JANG?1.02:1.1);
-  return `<g${op!=null&&op<1?` opacity="${op}"`:''}><polygon points="${octPts(cx,cy+r*.06,r)}" fill="#a88a5a"/><polygon points="${octPts(cx,cy,r)}" fill="#f1e3c2" stroke="#5a4028" stroke-width="${(r*.07).toFixed(3)}" stroke-linejoin="round"/><polygon points="${octPts(cx,cy,r*.8)}" fill="none" stroke="${INKC[col]}" stroke-width="${(r*.05).toFixed(3)}" opacity=".7"/><text x="${cx}" y="${cy+fs*.04}" font-size="${fs.toFixed(3)}" fill="${INKC[col]}" text-anchor="middle" dominant-baseline="central" font-family='${FONT}' font-weight="${col?600:800}"${col?'':` transform="skewX(-8)" transform-origin="${cx} ${cy}"`}>${ch}</text></g>`;
+function pieceSvg(t,col,cx,cy,r,op,down){   // down: 글자를 거꾸로 (상대 알)
+  const ch=HJ[col][t],fs=r*(t===JANG?1.02:1.1),tf=`translate(${cx} ${cy})${down?' rotate(180)':''}${col?'':' skewX(-8)'}`;
+  return `<g${op!=null&&op<1?` opacity="${op}"`:''}><polygon points="${octPts(cx,cy+r*.06,r)}" fill="#a88a5a"/><polygon points="${octPts(cx,cy,r)}" fill="#f1e3c2" stroke="#5a4028" stroke-width="${(r*.07).toFixed(3)}" stroke-linejoin="round"/><polygon points="${octPts(cx,cy,r*.8)}" fill="none" stroke="${INKC[col]}" stroke-width="${(r*.05).toFixed(3)}" opacity=".7"/><text x="0" y="${(fs*.04).toFixed(3)}" transform="${tf}" font-size="${fs.toFixed(3)}" fill="${INKC[col]}" text-anchor="middle" dominant-baseline="central" font-family='${FONT}' font-weight="${col?600:800}">${ch}</text></g>`;
 }
-const pieceIcon=(t,col,px)=>`<svg viewBox="0 0 1 1" width="${px}" height="${px}" aria-hidden="true">${pieceSvg(t,col,.5,.47,.44)}</svg>`;
-/* 상차림 단추 그림: 자기 쪽에서 본 왼쪽부터 마·상 네 알 */
-function setupIcon(v,col){const s=SETUPS[v];return `<svg viewBox="0 0 4.4 1.1" width="64" height="16" aria-hidden="true">${s.map((t,k)=>pieceSvg(t,col,.55+k*1.1,.52,.48)).join('')}</svg>`}
+/* 상차림 단추: 자기 쪽에서 본 왼쪽부터 읽는 이름 (마상마상 …) */
+const suBtns=()=>SU_NAME.map((n,v)=>`<button type="button" class="jg-m su${suSel===v?' on':''}" data-su="${v}" aria-pressed="${suSel===v}">${n}</button>`).join('');
 
 /* ----- 2D (SVG): 점 사이 = 1, 판은 (0,0)~(8,9) ----- */
 const dXY=i=>{const x=X(i),y=Y(i);return flipped()?[8-x,y]:[x,9-y]};
@@ -579,7 +578,7 @@ function boardHTML(){
   if(sel>=0)hl(sel,'#6fbf5a',.55);
   if(flash&&clock()-flash.at<700)for(const s of flash.sq)hl(s,'#d6342a',.6);
   const capSq=pend&&p.b[pend.to]?pend.to:-1;
-  for(let sq=0;sq<N;sq++){const v=p.b[sq];if(!v||sq===capSq)continue;const [x,y]=dXY(sq);out.push(pieceSvg(v&7,v>>3,x,y,SZ[v&7],pend&&pend.from===sq?.35:1))}
+  for(let sq=0;sq<N;sq++){const v=p.b[sq];if(!v||sq===capSq)continue;const [x,y]=dXY(sq);out.push(pieceSvg(v&7,v>>3,x,y,SZ[v&7],pend&&pend.from===sq?.35:1,(v>>3)!==viewCol()))}
   if(sel>=0&&!pend){
     for(const m of movesFrom(sel)){const t=mT(m),[x,y]=dXY(t);if(p.b[t])out.push(`<circle cx="${x}" cy="${y}" r=".5" fill="none" stroke="rgba(30,30,30,.45)" stroke-width=".08"/>`);else out.push(`<circle cx="${x}" cy="${y}" r=".14" fill="rgba(30,30,30,.36)"/>`)}
     for(const m of badFrom(sel)){const [x,y]=dXY(mT(m));out.push(`<path d="M${x-.2} ${y-.2}L${x+.2} ${y+.2}M${x+.2} ${y-.2}L${x-.2} ${y+.2}" stroke="#d6342a" stroke-width=".1" stroke-linecap="round"/>`)}
@@ -636,7 +635,7 @@ function hintText(){
 function modesHTML(){
   if(!V||!V.c||!CS||V.st!=='play')return '';
   const out=[],me=myIdx();
-  if(mySetTurn()){const col=myCol();for(let v=0;v<4;v++)out.push(`<button type="button" class="jg-m su${suSel===v?' on':''}" data-su="${v}" aria-pressed="${suSel===v}" aria-label="${SU_NAME[v]}">${setupIcon(v,col)}</button>`)}
+  if(mySetTurn()&&!Jg3.on)out.push(suBtns());
   if(me>=0&&me<2&&CS.ph==='play'&&CS.dr===1-me)out.push(`<button type="button" class="jg-m dr" data-dr="1">점수 계산 받기</button>`);
   return out.join('');
 }
@@ -644,6 +643,7 @@ function drawHint(){
   if(!elHint)return;
   const h=hintText();if(h!==lastHint){elHint.textContent=h;lastHint=h}
   const m=modesHTML();if(m!==lastModes){elModes.innerHTML=m;lastModes=m}
+  const u=mySetTurn()&&Jg3.on?suBtns():'';if(u!==lastSu){elSu.innerHTML=u;lastSu=u}
 }
 function fit(){
   if(!elJg||elJg.hidden)return;
@@ -660,7 +660,8 @@ function drawAll(){
 
 /* ---------- 3D: 공통 원목 테이블 가운데 장기판 + 팔각 알, 거의 바로 위에서 보는 자기 카메라 ----------
    단위: 월드 그대로. 점 사이 S. 내 쪽 끝 줄이 화면 아래(+z). 잡은 기물은 판 옆(넓은 화면: 내가 잡은 것 오른쪽, 상대가 잡은 것 왼쪽) 또는 앞뒤(좁은 화면) */
-const S=.46,HX=4*S,HZ=4.5*S,MG=.36,BX=HX+MG,BZ=HZ+MG,TOP=.15,GS=.62;
+const S=.46,HX=4*S,HZ=4.5*S,BX=HX+.36,BZ=HZ+.62,TOP=.15,PY=TOP+.012,GS=.62;   // 앞뒤 여백이 넓음: 내 쪽 끝 줄 아래 나무 띠에 상차림 단추. PY: 알 바닥(판 윗면·표시 원보다 위)
+const GY=()=>T.felt&&T.felt.mat?T.felt.mat.position.y+.013:.02;   // 잡은 알 바닥: 탁자 천 윗면 위
 const PR={1:.165,2:.165,3:.205,4:.205,5:.205,6:.205,7:.25},PHT={1:.075,2:.075,3:.09,4:.09,5:.09,6:.09,7:.105};   // 알 반지름(꼭짓점까지)·두께: 장 > 차·포·마·상 > 사·졸
 const Jg3={on:false,built:false,fail:false,root:null,cam:null,dirty:true,lastR:0,lay:'',layAt:0,d:12,layout:'h',pcs:new Map(),grave:[[],[]],anim:[],flipT:null,mvN:-1,suK:'',ph:''};
 const ease=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
@@ -708,7 +709,7 @@ function geoOf(t){
   if(GEO[t])return GEO[t];
   const r=PR[t],h=PHT[t],o=r*.08;
   const body=new THREE.CylinderGeometry(r*.88,r,h,8,1,false,Math.PI/8);body.translate(0,h/2,0);
-  const ink=new THREE.CylinderGeometry(r*.88+o,r+o,h+o*.8,8,1,false,Math.PI/8);ink.translate(0,h/2,0);
+  const ink=new THREE.CylinderGeometry(r*.88+o,r+o,h+o*.5,8,1,false,Math.PI/8);ink.translate(0,(h+o*.5)/2,0);
   return GEO[t]={body,ink};
 }
 const INK=()=>MAT.ink||(MAT.ink=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide}));
@@ -719,8 +720,10 @@ function matsOf(t,col,ghost){
   const side=MAT.side||(MAT.side=toon({color:0xd2b986,rim:.1}));
   return MAT[k]=[side,toon({map:faceTex(t,col),rim:.04}),side];
 }
-/* 알 하나: 글자가 내 쪽에서 바로 읽히게 돌림 (윗면 무늬는 로컬 +x가 위쪽이라 화면 위(-z)로 맞춤) */
-const orient=g=>{g.userData.body.rotation.y=Jg3.flipT?-Math.PI/2:Math.PI/2};
+/* 알 하나: 실제 판처럼 각자 자기 쪽에서 바로 읽힘 — 내 알은 바로, 상대 알은 거꾸로, 잡은 알은 잡은 사람 쪽으로.
+   윗면 무늬는 로컬 +x가 글자 위쪽: y축 +90°면 화면 위(-z), -90°면 화면 아래. 카메라는 늘 같은 쪽에서 보고 판을 뒤집을 때는 알 자리만 바꿈(pW) */
+const viewCol=()=>{const c=myCol();return c<0?0:c};   // 관전자는 초 쪽에서 봄
+const orient=g=>{const u=g.userData,up=u.grave?u.col!==viewCol():u.col===viewCol();u.body.rotation.y=up?Math.PI/2:-Math.PI/2};
 function pieceMesh(t,col,ghost){
   const G3=geoOf(t),g=new THREE.Group();
   const body=new THREE.Mesh(G3.body,matsOf(t,col,ghost));body.castShadow=!ghost;body.receiveShadow=!ghost;g.add(body);
@@ -775,8 +778,8 @@ function j3Build(){
 /* 잡은 기물 자리: k 0 = 내가 잡은 것, 1 = 상대가 잡은 것 (알을 눕혀 작게) */
 function graveXZ(k,i){
   const sg=k?-1:1;
-  if(Jg3.layout==='h')return [sg*(BX+.28+(i%2)*.4),sg*(HZ-.12-Math.floor(i/2)*.46)];
-  return [-sg*(HX-.08-(i%8)*.46),sg*(BZ+.28+Math.floor(i/8)*.42)];
+  if(Jg3.layout==='h')return [sg*(BX+.26+(i%2)*.4),sg*(HZ-.12-Math.floor(i/2)*.46)];
+  return [-sg*(HX-.08-(i%8)*.46),sg*(BZ+.24+Math.floor(i/8)*.42)];
 }
 /* 바로 시작: 판은 그대로, 지금 알을 처음 자리로 미끄러져 모음(같은 종류·색 중 가까운 것끼리). 마·상은 상차림을 다시 하므로 판에서 들어 올려 치움 */
 const GLIDE=420;
@@ -788,10 +791,10 @@ function regather(p){
     const v=p.b[sq];if(!v)continue;
     const [x,z]=pW(sq);let best=null,bd=1e9;
     for(const g of pool){if(used.has(g)||g.userData.t!==(v&7)||g.userData.col!==(v>>3))continue;const d=Math.hypot(g.position.x-x,g.position.z-z);if(d<bd){bd=d;best=g}}
-    if(!best){best=pieceMesh(v&7,v>>3);best.position.set(x,TOP+1,z);best.visible=false;Jg3.pg.add(best)}
-    used.add(best);Jg3.pcs.set(sq,best);orient(best);
-    const [a]=pieceAt(v&7,sq,true),g=best,y0=g.userData.grave?0:g.visible?g.position.y:TOP+1;g.userData.grave=0;
-    Jg3.anim.push({obj:g,t0:IN.t0+a,dur:GLIDE,x0:g.position.x,z0:g.position.z,x1:x,z1:z,lift:Math.hypot(g.position.x-x,g.position.z-z)>.05?.3:0,s0:g.scale.x,s1:1,y0,y1:TOP,show:1,flat0:g.rotation.x});
+    if(!best){best=pieceMesh(v&7,v>>3);best.position.set(x,PY+1,z);best.visible=false;Jg3.pg.add(best)}
+    used.add(best);Jg3.pcs.set(sq,best);
+    const [a]=pieceAt(v&7,sq,true),g=best,y0=g.userData.grave?GY():g.visible?g.position.y:PY+1;g.userData.grave=0;orient(g);
+    Jg3.anim.push({obj:g,t0:IN.t0+a,dur:GLIDE,x0:g.position.x,z0:g.position.z,x1:x,z1:z,lift:Math.hypot(g.position.x-x,g.position.z-z)>.05?.3:0,s0:g.scale.x,s1:1,y0,y1:PY,show:1});
   }
   const now=clock();
   for(const g of pool)if(!used.has(g)){Jg3.anim.push({obj:g,t0:now,dur:360,x0:g.position.x,z0:g.position.z,x1:g.position.x,z1:g.position.z,y0:g.position.y,y1:g.position.y+1.4,s0:g.scale.x,s1:.01,gone:1})}
@@ -820,11 +823,11 @@ function j3Sync(){
   let drop=0;
   for(const [sq,v] of want){
     if(Jg3.pcs.has(sq))continue;
-    const g=pieceMesh(v&7,v>>3),[x,z]=pW(sq);g.position.set(x,TOP,z);Jg3.pg.add(g);Jg3.pcs.set(sq,g);
+    const g=pieceMesh(v&7,v>>3),[x,z]=pW(sq);g.position.set(x,PY,z);Jg3.pg.add(g);Jg3.pcs.set(sq,g);
     if(n===0&&!IN.on3d&&Jg3.mvN===0&&((v&7)===MA||(v&7)===SANG)){   // 상차림: 위에서 차례로 내려앉음
-      const t0=now+drop*110;g.visible=false;g.position.y=TOP+1;Jg3.anim.push({obj:g,t0,dur:330,x0:x,z0:z,x1:x,z1:z,y0:TOP+1,y1:TOP,show:1,fall:1});sndLand(2,(t0-now)/1000+.24);drop++}
+      const t0=now+drop*110;g.visible=false;g.position.y=PY+1;Jg3.anim.push({obj:g,t0,dur:330,x0:x,z0:z,x1:x,z1:z,y0:PY+1,y1:PY,show:1,fall:1});sndLand(2,(t0-now)/1000+.24);drop++}
   }
-  for(const [sq,g] of Jg3.pcs)if(!Jg3.anim.some(a=>a.obj===g)){const [x,z]=pW(sq);g.position.set(x,TOP,z)}
+  for(const [sq,g] of Jg3.pcs)if(!Jg3.anim.some(a=>a.obj===g)){const [x,z]=pW(sq);g.position.set(x,PY,z)}
   for(const k of [0,1]){   // 잡은 알
     const seat=k?1-me:me,list=(c.cp[seat]||[]).slice(),gs=Jg3.grave[k],col=c.co[seat]^1;
     while(gs.length>list.length)Jg3.pg.remove(gs.pop());
@@ -833,10 +836,10 @@ function j3Sync(){
       if(g&&g.userData.t!==list[i]){Jg3.pg.remove(g);g=null}
       const [x,z]=graveXZ(k,i);
       if(!g){
-        if(capMesh&&i===list.length-1&&capMesh.userData.col===col&&capMesh.userData.t===list[i]){g=capMesh;capMesh=null;Jg3.anim.push({obj:g,t0:now+120,dur:420,x0:g.position.x,z0:g.position.z,x1:x,z1:z,lift:.5,s0:g.scale.x,s1:GS})}
-        else{g=pieceMesh(list[i],col);g.scale.setScalar(GS);g.position.set(x,0,z);Jg3.pg.add(g)}
+        if(capMesh&&i===list.length-1&&capMesh.userData.col===col&&capMesh.userData.t===list[i]){g=capMesh;capMesh=null;g.userData.grave=1;orient(g);Jg3.anim.push({obj:g,t0:now+120,dur:420,x0:g.position.x,z0:g.position.z,x1:x,z1:z,y0:g.position.y,y1:GY(),lift:.5,s0:g.scale.x,s1:GS})}
+        else{g=pieceMesh(list[i],col);g.userData.grave=1;orient(g);g.scale.setScalar(GS);g.position.set(x,GY(),z);Jg3.pg.add(g)}
         gs[i]=g;g.userData.grave=1;
-      }else if(!Jg3.anim.some(a=>a.obj===g))g.position.set(x,0,z);
+      }else if(!Jg3.anim.some(a=>a.obj===g))g.position.set(x,GY(),z);
     }
   }
   if(capMesh)Jg3.pg.remove(capMesh);
@@ -858,53 +861,48 @@ function j3Marks(){
   for(const m of bs)if(xi<Jg3.xs.length)put(Jg3.xs[xi++],mT(m));
   for(;di<Jg3.dots.length;di++)Jg3.dots[di].visible=false;for(;ri<Jg3.rings.length;ri++)Jg3.rings[ri].visible=false;for(;xi<Jg3.xs.length;xi++)Jg3.xs[xi].visible=false;
   const capSq=pend&&CS.p.b[pend.to]?pend.to:-1;
-  for(const [sq,g] of Jg3.pcs){if(Jg3.anim.some(a=>a.obj===g))continue;const up=sq===sel&&!introWait();const y=TOP+(up?.1:0);if(g.position.y!==y){g.position.y=y;Jg3.dirty=true}
+  for(const [sq,g] of Jg3.pcs){if(Jg3.anim.some(a=>a.obj===g))continue;const up=sq===sel&&!introWait();const y=PY+(up?.1:0);if(g.position.y!==y){g.position.y=y;Jg3.dirty=true}
     g.visible=!(pend&&(pend.from===sq||capSq===sq))}
   if(pend){
     const v=pcAt(pend.from),key=(v&7)+'|'+(v>>3)+'|'+Jg3.flipT;
     if(Jg3.ghost.userData.k!==key){Jg3.ghost.clear();const gm=pieceMesh(v&7,v>>3,true);gm.traverse(o=>{o.renderOrder=6});Jg3.ghost.add(gm);Jg3.ghost.userData.k=key}
-    const [x,z]=pW(pend.to);Jg3.ghost.position.set(x,TOP,z);Jg3.ghost.visible=true;
+    const [x,z]=pW(pend.to);Jg3.ghost.position.set(x,PY,z);Jg3.ghost.visible=true;
   }else Jg3.ghost.visible=false;
   // 상차림 미리 보기: 내 끝 줄 네 자리에 반투명 마·상
   const sk=suSel>=0&&mySetTurn()?suSel+'|'+myCol()+'|'+Jg3.flipT:'';
   if(Jg3.suG.userData.k!==sk){Jg3.suG.clear();Jg3.suG.userData.k=sk;
-    if(sk){const col=myCol(),yy=col?9:0;SETUPS[suSel].forEach((t,k)=>{const gm=pieceMesh(t,col,true);const [x,z]=pW(IX(suXs(col)[k],yy));gm.position.set(x,TOP,z);gm.traverse(o=>{o.renderOrder=6});Jg3.suG.add(gm)})}}
+    if(sk){const col=myCol(),yy=col?9:0;SETUPS[suSel].forEach((t,k)=>{const gm=pieceMesh(t,col,true);const [x,z]=pW(IX(suXs(col)[k],yy));gm.position.set(x,PY,z);gm.traverse(o=>{o.renderOrder=6});Jg3.suG.add(gm)})}}
   Jg3.suG.visible=!!sk;
   Jg3.dirty=true;
 }
-/* 카메라: 내 쪽에서 거의 바로 위(64도)로 판을 내려다봄. 판·알·잡은 알이 '판 자리'(위 이름 칸 아래, 아래 단추 위)에 꽉 차게 */
-const PITCH=64*Math.PI/180;
+/* 카메라: 바로 위에서 내려다봄 (오목·쿼리도와 같은 탑뷰). 판 가운데 = 화면 가운데, 위아래는 이름 칸 자리를 같은 높이로 비우고 양옆은 조금만(tvBox).
+   잡은 알은 판 옆(넓은 화면) 또는 판 앞뒤(좁은 화면) 중 판이 더 크게 보이는 쪽. 상차림 단추는 내 쪽 끝 줄 아래 나무 띠 가운데(.jg-su) */
+function tvBox(r){
+  const W=r.clientWidth,Hh=r.clientHeight;r.classList.toggle('wide',W>Hh);
+  const narrow=W<700,bar=r.querySelector('.jg-bar'),mb=r.querySelector('.jg-mebar');
+  const R=Math.max(bar.offsetTop+bar.offsetHeight+CHIP_GAP,(narrow?70:14)+(mb.offsetHeight||26)+CHIP_GAP),m=narrow?8:16;
+  return {fw:W-2*m,fh:Hh-2*R,cy:Hh/2,R};
+}
+const GXW=.88,GZW=.9;   // 잡은 알 두 줄이 차지하는 폭 (옆 / 앞뒤)
 function j3Layout(t){
   if(t-Jg3.layAt<100&&Jg3.lay)return false;
   Jg3.layAt=t;
   const st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight;if(!W||!Hh||!V||!V.c)return false;
-  elJg.classList.toggle('wide',W>Hh);
-  const sr=st.getBoundingClientRect(),bd=elJg.querySelector('.jg-bd').getBoundingClientRect();
-  const base=[W,Hh].join(',');
-  if(Jg3.topBase!==base){Jg3.topBase=base;Jg3.topMax=0}
-  const top=Math.max(Math.round(bd.top-sr.top),Jg3.topMax);Jg3.topMax=top;
-  const key=base+','+top+','+flipped();
+  const B=tvBox(elJg),key=[W,Hh,B.R,flipped()].join(',');
   if(key===Jg3.lay)return false;
   Jg3.lay=key;
-  const narrow=W<700,fy=top+2,fh=(narrow?Hh-116:Hh-58)-fy,fw=W-12;
-  const pts=lay=>{const o=[];
-    for(const x of [-BX,BX])for(const z of [-BZ,BZ])o.push([x,0,z],[x,TOP,z]);
-    for(const x of [-HX,HX])for(const z of [-HZ,HZ])o.push([x,TOP+.11,z]);
-    Jg3.layout=lay;for(const k of [0,1])for(const i of lay==='h'?[0,1,14,15]:[0,7,8,15]){const [x,z]=graveXZ(k,i);o.push([x+.15,0,z+.15],[x-.15,.07,z-.15])}
-    return o};
-  const cam=Jg3.cam;cam.aspect=W/Hh;cam.clearViewOffset();cam.updateProjectionMatrix();
-  const v=new THREE.Vector3();
-  const measure=(P,D)=>{cam.position.set(0,D*Math.sin(PITCH),D*Math.cos(PITCH));cam.lookAt(0,0,0);cam.updateMatrixWorld();
-    let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const q of P){v.set(q[0],q[1],q[2]).project(cam);const px=(v.x+1)/2*W,py=(1-v.y)/2*Hh;x0=Math.min(x0,px);x1=Math.max(x1,px);y0=Math.min(y0,py);y1=Math.max(y1,py)}
-    return {x0,x1,y0,y1}};
-  const fitD=P=>{let lo=2,hi=80;for(let k=0;k<30;k++){const m=(lo+hi)/2,b=measure(P,m);if(b.x1-b.x0<=fw&&b.y1-b.y0<=fh)hi=m;else lo=m}return hi};
-  const dH=fitD(pts('h')),dV=fitD(pts('v'));
-  const lay=dH<=dV?'h':'v',P=pts(lay),D=Math.min(dH,dV);
-  const b=measure(P,D);
-  const cx=(b.x0+b.x1)/2,cy=(b.y0+b.y1)/2,tx=W/2,ty=fy+fh/2;
-  cam.setViewOffset(W,Hh,Math.round(cx-tx),Math.round(cy-ty),W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
-  chipsAt(ty-(b.y1-b.y0)/2,ty+(b.y1-b.y0)/2);
-  Jg3.d=D;Jg3.dirty=true;
+  const fw=B.fw,fh=B.fh;
+  const sH=Math.min(fw/(2*(BX+GXW)),fh/(2*BZ)),sV=Math.min(fw/(2*BX),fh/(2*(BZ+GZW)));
+  const lay=sH>=sV?'h':'v',s=Math.max(sH,sV)*.98;
+  Jg3.layout=lay;
+  const cam=Jg3.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(s*f);
+  cam.aspect=W/Hh;cam.clearViewOffset();cam.position.set(0,PY+d,0);cam.lookAt(0,PY,0);
+  cam.setViewOffset(W,Hh,0,-(B.cy-Hh/2),W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
+  {const hv=(lay==='v'?BZ+GZW:BZ)*s;chipsAt(B.cy-hv,B.cy+hv)}
+  // 상차림 단추 자리: 내 쪽 끝 줄 알 아래 끝과 판 끝 사이 가운데, 폭은 판 선 폭
+  const zs=(HZ+PR[CHA]+BZ)/2;elJg.style.setProperty('--sux',Math.round(W/2)+'px');elJg.style.setProperty('--suy',Math.round(B.cy+zs*s)+'px');
+  elJg.style.setProperty('--suw',Math.round(2*HX*s)+'px');elJg.style.setProperty('--suh',Math.round(Math.max(22,(BZ-HZ-PR[CHA])*s*.86))+'px');
+  Jg3.d=d;Jg3.dirty=true;
   j3Sync();
   return true;
 }
@@ -914,7 +912,7 @@ function j3Step(now){
     const k=(now-a.t0)/a.dur;if(k<0){busy=true;return true}
     const e=a.fall?Math.min(1,k)*Math.min(1,k):ease(Math.min(1,k)),o=a.obj;busy=true;
     o.position.x=a.x0+(a.x1-a.x0)*e;o.position.z=a.z0+(a.z1-a.z0)*e;
-    const base=o.userData.grave?0:TOP;
+    const base=o.userData.grave?GY():PY;
     if(a.show)o.visible=true;
     o.position.y=(a.y0!=null?a.y0+(a.y1-a.y0)*e:base)+Math.sin(Math.PI*Math.min(1,k))*(a.lift||0);
     if(a.s1!=null){o.scale.setScalar(a.s0+(a.s1-a.s0)*e)}
@@ -984,7 +982,7 @@ function introStep(now,force){
   if(IN.again){if(done)for(const g of Jg3.pcs.values())g.visible=true;return true}
   for(const [sq,g] of Jg3.pcs){
     const [a,d]=pieceAt(g.userData.t,sq),x=done?1:(e-a)/d;
-    g.visible=x>0;g.position.y=TOP+dropY(Math.max(0,Math.min(1,x)),g.userData.t===JANG?1.5:1);
+    g.visible=x>0;g.position.y=PY+dropY(Math.max(0,Math.min(1,x)),g.userData.t===JANG?1.5:1);
   }
   return true;
 }
@@ -1077,7 +1075,7 @@ G.hud=inGame=>{
   const d3=on&&j3Build();
   if(d3!==Jg3.on){Jg3.on=d3;Jg3.lay='';if(Jg3.root)Jg3.root.visible=d3;$('#stage').classList.toggle('jg3d',d3);lastBoard='';lastHint=''}
   $('#stage').classList.toggle('jg2d',on&&!d3);
-  if(!on){lastBoard='';lastBar='';lastHint='';lastModes='';return}
+  if(!on){lastBoard='';lastBar='';lastHint='';lastModes='';lastSu='';return}
   drawAll();
   j3Sync();
 };
@@ -1100,7 +1098,7 @@ G.live=()=>{
   if(IN.on)introTick();
   if(!V||!V.c||!CS)return;
   clockTick();
-  if(inSet()&&lastModes!==modesHTML())drawHint();
+  if(inSet()&&(lastModes!==modesHTML()||lastSu!==(mySetTurn()&&Jg3.on?suBtns():'')))drawHint();
   if(flash&&!Jg3.on&&clock()-flash.at>720){flash=null;lastBoard='';drawAll()}
 };
 /* 이름 칸의 시간 (매 프레임 글자만 바꿈). 10초 남으면 빨갛게 깜빡임 */
@@ -1127,7 +1125,7 @@ G.leave=()=>{
   if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
   if(Jg3.root)Jg3.root.visible=false;Jg3.on=false;Jg3.anim=[];
   $('#btnPass').hidden=false;
-  if(elJg){elJg.hidden=true;lastBoard='';lastBar='';lastHint='';lastModes=''}
+  if(elJg){elJg.hidden=true;lastBoard='';lastBar='';lastHint='';lastModes='';lastSu=''}
 };
 G.init=()=>{
   const css=document.createElement('style');
@@ -1168,7 +1166,11 @@ G.init=()=>{
 #jg .jg-pop{position:absolute;left:0;top:calc(100% + 4px);z-index:5;display:flex;gap:6px}
 #jg .jg-drbtn,#jg .jg-m{height:34px;padding:0 12px;border-radius:10px;border:2px solid var(--mustard-edge,#c08a17);background:var(--mustard,#f2b632);color:#3b2a1f;font-family:var(--f-display,inherit);font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;pointer-events:auto;white-space:nowrap}
 #jg .jg-drbtn.off{opacity:.45;filter:grayscale(.6)}
-#jg .jg-m.su{padding:0 6px;background:rgba(255,250,240,.95);border-color:var(--line-strong,#cdb391)}
+#jg .jg-m.su{padding:0 8px;background:rgba(255,250,240,.95);border-color:var(--line-strong,#cdb391);font-size:14px}
+#jg .jg-su{position:absolute;left:var(--sux,50%);top:var(--suy,80%);width:var(--suw,280px);height:var(--suh,28px);transform:translate(-50%,-50%);display:flex;gap:4px;justify-content:center;z-index:2;pointer-events:none}
+#jg .jg-su:empty{display:none}
+#jg .jg-su .jg-m.su{flex:1 1 0;min-width:0;height:100%;padding:0 2px;justify-content:center;font-size:clamp(11px,calc(var(--suh,28px)*.5),15px);border-width:1.5px;border-radius:8px;pointer-events:auto}
+.stage.jg-intro #jg .jg-su{opacity:0;pointer-events:none}
 #jg .jg-m.su.on{background:var(--mustard,#f2b632);border-color:var(--mustard-edge,#c08a17)}
 #jg .jg-row{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;width:100%;pointer-events:none;min-height:44px}
 .stage.jg3d #jg .jg-row{height:44px;min-height:0;flex:none;align-items:flex-start;padding-top:4px;overflow:visible;position:relative;z-index:1}
@@ -1192,12 +1194,12 @@ G.init=()=>{
 `;
   document.head.appendChild(css);
   elJg=document.createElement('div');elJg.id='jg';elJg.hidden=true;
-  elJg.innerHTML=`<div class="jg-bar"></div><div class="jg-mebar"></div><div class="jg-row"><div class="jg-hint" aria-live="polite"></div><div class="jg-modes" role="group" aria-label="고르기"></div></div><div class="jg-bd"><svg class="jg-board" viewBox="-.8 -.8 9.6 10.6" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="장기판"><defs><radialGradient id="jgChk"><stop offset="0" stop-color="#ff2a14" stop-opacity=".95"/><stop offset=".6" stop-color="#e01e14" stop-opacity=".5"/><stop offset="1" stop-color="#c8140a" stop-opacity="0"/></radialGradient></defs><g id="jgMain"></g><g id="jgGhost"></g></svg></div>`;
+  elJg.innerHTML=`<div class="jg-bar"></div><div class="jg-mebar"></div><div class="jg-su" role="group" aria-label="상차림"></div><div class="jg-row"><div class="jg-hint" aria-live="polite"></div><div class="jg-modes" role="group" aria-label="고르기"></div></div><div class="jg-bd"><svg class="jg-board" viewBox="-.8 -.8 9.6 10.6" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="장기판"><defs><radialGradient id="jgChk"><stop offset="0" stop-color="#ff2a14" stop-opacity=".95"/><stop offset=".6" stop-color="#e01e14" stop-opacity=".5"/><stop offset="1" stop-color="#c8140a" stop-opacity="0"/></radialGradient></defs><g id="jgMain"></g><g id="jgGhost"></g></svg></div>`;
   $('#stage').insertBefore(elJg,$('#fx'));
   elSvg=elJg.querySelector('svg.jg-board');elMain=elJg.querySelector('#jgMain');elGhost=elJg.querySelector('#jgGhost');
-  elBar=elJg.querySelector('.jg-bar');elBarMe=elJg.querySelector('.jg-mebar');elHint=elJg.querySelector('.jg-hint');elModes=elJg.querySelector('.jg-modes');
+  elSu=elJg.querySelector('.jg-su');elBar=elJg.querySelector('.jg-bar');elBarMe=elJg.querySelector('.jg-mebar');elHint=elJg.querySelector('.jg-hint');elModes=elJg.querySelector('.jg-modes');
   elSvg.addEventListener('click',onSvgClick);
-  elModes.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.su!=null)tapSetup(+b.dataset.su);else if(b.dataset.dr)sendOffer()});
+  for(const box of [elModes,elSu])box.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.su!=null)tapSetup(+b.dataset.su);else if(b.dataset.dr)sendOffer()});
   for(const bar of [elBar,elBarMe])bar.addEventListener('click',e=>{
     if(e.target.closest('[data-pass]')){e.stopPropagation();sendPass();return}
     if(e.target.closest('[data-dr]')){e.stopPropagation();sendOffer();return}
