@@ -514,13 +514,14 @@ function frontLayout(lobby,wait,host,t){
   rbLayoutSet(rbUp&&FR.rb.mode==='game'&&!!FR.rb.set&&FR.rb.pg<rbNSet()&&!FR.rb.chg,W,Hh);if(!rbUp)rbTag(null);
   st.classList.toggle('rbopen',FR.rba.v>.01);
   $('#frPad').classList.toggle('off',!pick&&!leaned&&!rbUp);
-  // 홀로그램 글씨: 위에서부터 탁자 이름, 게임 이름 (그 아래가 게임 말)
+  // 홀로그램 글씨: 위에서부터 탁자 이름, 게임 이름, 게임 모드 (그 아래가 게임 말). 모드는 지금 고른 게임만(넘겨 보는 중이면 자리만)
   const ht=$('#holoTag'),hOn=wait&&(FR.holoGlow||0)>.05&&!roomSetOpen&&FR.rba.v<=.01;
   if(ht.hidden===hOn)ht.hidden=!hOn;
   if(hOn){
-    _v3.set(0,(FR.holoTop||1.2)+.06,0).project(T.cam);const x=(_v3.x+1)/2*W,y=(1-_v3.y)/2*Hh;
+    _v3.set(0,(FR.holoTop||1.2)+.14,0).project(T.cam);const x=(_v3.x+1)/2*W,y=(1-_v3.y)/2*Hh;
     const gid=FR.browse?frontHoloId():(V.cfg.game||'gura'),bad=FR.browse&&!frontCanPlay(gid);
-    const tn=V.title||'',gn=gameOf(gid).name;
+    const tn=V.title||'',gn=gameOf(gid).name,mn=FR.browse?'':modeLabelOf(gameOf(gid),V.cfg);
+    {const me=$('#holoMode');if(me.textContent!==mn){const was=me.dataset.g;me.textContent=mn;me.dataset.g=gid+'|'+(FR.browse?1:0);if(mn&&was===me.dataset.g){me.classList.remove('chg');void me.offsetWidth;me.classList.add('chg')}}}   // 같은 게임에서 모드만 바뀌면 지직
     if(ht.dataset.k!==tn+'|'+gn+'|'+bad+'|'+host){ht.dataset.k=tn+'|'+gn+'|'+bad+'|'+host;if(!$('#holoTitleIn'))$('#holoTitle').textContent=tn;$('#holoGame').textContent=gn;ht.classList.toggle('bad',bad);$('#holoTitle').classList.toggle('editable',host);$('#holoGame').classList.toggle('pickable',host)}
     ht.style.left=Math.round(x)+'px';ht.style.top=Math.round(y-ht.offsetHeight)+'px';ht.style.opacity=Math.min(1,FR.holoGlow*1.2)*(FR.collapseAt?0:1);
   }

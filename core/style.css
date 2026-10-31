@@ -281,7 +281,7 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .holotag b.editable{pointer-events:auto;cursor:text;border-bottom:1.5px dashed rgba(255,226,184,.6)}
 .holotag span.pickable{pointer-events:auto;cursor:pointer}
 #stage.holo .holotag span.pickable{pointer-events:none}
-.holotag span{font:400 19px var(--f-display);color:#fff1dc;-webkit-text-stroke:.8px rgba(170,80,10,.5);paint-order:stroke fill;text-shadow:0 0 4px #ff9a3c,0 0 10px rgba(255,140,40,.8),0 2px 3px rgba(90,40,5,.45)}
+.holotag span{font:400 24px var(--f-display);color:#fff1dc;-webkit-text-stroke:.8px rgba(170,80,10,.5);paint-order:stroke fill;text-shadow:0 0 4px #ff9a3c,0 0 10px rgba(255,140,40,.8),0 2px 3px rgba(90,40,5,.45)}
 .rc-hot{z-index:6;touch-action:none}
 body.rc3d #btnLog,body.rc3d #logPanel{display:none}   /* 3D가 있으면 진행 기록은 영수증으로 */
 body.rc3d .fsbtn.fs{right:10px}body.rc3d .fsbtn.cfg{right:58px}body.rc3d.nofs .fsbtn.cfg{right:10px}
@@ -299,6 +299,10 @@ body.camok #cv{touch-action:none}   /* 고개 돌릴 수 있을 때 탁자 바�
 .rc-take{display:block;width:100%;margin-top:14px;padding:10px 0 4px;border:0;border-top:2px dashed rgba(44,38,32,.45);background:none;font:inherit;font-weight:700;color:#2c2620;cursor:pointer}
 .holocnt{position:absolute;transform:translateX(-50%);pointer-events:none;z-index:3;font:400 15px var(--f-display);color:#fff1dc;-webkit-text-stroke:.6px rgba(170,80,10,.5);paint-order:stroke fill;text-shadow:0 0 4px #ff9a3c,0 0 8px rgba(255,140,40,.7);white-space:nowrap}   /* 게임 말 아래 인원 */
 .holotag.bad span{color:#ffc4c4;text-shadow:0 0 6px #ff4d6d}
+.holotag i{font:400 19px var(--f-display);font-style:normal;line-height:1.25;color:#ffe9cc;opacity:.82;-webkit-text-stroke:.8px rgba(170,80,10,.45);paint-order:stroke fill;text-shadow:0 0 4px #ff9a3c,0 0 8px rgba(255,140,40,.65),0 2px 3px rgba(90,40,5,.4)}   /* 게임 모드(규칙) 줄: 게임 이름보다 한 단계 작고 조금 어둡게. 모드가 없거나 게임을 넘겨 보는 중이면 자리만 남김 */
+.holotag i:empty::before{content:"\00a0"}
+.holotag i.chg{animation:holoChg .45s steps(6) 1}
+@keyframes holoChg{0%{opacity:.15;transform:translateX(-2px)}40%{opacity:.9;transform:translateX(2px)}70%{opacity:.4;transform:none}100%{opacity:.82}}
 .holotag input{width:9em;font:400 20px var(--f-display);text-align:center;color:var(--ink);background:rgba(255,250,240,.95);border:2px solid #ffa04a;border-radius:8px;padding:2px 6px}
 .wseat .wemo{position:absolute;top:-12px;right:-14px;width:30px;height:30px;min-width:0;padding:0;border-radius:50%;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;background:var(--paper);border:1.5px solid var(--line-strong);box-shadow:0 2px 0 rgba(110,69,38,.25)}
 .wseat{position:absolute}

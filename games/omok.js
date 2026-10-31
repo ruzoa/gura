@@ -441,6 +441,7 @@ G.settingsHTML=(c,{stepRow})=>{
   return `<div class="rs-grid">${[sp,tm,inc].filter(Boolean).map(stepRow).join('')}</div><div class="rulehead">게임 규칙</div>${lever}<p class="pl-sum">${ruleLine(c)}</p>${more}${det}<div class="rs-grid">${pfRow}</div>`;
 };
 /* 나무판 '세부 설정' 항목 (공통 코드가 G.boardSet으로 그림). 맨 위 규칙 레버 → 아래 항목이 한꺼번에 바뀜 */
+G.modeLabel=c=>['자유','렌주'][presetOf(c)]||'커스텀';   // 홀로그램 모드 줄
 G.boardSet=c=>{
   const pos=presetOf(c),lv=pos===0?0:pos===1?2:1,df=new Set(diffKeys(c)),pd=G.ruleSet[0];
   return [{kind:'choice',k:'preset',label:'규칙',opts:['자유','커스텀','렌주'],desc:'자유: 금수·오프닝 없음 · 렌주: 흑 금수 + Swap2. 아래 항목을 바꾸면 커스텀이 됩니다',v:lv,act:o=>'om:pr:'+['0','c','1'][o]},

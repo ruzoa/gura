@@ -230,6 +230,7 @@ G.panelAct=a=>{
   saveRoomCfg(H.cfg);sfx('tick');lastPanelHtml='';mark();return true;
 };
 /* 나무판 '세부 설정' 항목 (공통 코드가 G.boardSet으로 그림). 맨 위 룰 레버 → 아래 규칙이 한꺼번에 바뀜. 누르면 act가 돌려준 패널 동작을 G.panelAct·toggleRule로 */
+G.modeLabel=c=>(['프레지던트 룰','대부호 룰'][presetOf(c)]||'커스텀 룰')+(+c.fast?' · 빠른 모드':'');   // 홀로그램 모드 줄
 G.boardSet=c=>{
   const pos=presetOf(c),lv=pos===0?0:pos===1?2:1,df=new Set(diffKeys(c));
   return [{kind:'choice',k:'preset',label:'규칙',opts:['프레지던트','커스텀','대부호'],desc:'왼쪽 서양 룰 · 가운데 커스텀 · 오른쪽 일본 룰. 룰을 고르면 아래 규칙이 그 룰대로 바뀌고, 아래 규칙을 바꾸면 커스텀이 됩니다',v:lv,act:o=>'pr:'+[0,2,1][o]},

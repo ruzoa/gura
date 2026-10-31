@@ -454,6 +454,7 @@ G.ruleSet=[
 const nStones=c=>Math.max(1,Math.min(10,Math.round(+c.stones||5)));
 const ruleOf=k=>G.ruleSet.find(d=>d.k===k);
 /* 설정 판자 항목: 게임 모드 → (바둑) 알 개수 → 제한 시간 → 한 번 더 → (장기) 장 떨어지면 패배 → 선 플레이어 */
+G.modeLabel=c=>MD_NAME[mdOf(c)]||'';   // 홀로그램 모드 줄
 G.boardSet=c=>{
   const md=mdOf(c),rs=roomSetOf(G,c),num=k=>{const d=rs.find(x=>x.k===k),v=+(c[k]??G.defaults[k]);return {kind:'num',...d,v,diff:false}};
   const rule=k=>{const d=ruleOf(k);return {...rbRuleItem(d,c),diff:(+c[k]?1:0)!==(+G.defaults[k]?1:0)}};

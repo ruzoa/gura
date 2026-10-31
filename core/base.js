@@ -31,6 +31,8 @@ const EMO_KEYS=['Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','
 const BOT_NAMES=['여우','까치','너구리','고양이','두더지','수달','부엉이','다람쥐'];
 const OPTS={gi:GAME_IDS.map((_,i)=>i),fast:[0,1],pub:[0,1]};
 const OPT_LABEL={fast:['클래식','빠른 모드'],pub:['비공개','공개']};
+/* 홀로그램 게임 이름 아래 모드(규칙) 한 줄: 게임의 G.modeLabel(c)가 있으면 그것, 없으면 빠른 모드가 있는 게임은 클래식/빠른 모드, 둘 다 없으면 빈 글자(자리만 남김) */
+function modeLabelOf(g,c){if(!g||!c)return '';try{if(g.modeLabel)return String(g.modeLabel(c)||'');}catch(_){return ''}return g.noFast?'':OPT_LABEL.fast[+c.fast?1:0]}
 const MODE_DESC=['끝까지 순위를 정함','1등이 나오면 끝'];
 const OPT_HTML={fast:v=>`<b>${OPT_LABEL.fast[v]}</b><small>${MODE_DESC[v]}</small>`,gi:v=>`<b>${gameOf(GAME_IDS[v]).name}</b><small>${gameOf(GAME_IDS[v]).lead}</small>`};
 const cfg={gi:Math.max(0,GAME_IDS.indexOf(store('gura-game')||'gura')),fast:0,pub:0};   // 방 만들기 화면에서 고른 값
