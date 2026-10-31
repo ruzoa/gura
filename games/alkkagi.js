@@ -437,7 +437,7 @@ function botPlan(A,seat,rnd){
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 알을 튕겨 다른 사람의 알을 모두 판 밖으로 떨어뜨립니다. 내 알이 모두 떨어지면 탈락하고, 마지막까지 남은 사람이 <b>승리</b>합니다. 2~4명이 할 수 있습니다</li><li><b>알 놓기</b> : 먼저 선(흑)이 내 쪽의 줄이 만나는 점에 알을 하나 놓고, 이어서 다른 사람이 차례로 하나씩 놓습니다. 이렇게 번갈아 모두 놓으면 알까기를 시작합니다. 2명이면 내 쪽 반(가운데 줄 제외), 3~4명이면 내 쪽 삼각형(대각선 제외)에만 놓을 수 있습니다. 누른 점에 미리 보기가 뜨고, [놓기]를 누르거나 같은 점을 한 번 더 누르면 놓습니다(설정의 ‘두 번 눌러 놓기’를 끄면 같은 점을 다시 누를 때 취소됩니다). 놓을 수 없는 곳에는 빨간 빗금이 보이고, 경계에는 차단기가 내려옵니다</li><li><b>진행</b> : 선부터 차례로 내 알 하나씩 튕깁니다. 판 밖으로 떨어진 알은 다시 쓰지 못하고, 내 알이 떨어져도 마찬가지입니다</li><li><b>튕기기</b> : 내 알을 누른 채 뒤로 당겼다 놓습니다. 알 뒤에 내 손이 나타나 당길수록 진해지고 세게 나갑니다. 끝까지 당기면 더 세지지 않습니다. 조금만 당기고 놓으면 취소됩니다</li><li><b>손 떨림</b> : 손은 당기는 동안 계속 떨리고, 세게 당길수록 크게 떨립니다. 놓는 순간 손이 가리키던 쪽으로 나가므로 살살 치면 거의 똑바로, 세게 치면 빗나가기 쉽습니다</li><li><b>뜨는 알</b> : 바둑알은 납작해서 세게 부딪히면 위로 튀어 오르기도 합니다</li><li><b>한 번 더</b> : 탁자 설정에서 켜면, 다른 사람의 알을 떨어뜨리고 튕긴 내 알이 판에 남았을 때 한 번 더 튕깁니다</li><li><b>끝</b> : 한 명만 남으면 끝납니다. 남은 사람들의 마지막 알이 함께 떨어지면 무승부입니다. 탈락한 순서가 늦을수록 순위가 높습니다</li><li><b>제한 시간</b> : 튕길 차례에 제한 시간이 지나면 차례가 넘어가고, 놓을 차례에 지나면 아무 자리에 대신 놓습니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다. 항복·탈주한 사람의 알은 판에서 사라집니다</li><li><b>다음 판</b> : 결과 화면에서 바로 시작하면 진 사람(4명이면 가장 먼저 탈락한 사람)이 선(먼저 놓고 먼저 튕김)이 되고, 비기면 서로 바꿉니다. 첫 판은 탁자 설정의 선 플레이어(선택·무작위)로 정합니다</li><li><b>게임 모드</b> : 탁자 설정에서 바둑(위 규칙)·오목·장기 중에서 고릅니다</li><li><b>오목 모드</b> : 게임 모드에서 오목을 고르면(2명), 판 위에 내 돌 다섯 개를 한 줄로 먼저 세우는 사람이 <b>승리</b>합니다<ul><li><b>진행</b> : 선(흑)부터 번갈아, 내 차례에 <b>돌을 놓거나</b> 판 위의 내 돌 하나를 <b>튕깁니다</b>. 돌은 얼마든지 놓을 수 있고, 판 어디든 다른 돌과 겹치지 않는 점이면 놓을 수 있습니다. 빈 점을 누르면 미리 보기가 뜨고 [놓기]를 누르거나 같은 점을 한 번 더 누르면 놓고, 내 돌을 누른 채 당겼다 놓으면 튕깁니다</li><li><b>떨어진 돌</b> : 판에서 떨어진 돌은 그냥 사라집니다. 가져오는 일은 없습니다</li><li><b>판정</b> : 돌이 모두 멈춘 뒤, 줄이 만나는 점마다 그 점을 가리는(반 칸 안에서 가장 가까운) 돌이 그 점에 있다고 봅니다. 가로·세로·대각선으로 다섯 개 이상 이어지면 오목입니다. 상대가 튕겨서 생긴 내 오목도 내 승리입니다</li><li><b>한 번 더</b> : 탁자 설정의 ‘떨어뜨리면 한 번 더’를 켜면, 상대 돌을 떨어뜨렸을 때 한 번 더 둡니다(튕긴 돌이 함께 떨어져도)</li><li><b>동시 오목</b> : 두 사람의 오목이 함께 생기면 튕긴 사람이 집니다</li><li><b>제한 시간</b> : 시간이 지나면 차례를 넘깁니다</li><li><b>무승부</b> : 돌을 놓을 수 있는 점이 하나도 없으면 무승부입니다</li></ul></li><li><b>장기 모드</b> : 게임 모드에서 장기를 고르면(2명), 장기판에 장기 상차림(마상마상)으로 알 16개씩 놓고 시작합니다. 선이 초(초록), 다음 사람이 한(빨강)입니다<ul><li><b>알 크기·무게</b> : 장이 가장 크고, 차·포·마·상, 사·졸 순으로 작습니다. 무게는 크기(부피)에 비례해서, 같은 힘으로 튕기면 무거운 알은 느리게 짧게 나가고 가벼운 알은 빠르게 멀리 나갑니다. 무거운 알은 맞아도 잘 밀리지 않습니다</li><li><b>도는 알</b> : 비껴 부딪히면 알이 돕니다(나가는 방향은 그대로)</li><li><b>끝</b> : 상대 알을 모두 떨어뜨리면 승리합니다. 탁자 설정의 ‘장 떨어지면 패배’를 켜면 장이 먼저 떨어진 쪽이 지고, 두 장이 같은 순간에 떨어지면 튕긴 사람이 집니다</li><li><b>놓기</b> : 알을 놓는 단계는 없고 바로 튕깁니다. 알 개수는 정하지 않습니다</li></ul></li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 알을 튕겨 다른 사람의 알을 모두 판 밖으로 떨어뜨립니다. 내 알이 모두 떨어지면 탈락하고, 마지막까지 남은 사람이 <b>승리</b>합니다. 2~4명이 할 수 있습니다</li><li><b>알 놓기</b> : 먼저 선(흑)이 내 쪽의 줄이 만나는 점에 알을 하나 놓고, 이어서 다른 사람이 차례로 하나씩 놓습니다. 이렇게 번갈아 모두 놓으면 알까기를 시작합니다. 2명이면 내 쪽 반(가운데 줄 제외), 3~4명이면 내 쪽 삼각형(대각선 제외)에만 놓을 수 있습니다. 누른 점에 미리 보기가 뜨고, [놓기]를 누르거나 같은 점을 한 번 더 누르면 놓습니다(설정의 ‘두 번 눌러 놓기’를 끄면 같은 점을 다시 누를 때 취소됩니다). 놓을 수 없는 곳에는 빨간 빗금이 보이고, 경계에는 차단기가 내려옵니다</li><li><b>진행</b> : 선부터 차례로 내 알 하나씩 튕깁니다. 판 밖으로 떨어진 알은 다시 쓰지 못하고, 내 알이 떨어져도 마찬가지입니다</li><li><b>튕기기</b> : 내 알을 누른 채 뒤로 당겼다 놓습니다. 알 뒤에 내 손이 나타나 당길수록 진해지고 세게 나갑니다. 끝까지 당기면 더 세지지 않습니다. 조금만 당기고 놓으면 취소됩니다. 가장자리 알처럼 뒤로 당길 자리가 없으면 내 알을 짧게 눌러 고릅니다. 손이 나타나면 판 어디서든 누르고 끌어 그 알을 당길 수 있습니다(누른 점에서 끈 만큼). 빈 곳을 짧게 누르거나 같은 알을 다시 누르면 내려놓습니다</li><li><b>손 떨림</b> : 손은 당기는 동안 계속 떨리고, 세게 당길수록 크게 떨립니다. 놓는 순간 손이 가리키던 쪽으로 나가므로 살살 치면 거의 똑바로, 세게 치면 빗나가기 쉽습니다</li><li><b>뜨는 알</b> : 바둑알은 납작해서 세게 부딪히면 위로 튀어 오르기도 합니다</li><li><b>한 번 더</b> : 탁자 설정에서 켜면, 다른 사람의 알을 떨어뜨리고 튕긴 내 알이 판에 남았을 때 한 번 더 튕깁니다</li><li><b>끝</b> : 한 명만 남으면 끝납니다. 남은 사람들의 마지막 알이 함께 떨어지면 무승부입니다. 탈락한 순서가 늦을수록 순위가 높습니다</li><li><b>제한 시간</b> : 튕길 차례에 제한 시간이 지나면 차례가 넘어가고, 놓을 차례에 지나면 아무 자리에 대신 놓습니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다. 항복·탈주한 사람의 알은 판에서 사라집니다</li><li><b>다음 판</b> : 결과 화면에서 바로 시작하면 진 사람(4명이면 가장 먼저 탈락한 사람)이 선(먼저 놓고 먼저 튕김)이 되고, 비기면 서로 바꿉니다. 첫 판은 탁자 설정의 선 플레이어(선택·무작위)로 정합니다</li><li><b>게임 모드</b> : 탁자 설정에서 바둑(위 규칙)·오목·장기 중에서 고릅니다</li><li><b>오목 모드</b> : 게임 모드에서 오목을 고르면(2명), 판 위에 내 돌 다섯 개를 한 줄로 먼저 세우는 사람이 <b>승리</b>합니다<ul><li><b>진행</b> : 선(흑)부터 번갈아, 내 차례에 <b>돌을 놓거나</b> 판 위의 내 돌 하나를 <b>튕깁니다</b>. 돌은 얼마든지 놓을 수 있고, 판 어디든 다른 돌과 겹치지 않는 점이면 놓을 수 있습니다. 빈 점을 누르면 미리 보기가 뜨고 [놓기]를 누르거나 같은 점을 한 번 더 누르면 놓고, 내 돌을 누른 채 당겼다 놓으면 튕깁니다</li><li><b>떨어진 돌</b> : 판에서 떨어진 돌은 그냥 사라집니다. 가져오는 일은 없습니다</li><li><b>판정</b> : 돌이 모두 멈춘 뒤, 줄이 만나는 점마다 그 점을 가리는(반 칸 안에서 가장 가까운) 돌이 그 점에 있다고 봅니다. 가로·세로·대각선으로 다섯 개 이상 이어지면 오목입니다. 상대가 튕겨서 생긴 내 오목도 내 승리입니다</li><li><b>한 번 더</b> : 탁자 설정의 ‘떨어뜨리면 한 번 더’를 켜면, 상대 돌을 떨어뜨렸을 때 한 번 더 둡니다(튕긴 돌이 함께 떨어져도)</li><li><b>동시 오목</b> : 두 사람의 오목이 함께 생기면 튕긴 사람이 집니다</li><li><b>제한 시간</b> : 시간이 지나면 차례를 넘깁니다</li><li><b>무승부</b> : 돌을 놓을 수 있는 점이 하나도 없으면 무승부입니다</li></ul></li><li><b>장기 모드</b> : 게임 모드에서 장기를 고르면(2명), 장기판에 장기 상차림(마상마상)으로 알 16개씩 놓고 시작합니다. 선이 초(초록), 다음 사람이 한(빨강)입니다<ul><li><b>알 크기·무게</b> : 장이 가장 크고, 차·포·마·상, 사·졸 순으로 작습니다. 무게는 크기(부피)에 비례해서, 같은 힘으로 튕기면 무거운 알은 느리게 짧게 나가고 가벼운 알은 빠르게 멀리 나갑니다. 무거운 알은 맞아도 잘 밀리지 않습니다</li><li><b>도는 알</b> : 비껴 부딪히면 알이 돕니다(나가는 방향은 그대로)</li><li><b>끝</b> : 상대 알을 모두 떨어뜨리면 승리합니다. 탁자 설정의 ‘장 떨어지면 패배’를 켜면 장이 먼저 떨어진 쪽이 지고, 두 장이 같은 순간에 떨어지면 튕긴 사람이 집니다</li><li><b>놓기</b> : 알을 놓는 단계는 없고 바로 튕깁니다. 알 개수는 정하지 않습니다</li></ul></li></ol>';
 G.modeDesc=['마지막까지 남은 사람이 이김','마지막까지 남은 사람이 이김'];
 G.defaults={max:2,turn:30,stones:5,again:1,pickfirst:0,omok:0,md:0,jang:0};
 /* 방 설정: 게임 모드(바둑·오목·장기)·알 개수·제한 시간은 설정 판자에서 G.boardSet으로 직접 그림(lever). 알 개수는 바둑 모드에만 */
@@ -696,7 +696,7 @@ G.engine={
     if(a.t==='aim'){   // 당기는 중 (화살표를 상대에게도 보여 줌). i<0이면 내려놓음
       if(!Number.isInteger(a.i)||a.i<0){if(A.aim){A.aim=null;mark()}return}
       const s=A.st[a.i];if(!s||s.s!==seat||s.o||s.u||!Number.isFinite(+a.a)||!Number.isFinite(+a.p))return;
-      A.aim={s:seat,i:a.i,a:Math.round(+a.a*1000)/1000,p:Math.round(Math.max(0,Math.min(1,+a.p))*1000)/1000,w:a.w?1:0};mark();
+      A.aim={s:seat,i:a.i,a:Math.round(+a.a*1000)/1000,p:Math.round(Math.max(0,Math.min(1,+a.p))*1000)/1000,w:a.w?1:0,h:a.h?1:0};mark();   // h: 골라 둔 알(아직 안 당김)
     }else if(a.t==='shoot'){
       if(!Number.isInteger(a.i))return;
       doShot(seat,a.i,+a.a,+a.p,+a.j||0);
@@ -797,6 +797,21 @@ function pickStone(x,z){   // 누른 곳에서 가까운 내 알 (알이 작아�
 }
 /* 놓기: 누른 곳에서 가장 가까운 줄 점. 처음 누르면 반투명 미리 보기, 같은 점을 한 번 더 누르면 놓음('두 번 눌러 놓기'를 끄면 바로) */
 let GH=null;   // 미리 보기 {c,r}
+/* 골라 두기: 내 알을 짧게 누르면 그 알이 골라지고 손이 나타남. 그 뒤로는 알이 아닌 아무 곳이나 누르고 끌어도 그 알을 당김(상대좌표: 당긴 벡터 = 누른 점 → 손가락).
+   가장자리 알처럼 뒤로 당길 화면이 없을 때 씀. 알 위에서 바로 끌면 예전처럼 그 알을 당김(절대좌표). 빈 곳을 짧게 누르거나 같은 알을 다시 누르면 내려놓음 */
+let SEL=-1,selA=0;
+const TAPD=.06;   // 이보다 덜 움직이고 떼면 '누르기' (월드 거리, 끝까지 당김 MAXD의 5%)
+const fwdAng=()=>{const [sx,sz]=mySide();return Math.atan2(-sz,-sx)};   // 내 쪽에서 앞(맞은편)으로 튕기는 방향
+function selOk(){
+  if(SEL<0)return false;
+  const s=OS&&OS.st[SEL];
+  if(!s||s.s!==myIdx()||s.o||s.u||!myTurnNow()||introWait()||Ak3.shot||FLK){SEL=-1;return false}
+  return true;
+}
+function setSel(i,a){
+  SEL=i;if(i>=0){selA=a;sendAct({t:'aim',i,a:Math.round(a*1000)/1000,p:0,h:1})}else sendAct({t:'aim',i:-1});
+  Ak3.dirty=true;draw2D();
+}
 function nearGrid(x,z){const c=Math.round(x/PITCH+C0),r=Math.round(z/PITCH+C0);return Math.hypot(x-(c-C0)*PITCH,z-(r-C0)*PITCH)<PITCH*.75?[c,r]:null}
 function setGH(g){const was=!!GH;GH=g;if(was!==!!g&&!(OS&&OS.om))sendAct({t:'hold',on:g?1:0});Ak3.dirty=true;draw2D();G.buttons()}
 const nextOf=seat=>OS?OS.st.findIndex(q=>q.s===seat&&q.u):-1;   // 다음에 놓을 알 (놓기 전 줄의 첫 알)
@@ -818,9 +833,13 @@ function dragStart(x,z){
   const me=myIdx();if(me<0)return false;
   if(OS.ph==='place'){placeTap(x,z);return false}
   const i=pickStone(x,z);
-  if(i<0){if(OS.om&&OS.ph==='aim'&&!introWait())placeTap(x,z);return false}   // 오목 모드: 내 돌이 없는 곳을 누르면 그 점에 놓기
+  if(i<0){
+    if(selOk()&&OS.ph==='aim'){   // 골라 둔 알이 있으면 아무 곳에서나 끌어 그 알을 당김 (상대좌표)
+      drag={i:SEL,rel:1,x0:x,z0:z,px:0,pz:0,L:0,p:0,over:false,lvl:0,sent:0,sp:-1,sa:0,a0:selA,ph:Math.random()*1e6};
+      Ak3.dirty=true;draw2D();return true}
+    if(OS.om&&OS.ph==='aim'&&!introWait())placeTap(x,z);return false}   // 오목 모드: 내 돌이 없는 곳을 누르면 그 점에 놓기
   if(!myTurnNow()||introWait()||Ak3.shot){sndNo();return true}   // 내 알이지만 지금은 못 튕김
-  drag={i,x0:x,z0:z,px:0,pz:0,L:0,p:0,over:false,lvl:0,sent:0,sp:-1,sa:0,ph:Math.random()*1e6};   // ph: 떨림 위상 (매번 다르게)
+  drag={i,x0:x,z0:z,px:0,pz:0,L:0,p:0,over:false,lvl:0,sent:0,sp:-1,sa:0,a0:selOk()&&SEL===i?selA:fwdAng(),ph:Math.random()*1e6};   // ph: 떨림 위상 (매번 다르게)
   sndPickUp();Ak3.dirty=true;
   return true;
 }
@@ -834,7 +853,7 @@ function dragMove(x,z){
   drag.lvl=lvl;drag.p=p;drag.over=over;
   sendAim(false);Ak3.dirty=true;
 }
-const baseAng=d=>Math.atan2(-d.pz,-d.px);   // 겨눈 방향 = 당긴 방향의 반대 (떨림 전)
+const baseAng=d=>d.L>.02?Math.atan2(-d.pz,-d.px):d.a0;   // 겨눈 방향 = 당긴 방향의 반대 (떨림 전). 아직 안 움직였으면 처음 방향
 function sendAim(force){
   if(!drag)return;
   const t=clock(),a=drag.L>1e-4?baseAng(drag):0;
@@ -845,13 +864,16 @@ function sendAim(force){
 }
 function dragEnd(cancel){
   if(!drag)return;
-  const d=drag;drag=null;Ak3.dirty=true;
+  const d=drag;drag=null;Ak3.dirty=true;draw2D();
+  if(!cancel&&d.L<TAPD&&myTurnNow()){   // 누르기: 알이면 고르기(같은 알이면 내려놓기), 빈 곳이면 내려놓기
+    if(d.rel||SEL===d.i){setSel(-1);sndPickUp()}else setSel(d.i,d.a0);
+    return}
   if(cancel||d.p<PMIN||!myTurnNow()){
-    sendAct({t:'aim',i:-1});
-    if(!cancel&&OS&&OS.om&&d.p<PMIN&&myTurnNow()){placeTap(d.x0,d.z0);return}   // 오목 모드: 거의 안 당기고 놓으면 누른 점에 놓기
+    if(selOk())setSel(SEL,selA);else sendAct({t:'aim',i:-1});   // 골라 둔 알이 있으면 다시 그 알을 들고 있음
+    if(!cancel&&!d.rel&&OS&&OS.om&&d.p<PMIN&&myTurnNow()){placeTap(d.x0,d.z0);return}   // 오목 모드: 거의 안 당기고 놓으면 누른 점에 놓기
     if(!cancel&&d.L>.02)sndPickUp();return}
   const t=clock(),j=spreadOf(d.p)*jit(t+d.ph),a=baseAng(d)+j;   // 놓는 순간 손이 가리키던 방향 (j: 그중 떨림 몫)
-  const q=OS.st[d.i];
+  const q=OS.st[d.i];SEL=-1;
   sendAct({t:'shoot',i:d.i,a,p:d.p,j:Math.round(j*1e5)/1e5});
   sndFlick();Ak3.flickAt=t;
   FLK={i:d.i,a,j,p:d.p,seat:myIdx(),t0:t,x:q.x,z:q.z,mine:true};
@@ -860,14 +882,15 @@ function dragEnd(cancel){
    a: 겨눈 방향(떨림 전), 실제로 그리는 방향은 shownAng (떨림은 화면마다 따로: 상대의 떨림 위상은 알 수 없음) */
 const AIM={i:-1,a:0,p:0,at:0,ph:0};
 function aimNow(t){
-  if(drag)return {i:drag.i,a:baseAng(drag),p:drag.p,mine:true,seat:myIdx(),ph:drag.ph};
+  if(drag)return {i:drag.i,a:baseAng(drag),p:drag.p,mine:true,seat:myIdx(),ph:drag.ph,sel:drag.rel||SEL===drag.i?1:0};
+  if(selOk())return {i:SEL,a:selA,p:0,mine:true,seat:myIdx(),ph:0,sel:1};
   const o=OS&&OS.aim,me=myIdx();
   if(!o||OS.ph!=='aim'||V.st!=='play'||Ak3.shot||o.s===me){AIM.i=-1;return null}
   if(AIM.i!==o.i){AIM.i=o.i;AIM.a=o.a;AIM.p=0;AIM.ph=Math.random()*1e6}
   const k=Math.min(1,Math.max(0,(t-(AIM.at||t))/1000)*14);AIM.at=t;
   let da=o.a-AIM.a;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;
   AIM.a+=da*k;AIM.p+=(o.p-AIM.p)*k;
-  return {i:o.i,a:AIM.a,p:AIM.p,mine:false,seat:o.s,ph:AIM.ph};
+  return {i:o.i,a:AIM.a,p:AIM.p,mine:false,seat:o.s,ph:AIM.ph,sel:o.h?1:0};
 }
 const shownAng=(a,t)=>a.a+spreadOf(a.p)*jit(t+a.ph);
 /* 튕기는 손: 놓으면 중지가 앞으로 뻗어 알을 치고(0.09초) 사라짐(0.38초). 내가 튕긴 것은 놓는 순간, 남이 튕긴 것은 자취가 올 때 */
@@ -954,7 +977,7 @@ function handNow0(t,pos){
       return {i:FLK.i,x:FLK.x,z:FLK.z,ang:FLK.a,j:FLK.j||0,p:FLK.p,fl,op:handOp(FLK.p)*fade,seat:FLK.seat,fade}}
   }
   const a=aimNow(t);
-  if(!a||!pos[a.i]||V.st!=='play'||Ak3.shot||a.p<(OS&&OS.om?PMIN:.005))return null;   // 오목 모드: 조금 당긴 것은 누르기라 손을 안 그림
+  if(!a||!pos[a.i]||V.st!=='play'||Ak3.shot||(!a.sel&&a.p<(OS&&OS.om?PMIN:.005)))return null;   // 오목 모드: 조금 당긴 것은 누르기라 손을 안 그림. 골라 둔 알은 안 당겨도 손이 보임
   const j=spreadOf(a.p)*jit(t+a.ph);
   return {i:a.i,x:pos[a.i].x,z:pos[a.i].z,ang:a.a+j,j,p:a.p,fl:0,op:handOp(a.p),seat:a.seat,fade:1};
 }
@@ -1019,6 +1042,7 @@ function stones2D(pos){
   if(myPlaceNow()){
     if(GH){const [x,z]=gridXZ(GH.c,GH.r),[X,Y]=w2s(x,z),c=stC(OS.co[me]);out.push(`<circle cx="${X}" cy="${Y}" r="${SR}" fill="${c.f}" stroke="${c.s}" stroke-width=".02" opacity=".5"/>`)}}
   if(myTurnNow()&&!drag&&!Ak3.shot&&!FLK)OS.st.forEach((s,i)=>{if(s.s===me&&!s.o&&!s.u){const [X,Y]=w2s(pos[i].x,pos[i].z);out.push(`<circle cx="${X}" cy="${Y}" r="${geomOf(s.t).rv*(s.t?1.25:1.45)}" fill="none" stroke="#f2b632" stroke-width=".03" opacity=".85"/>`)}});
+  if(drag&&drag.rel){const [X,Y]=w2s(drag.x0,drag.z0);out.push(`<circle cx="${X}" cy="${Y}" r="${SR*.9}" fill="none" stroke="#f2b632" stroke-width=".03" opacity=".85"/><circle cx="${X}" cy="${Y}" r="${SR*.28}" fill="#f2b632" opacity=".85"/>`)}   // 상대좌표로 당길 때 누른 점
   const hd=handNow(t,pos);
   if(hd){
     const r=handCanvas(hd.p,hd.fl,hd.seat,hd.op);if(r.changed||!HAND.url)HAND.url=r.cv.toDataURL();
@@ -1177,6 +1201,9 @@ function ak3Build(){
     // 튕길 수 있는 내 알 둘레의 고리 (내 차례), 화살표
     const ringM=new THREE.MeshBasicMaterial({color:0xf2b632,transparent:true,opacity:.9,depthWrite:false});
     Ak3.ringGeo=new THREE.RingGeometry(SR*1.22,SR*1.42,40);Ak3.ringM=ringM;
+    {const rg=new THREE.Group(),m2=new THREE.MeshBasicMaterial({color:0xf2b632,transparent:true,opacity:.85,depthTest:false,depthWrite:false});   // 상대좌표로 당길 때 누른 점
+     for(const g of [new THREE.RingGeometry(SR*.8,SR*.98,32),new THREE.CircleGeometry(SR*.28,20)]){const m=new THREE.Mesh(g,m2);m.rotation.x=-Math.PI/2;m.renderOrder=8;rg.add(m)}
+     rg.visible=false;root.add(rg);Ak3.relDot=rg}
     // 손: 위에서 본 반투명 손 그림(캔버스)을 알 위에 눕혀 둠 (다른 알보다 늘 위에 보이게)
     {const tex=new THREE.CanvasTexture(handCanvas(0,0,0,.2).cv);tex.anisotropy=4;
      const hm=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false});
@@ -1382,6 +1409,7 @@ function ak3Place(now){
   // 고리: 내 차례면 튕길 수 있는 내 알, 상대가 당기는 중이면 그 알 (내가 당기는 중에는 손이 보여 줌)
   const me=myIdx(),a=aimNow(now),pulse=.75+.25*Math.sin(now/260);
   Ak3.ringM.opacity=.9*pulse;
+  if(Ak3.relDot){const on=!!(drag&&drag.rel);Ak3.relDot.visible=on;if(on)Ak3.relDot.position.set(drag.x0,TOP+.006,drag.z0)}
   Ak3.rings.forEach((r,i)=>{
     const s=OS.st[i],q=pos[i];
     const on=!!s&&!s.o&&!s.u&&V.st==='play'&&!Ak3.shot&&!FLK&&!introWait()&&(a?(!a.mine&&a.i===i):(myTurnNow()&&s.s===me));
@@ -1525,7 +1553,7 @@ G.intro=(t0,o)=>{
   if(OS.om){   // 오목 모드: 처음에는 통이 판과 함께 내려앉고 돌이 하나씩 채워짐 (바로 시작이면 통은 그대로)
     IN.drop=null;IN.fill=again?null:INTRO.drop;IN.gap=Math.min(70,(IN.total-INTRO.drop-600)/BN);
   }
-  Ak3.shot=null;Ak3.lastSid=OS.sid;Ak3.lastGid=OS.gid;drag=null;
+  Ak3.shot=null;Ak3.lastSid=OS.sid;Ak3.lastGid=OS.gid;drag=null;SEL=-1;
   $('#stage').classList.add('ak-intro');
   lastBar='';Ak3.dirty=true;
 };
@@ -1564,7 +1592,7 @@ G.preView=()=>{
   const pv=PV&&PV.ak;
   OS=buildS(V.ak);
   // 새 판이면 처음부터. 튕긴 것이 새로 오면 그 자취를 재생 (늦게 들어왔거나 너무 오래된 것은 결과만)
-  if(OS.gid!==Ak3.lastGid){Ak3.lastGid=OS.gid;Ak3.lastSid=OS.sid;Ak3.shot=null;drag=null}
+  if(OS.gid!==Ak3.lastGid){Ak3.lastGid=OS.gid;Ak3.lastSid=OS.sid;Ak3.shot=null;drag=null;SEL=-1}
   const sh=OS.sh;
   if(sh&&sh.id!==Ak3.lastSid){
     Ak3.lastSid=sh.id;
@@ -1654,10 +1682,10 @@ G.holoPiece=(mk)=>{
 G.enter=()=>{
   $('#stage').classList.add('ak');
   $('#btnPass').hidden=true;$('#btnGura').hidden=true;$('#btnPlay').hidden=true;$('#numpick').hidden=true;
-  drag=null;
+  drag=null;SEL=-1;
 };
 G.leave=()=>{
-  introEnd();drag=null;
+  introEnd();drag=null;SEL=-1;
   $('#stage').classList.remove('ak','ak-over','ak3d','ak2d','ak-intro');
   if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
   if(Ak3.root)Ak3.root.visible=false;Ak3.on=false;Ak3.shot=null;
@@ -1741,7 +1769,7 @@ G.init=()=>{
   };
   bind($('#cv'),e=>Ak3.on&&ak3World(e),()=>Ak3.on&&!!OS);
   bind(elSvg,e=>s2w(e),()=>!Ak3.on&&!!OS);
-  document.addEventListener('keydown',e=>{if(e.code!=='Escape'||!elAk||elAk.hidden)return;if(drag)dragEnd(true);else if(GH){setGH(null);sndPickUp()}});
+  document.addEventListener('keydown',e=>{if(e.code!=='Escape'||!elAk||elAk.hidden)return;if(drag)dragEnd(true);else if(selOk()){setSel(-1);sndPickUp()}else if(GH){setGH(null);sndPickUp()}});
   window.addEventListener('resize',()=>{Ak3.lay='';fit2D()});
 };
 G._ak3={Ak3,IN,introEnd,handCanvas,get FLK(){return FLK},get OS(){return OS},get drag(){return drag},dragStart,dragMove,dragEnd,curPos};   // 화면 검사용
