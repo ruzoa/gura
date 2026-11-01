@@ -19,10 +19,10 @@ const SHOW_MS=1700;   // 두 타일이 다 놓인 뒤 결과 불이 켜지고 �
 const SEAT_C=['#c53026','#2b65ca'];   // 자리 색 (첫 차례 주사위 면과 같음: DicePick.SEAT_COL 앞 둘)
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>타일</b> : 두 사람이 0~8 숫자 타일을 9개씩 가집니다. 짝수(0·2·4·6·8)는 <b>흑</b>, 홀수(1·3·5·7)는 <b>백</b>입니다</li><li><b>한 판</b> : 선이 타일 하나를 엎어서 내면, 상대는 그 타일의 <b>색만 보고</b> 자기 타일을 엎어서 냅니다. 숫자가 큰 쪽이 1점을 얻습니다</li><li><b>0과 8</b> : 0은 8을 이깁니다. 0은 1~7에게는 지고, 8은 0에게만 집니다</li><li><b>같은 숫자</b> : 무승부로 점수가 없고, 다음 판 선은 그대로입니다</li><li><b>선</b> : 첫 판은 주사위로 정하고, 그다음 판부터는 앞 판에서 이긴 사람이 먼저 냅니다</li><li><b>승리</b> : 5점을 먼저 얻으면 승리합니다. 9판이 끝나면 점수가 높은 쪽이 승리하고, 같으면 무승부입니다</li><li><b>숨김</b> : 낸 숫자는 게임이 끝날 때까지 공개되지 않고, 누가 이겼는지만 불로 알려 줍니다. 가운데 기록 줄에서 이긴 쪽 타일에 불이 켜지고, 무승부면 양쪽 모두 켜집니다. 상대 손의 타일은 판마다 섞여 놓입니다</li><li><b>제한 시간</b> : 시간이 지나면 남은 타일 중 하나가 무작위로 나갑니다</li><li><b>조작</b> : 내 타일을 누르면 들리고, <b>[내기]</b>를 누르면 냅니다. 같은 타일을 다시 누르면 내려놓습니다(설정의 <b>두 번 눌러 놓기</b>를 켜면 바로 냅니다)</li><li><b>공개</b> : 게임이 끝나면 가운데 기록 줄의 타일이 모두 뒤집혀 숫자가 보입니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>타일</b> : 두 사람이 0~8 숫자 타일을 9개씩 가집니다. 짝수(0·2·4·6·8)는 <b>흑</b>, 홀수(1·3·5·7)는 <b>백</b>입니다</li><li><b>한 판</b> : 선이 타일 하나를 엎어서 내면, 상대는 그 타일의 <b>색만 보고</b> 자기 타일을 엎어서 냅니다. 숫자가 큰 쪽이 1점을 얻습니다</li><li><b>0과 8</b> : 0은 8을 이깁니다. 0은 1~7에게는 지고, 8은 0에게만 집니다</li><li><b>같은 숫자</b> : 무승부로 점수가 없고, 다음 판 선은 그대로입니다</li><li><b>선</b> : 첫 판은 주사위로 정하고, 그다음 판부터는 앞 판에서 이긴 사람이 먼저 냅니다</li><li><b>승리</b> : 5점을 먼저 얻으면 승리합니다. 9판이 끝나면 점수가 높은 쪽이 승리하고, 같으면 무승부입니다</li><li><b>숨김</b> : 낸 숫자는 게임이 끝날 때까지 공개되지 않고, 누가 이겼는지만 알려 줍니다. 가운데 기록 줄에서 이긴 쪽 타일에 금색 테두리가 둘리고, 무승부면 양쪽 모두 은색 테두리가 둘립니다. 상대 손의 타일은 판마다 섞여 놓입니다</li><li><b>제한 시간</b> : 시간이 지나면 남은 타일 중 하나가 무작위로 나갑니다</li><li><b>조작</b> : 내 타일을 누르면 들리고, <b>[내기]</b>를 누르면 냅니다. 같은 타일을 다시 누르면 내려놓습니다(설정의 <b>두 번 눌러 놓기</b>를 켜면 바로 냅니다)</li><li><b>공개</b> : 게임이 끝나면 가운데 기록 줄의 타일이 모두 뒤집혀 숫자가 보입니다</li></ol>';
 G.modeDesc=['5점을 먼저 얻으면 승리','5점을 먼저 얻으면 승리'];
 G.defaults={max:2,turn:30};
-G.roomSet=[{k:'turn',label:'제한 시간',unit:'초',lo:10,hi:60,step:10,desc:'시간이 지나면 남은 타일 중 하나가 무작위로 나갑니다'}];
+G.roomSet=[{k:'turn',label:'제한 시간',unit:'초',lo:10,hi:120,step:10,desc:'시간이 지나면 남은 타일 중 하나가 무작위로 나갑니다'}];
 G.ruleSet=[];
 G.cfgChips=c=>`<span class="chip">제한 시간 <b>${+c.turn||30}초</b></span>`;
 G.cfgSum=c=>`제한 시간 ${+c.turn||30}초 · 5점 먼저 (9판)`;
@@ -258,7 +258,7 @@ function html2d(){
   const cols=[];
   for(let k=0;k<N;k++){
     const r=o.rec[k],cur=!r&&k===o.rec.length?o.pl:null;
-    const cell=i=>r?tile2d(r.c[i],r.v[i],lit(r,i)?'lit':''):cur&&cur[i]?tile2d(cur[i].c,cur[i].v):'<span class="bw-t e"></span>';
+    const cell=i=>r?tile2d(r.c[i],r.v[i],lit(r,i)?(r.w<0?'lit tie':'lit'):''):cur&&cur[i]?tile2d(cur[i].c,cur[i].v):'<span class="bw-t e"></span>';
     cols.push(`<div class="bw-col">${cell(ts)}${cell(bs)}</div>`);
   }
   return `<div class="bw-row2">${row(ts)}</div><div class="bw-rec2">${cols.join('')}</div><div class="bw-row2 me">${row(bs)}</div>`;
@@ -330,15 +330,16 @@ function bw3Build(){
     const board=new THREE.Mesh(new THREE.BoxGeometry(BWD,BH,BDP),[toon({color:0x5a3218,rim:.1}),toon({color:0x5a3218,rim:.1}),toon({map:bt,rim:0}),toon({color:0x5a3218}),toon({color:0x5a3218,rim:.1}),toon({color:0x5a3218,rim:.1})]);
     board.position.y=BH/2+.005;board.castShadow=board.receiveShadow=true;bg.add(board);
     const bo=new THREE.Mesh(new THREE.BoxGeometry(BWD+.05,BH+.02,BDP+.05),new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide}));bo.position.copy(board.position);bg.add(bo);
-    // 이긴 쪽 불: 기록 칸마다 위아래 둘 (타일 아래에서 번지는 금빛)
+    // 들어 올린 타일 빛 (금빛 번짐)
     const gT=canvasTex(128,160,(x,w,h)=>{const gr=x.createRadialGradient(w/2,h/2,0,w/2,h/2,w*.62);gr.addColorStop(0,'rgba(255,214,70,1)');gr.addColorStop(.55,'rgba(255,190,40,.85)');gr.addColorStop(1,'rgba(255,170,20,0)');x.fillStyle=gr;x.fillRect(0,0,w,h)});
-    const gM=new THREE.MeshBasicMaterial({map:gT,transparent:true,depthWrite:false});
+    // 결과 테두리: 이긴 쪽 기록 타일 둘레에 금색 실선, 무승부면 양쪽 은색 (타일 아래 판 위에 깔아 타일 바깥으로 테두리만 보임)
+    const fT=canvasTex(128,176,(x,w,h)=>{x.fillStyle='#fff';const b=17;x.fillRect(0,0,w,b);x.fillRect(0,h-b,w,b);x.fillRect(0,0,b,h);x.fillRect(w-b,0,b,h)});
     for(let k=0;k<N;k++)for(let s=0;s<2;s++){
-      const m=new THREE.Mesh(new THREE.PlaneGeometry(TW*RS*2.1,TD*RS*1.75),gM.clone());m.rotation.x=-Math.PI/2;m.position.set((k-(N-1)/2)*RG,BH+.012,s?RZ:-RZ);m.visible=false;m.renderOrder=2;root.add(m);
+      const m=new THREE.Mesh(new THREE.PlaneGeometry(TW*RS+.13,TD*RS+.13),new THREE.MeshBasicMaterial({map:fT,color:0xf2b632,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set((k-(N-1)/2)*RG,BH+.012,s?RZ:-RZ);m.visible=false;m.renderOrder=2;root.add(m);
       Bw3.glows.push(m);
     }
     // 다음에 낼 자리: 지금 차례인 사람의 빈 기록 칸에 금색 테두리
-    const sT=canvasTex(128,176,(x,w,h)=>{x.strokeStyle='#f2b632';x.lineWidth=12;x.setLineDash([22,14]);x.strokeRect(8,8,w-16,h-16)});
+    const sT=canvasTex(128,176,(x,w,h)=>{x.strokeStyle='#fffaf0';x.lineWidth=12;x.setLineDash([22,14]);x.strokeRect(8,8,w-16,h-16)});
     Bw3.slot=new THREE.Mesh(new THREE.PlaneGeometry(TW*RS+.08,TD*RS+.08),new THREE.MeshBasicMaterial({map:sT,transparent:true,depthWrite:false}));
     Bw3.slot.rotation.x=-Math.PI/2;Bw3.slot.position.y=BH+.014;Bw3.slot.visible=false;Bw3.slot.renderOrder=3;root.add(Bw3.slot);
     // 들어 올린 내 타일 둘레의 빛
@@ -489,7 +490,9 @@ function bw3Step(now){
     const e=now-L.t0;if(e<0){busy=true;continue}
     if(!L.snd){L.snd=1;if(e<400&&(L.i===L.w||L.w<0)&&!(L.w<0&&L.i!==Bw3.bs))sndLight(L.w<0?0:me<0?0:L.w===me?1:-1)}
     g.userData.on=true;
-    const k=Math.min(1,e/260);g.material.opacity=k*(.95+(e<900?.05*Math.sin(e/40):0));if(e<900)busy=true;
+    g.material.color.setHex(L.w<0?0xc9ced6:0xf2b632);   // 승리 금색 · 무승부 은색
+    const k=Math.min(1,e/180),fl=e<700?Math.sin(Math.PI*e/700):0;   // 켜지는 순간 한 번 반짝(살짝 커졌다 돌아옴)
+    g.material.opacity=k;g.scale.setScalar(1+.18*fl);if(e<700)busy=true;
   }
   for(const g of Bw3.glows)g.visible=!!g.userData.on;
   // 들어 올린 내 타일 빛
@@ -716,7 +719,8 @@ G.init=()=>{
 #bw .bw-t.b{background:#2a2a2e;color:#f4efe3}
 #bw .bw-t.w{background:#f1ebde;color:#26262a}
 #bw .bw-t.e{background:rgba(0,0,0,.25);border-color:rgba(255,220,170,.25)}
-#bw .bw-t.lit{box-shadow:0 0 0 3px #ffd646,0 0 12px 4px rgba(255,190,40,.8)}
+#bw .bw-t.lit{box-shadow:0 0 0 3px #f2b632}
+#bw .bw-t.lit.tie{box-shadow:0 0 0 3px #c9ced6}
 #bw .bw-rec2 .bw-t{width:24px;height:35px;font-size:16px}
 #bw button.bw-t{cursor:pointer;transition:transform .15s}
 #bw button.bw-t.up{transform:translateY(-10px);box-shadow:0 0 0 3px #f2b632}
