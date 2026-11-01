@@ -35,6 +35,8 @@ function frontHoloPiece(id){
     const cm=holoMat(0x2e7d4f),cw=holoMat(0xf6f3ea);for(let k=0;k<5;k++){add(new THREE.CylinderGeometry(.12,.12,.045,20),k%2?cw:cm,.22,-.22+k*.05,.06)}}
   else if(id==='alkkagi'&&GAMES.alkkagi&&GAMES.alkkagi.holoPiece){   // 풀차징된 손과 흑돌 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.alkkagi.holoPiece(c=>{const m=holoMat(c);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
+  else if(id==='blackwhite'&&GAMES.blackwhite&&GAMES.blackwhite.holoPiece){   // 엎은 흑 타일과 숫자가 보이는 백 타일 (게임이 모양을 정하고 재질은 여기서)
+    const k=GAMES.blackwhite.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else add(new THREE.OctahedronGeometry(.25),holoMat(0xffffff));
   g.userData={mats};return g;
 }
