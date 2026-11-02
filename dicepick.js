@@ -2,8 +2,9 @@
    테스트룸(lab.html)과 게임이 같은 파일을 쓰면 테스트룸에서 맞춘 감각이 그대로 나옵니다.
 
    누가 먼저인지는 방장 엔진이 정함(균등하게). 주사위는 그 결과가 위로 오도록 맞춰 굴러가는 연출입니다.
-   - 면마다 자리 색: 2·3·6명은 6면체, 4·8명은 8면체(색마다 면 수가 같음).
-     5명은 6면체, 7명은 8면체에 '다시 굴리기' 면(검은 면 + 빨간 ↻) 하나: 그 면이 나오면 한 번 더 굴립니다.
+   - 야추다이스 주사위와 같은 몸통(크림색·둥근 모서리·먹색 외곽선)에 면마다 자리 색 원 하나:
+     2·3·6명은 6면체, 4·8명은 8면체(색마다 면 수가 같음).
+     5명은 6면체, 7명은 8면체에 '다시 굴리기' 면(검은 원 + 빨간 ↻) 하나: 그 면이 나오면 한 번 더 굴립니다.
    - 방장이 던진 횟수(rolls)를 정해 신호(H.fp)로 보내고, 모두 같은 횟수·같은 씨앗으로 같은 굴림을 재생합니다.
 
    DicePick.plan(n, first, opt) → { N, sides, own, rolls, throws, landAt, total, at(e), poseAt(e), ... }
@@ -19,8 +20,12 @@
   const DEF={dur:1800,durAgain:1300,pause:260,wait:1100,shrink:220};   // 첫 굴림 1.8초, 다시 굴림 1.3초(굴림 사이 0.26초 쉼), 멈춘 뒤 안내 1.1초
   const MAXR=12;   // 다시 굴리기가 연달아 나오는 최대 횟수 (확률이 (1/6)^11 이하라 공정성에 영향 없음)
   const SEAT_COL=['#c53026','#2b65ca','#1f7a2e','#c9831a','#7d3fa8','#12a3a3','#d9568f','#6b5a4a'];   // 자리 색: 앞 넷은 쿼리도·야추다이스의 PCOL과 같음
-  const REROLL_COL='#33302d';
+  const REROLL_COL='#33302d',BODY_COL='#fbf3e0',INK_COL='#4a3020';   // 몸통은 야추다이스 주사위 면과 같은 색, 먹색은 게임 공통 외곽선(GFX_INK)
   const R8=.68;   // 8면체 꼭짓점 거리 (6면체 한 변 = 1일 때 눈에 비슷한 크기)
+  /* 모서리 둥글기(한 변 = 1 기준)와 원 반지름. 6면체 .132는 야추다이스 주사위(.095/.72)와 같음, 8면체는 꼭짓점이 뾰족해 한 변의 8%.
+     원은 평평한 곳 안에 들어가게: 6면체 지름 = 한 변의 70%, 8면체 = 삼각형 내접원의 80%(면적 비율이 6면체와 비슷) */
+  const LOOK={6:{r:.132,circle:.35},8:{r:.077,circle:.222}};
+  const RING=.018;   // 원 테두리 두께
 
   const merge=opt=>{const o=Object.assign({},DEF);if(opt)for(const k in opt)if(opt[k]!==null&&opt[k]!==''&&Number.isFinite(+opt[k]))o[k]=+opt[k];return o};
   const clampN=n=>Math.max(2,Math.min(8,Math.round(+n)||2));
@@ -79,7 +84,46 @@
       const e1=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],e2=[c[0]-a[0],c[1]-a[1],c[2]-a[2]];
       if(dot(cross(e1,e2),f.n)<0)f.idx.reverse()}
     const faceR=sides===6?.5:R8/Math.sqrt(3);   // 면 중심까지 거리
-    return SHAPES[sides]={sides,verts,faces,faceR};
+    /* 둥근 모양 = 안쪽 작은 다면체(inner) + 반지름 r의 공. 면까지 거리는 그대로라 멈춘 높이가 변하지 않음 */
+    const r=LOOK[sides].r,k=(faceR-r)/faceR,inner=verts.map(v=>[v[0]*k,v[1]*k,v[2]*k]);
+    return SHAPES[sides]={sides,verts,faces,faceR,r,circle:LOOK[sides].circle,inner};
+  }
+
+  /* 자세 q에서 둥근 주사위의 가장 낮은 점(가운데 기준 y) */
+  function lowY(S,q){let m=1e9;for(const v of S.inner)m=Math.min(m,qRot(q,v)[1]);return m-S.r}
+
+  /* 평면 볼록 다각형 poly(바깥에서 반시계) 위에서 p와 가장 가까운 점 (p는 같은 평면 근처) */
+  function closestOnPoly(p,poly,n){
+    let inside=true,best=null,bd=1e9;
+    for(let i=0;i<poly.length;i++){
+      const a=poly[i],b=poly[(i+1)%poly.length],e=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],ap=[p[0]-a[0],p[1]-a[1],p[2]-a[2]];
+      if(dot(cross(e,ap),n)<0)inside=false;
+      const u=Math.max(0,Math.min(1,dot(ap,e)/dot(e,e))),c=[a[0]+e[0]*u,a[1]+e[1]*u,a[2]+e[2]*u],d=Math.hypot(p[0]-c[0],p[1]-c[1],p[2]-c[2]);
+      if(d<bd){bd=d;best=c}
+    }
+    if(!inside)return best;
+    const h=dot([p[0]-poly[0][0],p[1]-poly[0][1],p[2]-poly[0][2]],n);
+    return [p[0]-n[0]*h,p[1]-n[1]*h,p[2]-n[2]*h];
+  }
+  /* 둥근 다면체 몸통: 면을 잘게 나눈 점을 안쪽 면에서 반지름 r만큼 띄움 */
+  function roundedBody(S,seg){
+    const pos=[],nor=[];
+    const put=(p,f,poly)=>{
+      const c=closestOnPoly(p,poly,f.n),d=[p[0]-c[0],p[1]-c[1],p[2]-c[2]],l=Math.hypot(d[0],d[1],d[2]),m=l<1e-9?f.n:[d[0]/l,d[1]/l,d[2]/l];
+      pos.push(c[0]+m[0]*S.r,c[1]+m[1]*S.r,c[2]+m[2]*S.r);nor.push(m[0],m[1],m[2]);
+    };
+    const at=(a,b,c,i,j)=>{const u=i/seg,v=j/seg,w=1-u-v;return [0,1,2].map(k=>a[k]*w+b[k]*u+c[k]*v)};
+    for(const f of S.faces){
+      const P=f.idx.map(i=>S.verts[i]),poly=f.idx.map(i=>S.inner[i]);
+      for(let t=1;t<P.length-1;t++){
+        const a=P[0],b=P[t],c=P[t+1];
+        for(let i=0;i<seg;i++)for(let j=0;j<seg-i;j++){
+          put(at(a,b,c,i,j),f,poly);put(at(a,b,c,i+1,j),f,poly);put(at(a,b,c,i,j+1),f,poly);
+          if(i+j<seg-1){put(at(a,b,c,i+1,j),f,poly);put(at(a,b,c,i+1,j+1),f,poly);put(at(a,b,c,i,j+1),f,poly)}
+        }
+      }
+    }
+    return {pos,nor};
   }
 
   function rng32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -106,7 +150,7 @@
       const p1=[(rnd()-.5)*1.0,(rnd()-.5)*.8];
       const ax=norm([rnd()-.5,(rnd()-.5)*.6,rnd()-.5]),theta=Math.PI*(5.5+rnd()*2.5);
       const qEnd=qMul(qAxis(ups,rnd()*Math.PI*2),qArc(S.faces[face].n,ups));
-      let minY=1e9;for(const v of S.verts)minY=Math.min(minY,qRot(qEnd,v)[1]);
+      const minY=lowY(S,qEnd);
       const chain=k?CHAIN_AGAIN:CHAIN_FIRST,segs=[];let c=0;
       for(const [type,fr,h,v] of chain){segs.push({type,a:c*dur,b:(c+fr)*dur,h,v});c+=fr;impacts.push({t:t+(c)*dur,v})}
       const T={t0:t,dur,face,seat:own[face],p0,p1,ax,theta,qEnd,restY:-minY,tStop:.9*dur,segs};
@@ -124,7 +168,7 @@
         const q=qMul(qAxis(T.ax,T.theta*sp),T.qEnd);
         let h=0;
         for(const g of T.segs){if(tt<g.a||tt>=g.b)continue;const x=(tt-g.a)/(g.b-g.a);h=g.type==='fall'?g.h*(1-x*x):4*g.h*x*(1-x);break}
-        let mn=1e9;for(const v of S.verts)mn=Math.min(mn,qRot(q,v)[1]);
+        const mn=lowY(S,q);
         p={x:T.p0[0]+(T.p1[0]-T.p0[0])*pm,y:h-mn,z:T.p0[1]+(T.p1[1]-T.p0[1])*pm,q,s:1,throw:k,rest:false};
       }
       const sl=total-e;if(sl<o.shrink){const x=sl/o.shrink;p.s=x*x*(3-2*x)}   // 끝나기 직전 작아지며 사라짐
@@ -136,33 +180,41 @@
   const planFor=(n,first,rolls,seed)=>plan(n,first,rolls<0?{fixed:1}:{rolls:rolls||1,seed});
 
   /* ---- THREE 주사위 만들기 (한 변 1인 크기로 만들고 apply에서 키움) ----
-     colors: 자리 번호 → 색(문자열·숫자). 다시 굴리기 면은 검정 + 빨간 ↻ */
+     colors: 자리 번호 → 색(문자열·숫자). 게임 안에서는 공통 toon 재질과 외곽선을 쓰고, 테스트룸처럼 없으면 기본 재질 */
   function mesh(THREE,n,colors){
     const N=clampN(n),sides=sidesFor(N),own=owners(N),S=shape(sides);
-    const pos=[],nor=[],col=[],tmp=new THREE.Color();
+    const mat=(color,flat)=>{
+      const m=typeof toon==='function'?toon({color,rim:flat?0:.12}):new THREE.MeshLambertMaterial({color});
+      if(flat){m.polygonOffset=true;m.polygonOffsetFactor=-2;m.polygonOffsetUnits=-2}
+      return m;
+    };
+    const num=c=>new THREE.Color(c).getHex();
+    const body=roundedBody(S,16),geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.Float32BufferAttribute(body.pos,3));
+    geo.setAttribute('normal',new THREE.Float32BufferAttribute(body.nor,3));
+    const bodyM=mat(num(BODY_COL)),m=new THREE.Mesh(geo,bodyM);m.castShadow=true;
+    const inkM=new THREE.MeshBasicMaterial({color:typeof GFX_INK==='number'?GFX_INK:num(INK_COL),side:THREE.BackSide}),hull=new THREE.Mesh(geo,inkM);
+    hull.scale.setScalar(1.075);   // 야추다이스 주사위와 같은 외곽선
+    const g=new THREE.Group();g.add(m,hull);g.visible=false;
+    const own_=[geo,bodyM,inkM];
+    /* 면마다 원 하나: 크림 면 위에 얇은 먹색 테두리 + 자리 색 원 (같은 높이에서 겹치지 않음) */
+    const cg=new THREE.CircleGeometry(S.circle-RING,48),rg=new THREE.RingGeometry(S.circle-RING,S.circle,48,1),ringM=mat(num(INK_COL),true),faceM={};
+    own_.push(cg,rg,ringM);
+    const onFace=(o,f,h)=>{const q=qArc([0,0,1],f.n);o.quaternion.set(q[0],q[1],q[2],q[3]);o.position.set(f.n[0]*(S.faceR+h),f.n[1]*(S.faceR+h),f.n[2]*(S.faceR+h));g.add(o)};
     S.faces.forEach((f,fi)=>{
-      tmp.set(own[fi]<0?REROLL_COL:colors[own[fi]%colors.length]);
-      const tri=f.idx.length===4?[[0,1,2],[0,2,3]]:[[0,1,2]];
-      for(const t of tri)for(const k of t){const p=S.verts[f.idx[k]];pos.push(p[0],p[1],p[2]);nor.push(f.n[0],f.n[1],f.n[2]);col.push(tmp.r,tmp.g,tmp.b)}
+      const c=own[fi]<0?REROLL_COL:colors[own[fi]%colors.length],key=num(c);
+      if(!faceM[key]){faceM[key]=mat(key,true);own_.push(faceM[key])}
+      onFace(new THREE.Mesh(cg,faceM[key]),f,.003);onFace(new THREE.Mesh(rg,ringM),f,.003);
     });
-    const geo=new THREE.BufferGeometry();
-    geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
-    geo.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
-    geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
-    const m=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({vertexColors:true}));m.castShadow=true;
-    const edges=new THREE.LineSegments(new THREE.EdgesGeometry(geo,1),new THREE.LineBasicMaterial({color:0x2a211b}));
-    const g=new THREE.Group();g.add(m,edges);g.visible=false;
-    const own_=[geo,m.material,edges.geometry,edges.material];
     const rf=own.indexOf(-1);
-    if(rf>=0){   // 다시 굴리기 면: 빨간 ↻ 그림
+    if(rf>=0){   // 다시 굴리기 면: 검은 원 안에 빨간 ↻
       const cv=document.createElement('canvas');cv.width=cv.height=128;const c=cv.getContext('2d');
       c.strokeStyle='#e2362b';c.fillStyle='#e2362b';c.lineWidth=15;c.lineCap='round';
       c.beginPath();c.arc(64,64,36,-Math.PI*.15,Math.PI*1.55);c.stroke();
       c.beginPath();c.moveTo(64+36*Math.cos(-Math.PI*.15)+24,64+36*Math.sin(-Math.PI*.15)-4);c.lineTo(64+36*Math.cos(-Math.PI*.15)-18,64+36*Math.sin(-Math.PI*.15)-20);c.lineTo(64+36*Math.cos(-Math.PI*.15)-6,64+36*Math.sin(-Math.PI*.15)+24);c.closePath();c.fill();
-      const tx=new THREE.CanvasTexture(cv),w=sides===6?.62:.5;
-      const dm=new THREE.MeshBasicMaterial({map:tx,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
-      const dg=new THREE.PlaneGeometry(w,w),d=new THREE.Mesh(dg,dm),n=S.faces[rf].n,q=qArc([0,0,1],n);
-      d.quaternion.set(q[0],q[1],q[2],q[3]);d.position.set(n[0]*(S.faceR+.004),n[1]*(S.faceR+.004),n[2]*(S.faceR+.004));g.add(d);
+      const tx=new THREE.CanvasTexture(cv),w=S.circle*1.7;
+      const dm=new THREE.MeshBasicMaterial({map:tx,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4});
+      const dg=new THREE.PlaneGeometry(w,w);onFace(new THREE.Mesh(dg,dm),S.faces[rf],.005);
       own_.push(tx,dm,dg);
     }
     return {

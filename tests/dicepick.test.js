@@ -6,7 +6,7 @@ const ok=(c,m)=>{checks++;if(!c){fails++;console.log('FAIL',m)}};
 
 /* 위로 향한 면 번호 */
 function topFace(p,q){let best=-1,by=-2;p.shape.faces.forEach((f,i)=>{const y=qRot(q,f.n)[1];if(y>by){by=y;best=i}});return {face:best,y:by}}
-const lowest=(p,pose)=>{let m=1e9;for(const v of p.shape.verts)m=Math.min(m,qRot(pose.q,v)[1]);return pose.y+m};
+const lowest=(p,pose)=>{let m=1e9;for(const v of p.shape.inner)m=Math.min(m,qRot(pose.q,v)[1]);return pose.y+m-p.shape.r};   // 둥근 모양 기준
 
 /* 모양: 인원별 면 수와 주인 */
 {
@@ -26,6 +26,13 @@ const lowest=(p,pose)=>{let m=1e9;for(const v of p.shape.verts)m=Math.min(m,qRot
     if(n!==2)ok(same===0,`n=${n} 모서리를 맞댄 같은 색 면 ${same}쌍`)}
 }
 
+/* 둥근 모양: 면까지 거리는 그대로, 원은 평평한 곳 안에 들어감 */
+for(const s of [6,8]){const S=D.shape(s);
+  S.faces.forEach((f,i)=>{const a=S.inner[f.idx[0]];ok(Math.abs(a[0]*f.n[0]+a[1]*f.n[1]+a[2]*f.n[2]+S.r-S.faceR)<1e-9,`s=${s} 면${i} 둥근 모양의 면 거리`)});
+  const P=S.faces[0].idx.map(k=>S.inner[k]),c=[0,1,2].map(k=>P.reduce((m,p)=>m+p[k],0)/P.length);
+  let flat=1e9;P.forEach((a,i)=>{const b=P[(i+1)%P.length],mid=[0,1,2].map(k=>(a[k]+b[k])/2-c[k]);flat=Math.min(flat,Math.hypot(...mid))});
+  ok(S.circle<=flat+1e-9,`s=${s} 원 ${S.circle}이 평평한 곳 ${flat} 안`);
+}
 /* 모양 법선이 바깥을 향하고 꼭짓점 순서가 반시계 */
 for(const s of [6,8]){const S=D.shape(s);
   S.faces.forEach((f,i)=>{const p=f.idx.map(k=>S.verts[k]),a=p[0],b=p[1],c=p[2];
