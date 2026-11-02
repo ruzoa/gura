@@ -278,11 +278,11 @@ function showBubble(i,html,life,kind){
   if(!spc&&(kind==='real'||kind==='q')&&T&&T.ok&&V&&V.st!=='wait'&&i!==myIdx()&&show3DBubble(i,kind,life))return;   // 내 말풍선은 내 정보 칸 위(화면 위층)
   const st=$('#stage'),sr=st.getBoundingClientRect(),W=sr.width,Hh=sr.height;
   // 대기실 명단, 결과 화면 순위표가 떠 있으면 그 사람 줄에 붙임 (결과 화면에서는 내 정보 칸·자리 이름표가 가려지거나 숨어 있음)
-  const overRow=!spc&&V&&V.st==='over'&&!$('#panel').hidden?document.querySelector(`#panel .ranks li[data-i="${i}"]`):null;
+  const overRow=!spc&&V&&V.st==='over'&&!$('#panel').hidden?(OV.fold?$('#panelFold'):document.querySelector(`#panel .ranks li[data-i="${i}"]`)):null;
   const tw=!overRow&&V&&V.st==='wait'&&frTableUI();   // 3D 대기실: 탁자 위 2D 이름표에 붙임
   const inWait=!tw&&(V&&V.st==='wait'||!!overRow);
   const el=tw?(spc?document.querySelector(`#specBar [data-s="${i.slice(1)}"]`):document.querySelector(`#labels .wseat[data-w="${seatNoOf(i)}"]`)):overRow||(spc?document.querySelector(V&&V.st==='wait'?`#panel .specs [data-s="${i.slice(1)}"]`:`#specBar [data-s="${i.slice(1)}"]`):inWait?document.querySelector(`#panel .slots li[data-i="${i}"]`):i===myIdx()?$('#me'):document.querySelector(`#labels .seat[data-i="${i}"]`));
-  if(!el)return;
+  if(!el||!el.getClientRects().length)return;   // 결과 창을 늦게 띄우는 동안: 내 정보 칸이 숨어 있으면 띄울 자리가 없음
   const r0=el.getBoundingClientRect(),r=inWait&&!spc?{left:r0.right-70,top:r0.top,width:60,height:r0.height,right:r0.right,bottom:r0.bottom}:r0,lx=r.left-sr.left+r.width/2,ly=r.top-sr.top+r.height/2;
   // 이름표에서 테이블 가운데 쪽으로 풍선을 띄움
   const A=(typeof T!=='undefined'&&T&&T.anchor)||{x:W/2,y:Hh*.45};

@@ -150,6 +150,14 @@ body.nofs .fsbtn.cfg{right:58px}
 
 /* 무대 위 패널 (대기실, 결과) */
 .panel{position:absolute;inset:0;display:flex;padding:60px 16px 16px;background:rgba(59,42,31,.32);overflow-y:auto;z-index:8}   /* 결과 화면이 남은 손패·버튼·내 정보 칸 위에 오게 (오른쪽 위 버튼은 그 위 z 9) */
+.panel-fold{display:none}
+.panel.fold{background:none;pointer-events:none;overflow:hidden}
+.panel.fold .card-sheet{display:none}
+.panel.fold .panel-fold{display:flex;position:absolute;left:10px;top:10px;max-width:min(calc(50% - 72px),240px);height:40px;padding:0 10px 0 14px;align-items:center;gap:6px;border-radius:var(--r-sm);border:1.5px solid var(--line-strong);background:rgba(255,250,240,.94);color:var(--ink);font-size:14px;font-weight:600;box-shadow:0 2px 0 var(--line);pointer-events:auto}
+.stage:has(.panel.fold:not([hidden])) [class$="-hint"]{visibility:hidden}   /* 안내 줄의 결과 글은 띠와 같은 내용이고 왼쪽 위에서 겹침 */
+.panel-fold span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.panel-fold svg{flex:none}
+.vhead .overfold{margin-left:auto;display:flex;align-items:center;justify-content:center;color:var(--ink)}
 .card-sheet{background:var(--panel);border:1.5px solid var(--line-strong);border-radius:var(--r-lg);padding:20px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;margin:auto;box-shadow:var(--sh-panel)}
 .card-sheet h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:30px;color:var(--gura)}
 .card-sheet p{margin:0;font-size:13px;color:var(--muted)}

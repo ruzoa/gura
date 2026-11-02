@@ -152,8 +152,23 @@ const syncLogDotSoon=()=>{if(typeof syncLogDot==='function')try{syncLogDot()}cat
 /* 상태가 갱신돼도 같은 내용이면 다시 그리지 않아서 키보드 포커스가 유지돼요.
    패널이 처음 뜰 때는 data-auto 버튼(게임 시작, 다시 하기 등)에 포커스를 줘요. */
 let lastPanelHtml='',lastPanelKind='';
+/* 결과 창: 접기는 내 화면에서만(동기화 없음), 다음 판이면 다시 펼쳐진 채로. G.overDelay(ms)는 판을 보던 사람에게만 창을 늦게 띄움 (늦게 들어온 사람은 바로) */
+const OV={on:false,fold:false,at:0,last:'',timer:0};
+function overTrack(st){
+  if(st==='over'&&!OV.on){
+    const ms=OV.last==='play'&&G.overDelay?+G.overDelay()||0:0;
+    OV.on=true;OV.fold=false;OV.at=ms>0?Date.now()+ms:0;
+    clearTimeout(OV.timer);if(ms>0)OV.timer=setTimeout(renderPanel,ms+20);
+  }else if(st!=='over'&&OV.on){OV.on=false;OV.fold=false;OV.at=0;clearTimeout(OV.timer)}
+  OV.last=st||'';
+}
+function overWho(){const w=V.ps.filter(p=>p.f===1);return w.length===1?`${w[0].n} 승리`:w.length===V.ps.length?'무승부':'공동 1위'}
+function setOverFold(on){
+  OV.fold=on;$('#panel').classList.toggle('fold',on);sfx('tick');
+  const f=on?$('#panelFold'):$('#panel [data-auto]:not([disabled])')||$('#panel [data-act="overfold"]');if(f)f.focus({preventScroll:true});
+}
 function showPanel(html,kind,opt){
-  const p=$('#panel');p.hidden=false;
+  const p=$('#panel');p.hidden=false;p.classList.toggle('fold',kind==='over'&&OV.fold);
   if(html===lastPanelHtml)return;
   const ae=document.activeElement,prevAct=ae&&p.contains(ae)&&ae.dataset?ae.dataset.act:null;
   const typing=ae&&ae.tagName==='INPUT'&&p.contains(ae)?{id:ae.id,v:ae.value,s:ae.selectionStart,e:ae.selectionEnd}:null;
@@ -206,6 +221,7 @@ function pickRowHTML(d,c,cls=''){
 }
 function renderPanel(){
   if(mode==='closed'||mode==='promoting'||net.retry)return;
+  overTrack(mode==='lobby'||!V?'':V.st);
   if(!V||mode==='lobby'){if(mode==='lobby')hidePanel();return}
   const me=myIdx(),isHost=mode==='host';
   if(V.st==='wait'){
@@ -261,8 +277,10 @@ function renderPanel(){
     return;
   }
   if(V.st==='over'){
+    if(OV.at&&Date.now()<OV.at){hidePanel();return}
+    $('#panelFoldT').textContent=overWho();
     const list=V.ps.map((p,i)=>({...p,i})).sort((a,b)=>a.f-b.f);
-    showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="탁자 떠나기" title="탁자 떠나기">←</button><h2>게임 끝</h2></div><ol class="ranks">${list.map(p=>`<li class="${p.i===me?'me':''}" data-i="${p.i}"><span class="r">${+p.f}위</span><span>${esc(p.n)}</span>${G.overRank?G.overRank(p):(()=>{const t=G.rankTitle(p.f,V.ps.length);return p.sr||t?`<span class="left">${p.sr?(p.sr===2?'시간 초과':'항복'):''}${p.sr&&t?' · ':''}${t}</span>`:''})()}${V.cfg&&V.cfg.fast&&p.c>0?`<span class="left">남은 카드 ${+p.c}장</span>`:''}</li>`).join('')}</ol>${G.overExtra?G.overExtra():''}
+    showPanel(`<div class="vhead"><button type="button" class="back" data-act="leave" aria-label="탁자 떠나기" title="탁자 떠나기">←</button><h2>게임 끝</h2><button type="button" class="back overfold" data-act="overfold" aria-label="결과 창 접기" title="탁자 보기"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div><ol class="ranks">${list.map(p=>`<li class="${p.i===me?'me':''}" data-i="${p.i}"><span class="r">${+p.f}위</span><span>${esc(p.n)}</span>${G.overRank?G.overRank(p):(()=>{const t=G.rankTitle(p.f,V.ps.length);return p.sr||t?`<span class="left">${p.sr?(p.sr===2?'시간 초과':'항복'):''}${p.sr&&t?' · ':''}${t}</span>`:''})()}${V.cfg&&V.cfg.fast&&p.c>0?`<span class="left">남은 카드 ${+p.c}장</span>`:''}</li>`).join('')}</ol>${G.overExtra?G.overExtra():''}
       ${me>=0?'<div class="row"><button class="btn btn-sub" type="button" data-act="emo:gg">GG 보내기</button></div>':''}
       ${V.spec?V.nj?'<p>라운드가 모두 끝나면 참가할 수 있습니다.</p>':(+V.mc<+V.cfg.max?'<div class="row"><button class="btn btn-red" type="button" data-act="join" data-auto>다음 판 참가하기</button></div>':'<p>빈 자리가 없어 계속 관전합니다.</p>'):V.jn?'<p>다음 판에 참가합니다.</p>':''}
       ${isHost?`<div class="row"><button class="btn btn-sub" type="button" data-act="again">대기실</button><button class="btn btn-red" type="button" data-act="restart" data-auto ${canStart()?'':'disabled'}>바로 시작</button></div>`:'<p>방장이 다음 판을 시작하거나 대기실을 열 때까지 기다립니다.</p>'}`,'over');
@@ -274,6 +292,7 @@ $('#panel').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act;
   if(a==='sheetmin'){FR.sheetMin=!FR.sheetMin;$('#panelBody').classList.toggle('min',FR.sheetMin);sfx('tick');return}
+  if(a==='overfold'){setOverFold(!OV.fold);return}
   if(a==='rules'){sfx('paper');openRules();return}
   if(a==='hidecode'){hideCode=!hideCode;store('gura-hidecode',hideCode?'1':'0');lastPanelHtml='';renderPanel();const f=$('#panel [data-act="hidecode"]');if(f)f.focus();return}
   if(a==='leave'){

@@ -30,6 +30,7 @@ G.roomSub=()=>'2명 타일 게임';
 G.pubExtra=()=>({});
 G.cardInfo=(c,nowN)=>`<p class="cardinfo">${nowN>2?'흑과백은 두 명이 하는 게임입니다.':'두 명이 하는 게임입니다.'}</p>`;
 G.rankTitle=()=>'';
+G.overDelay=()=>Bw3.on?(seated()?2200:3200):0;   // 숫자 뒤집기(내 자리 9개·관전 18개)가 끝나고 잠깐 본 뒤 결과 창
 G.finLabel=()=>'';
 G.noEmotes=[];
 G.keys={};
