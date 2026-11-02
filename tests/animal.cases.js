@@ -5,7 +5,7 @@ T.setBotScale(.1);   // 봇 탐색 양을 줄여 테스트를 빠르게
 const eq=(a,b,m)=>{if(a!==b)fail('animal '+m+': '+a+' != '+b)};
 const {IX,mk,HIY,ZOU,KIR,LION,NIW}=T;
 /* 국면 만들기: [x,y,말,색] 목록 + 둘 차례 + 포로 [[색,말,개수]…] */
-const P=(list,side,hands)=>{const p=T.newPos();for(const [x,y,t,c] of list)p.b[IX(x,y)]=t|(c<<3);for(const [c,t,n] of hands||[])p.hd[c][t]=n;p.side=side||0;T.rehash(p);return p};
+const P=(list,side,hands,md)=>{const p=T.newPos(md);for(const [x,y,t,c] of list)p.b[IX(x,y)]=t|(c<<3);for(const [c,t,n] of hands||[])p.hd[c][t]=n;p.side=side||0;T.rehash(p);return p};
 const tos=(p,x,y)=>T.legal(p).filter(m=>(m&15)===IX(x,y)).map(m=>{const t=(m>>4)&15;return (t%3)+','+((t/3)|0)}).sort().join(' ');
 const L2=[[1,0,LION,0],[1,3,LION,1]];
 const play=(p,f,t)=>{const m=mk(f,t);if(!T.legal(p).includes(m))fail('animal illegal '+f+'>'+t);T.make(p,m);return m};
@@ -59,6 +59,24 @@ for(const lv of [1,2])for(let k=0;k<3;k++){
   const p=P([[1,1,LION,0],[1,3,LION,1],[0,3,ZOU,1]],0),m=T.botPick(p,lv,{});T.make(p,m);
   if(T.legal(p).some(x=>(x&15)<12&&(p.b[(x>>4)&15]&7)===LION))fail('animal bot hangs lion lv'+lv);
 }
+/* 십이장기: 상대 끝 줄(진영 3칸)에는 포로를 못 놓음, 처음 국면은 같음 */
+{const p=P([[0,0,LION,0],[2,3,LION,1]],0,[[0,HIY,1]],1);
+ const drops=T.legal(p).filter(m=>(m&15)>=12).map(m=>(m>>4)&15);
+ eq(drops.length,8,'12: drop squares (enemy row banned)');eq(drops.some(t=>((t/3)|0)===3),false,'12: no drop on enemy row');
+ eq(drops.includes(IX(1,0)),true,'12: drop on own row ok');
+ const q=P([[0,0,LION,0],[2,3,LION,1]],1,[[1,ZOU,1]],1),d2=T.legal(q).filter(m=>(m&15)>=12).map(m=>(m>>4)&15);
+ eq(d2.some(t=>((t/3)|0)===0),false,'12: second cannot drop on row 0');
+ const a=T.startPos(1),b=T.startPos(0);eq(T.repKey(a),T.repKey(b),'12: same start position');eq(T.moveName(a,mk(IX(1,0),IX(0,1))),'왕 B1→A2','12: names');}
+/* 십이장기: 왕이 안 노려진 채 들어가도 바로 이기지 않고, 상대 한 수 뒤에 이김 */
+{const p=P([[1,2,LION,0],[2,1,LION,1]],0,[],1);
+ play(p,IX(1,2),IX(1,3));eq(T.judge(p,0),null,'12: unattacked arrival not yet a win');
+ play(p,IX(2,1),IX(2,2));const j=T.judge(p,0);eq(j&&j.w,0,'12: king survives one move → wins');eq(j&&j.why,'try','12: why try');}
+{const p=P([[1,2,LION,0],[2,1,LION,1],[0,3,KIR,1]],0,[],1);   // 노려진 채 도착 → 잡히면 짐
+ play(p,IX(1,2),IX(1,3));play(p,IX(0,3),IX(1,3));const j=T.judge(p,T.lastCap(p));eq(j&&j.w,1,'12: arrived king captured loses');}
+for(const lv of [0,1,2]){   // 봇은 십이장기에서도 안전한 도착을 고름
+  const q=P([[0,2,LION,0],[2,1,LION,1],[0,0,ZOU,1]],0,[],1),m=T.botPick(q,lv,{});T.make(q,m);
+  eq(q.lion[0]>=0&&((q.lion[0]/3)|0)===3,true,'12: bot heads to safe arrival lv'+lv);
+}
 /* 엔진 흐름: 수 두기·시간 초과·항복·바로 시작(선 바꿈)·반복 무승부 */
 const hostSetup=()=>{hostNew(false,'t','t');H.cfg={...cfgFor('animal'),game:'animal'};
   H.members=[{name:'p0',bot:false,conn:null,host:true},{name:'p1',bot:false,conn:{},host:false,cid:'c1'}];
@@ -100,8 +118,9 @@ function playOutD(over,lvs){
     if(H.phase!=='over'){fail('animal stuck '+H.c.mv.length);return ticks}
     const ranks=H.players.map(p=>p.rank).join();
     if(ranks!=='1,2'&&ranks!=='2,1'&&ranks!=='1,1')fail('animal ranks '+ranks);
-    const r=T.replay(H.c.mv);if(H.c.mv.length&&T.replay(H.c.mv).p.h1!==r.p.h1)fail('animal replay');
-    {const p=T.startPos();for(const u of H.c.mv){const m=T.fromU(p,u);if(!m){fail('animal illegal move in record '+u);break}T.make(p,m)}}
+    const r=T.replay(H.c.mv,H.c.md);if(H.c.mv.length&&T.replay(H.c.mv,H.c.md).p.h1!==r.p.h1)fail('animal replay');
+    if(!!H.c.md!==!!over.md)fail('animal mode not kept');
+    {const p=T.startPos(H.c.md);for(const u of H.c.mv){const m=T.fromU(p,u);if(!m){fail('animal illegal move in record '+u);break}T.make(p,m)}}
     if(Object.values(r.reps).some(n=>n>3))fail('animal repetition over limit');
     globalThis.DZW=(globalThis.DZW||{});DZW[H.c.res.why]=(DZW[H.c.res.why]||0)+1;
   }
@@ -109,6 +128,7 @@ function playOutD(over,lvs){
 }
 let dzt=0;const dz0=Date.now();
 for(const [lvs,pf] of [[[0,0],0],[[1,0],1],[[2,1],0],[[0,2],1],[[2,2],0],[[1,1],0]])dzt+=playOutD({tm:3,inc:2,pickfirst:pf},lvs);
+for(const lvs of [[0,0],[1,2],[2,0]])dzt+=playOutD({tm:3,inc:2,md:1},lvs);   // 십이장기
 console.log('animal ticks',dzt,'ms',Date.now()-dz0,JSON.stringify(globalThis.DZW));
 /* 세기: 어려움이 쉬움을 거의 이김 */
 {let w=0;const n=6;for(let k=0;k<n;k++){hostNew(false,'t','t');H.cfg={...cfgFor('animal'),game:'animal'};

@@ -25,7 +25,7 @@
 | `games/poker.js` | 포커 (텍사스 홀덤 노 리밋·사이드 팟·쉬움 봇) | `docs/poker.md` |
 | `games/alkkagi.js`, `games/hand3d.js` | 알까기 (2~4명·물리는 방장만·3D 손·게임 모드 바둑/오목(2명, 아무 점에 놓거나 튕김)/장기(2명, 장기판·상차림, 알마다 크기·무게, 부딪히면 돎)) | `docs/alkkagi.md` |
 | `games/blackwhite.js` | 흑과백 (2명 숫자 타일 0~8·색만 보고 겨루기·0은 8을 잡음·5점/9판·쉬움 봇) | `docs/blackwhite.md` |
-| `games/animal.js` | 동물장기 (3×4 판·포로 놓기·사자 잡기/도착·3단계 봇·3D 타일 말) | `docs/animal.md` |
+| `games/animal.js` | 동물장기 (3×4 판·포로 놓기·사자 잡기/도착·3단계 봇·3D 타일 말·게임 모드 십이장기(한자 말, 상대 진영 포로 금지, 왕 도착은 상대 한 수 뒤 승리)) | `docs/animal.md` |
 | `tests/`, `dicepick.js`, `lab*.html`, `manifest.webmanifest`, `sw.js`, 아이콘 | 테스트(`node tests/engine.test.js`, `node tests/dicepick.test.js`), 첫 차례 주사위 계산·주사위 만들기, 연출·아이콘 테스트룸, 홈 화면 앱 | `docs/tools.md` |
 
 - 공통 코드는 `G`(지금 화면의 게임)와 `EG()`(방장 엔진이 돌리는 게임)를 통해 게임 모듈의 함수를 부릅니다. 기준 모듈은 `games/gura.js`입니다.

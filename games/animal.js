@@ -13,6 +13,9 @@ const G={id:'animal',name:'동물장기',short:'동물',lead:'사자를 잡거�
 /* ---------- 규칙 엔진 (방장 엔진·화면·봇·테스트가 같은 함수를 씀) ---------- */
 const HIY=1,ZOU=2,KIR=3,LION=4,NIW=5;
 const NM=['','병아리','코끼리','기린','사자','닭'];
+const NM12=['','자','상','장','왕','후'];   // 십이장기 이름 (움직임은 같음: 자=병아리, 상=코끼리, 장=기린, 왕=사자, 후=닭)
+const HZCH=['','子','相','將','王','侯'];   // 십이장기 타일 글자
+const nmOf=md=>md?NM12:NM;
 const CNAME=['선','후'];
 const N=12,X=i=>i%3,Y=i=>(i/3)|0,IX=(x,y)=>y*3+x;
 const inB=(x,y)=>x>=0&&x<3&&y>=0&&y<4;
@@ -34,16 +37,16 @@ const isDrop=m=>mF(m)>=12;
 const Z1=new Int32Array(16*N),Z2=new Int32Array(16*N),ZH1=new Int32Array(2*4*3),ZH2=new Int32Array(2*4*3);let ZS1=0,ZS2=0;
 {let s=0x6A09E667;const r=()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return s|0};for(let i=0;i<Z1.length;i++){Z1[i]=r();Z2[i]=r()}for(let i=0;i<ZH1.length;i++){ZH1[i]=r();ZH2[i]=r()}ZS1=r();ZS2=r()}
 const zh=(c,t,k)=>(c*4+t)*3+Math.min(2,k);
-function newPos(){return {b:new Int8Array(N),hd:[[0,0,0,0],[0,0,0,0]],side:0,lion:[-1,-1],h1:0,h2:0,st:[]}}
+function newPos(md){return {b:new Int8Array(N),hd:[[0,0,0,0],[0,0,0,0]],side:0,lion:[-1,-1],h1:0,h2:0,st:[],md:md?1:0}}   // md 1 = 십이장기(상대 끝 줄에 포로 못 놓음, 왕 도착은 상대 한 수 뒤에 승리)
 function rehash(p){
   let a=0,c=0;
   for(let i=0;i<N;i++){const v=p.b[i];if(v){a^=Z1[v*N+i];c^=Z2[v*N+i];if((v&7)===LION)p.lion[v>>3]=i}}
   for(const col of [0,1])for(let t=1;t<=3;t++)for(let k=0;k<p.hd[col][t];k++){a^=ZH1[zh(col,t,k)];c^=ZH2[zh(col,t,k)]}
   if(p.side){a^=ZS1;c^=ZS2}p.h1=a;p.h2=c;
 }
-function clonePos(p){const q=newPos();q.b.set(p.b);q.hd=[p.hd[0].slice(),p.hd[1].slice()];q.side=p.side;q.lion=p.lion.slice();q.h1=p.h1;q.h2=p.h2;return q}
-function startPos(){
-  const p=newPos(),put=(x,y,t,c)=>{p.b[IX(x,y)]=t|(c<<3)};
+function clonePos(p){const q=newPos(p.md);q.b.set(p.b);q.hd=[p.hd[0].slice(),p.hd[1].slice()];q.side=p.side;q.lion=p.lion.slice();q.h1=p.h1;q.h2=p.h2;return q}
+function startPos(md){
+  const p=newPos(md),put=(x,y,t,c)=>{p.b[IX(x,y)]=t|(c<<3)};
   put(0,0,ZOU,0);put(1,0,LION,0);put(2,0,KIR,0);put(1,1,HIY,0);   // 선: 자기 쪽 왼쪽부터 코끼리·사자·기린
   put(2,3,ZOU,1);put(1,3,LION,1);put(0,3,KIR,1);put(1,2,HIY,1);   // 후: 판을 돌린 같은 모양
   rehash(p);return p;
@@ -61,7 +64,8 @@ function gen(p,out){
     const v=b[i];if(!v||(v>>3)!==us)continue;
     for(const t of ATK[us][v&7][i]){const q=b[t];if(!q||(q>>3)!==us)out.push(mk(i,t))}
   }
-  for(let t=1;t<=3;t++)if(p.hd[us][t])for(let i=0;i<N;i++)if(!b[i])out.push(mk(12+t,i));
+  const ban=p.md?goalY(us):-1;   // 십이장기: 상대 끝 줄(상대 진영 3칸)에는 포로를 못 놓음
+  for(let t=1;t<=3;t++)if(p.hd[us][t])for(let i=0;i<N;i++)if(!b[i]&&Y(i)!==ban)out.push(mk(12+t,i));
   return out;
 }
 const legal=p=>gen(p,[]);
@@ -102,7 +106,7 @@ function judge(p,cap){
   const mover=p.side^1,opp=p.side;
   if(cap&&(cap&7)===LION)return {w:mover,why:'lion'};
   const ol=p.lion[opp];if(ol>=0&&Y(ol)===goalY(opp))return {w:opp,why:'try'};   // 끝 줄에 닿은 상대 사자를 잡지 못함
-  const ml=p.lion[mover];if(ml>=0&&Y(ml)===goalY(mover)&&!attacked(p,ml,opp))return {w:mover,why:'try'};
+  const ml=p.lion[mover];if(!p.md&&ml>=0&&Y(ml)===goalY(mover)&&!attacked(p,ml,opp))return {w:mover,why:'try'};   // 십이장기는 노려지지 않아도 상대에게 한 수를 줌
   return null;
 }
 const lastCap=p=>p.st.length?p.st[p.st.length-4]:0;
@@ -116,8 +120,8 @@ function fromU(p,u,ls){
   return (ls||legal(p)).includes(m)?m:0;
 }
 /* 기보를 처음부터 다시 두어 지금 국면과 반복 횟수를 만듦 */
-function replay(ucis){
-  const p=startPos(),reps={};
+function replay(ucis,md){
+  const p=startPos(md),reps={};
   const bump=()=>{const k=repKey(p);reps[k]=(reps[k]||0)+1};
   bump();
   for(const u of ucis||[]){const m=fromU(p,u);if(!m)break;make(p,m);p.st.length=0;bump()}
@@ -127,9 +131,10 @@ function replay(ucis){
 const sqName=i=>'ABC'[X(i)]+(Y(i)+1);
 function moveName(p,m){
   const f=mF(m),t=mT(m);
-  if(f>=12)return `${NM[f-12]} ${sqName(t)}에 놓기`;
+  const NMx=nmOf(p.md);
+  if(f>=12)return `${NMx[f-12]} ${sqName(t)}에 놓기`;
   const v=p.b[f],c=p.b[t],prom=(v&7)===HIY&&Y(t)===goalY(v>>3);
-  return `${NM[v&7]} ${sqName(f)}→${sqName(t)}${c?` (${NM[c&7]} 잡음)`:''}${prom?' · 닭':''}`;
+  return `${NMx[v&7]} ${sqName(f)}→${sqName(t)}${c?` (${NMx[c&7]} 잡음)`:''}${prom?' · '+NMx[NIW]:''}`;
 }
 
 /* ---------- 봇: 알파-베타 + 기억표. 쉬움 2수·흔들림 큼, 보통 4수·작은 흔들림, 어려움 끝까지(수 상한·시간 상한) ---------- */
@@ -175,7 +180,7 @@ function search(p,d,alpha,beta,ply,ctx){
   for(const m of orderMoves(p,ms,best)){
     make(p,m);
     const ml=p.lion[us];
-    const v=ml>=0&&Y(ml)===goalY(us)&&!attacked(p,ml,them)?WIN-ply-1:-search(p,d-1,-beta,-alpha,ply+1,ctx);
+    const v=!p.md&&ml>=0&&Y(ml)===goalY(us)&&!attacked(p,ml,them)?WIN-ply-1:-search(p,d-1,-beta,-alpha,ply+1,ctx);
     unmake(p);
     if(ctx.stop){delete ctx.path[key];return 0}
     if(v>bv){bv=v;bm=m}
@@ -223,17 +228,19 @@ function botPick(p,lv,reps){
 function shuffleArr(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 상대 <b>사자</b>를 잡거나, 내 사자가 상대 끝 줄에 닿으면 이깁니다. 끝 줄에 닿은 순간 상대 말이 그 칸을 노리고 있으면 아직 이긴 것이 아니고, 상대가 다음 수에 잡지 못하면 이깁니다</li><li><b>판과 말</b> : 가로 3칸 × 세로 4칸 판에서 각자 네 말로 합니다. 내 쪽 끝 줄 왼쪽부터 코끼리·사자·기린, 사자 앞에 병아리가 섭니다</li><li><b>움직임</b> : 한 번에 한 칸. 코끼리는 대각선, 기린은 앞뒤·옆, 사자는 모든 방향, 병아리는 앞으로만 갑니다. 말에 찍힌 점이 갈 수 있는 방향입니다</li><li><b>닭</b> : 병아리가 상대 끝 줄에 닿으면 닭이 됩니다. 닭은 앞·앞 대각선·옆·뒤로 한 칸 갑니다(뒤 대각선은 못 감)</li><li><b>포로</b> : 상대 말을 잡으면 내 포로가 됩니다(닭은 병아리로). 내 차례에 포로 하나를 판의 빈 칸 아무 곳에나 놓을 수 있고, 이것이 한 수입니다. 놓은 병아리는 끝 줄에 놓아도 닭이 되지 않습니다</li><li><b>사자</b> : 사자를 잡힐 자리로 옮겨도 됩니다. 상대가 잡으면 집니다</li><li><b>무승부</b> : 같은 국면(판·포로·차례)이 세 번 나오면 무승부입니다</li><li><b>시계</b> : 두 사람이 각자의 총 시간을 씁니다. 한 수를 둘 때마다 추가 시간이 붙고, 총 시간을 다 쓰면 <b>패배</b>합니다. 연결이 끊겨도 시계는 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다</li><li><b>선 플레이어</b> : 첫 판은 탁자 설정으로 정합니다(무작위면 주사위, 선택이면 방장이 대기실에서 고름). 결과 화면에서 바로 시작하면 선·후를 바꿉니다</li><li><b>조작</b> : 내 말이나 포로를 누르면 갈 수 있는 칸이 보입니다. 칸을 누르면 미리 보기, <b>[두기]</b>로 확정합니다. 설정의 <b>두 번 눌러 놓기</b>를 켜면 같은 칸을 한 번 더 눌러 바로 둡니다. 상대 차례에도 미리 골라 둘 수 있습니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 상대 <b>사자</b>를 잡거나, 내 사자가 상대 끝 줄에 닿으면 이깁니다. 끝 줄에 닿은 순간 상대 말이 그 칸을 노리고 있으면 아직 이긴 것이 아니고, 상대가 다음 수에 잡지 못하면 이깁니다</li><li><b>판과 말</b> : 가로 3칸 × 세로 4칸 판에서 각자 네 말로 합니다. 내 쪽 끝 줄 왼쪽부터 코끼리·사자·기린, 사자 앞에 병아리가 섭니다</li><li><b>움직임</b> : 한 번에 한 칸. 코끼리는 대각선, 기린은 앞뒤·옆, 사자는 모든 방향, 병아리는 앞으로만 갑니다. 말에 찍힌 점이 갈 수 있는 방향입니다</li><li><b>닭</b> : 병아리가 상대 끝 줄에 닿으면 닭이 됩니다. 닭은 앞·앞 대각선·옆·뒤로 한 칸 갑니다(뒤 대각선은 못 감)</li><li><b>포로</b> : 상대 말을 잡으면 내 포로가 됩니다(닭은 병아리로). 내 차례에 포로 하나를 판의 빈 칸 아무 곳에나 놓을 수 있고, 이것이 한 수입니다. 놓은 병아리는 끝 줄에 놓아도 닭이 되지 않습니다</li><li><b>사자</b> : 사자를 잡힐 자리로 옮겨도 됩니다. 상대가 잡으면 집니다</li><li><b>무승부</b> : 같은 국면(판·포로·차례)이 세 번 나오면 무승부입니다</li><li><b>시계</b> : 두 사람이 각자의 총 시간을 씁니다. 한 수를 둘 때마다 추가 시간이 붙고, 총 시간을 다 쓰면 <b>패배</b>합니다. 연결이 끊겨도 시계는 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다</li><li><b>선 플레이어</b> : 첫 판은 탁자 설정으로 정합니다(무작위면 주사위, 선택이면 방장이 대기실에서 고름). 결과 화면에서 바로 시작하면 선·후를 바꿉니다</li><li><b>십이장기</b> : 탁자 설정의 게임 모드를 십이장기로 하면 말이 王(왕·사자)·將(장·기린)·相(상·코끼리)·子(자·병아리)·侯(후·닭)가 됩니다. 움직임은 같고, 두 가지가 다릅니다. ① 포로는 상대 진영(상대 끝 줄 3칸)에 놓을 수 없습니다. ② 왕이 상대 진영에 들어가면 상대에게 한 수를 주고, 그 수에 잡히지 않으면 이깁니다(버티는 동안 왕 밑이 금빛)</li><li><b>조작</b> : 내 말이나 포로를 누르면 갈 수 있는 칸이 보입니다. 칸을 누르면 미리 보기, <b>[두기]</b>로 확정합니다. 설정의 <b>두 번 눌러 놓기</b>를 켜면 같은 칸을 한 번 더 눌러 바로 둡니다. 상대 차례에도 미리 골라 둘 수 있습니다</li></ol>';
 G.modeDesc=['사자를 잡으면 끝','사자를 잡으면 끝'];
 const clockTxt=c=>`${+c.tm||3}+${+c.inc||0}`;
-G.defaults={max:2,turn:30,tm:3,inc:2,pickfirst:0};
+G.defaults={max:2,turn:30,tm:3,inc:2,pickfirst:0,md:0};
 G.roomSet=[
   {k:'tm',label:'총 시간',unit:'분',lo:1,hi:30,step:1,desc:'한 사람이 쓸 수 있는 전체 시간입니다. 다 쓰면 패배합니다'},
   {k:'inc',label:'추가 시간',unit:'초',lo:0,hi:30,step:1,desc:'한 수를 둘 때마다 늘어나는 시간입니다'}];
 G.ruleSet=[
+  {k:'md',label:'십이장기',boardLabel:'게임 모드',named:['동물장기','십이장기'],desc:'십이장기: 말이 한자(王·將·相·子·侯)이고, 포로를 상대 진영(상대 끝 줄 3칸)에 놓을 수 없습니다. 왕이 상대 진영에 들어가면 상대에게 한 수를 주고, 그 수에 잡히지 않으면 이깁니다'},
   {k:'pickfirst',pick:1,label:'선 플레이어',desc:'선택: 방장이 대기실에서 먼저 두는 사람을 고릅니다. 무작위: 주사위로 정하고, 바로 시작하면 선·후를 바꿉니다'}];
-G.cfgChips=c=>`<span class="chip">시계 <b>${clockTxt(c)}</b></span><span class="chip">선 <b>${+c.pickfirst?'선택':'무작위'}</b></span>`;
-G.cfgSum=c=>`시계 ${+c.tm||3}분 + ${+c.inc||0}초 · 선 ${+c.pickfirst?'선택':'무작위'}`;
+G.modeLabel=c=>+c.md?'십이장기':'동물장기';   // 홀로그램 모드 줄
+G.cfgChips=c=>`<span class="chip">${+c.md?'십이장기':'동물장기'}</span><span class="chip">시계 <b>${clockTxt(c)}</b></span><span class="chip">선 <b>${+c.pickfirst?'선택':'무작위'}</b></span>`;
+G.cfgSum=c=>`${+c.md?'십이장기 · ':''}시계 ${+c.tm||3}분 + ${+c.inc||0}초 · 선 ${+c.pickfirst?'선택':'무작위'}`;
 G.roomSub=()=>'2명 보드게임';
 G.pubExtra=()=>({});
 G.cardInfo=(c,nowN)=>`<p class="cardinfo">${nowN>2?'동물장기는 두 명이 하는 게임입니다.':'두 명이 하는 게임입니다.'}</p>`;
@@ -250,7 +257,7 @@ const BOT_CAP=300;   // 봇끼리 둘 때 비김으로 끝내는 수(반 수)
 const HC={c:null,n:-1,p:null,reps:null};
 function hostPos(){
   const C=H.c;
-  if(HC.c!==C||HC.n!==C.mv.length){const r=replay(C.mv);HC.c=C;HC.n=C.mv.length;HC.p=r.p;HC.reps=r.reps}
+  if(HC.c!==C||HC.n!==C.mv.length){const r=replay(C.mv,C.md);HC.c=C;HC.n=C.mv.length;HC.p=r.p;HC.reps=r.reps}
   return HC.p;
 }
 const other=i=>1-i;
@@ -281,7 +288,7 @@ function finishGame(winSeat,why){
     pw.finished=true;pw.rank=1;pw.hand=[];
     pl.finished=true;pl.rank=2;pl.hand=[];
     if(why==='time')pl.surrendered='time';else if(why==='surrender'||why==='desert')pl.surrendered=true;
-    addLog(why==='time'?`${pl.name} 시간 초과로 패배! ${pw.name} 승리`:why==='surrender'||why==='desert'?`${pl.name} ${why==='desert'?'탈주':'항복'}! ${pw.name} 승리`:why==='lion'?`사자를 잡았습니다! ${pw.name} 승리`:why==='try'?`사자 도착! ${pw.name} 승리`:`${pw.name} 승리`,why==='lion'||why==='try'?'fin':'lie');
+    addLog(why==='time'?`${pl.name} 시간 초과로 패배! ${pw.name} 승리`:why==='surrender'||why==='desert'?`${pl.name} ${why==='desert'?'탈주':'항복'}! ${pw.name} 승리`:why==='lion'?`${nmOf(C.md)[LION]}${C.md?'을':'를'} 잡았습니다! ${pw.name} 승리`:why==='try'?`${nmOf(C.md)[LION]} 도착! ${pw.name} 승리`:`${pw.name} 승리`,why==='lion'||why==='try'?'fin':'lie');
   }else{
     for(const i of [0,1]){const p=H.players[i];p.finished=true;p.rank=1;p.hand=[]}
     addLog(`무승부입니다. (${WHY_SHORT[why]||''})`,'sys');
@@ -321,14 +328,14 @@ function botTurn(i){
 G._test={startPos,legal,gen,make,unmake,attacked,judge,lastCap,repKey,replay,toU,fromU,moveName,evalPos,botPick,setBotScale:f=>{BOTSCALE=f},doMove,timeout,pickFirst,IX,X,Y,mk,HIY,ZOU,KIR,LION,NIW,newPos,rehash,clonePos,lionAttacked};
 G.engine={
   start(){
-    const again=H.phase==='over',R={tm:Math.max(1,+H.cfg.tm||3),inc:Math.max(0,+H.cfg.inc||0)};
+    const again=H.phase==='over',R={tm:Math.max(1,+H.cfg.tm||3),inc:Math.max(0,+H.cfg.inc||0)},md=+H.cfg.md?1:0;
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,known:{}});
     H.players.forEach((p,i)=>{
       p.finished=false;p.rank=null;p.surrendered=false;
       if(i<2)p.hand=[0];else{p.hand=[];p.finished=true;p.rank=i+1}
     });
     const A=pickFirst(again),t=clock();
-    H.c={R,A,co:A===0?[0,1]:[1,0],mv:[],lm:null,att:0,mv_:A,rem:[R.tm*60000,R.tm*60000],since:t,mvBot:0,res:null};
+    H.c={R,md,A,co:A===0?[0,1]:[1,0],mv:[],lm:null,att:0,mv_:A,rem:[R.tm*60000,R.tm*60000],since:t,mvBot:0,res:null};
     HC.c=null;H.turn=A;
     H.botActAt=H.players[A].bot?t+rand(900,1600):0;
     addLog(`${H.players[A].name}님이 먼저 시작합니다.`,'sys');
@@ -357,7 +364,7 @@ G.engine={
   snap(s,you,t){
     const C=H.c,p=H.players[C.mv_],run=H.phase==='play'&&p&&(!p.bot||awayHuman(p))?1:0;
     const el=run?Math.max(0,t-C.since):0,rem=C.rem.map((v,i)=>Math.max(0,Math.round(v-(run&&i===C.mv_?el:0))));
-    s.c={mv:C.mv.slice(),A:C.A,co:C.co.slice(),lm:C.lm?C.lm.slice():null,att:C.att,rem,run,hold:run?Math.max(0,Math.round(C.since-t)):0,R:{...C.R},res:C.res?{...C.res}:null};
+    s.c={mv:C.mv.slice(),md:C.md?1:0,A:C.A,co:C.co.slice(),lm:C.lm?C.lm.slice():null,att:C.att,rem,run,hold:run?Math.max(0,Math.round(C.since-t)):0,R:{...C.R},res:C.res?{...C.res}:null};
     s.gr=0;s.dl=rem[C.mv_];
   },
   restore(ms){if(H.c&&ms)H.c.since+=ms},
@@ -371,7 +378,7 @@ const SEAT_C=['#c53026','#2b65ca'];   // 자리 색 (첫 차례 주사위 면과
 let CS=null,sel=-1,pend=null,msg='',msgUntil=0,msgTimer=null,flash=null;   // sel: 고른 칸(0~11) 또는 포로(12+말), pend: 미리 보기 수 {m,from,to}
 let elDz=null,elSvg=null,elMain=null,elGhost=null,elBar=null,elBarMe=null,elHint=null,lastBoard='',lastBar='',lastHint='';
 const OC={at:0,mk:'',ms:[]};   // OC.at: 상태를 받은 시각, ms: 내가 둘 수 있는 수
-function buildS(c){const r=replay(c.mv);return {p:r.p,reps:r.reps,co:c.co,A:c.A,lm:c.lm,att:c.att,rem:c.rem,run:c.run,hold:c.hold,res:c.res,mv:c.mv||[],R:c.R||{}}}
+function buildS(c){const r=replay(c.mv,c.md);return {md:c.md?1:0,p:r.p,reps:r.reps,co:c.co,A:c.A,lm:c.lm,att:c.att,rem:c.rem,run:c.run,hold:c.hold,res:c.res,mv:c.mv||[],R:c.R||{}}}
 const myCol=()=>{const me=myIdx();return me>=0&&me<2&&CS?CS.co[me]:-1};
 const viewCol=()=>{const c=myCol();return c<0?0:c};   // 관전자는 선 쪽에서 봄
 const flipped=()=>myCol()===1;   // 후를 잡으면 판을 돌림
@@ -449,13 +456,21 @@ function sndLand(k,at){at=at||0;const f=1.3-k*.1;hiss(.03,{freq:2600*f,q:2,vol:.
 function sndProm(at){tone(880,.07,{type:'triangle',vol:.08,at});tone(1320,.12,{type:'triangle',vol:.08,at:at+.08})}
 
 /* ----- 타일 그림 (3D 윗면·2D 판이 같은 그림): 크림색 바탕, 주인 색 테두리, 가운데 동물, 갈 수 있는 방향 점. 캔버스 위쪽 = 말의 앞 ----- */
-function drawTile(g,w,h,t,oc){
+const HZ_FONT='"Noto Serif KR","Noto Serif CJK KR","Source Han Serif K","Nanum Myeongjo","Batang","AppleMyungjo",serif';   // 장기와 같은 한자 글꼴
+const hzOn=()=>!!(CS&&CS.md);
+/* 십이장기에서 상대 진영(끝 줄)에 들어가 상대의 한 수를 버티는 왕의 칸 (없으면 -1). 금빛으로 표시 */
+function holdSq(){if(!CS||!CS.md||!V||V.st!=='play')return -1;const p=CS.p,c=p.side^1,l=p.lion[c];return l>=0&&Y(l)===goalY(c)?l:-1}   // 지금 판이 십이장기면 타일에 한자
+function drawTile(g,w,h,t,oc,hz){
   const r=w*.12;
   g.fillStyle='#f6ecd2';g.beginPath();g.moveTo(r,0);g.arcTo(w,0,w,h,r);g.arcTo(w,h,0,h,r);g.arcTo(0,h,0,0,r);g.arcTo(0,0,w,0,r);g.closePath();g.fill();
   g.strokeStyle=oc;g.lineWidth=w*.055;const q=w*.045,rr=r*.75;g.beginPath();g.moveTo(q+rr,q);g.arcTo(w-q,q,w-q,h-q,rr);g.arcTo(w-q,h-q,q,h-q,rr);g.arcTo(q,h-q,q,q,rr);g.arcTo(q,q,w-q,q,rr);g.closePath();g.stroke();
   g.fillStyle=oc;
   for(const [dx,dy] of DIRS[t]){g.beginPath();g.arc(w/2+dx*w*.355,h/2-dy*h*.355,w*.042,0,7);g.fill()}
-  drawAnimal(g,w/2,h/2+h*.01,w*.27,t);
+  if(hz){   // 십이장기: 가운데 한자 (자리 색 글씨, 왕은 굵게·크게)
+    g.save();g.fillStyle=oc;g.textAlign='center';g.textBaseline='middle';
+    g.font=`${t===LION?900:700} ${Math.round(w*(t===LION?.5:.44))}px ${HZ_FONT}`;
+    g.fillText(HZCH[t],w/2,h/2+h*.03);g.restore();
+  }else drawAnimal(g,w/2,h/2+h*.01,w*.27,t);
 }
 const C_=(g,x,y,r,f)=>{g.fillStyle=f;g.beginPath();g.arc(x,y,r,0,7);g.fill()};
 const E_=(g,x,y,rx,ry,f,rot)=>{g.fillStyle=f;g.beginPath();g.ellipse(x,y,rx,ry,rot||0,0,7);g.fill()};
@@ -504,8 +519,8 @@ function drawAnimal(g,x,y,R,t){
 }
 const TILE_URL={};
 function tileURL(t,oc){
-  const k=t+oc;if(TILE_URL[k])return TILE_URL[k];
-  const c=document.createElement('canvas');c.width=c.height=192;drawTile(c.getContext('2d'),192,192,t,oc);
+  const hz=hzOn(),k=t+oc+(hz?'h':'');if(TILE_URL[k])return TILE_URL[k];
+  const c=document.createElement('canvas');c.width=c.height=192;drawTile(c.getContext('2d'),192,192,t,oc,hz);
   return TILE_URL[k]=c.toDataURL();
 }
 
@@ -534,6 +549,7 @@ function boardHTML(){
   for(let k=1;k<4;k++)out.push(`<line x1="0" y1="${k}" x2="3" y2="${k}" stroke="#3a2412" stroke-width=".03"/>`);
   const hl=(sq,c,op)=>{const [x,y]=dXY(sq);out.push(`<rect x="${x+.03}" y="${y+.03}" width=".94" height=".94" rx=".08" fill="${c}" opacity="${op}"/>`)};
   if(CS.lm){if(CS.lm[0]<12)hl(CS.lm[0],'#f2c94c',.4);hl(CS.lm[1],'#f2c94c',.6)}
+  {const l=holdSq();if(l>=0){const [x,y]=dXY(l);out.push(`<rect x="${x}" y="${y}" width="1" height="1" fill="url(#dzHold)"/>`)}}
   if(CS.att&&V.st==='play'){const l=p.lion[p.side];if(l>=0){const [x,y]=dXY(l);out.push(`<rect x="${x}" y="${y}" width="1" height="1" fill="url(#dzAtt)"/>`)}}
   if(sel>=0&&sel<12)hl(sel,'#6fbf5a',.55);
   if(flash&&clock()-flash.at<700)for(const s of flash.sq)hl(s,'#d6342a',.6);
@@ -581,7 +597,7 @@ function chipsAt(topY,botY){
 const seated=()=>{const me=myIdx();return me===0||me===1};
 function barHTML(){const me=myIdx();return seated()?chipHTML(1-me):chipHTML(0)+chipHTML(1)}
 function meBarHTML(){return seated()?chipHTML(myIdx()):''}
-const WHY_SHORT={lion:'사자 잡음',try:'사자 도착',time:'시간 초과',surrender:'항복',desert:'탈주',rep:'같은 국면 세 번',stuck:'둘 수 없음',long:'수 제한'};
+const WHY_SHORT={lion:'사자 잡음',try:'사자 도착',lion12:'왕 잡음',try12:'왕 도착',time:'시간 초과',surrender:'항복',desert:'탈주',rep:'같은 국면 세 번',stuck:'둘 수 없음',long:'수 제한'};
 /* 안내 줄: 결과만 (누구 차례·갈 수 있는 칸은 판이 보여 줌) */
 function hintText(){
   if(Date.now()<msgUntil&&msg)return msg;
@@ -589,7 +605,7 @@ function hintText(){
   if(V.st==='over'){
     const r=CS.res;if(!r)return '게임이 끝났습니다.';
     if(r.w<0)return `무승부입니다. (${WHY_SHORT[r.why]||''})`;
-    return `${nm(r.w)} 승리 (${WHY_SHORT[r.why]||''})`;
+    return `${nm(r.w)} 승리 (${WHY_SHORT[r.why+(CS.md&&(r.why==='lion'||r.why==='try')?'12':'')]||''})`;
   }
   return '';
 }
@@ -637,7 +653,7 @@ function drawBoardTex(g,W,Hh){
   g.lineWidth=lw*2;g.strokeRect(px(-HX),pz(-HZ),2*HX*s,2*HZ*s);
 }
 const TEX={};
-function faceTex(t,oc){const k=t+oc;return TEX[k]||(TEX[k]=canvasTex(256,256,(g,w,h)=>drawTile(g,w,h,t,oc)))}
+function faceTex(t,oc,hz){const k=t+oc+(hz?'h':'');return TEX[k]||(TEX[k]=canvasTex(256,256,(g,w,h)=>drawTile(g,w,h,t,oc,hz)))}
 const GEO={},MAT={};
 function geo(){
   if(GEO.body)return GEO;
@@ -651,8 +667,8 @@ function geo(){
 const INK=()=>MAT.ink||(MAT.ink=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide}));
 const sideMat=()=>MAT.side||(MAT.side=toon({color:0xd9bf8c,rim:.1}));
 function faceMat(t,oc,ghost){
-  const k=(ghost?'g':'m')+t+oc;if(MAT[k])return MAT[k];
-  return MAT[k]=ghost?new THREE.MeshBasicMaterial({map:faceTex(t,oc),transparent:true,opacity:.6,depthWrite:false}):toon({map:faceTex(t,oc),rim:.04});
+  const hz=hzOn(),k=(ghost?'g':'m')+t+oc+(hz?'h':'');if(MAT[k])return MAT[k];
+  return MAT[k]=ghost?new THREE.MeshBasicMaterial({map:faceTex(t,oc,hz),transparent:true,opacity:.6,depthWrite:false}):toon({map:faceTex(t,oc,hz),rim:.04});
 }
 /* 타일 하나: 바깥 g(자리·방향) 안에 inner(뒤집기용). 윗면은 그 말, 병아리는 아랫면에 닭(닭이 될 때 뒤집음).
    윗면 무늬 위쪽 = 말의 앞: 그룹 y 회전 0이면 화면 위(-z)를 봄 */
@@ -692,6 +708,8 @@ function d3Build(){
     Dz3.lmA=sq(0xf2c94c,.36);Dz3.lmB=sq(0xf2c94c,.55);Dz3.selM=sq(0x6fbf5a,.58);Dz3.pendM=sq(0x6fbf5a,.4);Dz3.flashM=sq(0xd6342a,.62);
     const gT=canvasTex(128,128,(x,w,h)=>{const gr=x.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);gr.addColorStop(0,'rgba(255,40,20,.9)');gr.addColorStop(.6,'rgba(230,30,20,.5)');gr.addColorStop(1,'rgba(200,20,10,0)');x.fillStyle=gr;x.fillRect(0,0,w,h)});
     Dz3.attM=new THREE.Mesh(new THREE.PlaneGeometry(C*1.5,C*1.5),new THREE.MeshBasicMaterial({map:gT,transparent:true,depthWrite:false}));Dz3.attM.rotation.x=-Math.PI/2;Dz3.attM.position.y=TOP+.005;Dz3.attM.visible=false;Dz3.attM.renderOrder=3;root.add(Dz3.attM);
+    const holdT=canvasTex(128,128,(x,w,h)=>{const gr=x.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);gr.addColorStop(0,'rgba(255,215,60,.95)');gr.addColorStop(.6,'rgba(242,176,32,.55)');gr.addColorStop(1,'rgba(224,154,16,0)');x.fillStyle=gr;x.fillRect(0,0,w,h)});
+    Dz3.holdM=new THREE.Mesh(new THREE.PlaneGeometry(C*1.5,C*1.5),new THREE.MeshBasicMaterial({map:holdT,transparent:true,depthWrite:false}));Dz3.holdM.rotation.x=-Math.PI/2;Dz3.holdM.position.y=TOP+.004;Dz3.holdM.visible=false;Dz3.holdM.renderOrder=3;root.add(Dz3.holdM);   // 십이장기: 상대 진영에서 버티는 왕 밑 금빛
     const hT=canvasTex(128,128,(x,w,h)=>{x.fillStyle='rgba(111,191,90,.6)';x.beginPath();x.roundRect?x.roundRect(4,4,w-8,h-8,16):x.rect(4,4,w-8,h-8);x.fill()});
     Dz3.handSel=new THREE.Mesh(new THREE.PlaneGeometry(TS*GS*1.25,TS*GS*1.25),new THREE.MeshBasicMaterial({map:hT,transparent:true,depthWrite:false}));Dz3.handSel.rotation.x=-Math.PI/2;Dz3.handSel.visible=false;Dz3.handSel.renderOrder=2;root.add(Dz3.handSel);
     const dotM=new THREE.MeshBasicMaterial({color:0x1d1a17,transparent:true,opacity:.42,depthWrite:false});
@@ -742,7 +760,8 @@ function d3Sync(){
   if(!Dz3.on||!V||!V.c||!CS)return;
   const fl=flipped(),c=V.c,p=CS.p,now=clock();
   if(IN.again&&!IN.gathered&&c.mv.length===0&&Dz3.flipT!==null){IN.gathered=true;Dz3.flipT=fl;regather(p)}
-  if(Dz3.flipT!==fl){Dz3.flipT=fl;for(const g of Dz3.pcs.values())Dz3.pg.remove(g);Dz3.pcs.clear();for(const k of [0,1]){for(const g of Dz3.hand[k].flat())Dz3.pg.remove(g);Dz3.hand[k]=[]}Dz3.mvN=-1}
+  if(Dz3.flipT!==fl||Dz3.mdT!==CS.md){Dz3.flipT=fl;Dz3.mdT=CS.md;   // 판을 돌리거나 동물장기↔십이장기가 바뀌면 타일을 새로 만듦
+    for(const g of Dz3.pcs.values())Dz3.pg.remove(g);Dz3.pcs.clear();for(const k of [0,1]){for(const g of Dz3.hand[k].flat())Dz3.pg.remove(g);Dz3.hand[k]=[]}Dz3.mvN=-1}
   const n=c.mv.length,step=Dz3.mvN>=0&&n===Dz3.mvN+1&&c.lm&&!IN.on3d;
   let capMesh=null,capT=0,capK=-1;
   if(step){
@@ -802,6 +821,7 @@ function d3Marks(){
   put(Dz3.lmA,CS.lm?CS.lm[0]:-1);put(Dz3.lmB,CS.lm?CS.lm[1]:-1);
   put(Dz3.selM,sel>=0&&sel<12&&!introWait()?sel:-1);put(Dz3.pendM,pend?pend.to:-1);
   put(Dz3.attM,CS.att&&V.st==='play'?CS.p.lion[CS.p.side]:-1);
+  put(Dz3.holdM,holdSq());
   put(Dz3.flashM,flash&&clock()-flash.at<700?flash.sq[0]:-1);
   const ms=sel>=0&&!pend?movesFrom(sel):[];let di=0,ri=0;
   for(const m of ms){const t=mT(m);if(CS.p.b[t]){if(ri<Dz3.rings.length)put(Dz3.rings[ri++],t)}else if(di<Dz3.dots.length)put(Dz3.dots[di++],t)}
@@ -1013,7 +1033,7 @@ G.logCue=()=>false;
 G.cues=(v,pv)=>{
   if(!v.c||!pv.c)return;
   if(v.c.mv.length>pv.c.mv.length){
-    const at=Dz3.on?.2:0,a=replay(pv.c.mv).p,m=fromU(a,v.c.mv[v.c.mv.length-1]);
+    const at=Dz3.on?.2:0,a=replay(pv.c.mv,pv.c.md).p,m=fromU(a,v.c.mv[v.c.mv.length-1]);
     const cap=m&&!isDrop(m)&&a.b[mT(m)],prom=m&&!isDrop(m)&&(a.b[mF(m)]&7)===HIY&&Y(mT(m))===goalY(a.side);
     sndPut(at,!!cap);
     if(prom)sndProm(at+.35);
@@ -1127,7 +1147,7 @@ G.init=()=>{
 `;
   document.head.appendChild(css);
   elDz=document.createElement('div');elDz.id='dz';elDz.hidden=true;
-  elDz.innerHTML=`<div class="dz-bar"></div><div class="dz-mebar"></div><div class="dz-row"><div class="dz-hint" aria-live="polite"></div></div><div class="dz-bd"><svg class="dz-board" viewBox="-.3 -1.3 3.6 6.9" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="동물장기판"><defs><radialGradient id="dzAtt"><stop offset="0" stop-color="#ff2a14" stop-opacity=".85"/><stop offset=".6" stop-color="#e01e14" stop-opacity=".45"/><stop offset="1" stop-color="#c8140a" stop-opacity="0"/></radialGradient></defs><g id="dzMain"></g><g id="dzGhost"></g></svg></div>`;
+  elDz.innerHTML=`<div class="dz-bar"></div><div class="dz-mebar"></div><div class="dz-row"><div class="dz-hint" aria-live="polite"></div></div><div class="dz-bd"><svg class="dz-board" viewBox="-.3 -1.3 3.6 6.9" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="동물장기판"><defs><radialGradient id="dzHold"><stop offset="0" stop-color="#ffd23a" stop-opacity=".95"/><stop offset=".6" stop-color="#f2b020" stop-opacity=".5"/><stop offset="1" stop-color="#e09a10" stop-opacity="0"/></radialGradient><radialGradient id="dzAtt"><stop offset="0" stop-color="#ff2a14" stop-opacity=".85"/><stop offset=".6" stop-color="#e01e14" stop-opacity=".45"/><stop offset="1" stop-color="#c8140a" stop-opacity="0"/></radialGradient></defs><g id="dzMain"></g><g id="dzGhost"></g></svg></div>`;
   $('#stage').insertBefore(elDz,$('#fx'));
   elSvg=elDz.querySelector('svg.dz-board');elMain=elDz.querySelector('#dzMain');elGhost=elDz.querySelector('#dzGhost');
   elBar=elDz.querySelector('.dz-bar');elBarMe=elDz.querySelector('.dz-mebar');elHint=elDz.querySelector('.dz-hint');
