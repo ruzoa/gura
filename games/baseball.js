@@ -42,12 +42,18 @@ function poolFor(view,rows){
   if(c.n<rows.length){const add=rows.slice(c.n);c.a=c.a.filter(x=>add.every(r=>fits(x,r)));c.n=rows.length}
   return c.a;
 }
-/* 봇의 수: 쉬움은 가끔 정보를 놓침, 보통은 후보 중 무작위, 어려움은 남는 후보가 가장 적어지는 수 */
+/* 봇 난이도 = 기억력: 사람이 약한 이유는 지난 기록을 다 따지지 못해서이므로, 쉬움·보통은 최근 기록 몇 줄만 기억함. 어려움은 전체 + 최선의 수.
+   평균 시도(4자리): 쉬움 약 9.5 · 보통 약 7.3 · 어려움 약 5.3 */
+const botMem=(lv,r)=>lv>=2?Infinity:lv===1?3:(r||Math.random)()<.6?2:3;
+function memNums(rows,M,L,used){
+  const tail=M===Infinity?rows:rows.slice(-M),a=allNums(L).filter(x=>!used.has(x)&&tail.every(r=>fits(x,r)));
+  return a.length?a:allNums(L).filter(x=>!used.has(x));
+}
+function botView(lv,rows,L,used,view){return lv>=2?poolFor(view,rows):memNums(rows,botMem(lv),L,used)}
 function botNum(lv,pool,L,used,rnd){
   const r=rnd||Math.random;
   const any=()=>{for(let k=0;k<40;k++){const v=randNum(L,r);if(!used.has(v))return v}return pool[0]||randNum(L,r)};
   if(!pool.length)return any();
-  if(lv===0&&r()<.3)return any();
   if(lv<2||pool.length<=2)return pool[(r()*pool.length)|0];
   const smp=(a,n)=>{if(a.length<=n)return a;const o=[];for(let i=0;i<n;i++)o.push(a[(r()*a.length)|0]);return o};
   const tries=smp(pool,32),ref=smp(pool,220);let best=tries[0],bv=1e9;
@@ -165,12 +171,14 @@ function vsTimeout(){
 }
 /* 경주 */
 function schedBuzz(){
-  const O=H.nb,t=clock(),pool=poolFor('race',rowsKnown());
+  const O=H.nb,t=clock(),rows=rowsKnown();
   H.players.forEach((p,i)=>{
     O.bzAt[i]=0;
     if(!O.alive[i]||!realBot(p))return;
-    if(pool.length===1)O.bzAt[i]=t+rand(2000,4000)+(p.lv===0?1200:0);   // 사람이 먼저 누를 틈을 줌
-    else if(p.lv===0&&pool.length<=3&&Math.random()<.15)O.bzAt[i]=t+rand(2000,4500);   // 쉬움 봇의 도박
+    const lv=p.lv??1,n=botView(lv,rows,O.L,usedBy(i),'race').length;
+    if(lv>=2){if(n===1)O.bzAt[i]=t+rand(2000,2800)}          // 어려움: 사람이 먼저 누를 틈은 주고 바로 누름
+    else if(lv===1){if(n===1)O.bzAt[i]=t+rand(3000,5000)}    // 보통: 한참 생각한 뒤 (기억이 틀리면 사망)
+    else if(n<=3&&Math.random()<.25)O.bzAt[i]=t+rand(2500,5000);   // 쉬움: 잘못 기억한 채 자신 있게 도박
   });
 }
 function raceTurn(seat,rest){
@@ -236,7 +244,7 @@ function botTick(t){
       if(!realBot(p)||!O.botAt[i]||t<O.botAt[i]||(p.away&&t<p.awayAt+AWAY_WAIT))return;
       O.botAt[i]=0;
       if(O.ph==='set')vsSet(i,randNum(O.L));
-      else if(O.ph==='guess'&&!O.pg[i])vsGuess(i,botNum(p.lv??1,poolFor('s'+i,O.rec.filter(r=>r.s===i&&r.g)),O.L,usedBy(i)));
+      else if(O.ph==='guess'&&!O.pg[i]){const lv=p.lv??1;vsGuess(i,botNum(lv,botView(lv,O.rec.filter(r=>r.s===i&&r.g),O.L,usedBy(i),'s'+i),O.L,usedBy(i)))}
     });
     return;
   }
@@ -246,12 +254,12 @@ function botTick(t){
   }
   const p=H.players[H.turn];
   if(H.botActAt&&t>=H.botActAt&&realBot(p)&&!(p.away&&t<p.awayAt+AWAY_WAIT)){
-    H.botActAt=0;const pool=poolFor('race',rowsKnown());
-    if(O.ph==='guess')raceCall(H.turn,botNum(p.lv??1,pool,O.L,usedBy(H.turn)));
+    H.botActAt=0;const lv=p.lv??1,pool=botView(lv,rowsKnown(),O.L,usedBy(H.turn),'race');
+    if(O.ph==='guess')raceCall(H.turn,botNum(lv,pool,O.L,usedBy(H.turn)));
     else if(O.ph==='buzz')raceAnswer(H.turn,pool[(Math.random()*pool.length)|0]||randNum(O.L));
   }
 }
-G._test={score,resText,validNum,randNum,allNums,botNum,doSurrender,RV_MS,WIN_RV,BUZZ_MS,SOLO_MAX,VS_MAX};
+G._test={score,resText,validNum,randNum,allNums,botNum,memNums,botMem,doSurrender,RV_MS,WIN_RV,BUZZ_MS,SOLO_MAX,VS_MAX};
 G.engine={
   start(){
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,known:{}});

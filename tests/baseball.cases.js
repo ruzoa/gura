@@ -45,6 +45,13 @@ setup(2,3);{const a=H.turn,g=wrong(H.nb.sec);act(a,{t:'guess',v:H.nb.sec});pass(
 {const f=H.nb.first;hostStart();eq(H.nb.first,(f+1)%3,'first rotates')}
 /* 경주: 항복·버저 중 항복 */
 setup(2,3);{const a=H.turn,b=(a+1)%3,c=(a+2)%3;NB.engine.act(a,{t:'surrender'});eq(H.nb.alive[a],false,'race surrender');eq(H.turn,b,'turn moves');act(c,{t:'buzz'});NB.engine.act(c,{t:'surrender'});eq(H.phase,'over','all but one');eq(H.nb.res.w,b,'last alive')}
+/* 봇 기억력: 쉬움·보통은 최근 줄만 따짐 */
+{const rows=[{g:'0123',S:4,B:0},{g:'4567',S:0,B:0},{g:'8901',S:0,B:0},{g:'2389',S:0,B:0}];
+ eq(T.memNums(rows.slice(0,1),1,4,new Set()).join(),'0123','memory one row');
+ eq(T.memNums([{g:'4567',S:0,B:0}],3,4,new Set()).some(x=>/[4-7]/.test(x)),false,'out row filters digits');
+ eq(T.memNums(rows.slice(1).concat([{g:'0123',S:4,B:0}]),1,4,new Set()).join(),'0123','last row only');
+ eq(T.memNums([],2,4,new Set(['0123'])).includes('0123'),false,'used numbers skipped');
+ eq(T.botMem(2),Infinity,'hard remembers all');eq(T.botMem(1),3,'normal three rows');eq(T.botMem(0,()=>.1),2,'easy two rows');eq(T.botMem(0,()=>.9),3,'easy three rows')}
 /* 설정: 모드별 인원 */
 {hostNew(false,'t','t');let c={...cfgFor('baseball'),game:'baseball',md:0,max:6};eq(NB.fixCfg(c,1,true).max,1,'solo max');eq(NB.fixCfg(c,2,true),null,'solo refused');eq(NB.fixCfg(c,3,false).md,2,'to race');eq(minPlayers(NB,{md:0}),1,'solo min');eq(minPlayers(NB,{md:2}),2,'race min')}
 /* 봇끼리 끝까지: 모드·자릿수·난이도 */
