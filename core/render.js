@@ -140,7 +140,7 @@ window.addEventListener('resize',()=>{if(V)layoutFan()});
 /* 선언 자음 세로 휠 */
 function renderButtons(){
   {const gb=$('#btnGiveUp'),i=myIdx();
-   const show=!!(V&&V.ps&&V.st==='play'&&i>=0&&activeV(i));
+   const show=!!(V&&V.ps&&V.st==='play'&&i>=0&&activeV(i)&&!G.noGiveUp);   // noGiveUp: 항복 버튼이 없는 게임(협력)
    if(gb.hidden===show)gb.hidden=!show;
    if(!show&&giveUpArmed)disarmGiveUp();}
   const i=myIdx();

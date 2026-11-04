@@ -52,6 +52,7 @@ setup(2);H.md.lv=12;holdAll();setHands([10],[30]);put(0,10);pass(200);put(1,30);
 setHands([50],[20]);put(0,50);pass(200);eq(snapFor(1).o.pv,null,'blind hidden');eq(JSON.stringify(snapFor(1).o).includes('50'),false,'blind value hidden');eq(H.md.lives,2,'blind no live miss');put(1,20);pass(200);eq(H.md.lives,1,'blind check');eq(H.md.show.k,'blind','blind show');
 setup(2);H.md.blind=1;H.md.won=1;H.md.lv=12;holdAll();setHands([10],[30]);put(0,10);pass(200);put(1,30);pass(TT.CLEAR_MS+400);eq(H.phase,'over','all done');eq(H.md.res.why,'win','win');
 /* 항복 */
+/* 탈주·나가기 길 (항복 버튼은 없음) */
 setup(3);MD.engine.act(1,{t:'surrender'});eq(H.phase,'over','surrender ends');eq(H.players[1].rank,2,'quitter');eq(H.md.res.why,'surrender','why');
 /* 봇끼리 끝까지: 인원별로 언제나 끝나고 카드가 틀어지지 않음 */
 let mdMax=0;
