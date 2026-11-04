@@ -320,6 +320,8 @@ body.camok #cv{touch-action:none}   /* 고개 돌릴 수 있을 때 탁자 바�
 /* 대기실 자리 이름표 (대기실 창 대신): 누르면 작은 메뉴 */
 .stage.frwait .labels{visibility:visible!important}
 .stage.frwait .labels{z-index:5}   /* 이름표·이모티콘 버튼이 디스플레이 같은 투명 누르는 자리(.front, z 4) 위에 오게: 닉네임이 길어 겹쳐도 눌림 */   /* 쿼리도·야추·오목은 게임 중 이름표를 숨기지만 대기실 이름표(봇 앉히기·이모티콘)는 보여야 함 */
+.stage.holo.frwait .labels{z-index:3;opacity:.3}   /* 게임 고르는 중: 홀로그램 글씨(.front, z 4)가 이름표 위로. 이름표는 흐리게, 누르기는 막음 */
+.stage.holo .labels *{pointer-events:none!important}
 .labels .wseat.drop{animation:seatDrop .42s ease-in forwards;pointer-events:none}   /* 상을 치움: 이름표가 툭 떨어짐 */
 @keyframes seatDrop{40%{translate:0 -6px;rotate:-4deg}100%{translate:0 46px;rotate:10deg;opacity:0}}
 .labels .wseat{pointer-events:auto;padding:0;background:none;border:0;box-shadow:none}

@@ -159,9 +159,10 @@ function placeLabels(){
     }else vd.style.top='8px';
   }
 }
+/* 이름표가 비켜 갈 화면 요소. 홀로그램 글씨(#holoTag)는 넣지 않음: 게임을 고를 때 글씨 높이가 바뀌어 맞은편 이름표가 위아래로 튐 */
 function stageRects(){
   const st=$('#stage').getBoundingClientRect(),out=[];
-  for(const id of ['btnLog','btnFs','btnMenu','actions','numpick','me','ruleBadges','holoTag']){
+  for(const id of ['btnLog','btnFs','btnMenu','actions','numpick','me','ruleBadges']){
     const el=document.getElementById(id);if(!el||el.hidden||!el.offsetWidth)continue;
     const r=el.getBoundingClientRect();out.push({l:r.left-st.left-4,r:r.right-st.left+4,t:r.top-st.top-4,b:r.bottom-st.top+4});
   }
