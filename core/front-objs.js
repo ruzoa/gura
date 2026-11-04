@@ -322,7 +322,7 @@ function frontUpdate(t,dt){
   if(FR.armAt&&(t-FR.armAt>2500||!(frTableUI()||(lobby&&FR.sit))))FR.armAt=0;
   frontTween(FR.arm,FR.armAt?1:0,t,FR.armAt?260:320);
   FR.stand=frontTween(FR.sa,want,t,want?900:1100);
-  {const ok=!lobby&&!FR.warp&&FR.stand<.05&&(FR.lean||0)<.05&&FR.rba.v<=.01&&FR.pla.v<=.01&&VW.max>0&&(!T.lastCam||T.lastCam===T.cam);   // 카메라를 돌릴 수 있는 때: 탁자에 앉아 대기실·게임을 볼 때. 양옆이 다 보이는 화면과 자기 카메라로 그리는 게임(쿼리도·야추 등)은 빼고 버튼도 숨김
+  {const ok=!G.noView&&!lobby&&!FR.warp&&FR.stand<.05&&(FR.lean||0)<.05&&FR.rba.v<=.01&&FR.pla.v<=.01&&VW.max>0&&(!T.lastCam||T.lastCam===T.cam);   // 카메라를 돌릴 수 있는 때: 탁자에 앉아 대기실·게임을 볼 때. 양옆이 다 보이는 화면과 자기 카메라로 그리는 게임(쿼리도·야추 등)은 빼고 버튼도 숨김
    if(ok!==FR.camOk){FR.camOk=ok;document.body.classList.toggle('camok',ok);if(!ok){VW.drag=null;if(lobby||FR.warp)viewReset()}}
    const y0=VW.yaw;viewStep(t);if(VW.yaw!==y0)FR.viewMoved=1}   // 돌아가는 동안 이름표 등 화면 위 글자가 따라감 (frontApplyCam 뒤)
   frontApplyCam();if(FR.viewMoved){FR.viewMoved=0;placeLabels()}
@@ -337,7 +337,7 @@ function frontUpdate(t,dt){
   if(FR.oa.to!==ow)sfx('lid');
   FR.open=frontTween(FR.oa,ow,t,ow?520:420);
   if(T.board){const o=smooth(FR.open),fb=t-(FR.fullAt||-1e9);T.board.g.rotation.x=-o*2.05;T.board.g.position.x=fb<260?Math.sin(fb/22)*.018*(1-fb/260):0;   // 4자리 넘게 누르면 부르르
-    T.board.hole.visible=o>.02;T.board.screen.visible=o>.02;T.board.g.visible=o>.001}   // 닫히면 덮개도 안 보임(탁자 위는 깔끔하게)   // 첫 화면(서서 볼 때)은 탁자만: 덮개도 안 보임
+    T.board.hole.visible=o>.02;T.board.screen.visible=o>.02;T.board.g.visible=o>.001&&!(G.ownBoard&&V&&V.st&&V.st!=='wait'&&mode!=='lobby')}   // 닫히면 덮개도 안 보임(탁자 위는 깔끔하게)   // 첫 화면(서서 볼 때)은 탁자만: 덮개도 안 보임
   // 키판: 첫 화면에서 디스플레이가 열리면 올라옴. 누르면 그 키가 쑥 들어감 (주사위 키는 구르듯 흔들림)
   // 키판: 디스플레이 아래에서 미끄러져 나온 뒤(0~.6) 올라옴(.6~1). 들어갈 때는 거꾸로. 목록 판과 번갈아 나옴
   if(!lobby||!FR.sit||FR.spread||FR.warp)FR.list=false;

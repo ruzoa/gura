@@ -2,7 +2,7 @@
    공통 코드(index.html)가 GAMES.baseball의 함수를 불러서 이 게임의 규칙·봇·화면을 그림.
    숫자가 겹치지 않는 3~5자리 비밀 숫자를 추리함(0은 맨 앞도 가능). 자리까지 맞으면 S, 숫자만 맞으면 B, 하나도 없으면 OUT.
    게임 모드 md: 0 혼자(10번 안에 찾기) · 1 맞대결(2명, 서로의 비밀 숫자를 동시 공격) · 2 경주(2~6명, 정해진 숫자를 번갈아 부르고 결과 공유, 버저로 언제든 정답 도전 · 틀리면 사망)
-   화면은 바로 위에서 내려다본 탁자: 영수증(지난 기록) · 플립 판(입력·이번 결과) · 램프(내 메모, 내 화면에만) · 6×2 자판.
+   화면은 앉은 카메라 그대로: 대기실 디스플레이가 앞으로 나오며 넓어져 플립 판이 되고, 대기실 자판이 들어간 틈에서 큰 6×2 자판과 램프가 올라옴. 지난 기록은 맞은편으로 깔리는 영수증.
    손패(hand)는 카드가 아니라 표시용 [0] (공통 코드가 hand가 비면 끝난 사람으로 봄) */
 (function(){
 const G={id:'baseball',name:'숫자야구',short:'야구',lead:'숫자와 자리를 추리해 먼저 찾기',brand:'숫자야구',brandPx:48,maxHi:6,noFast:true,rcOwn:true};   // rcOwn: 공통 영수증 프린터는 기록만 받고 종이는 이 게임이 판 옆에 길게 그림
@@ -346,10 +346,10 @@ function lampToggle(d){
   if(lampOff.has(d))lampOff.delete(d);else lampOff.add(d);
   sndLamp(!lampOff.has(d));
   try{store('gura-nb-lamp',JSON.stringify({k:lampKey,off:[...lampOff].join('')}))}catch(e){}
-  Nb.keysDirty=true;Nb.dirty=true;drawAll();
+  Nb.keysDirty=true;drawAll();
 }
 function press(k){
-  Nb.down[k]=clock();Nb.dirty=true;
+  Nb.down[k]=clock();
   if(!canType()){sndNo();return}
   const L=V.o.L;
   if(k==='del'){if(buf){buf=buf.slice(0,-1);sndKey()}else sndNo();boardSync();drawAll();return}
@@ -373,12 +373,12 @@ function buzzGo(){
   const go=()=>sendAct({t:'buzz'});
   if(mode==='host')setTimeout(go,HOST_LAG);else go();
 }
-function holdStart(){if(Nb.holdAt)return;if(!buzzOpen()){sndNo();return}Nb.holdAt=clock();sfx('key');Nb.dirty=true}
-function holdEnd(){Nb.holdAt=0;Nb.dirty=true}
+function holdStart(){if(Nb.holdAt)return;if(!buzzOpen()){sndNo();return}Nb.holdAt=clock();sfx('key')}
+function holdEnd(){Nb.holdAt=0}
 function sideTap(){
   const o=V&&V.o;if(!o)return;
   if(o.md===1&&o.ph==='set'){rollSecret();return}
-  if(o.md===1&&o.my){secHide=!secHide;sndLamp(!secHide);Nb.dirty=true;sideDraw();drawAll()}
+  if(o.md===1&&o.my){secHide=!secHide;sndLamp(!secHide);sideDraw();drawAll()}
 }
 /* 이름 칸: 자리 색 점 · 이름 · 냈음 표시 · 남은 초 */
 function chipHTML(i){
@@ -436,14 +436,17 @@ function boardWant(){
   return of(o.md===1?lastOf(me>=0?me:-1):lastOf(-1));
 }
 
-/* ---------- 3D: 공통 탁자 위, 바로 위에서 내려다봄 ----------
-   세로 화면: 위에서부터 영수증 · 플립 판 · 램프 · 자판. 가로 화면: 왼쪽 영수증, 오른쪽에 나머지.
-   단위: 월드 그대로. 화면 오른쪽 = +x, 화면 아래 = +z */
-const COLW=5,PW=3.4,ROW=.269,RMAX=13,PH=ROW*RMAX,BDH=1.3,BDW=3.72,SDW=1.14,LMH=.62,KH=.82;
-const Nb={on:false,built:false,fail:false,root:null,cam:null,dirty:true,lastR:0,lay:'',layAt:0,d:12,gn:-1,down:{},holdAt:0,deny:0,keysDirty:true,rows:0,printAt:0,hits:[],flaps:[],feedAt:-1e9,lastBz:-1,winAt:0,seen:0,sideK:'',wide:null,boardK:''};
+/* ---------- 3D: 앉은 카메라(모든 게임과 같음) 그대로, 내 쪽 탁자 위 장치 ----------
+   앞에서 뒤로: 자판 두 줄(나무 띠) · 램프 줄 · 경첩으로 세운 플립 판과 옆 칸(또는 버저) · 그 뒤 맞은편으로 깔리는 영수증.
+   시작할 때 공통 디스플레이(폭 1.5 · 깊이 .5, 경첩 z 3.9) 자리에서 넘겨받아 앞으로 나오며 넓어짐. 크기는 모든 기기에서 같음 */
+const PW=3,ROW=.4,RMAX=12,PH=ROW*RMAX,SLOT_Z=1.3;       // 영수증: 폭, 줄 깊이, 줄 수, 길이, 틈 자리
+const BW=2.62,BD=1,BX=-.42,HZ=2.84,BA=2.2,BTH=.07;      // 플립 판: 폭, 높이, 가운데 x, 경첩 z, 열린 각도, 두께
+const SW=.76,SX=1.32,ZX=1.24,ZZ=2.42;                                   // 옆 칸: 폭, 가운데 x
+const KW=.51,KH=.58,KZ=4.05,LMW=.324,LMH=.5,LMZ=3.2;     // 키 간격·깊이, 자판 가운데 z, 램프 간격·깊이, 램프 줄 z
+const Nb={on:false,built:false,fail:false,root:null,dirty:true,gn:-1,down:{},holdAt:0,deny:0,keysDirty:true,rows:0,printAt:0,flaps:[],feedAt:-1e9,lastBz:-1,winAt:0,seen:0,sideK:'',boardK:'',outAt:0,morph:1,rise:1};
 const ease=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 const dropY=(x,h)=>x>=1?0:x<.68?h*(1-(x/.68)*(x/.68)):h*.13*Math.sin(Math.PI*(x-.68)/.32);
-const SLOTS=11,BCW=1024,BCH=358,SCW=306,SCH=358;
+const BCW=1024,BCH=392,SCW=298,SCH=392;
 function woodFill(g,w,h,base,dark){g.fillStyle=base;g.fillRect(0,0,w,h);g.strokeStyle=dark;g.globalAlpha=.16;for(let i=0;i<34;i++){g.lineWidth=1+(i%3);g.beginPath();const y=(i*53)%h;g.moveTo(0,y);g.bezierCurveTo(w*.3,y+7,w*.6,y-7,w,y+2);g.stroke()}g.globalAlpha=1}
 function keyCanvas(k,lamp,lit){
   const c=document.createElement('canvas');c.width=lamp?76:128;c.height=lamp?104:128;const g=c.getContext('2d'),w=c.width,h=c.height;
@@ -464,85 +467,66 @@ function nbBuild(){
   if(!T.ok||typeof THREE==='undefined'){Nb.fail=true;return false}
   try{
     const root=new THREE.Group();root.visible=false;
-    // 플립 판
-    const cv=document.createElement('canvas');cv.width=BCW;cv.height=BCH;const tex=new THREE.CanvasTexture(cv);tex.anisotropy=8;
-    const wood=toon({color:0x7a4a28,rim:.1}),gB=new THREE.Group();
-    const board=new THREE.Mesh(new THREE.BoxGeometry(BDW,.12,BDH),[wood,wood,new THREE.MeshBasicMaterial({map:tex}),wood,wood,wood]);board.position.y=.065;board.castShadow=board.receiveShadow=true;gB.add(board);hull(new THREE.BoxGeometry(BDW+.04,.14,BDH+.04),board,gB);root.add(gB);
-    Nb.bc=cv;Nb.bt=tex;Nb.gB=gB;
-    // 옆 칸: 혼자 남은 횟수 · 맞대결 내 비밀 숫자/주사위
-    const sc=document.createElement('canvas');sc.width=SCW;sc.height=SCH;const stx=new THREE.CanvasTexture(sc);stx.anisotropy=8;
-    const gS=new THREE.Group(),sm=new THREE.Mesh(new THREE.BoxGeometry(SDW,.12,BDH),[wood,wood,new THREE.MeshBasicMaterial({map:stx}),wood,wood,wood]);sm.position.y=.065;sm.castShadow=sm.receiveShadow=true;gS.add(sm);hull(new THREE.BoxGeometry(SDW+.04,.14,BDH+.04),sm,gS);root.add(gS);
-    Nb.sc=sc;Nb.st=stx;Nb.gS=gS;
+    const clipY=[new THREE.Plane(new THREE.Vector3(0,1,0),-.001)];   // 탁자 윗면 아래는 안 보임 (틈에서 올라오는 물건)
+    const clipAll=g=>g.traverse(o=>{if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{m.clippingPlanes=clipY})});
+    const wood=toon({color:0x6e4526}),back=toon({color:0x7a4a28,rim:.1}),dark=toon({color:0x2b1d14,rim:0});
+    /* 세운 판 하나: 공통 디스플레이처럼 경첩(pivot)에서 패널이 들림. 화면은 패널 아랫면 */
+    const panel=(w,cv,cw,ch)=>{
+      cv.width=cw;cv.height=ch;const tx=new THREE.CanvasTexture(cv);tx.anisotropy=8;
+      const pivot=new THREE.Group(),sc=new THREE.Group(),p=new THREE.Group();pivot.add(sc);sc.add(p);p.position.z=BD/2;
+      const box=new THREE.Mesh(new THREE.BoxGeometry(w,BTH,BD),[wood,wood,back,dark,wood,wood]);box.position.y=-BTH/2;box.castShadow=true;p.add(box);hull(new THREE.BoxGeometry(w+.035,BTH+.03,BD+.035),box,p);
+      const scr=new THREE.Mesh(new THREE.PlaneGeometry(w*.97,BD*.95),new THREE.MeshBasicMaterial({map:tx}));scr.rotation.x=Math.PI/2;scr.position.y=-BTH-.002;p.add(scr);
+      return {pivot,sc,tx,scr,box};
+    };
+    const bc=document.createElement('canvas'),P=panel(BW,bc,BCW,BCH);root.add(P.pivot);Nb.bc=bc;Nb.bt=P.tx;Nb.gB=P.pivot;Nb.bSc=P.sc;
+    const sc=document.createElement('canvas'),Q=panel(SW,sc,SCW,SCH);root.add(Q.pivot);Nb.sc=sc;Nb.st=Q.tx;Nb.gS=Q.pivot;Nb.sMesh=Q.scr;Q.scr.userData.hit={t:'side'};Q.box.userData.hit={t:'side'};clipAll(Q.pivot);
     // 버저 (경주)
-    const gZ=new THREE.Group(),base=new THREE.Mesh(new THREE.CylinderGeometry(.52,.55,.1,32),toon({color:0x3a302a,rim:.2}));base.position.y=.05;base.castShadow=true;gZ.add(base);hull(new THREE.CylinderGeometry(.54,.57,.12,32),base,gZ);
-    const domeM=toon({color:0xd8382a,rim:.35}),dome=new THREE.Mesh(new THREE.SphereGeometry(.4,28,14,0,Math.PI*2,0,Math.PI/2),domeM);dome.scale.y=.55;dome.position.y=.1;dome.castShadow=true;gZ.add(dome);
-    const ring=new THREE.Mesh(new THREE.RingGeometry(.43,.5,48,1),new THREE.MeshBasicMaterial({color:0xffd24a}));ring.rotation.x=-Math.PI/2;ring.position.y=.104;ring.geometry.setDrawRange(0,0);gZ.add(ring);
-    root.add(gZ);Nb.gZ=gZ;Nb.dome=dome;Nb.domeM=domeM;Nb.ringM=ring;
-    // 램프
-    const gL=new THREE.Group(),lw=(COLW-.06*9)/10,side=toon({color:0x3b3029,rim:.1});Nb.lamps=[];
-    LAMPS.forEach((k,i)=>{
-      const on=new THREE.MeshBasicMaterial({map:keyCanvas(k,true,true)}),off=keyCanvas(k,true,false);
-      const m=new THREE.Mesh(new THREE.BoxGeometry(lw,.08,LMH),[side,side,on,side,side,side]);m.position.set((i-4.5)*(lw+.06),.05,0);m.castShadow=true;gL.add(m);hull(new THREE.BoxGeometry(lw+.025,.1,LMH+.025),m,gL);
-      Nb.lamps.push({k,m,on,onT:on.map,offT:off,x:m.position.x,w:lw});
-    });
-    root.add(gL);Nb.gL=gL;
-    // 자판 6×2
-    const gK=new THREE.Group(),kw=(COLW-.06*5)/6,ks=toon({color:0xd9c7a8,rim:.2});Nb.keys=[];
+    const gZ=new THREE.Group(),base=new THREE.Mesh(new THREE.CylinderGeometry(.36,.4,.14,32),toon({color:0x3a302a,rim:.2}));base.position.y=.07;base.castShadow=true;gZ.add(base);hull(new THREE.CylinderGeometry(.38,.42,.16,32),base,gZ);
+    const domeM=toon({color:0xd8382a,rim:.35}),dome=new THREE.Mesh(new THREE.SphereGeometry(.3,28,14,0,Math.PI*2,0,Math.PI/2),domeM);dome.scale.y=.8;dome.position.y=.14;dome.castShadow=true;gZ.add(dome);hull(new THREE.SphereGeometry(.315,28,14,0,Math.PI*2,0,Math.PI/2),dome,gZ);
+    const ring=new THREE.Mesh(new THREE.RingGeometry(.31,.37,48,1),new THREE.MeshBasicMaterial({color:0xffd24a}));ring.rotation.x=-Math.PI/2;ring.position.y=.145;ring.geometry.setDrawRange(0,0);gZ.add(ring);
+    base.userData.hit=dome.userData.hit={t:'buzz'};root.add(gZ);clipAll(gZ);Nb.gZ=gZ;Nb.dome=dome;Nb.domeM=domeM;Nb.ringM=ring;
+    const zHole=new THREE.Mesh(new THREE.CircleGeometry(.44,36),new THREE.MeshBasicMaterial({color:0x15100c}));zHole.rotation.x=-Math.PI/2;root.add(zHole);Nb.zHole=zHole;
+    // 자판과 램프가 올라오는 틈
+    const slit=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({color:0x15100c}));slit.rotation.x=-Math.PI/2;root.add(slit);Nb.slit=slit;
+    const gK=new THREE.Group(),ks=toon({color:0xd9c7a8,rim:.2}),lside=toon({color:0x3b3029,rim:.1}),kw=KW-.045;Nb.keys=[];Nb.lamps=[];
     KEYROW.forEach((k,i)=>{
       const top=new THREE.MeshBasicMaterial({map:keyCanvas(k)}),c=i%6,r=i<6?0:1;
-      const m=new THREE.Mesh(new THREE.BoxGeometry(kw,.1,KH-.05),[ks,ks,top,ks,ks,ks]);m.position.set((c-2.5)*(kw+.06),.06,(r-.5)*KH);m.castShadow=true;gK.add(m);hull(new THREE.BoxGeometry(kw+.025,.12,KH-.025),m,gK);
-      Nb.keys.push({k,m,top,x:m.position.x,z:m.position.z,w:kw});
+      const m=new THREE.Mesh(new THREE.BoxGeometry(kw,.2,KH-.05),[ks,ks,top,ks,ks,ks]);m.position.set((c-2.5)*KW,.0,KZ+(r-.5)*KH);m.castShadow=true;gK.add(m);hull(new THREE.BoxGeometry(kw+.022,.22,KH-.028),m,gK);
+      m.userData.hit={t:'key',k};Nb.keys.push({k,m,top});
     });
-    root.add(gK);Nb.gK=gK;
-    // 영수증: 놋쇠 틈에서 나와 탁자 위로 길게 깔림 (아래가 최신 줄)
+    LAMPS.forEach((k,i)=>{
+      const on=new THREE.MeshBasicMaterial({map:keyCanvas(k,true,true)}),off=keyCanvas(k,true,false),lw=LMW-.03;
+      const m=new THREE.Mesh(new THREE.BoxGeometry(lw,.16,LMH),[lside,lside,on,lside,lside,lside]);m.position.set((i-4.5)*LMW,0,LMZ);m.castShadow=true;gK.add(m);hull(new THREE.BoxGeometry(lw+.02,.18,LMH+.02),m,gK);
+      m.userData.hit={t:'lamp',k};Nb.lamps.push({k,m,on,onT:on.map,offT:off});
+    });
+    clipAll(gK);root.add(gK);Nb.gK=gK;
+    // 영수증: 디스플레이 뒤 틈에서 나와 맞은편으로 깔림 (아래가 최신 줄)
     const pc=document.createElement('canvas');pc.width=680;pc.height=54*(RMAX+1);const ptx=new THREE.CanvasTexture(pc);ptx.anisotropy=8;
     const gP=new THREE.Group(),brass=toon({color:0xb8925a,rim:.3}),slot=new THREE.Mesh(new THREE.BoxGeometry(PW+.16,.05,.13),brass);slot.position.set(0,.03,.03);slot.castShadow=true;gP.add(slot);hull(new THREE.BoxGeometry(PW+.19,.07,.16),slot,gP);
     const sheet=new THREE.Group();gP.add(sheet);
     const geo=new THREE.PlaneGeometry(PW,PH);geo.translate(0,PH/2,0);
-    const paper=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:ptx}));paper.rotation.x=-Math.PI/2;paper.position.y=.03;sheet.add(paper);
+    const paper=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:ptx}));paper.rotation.x=-Math.PI/2;paper.position.y=.03;paper.userData.hit={t:'paper'};sheet.add(paper);
     const ig=new THREE.PlaneGeometry(PW+.05,PH+.03);ig.translate(0,PH/2,0);
     const ink=new THREE.Mesh(ig,new THREE.MeshBasicMaterial({color:GFX_INK}));ink.rotation.x=-Math.PI/2;ink.position.y=.025;sheet.add(ink);
-    root.add(gP);Nb.gP=gP;Nb.sheet=sheet;Nb.pc=pc;Nb.pt=ptx;
-    Nb.cam=new THREE.PerspectiveCamera(44,1,.1,100);Nb.cam.up.set(0,0,-1);
-    T.scene.add(root);Nb.root=root;Nb.built=true;
+    gP.position.set(0,0,SLOT_Z);root.add(gP);Nb.gP=gP;Nb.sheet=sheet;Nb.pc=pc;Nb.pt=ptx;
+    Nb.hitObjs=[...Nb.keys.map(k=>k.m),...Nb.lamps.map(l=>l.m),base,dome,Q.scr,paper];
+    T.scene.add(root);Nb.root=root;Nb.built=true;pose(1,1);
   }catch(e){Nb.fail=true;try{console.warn('숫자야구 3D 준비 실패',e)}catch(_){}}
   return Nb.built;
 }
-/* 판 자리: 화면 모양에 따라 두 가지 */
-function place(wide){
-  const col=BDH+.18+LMH+.14+KH*2;
-  let cx,top,px,pz;
-  if(wide){cx=PW/2+.2;top=-col/2;px=-(COLW/2+.2);pz=PH/2}
-  else{const all=PH+.3+col;cx=0;top=-all/2+PH+.3;px=0;pz=top-.2}
-  Nb.gB.position.set(cx-COLW/2+BDW/2,0,top+BDH/2);
-  Nb.gS.position.set(cx+COLW/2-SDW/2,0,top+BDH/2);
-  Nb.gZ.position.set(cx+COLW/2-SDW/2,0,top+BDH/2);
-  Nb.gL.position.set(cx,0,top+BDH+.18+LMH/2);
-  Nb.gK.position.set(cx,0,top+BDH+.18+LMH+.14+KH);
-  Nb.gP.position.set(px,0,pz);
-  Nb.XW=wide?COLW/2+PW+.45:COLW/2+.05;
-  Nb.ZW=wide?Math.max(PH/2+.1,col/2+.05):(PH+.3+col)/2+.1;
-  Nb.XC=wide?(cx+COLW/2+(px-PW/2))/2:0;
-  Nb.base=[Nb.gP,Nb.gB,Nb.gS,Nb.gZ,Nb.gL,Nb.gK].map(g=>g.position.y);
-  const zL=Nb.gL.position.z,zK=Nb.gK.position.z,zB=Nb.gB.position.z,H=[];
-  for(const L of Nb.lamps)H.push({t:'lamp',k:L.k,x0:cx+L.x-L.w/2-.03,x1:cx+L.x+L.w/2+.03,z0:zL-LMH/2-.05,z1:zL+LMH/2+.05});
-  for(const K of Nb.keys)H.push({t:'key',k:K.k,x0:cx+K.x-K.w/2-.03,x1:cx+K.x+K.w/2+.03,z0:zK+K.z-KH/2,z1:zK+K.z+KH/2});
-  H.push({t:'side',x0:Nb.gS.position.x-SDW/2,x1:Nb.gS.position.x+SDW/2,z0:zB-BDH/2,z1:zB+BDH/2});
-  H.push({t:'paper',x0:px-PW/2,x1:px+PW/2,z0:pz-PH-.05,z1:pz+.12});
-  Nb.hits=H;Nb.wide=wide;
-}
-function nbLayout(t){
-  if(t-Nb.layAt<100&&Nb.lay)return false;
-  Nb.layAt=t;
-  const st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight;if(!W||!Hh||!V||!V.o)return false;
-  const hb=elNb.querySelector('.nb-row'),topY=hb.offsetTop+hb.offsetHeight+6,narrow=W<700,botM=narrow?72:14,wide=W>Hh*.95,key=[W,Hh,topY,wide].join(',');
-  if(key===Nb.lay)return false;
-  Nb.lay=key;place(wide);
-  const fw=W-(narrow?16:32),fh=Hh-topY-botM,s=Math.min(fw/(2*Nb.XW),fh/(2*Nb.ZW));
-  const cam=Nb.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(s*f),cy=topY+fh/2;
-  cam.aspect=W/Hh;cam.position.set(Nb.XC,d,0);cam.lookAt(Nb.XC,0,0);
-  cam.setViewOffset(W,Hh,0,-(cy-Hh/2),W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
-  Nb.d=d;Nb.dirty=true;return true;
+/* 장치 모습: morph 0 = 공통 디스플레이 자리·크기 → 1 = 게임 플립 판, rise 0 = 탁자 속 → 1 = 자판·램프·옆 칸·버저가 다 올라옴 */
+function pose(morph,rise){
+  Nb.morph=morph;Nb.rise=rise;
+  const mix=(a,b)=>a+(b-a)*morph,race=!!(V&&V.o&&V.o.md===2);
+  Nb.gB.position.set(mix(0,BX),.004,mix(3.9,HZ));Nb.gB.rotation.x=-mix(2.05,BA);Nb.bSc.scale.set(mix(1.5/BW,1),1,mix(.5/BD,1));
+  const up=smooth(clamp01((rise-.35)/.65)),op=smooth(clamp01(rise/.35));   // 틈이 먼저 열리고 올라옴
+  Nb.slit.visible=op>.01;Nb.slit.scale.set(Math.max(.001,op*(LMW*10+.06)),KZ+KH-LMZ+LMH/2+.06,1);Nb.slit.position.set(0,.008,(KZ+KH+LMZ-LMH/2)/2);
+  Nb.gK.visible=up>.01;Nb.gK.position.y=-.14+.2*up-(1-up)*.1;
+  Nb.gS.visible=!race&&up>.01;Nb.gS.position.set(SX,-(1-up)*1.1+.004,HZ);Nb.gS.rotation.x=-BA;
+  Nb.zHole.visible=race&&op>.01;Nb.zHole.scale.setScalar(Math.max(.001,op));Nb.zHole.position.set(ZX,.018,ZZ);
+  Nb.gZ.visible=race&&up>.01;Nb.gZ.position.set(ZX,-(1-up)*.5,ZZ);
+  Nb.gP.visible=rise>.5;
+  
 }
 /* 플립 칸 */
 function flapsReset(){
@@ -563,7 +547,7 @@ function boardSync(){
   }
   const rs=w.r.padEnd(5,' ');
   for(let i=0;i<5;i++)setFlap(L+i,rs[i],t,w.r?360+L*40+i*190:60);
-  Nb.dot=w.s;Nb.dirty=true;
+  Nb.dot=w.s;
 }
 function boardStep(t){
   let busy=false,draw=false;
@@ -584,12 +568,12 @@ function flapCell(g,x,y,w,h,c,mid,lit){
 }
 function boardDraw(){
   const o=V&&V.o;if(!o||!Nb.bc)return;
-  const g=Nb.bc.getContext('2d'),L=o.L,gap=8,mid=28,cw=Math.floor((BCW-118-mid)/(L+5))-gap,tw=(L+5)*(cw+gap)-gap+mid,x0=(BCW-tw)/2+18,h=210,y=(BCH-h)/2;
+  const g=Nb.bc.getContext('2d'),L=o.L,gap=8,mid=28,cw=Math.floor((BCW-96-mid)/(L+5))-gap,tw=(L+5)*(cw+gap)-gap+mid,x0=(BCW-tw)/2+14,h=296,y=(BCH-h)/2;
   woodFill(g,BCW,BCH,'#a97240','#54301a');
   g.fillStyle='#120c08';rr(g,20,26,BCW-40,BCH-52,20);g.fill();
   Nb.flaps.forEach((f,i)=>{const x=x0+i*(cw+gap)+(i>=L?mid:0);flapCell(g,x,y,cw,h,f.ch,f.mid,i>=L&&(f.to==='S'||/[0-9]/.test(f.to))?'#ffd989':'')});
-  if(Nb.dot>=0){g.fillStyle=SEAT_C[Nb.dot]||'#888';g.beginPath();g.arc(x0-24,BCH/2,13,0,7);g.fill();g.strokeStyle='#f6ecd8';g.lineWidth=4;g.stroke()}
-  Nb.bt.needsUpdate=true;Nb.dirty=true;
+  if(Nb.dot>=0){g.fillStyle=SEAT_C[Nb.dot]||'#888';g.beginPath();g.arc(x0-20,BCH/2,12,0,7);g.fill();g.strokeStyle='#f6ecd8';g.lineWidth=4;g.stroke()}
+  Nb.bt.needsUpdate=true;
 }
 function sideDraw(){
   const o=V&&V.o;if(!o||!Nb.sc)return;
@@ -598,11 +582,11 @@ function sideDraw(){
   const g=Nb.sc.getContext('2d'),w=SCW,h=SCH;
   woodFill(g,w,h,'#a97240','#54301a');g.fillStyle='#120c08';rr(g,14,26,w-28,h-52,18);g.fill();
   if(set){g.fillStyle='#fffaf0';rr(g,w/2-74,h/2-74,148,148,26);g.fill();g.fillStyle='#cc3a2e';for(const [a,b] of [[-40,-40],[40,-40],[0,0],[-40,40],[40,40]]){g.beginPath();g.arc(w/2+a,h/2+b,14,0,7);g.fill()}}
-  else if(o.md===0){const s=txt.padStart(2,' ');flapCell(g,w/2-98,70,92,218,s[0],0,'#ffd989');flapCell(g,w/2+6,70,92,218,s[1],0,'#ffd989')}
-  else if(o.md===1&&txt){const n=txt.length,cw=Math.min(46,(w-54)/n-4),x0=(w-n*(cw+4)+4)/2;[...txt].forEach((c,i)=>flapCell(g,x0+i*(cw+4),74,cw,110,c,0));
-    g.strokeStyle='#f6ecd8';g.lineWidth=7;g.lineCap='round';g.beginPath();g.ellipse(w/2,250,42,23,0,0,7);g.stroke();g.beginPath();g.arc(w/2,250,10,0,7);g.stroke();
-    if(secHide){g.beginPath();g.moveTo(w/2-44,282);g.lineTo(w/2+44,218);g.stroke()}}
-  Nb.st.needsUpdate=true;Nb.dirty=true;
+  else if(o.md===0){const s=txt.padStart(2,' ');flapCell(g,w/2-98,70,92,250,s[0],0,'#ffd989');flapCell(g,w/2+6,70,92,250,s[1],0,'#ffd989')}
+  else if(o.md===1&&txt){const n=txt.length,cw=Math.min(46,(w-54)/n-4),x0=(w-n*(cw+4)+4)/2;[...txt].forEach((c,i)=>flapCell(g,x0+i*(cw+4),66,cw,150,c,0));
+    g.strokeStyle='#f6ecd8';g.lineWidth=7;g.lineCap='round';g.beginPath();g.ellipse(w/2,282,42,23,0,0,7);g.stroke();g.beginPath();g.arc(w/2,282,10,0,7);g.stroke();
+    if(secHide){g.beginPath();g.moveTo(w/2-44,314);g.lineTo(w/2+44,250);g.stroke()}}
+  Nb.st.needsUpdate=true;
 }
 /* 영수증 그림: 아래가 최신 줄. 맞대결은 한 턴이 한 줄(왼쪽 내 것, 오른쪽 상대) */
 function paperRows(n){
@@ -615,7 +599,7 @@ function paperDraw(){
   const o=V&&V.o;if(!o||!Nb.pc)return;
   const g=Nb.pc.getContext('2d'),W=Nb.pc.width,Hc=Nb.pc.height,rh=54,rows=paperRows(Nb.seen),me=meIdx(),a=me>=0?me:0;
   g.fillStyle='#fbfaf4';g.fillRect(0,0,W,Hc);
-  const line=rows.slice(-(RMAX));
+  const line=rows.slice(-RMAX);
   const mono=(s,x,y,b)=>{g.font=`${b?800:600} 34px ui-monospace,"IBM Plex Mono",monospace`;g.fillText(s,x,y)};
   const dot=(x,y,c)=>{g.fillStyle=c;g.beginPath();g.arc(x,y,11,0,7);g.fill()};
   g.textBaseline='middle';g.textAlign='left';
@@ -629,7 +613,7 @@ function paperDraw(){
     if(o.md===1){cell(r.c[a],72);cell(r.c[1-a],372)}
     else{const q=r.a;cell(q,84);if(q.x){g.fillStyle='#b0271c';mono(q.S===o.L?'버저 성공':'버저',W-(q.S===o.L?196:100),y,1)}}
   });
-  Nb.pt.needsUpdate=true;Nb.dirty=true;
+  Nb.pt.needsUpdate=true;
 }
 function paperStep(t){
   const o=V.o,tot=o.rec.length;
@@ -670,61 +654,41 @@ function nbSync(){
   if(sent&&(clock()-sentAt>600||o.rec.some(r=>r.g===sent)||o.mg===sent))sent='';
   if(!canType()&&o.ph!=='set'&&o.ph!=='guess'&&o.ph!=='buzz')buf='';
   if(V.st==='over'&&o.md===0&&o.res&&o.res.w!==0&&!Nb.winAt){Nb.winAt=t;setTimeout(sndFail,300)}
-  boardSync();sideDraw();Nb.dirty=true;
+  boardSync();sideDraw();
 }
 function nbRender(t){
   if(!Nb.on||!T.ok)return;
-  if(nbLayout(t))Nb.dirty=true;
-  const intro=IN.on3d&&introStep(t);
-  let busy=boardStep(t);
-  busy=paperStep(t)||busy;
-  // 키·램프·버저
+  if(IN.on3d)introStep(t);
+  boardStep(t);paperStep(t);
   const o=V&&V.o,on=canType();
-  if(Nb.keysDirty){Nb.keysDirty=false;for(const L of Nb.lamps){const d=lampOff.has(L.k);if(L.on.map!==(d?L.offT:L.onT)){L.on.map=d?L.offT:L.onT;L.on.needsUpdate=true}}Nb.dirty=true}
+  if(Nb.keysDirty){Nb.keysDirty=false;for(const L of Nb.lamps){const d=lampOff.has(L.k);if(L.on.map!==(d?L.offT:L.onT)){L.on.map=d?L.offT:L.onT;L.on.needsUpdate=true}L.m.position.y=d?-.03:0}}
   for(const K of Nb.keys){
-    const e=t-(Nb.down[K.k]||-1e9),dip=e<130?Math.sin(Math.PI*e/130)*.05:0;if(e<130)busy=true;
-    const y=.06-dip;if(K.m.position.y!==y){K.m.position.y=y}
+    const e=t-(Nb.down[K.k]||-1e9);K.m.position.y=e<130?-Math.sin(Math.PI*e/130)*.065:0;
     let c=on?1:.82;
     if(/[0-9]/.test(K.k)&&lampOff.has(K.k))c*=.62;
-    const full=K.k==='enter'&&on&&o&&buf.length===o.L;
-    if(full){const p=.5+.5*Math.sin(t/170);K.top.color.setRGB(1,.86+.14*(1-p),.55+.45*(1-p));busy=true}
+    if(K.k==='enter'&&on&&o&&buf.length===o.L){const p=.5+.5*Math.sin(t/170);K.top.color.setRGB(1,.86+.14*(1-p),.55+.45*(1-p))}
     else K.top.color.setScalar(c);
   }
   if(Nb.gZ.visible){
     const open=buzzOpen(),me=meIdx(),dead=me>=0&&o&&!isAlive(me);
     let prog=0;
-    if(Nb.holdAt){if(!open)Nb.holdAt=0;else{prog=Math.min(1,(t-Nb.holdAt)/HOLD_MS);busy=true;if(prog>=1){Nb.holdAt=0;prog=0;Nb.fired=t;buzzGo()}}}
+    if(Nb.holdAt){if(!open)Nb.holdAt=0;else{prog=Math.min(1,(t-Nb.holdAt)/HOLD_MS);if(prog>=1){Nb.holdAt=0;prog=0;buzzGo()}}}
     Nb.ringM.geometry.setDrawRange(0,Math.floor(prog*48)*6);
-    Nb.dome.position.y=.1-(prog>0?.05:0);
+    Nb.dome.position.y=.14-(prog>0?.07:0);
     Nb.domeM.color.setHex(dead?0x4a4038:open?0xd8382a:0x7a2a22);
   }
-  if(!busy&&!intro&&!Nb.dirty&&t-Nb.lastR<400)return;
-  Nb.dirty=false;Nb.lastR=t;
-  const fog=T.scene.fog,fn=fog?fog.near:0,ff=fog?fog.far:0;
-  if(fog){fog.near=Nb.d+4;fog.far=Nb.d+26}
-  for(const m of [T.timerBg,T.timerArc,T.ring])if(m)m.visible=false;
-  let cam=Nb.cam;
-  {const k=intro&&IN.fromLobby?ease((t-IN.t0)/INTRO.cam):1;
-   if(k<1){
-     const ic=Nb.icam||(Nb.icam=new THREE.PerspectiveCamera());
-     ic.position.copy(T.cam.position).lerp(Nb.cam.position,k);ic.quaternion.copy(T.cam.quaternion).slerp(Nb.cam.quaternion,k);
-     const a=T.cam.projectionMatrix.elements,b=Nb.cam.projectionMatrix.elements,m=ic.projectionMatrix.elements;
-     for(let j=0;j<16;j++)m[j]=a[j]+(b[j]-a[j])*k;
-     ic.projectionMatrixInverse.copy(ic.projectionMatrix).invert();ic.updateMatrixWorld();
-     if(fog){fog.near=fn+(fog.near-fn)*k;fog.far=ff+(fog.far-ff)*k}
-     cam=ic;
-   }}
-  T.r.render(T.scene,cam);
-  if(fog){fog.near=fn;fog.far=ff}
+  T.timerBg.visible=T.timerArc.visible=false;
+  T.r.render(T.scene,T.cam);
 }
 function sideShow(){
   if(!Nb.built||!V||!V.o)return;
-  const race=V.o.md===2;Nb.gZ.visible=race;Nb.gS.visible=!race;
+  pose(Nb.morph,Nb.rise);
 }
 
 /* ---------- 시작 연출 (방장이 그동안 시간·봇을 멈춤) ----------
-   0~1.1초 로비 카메라 → 바로 위, 그동안 영수증 틈·판·램프·자판이 차례로 내려앉음. 경주는 1.5초부터 영수증 자리에서 첫 차례 주사위 */
-const INTRO={cam:1100,ui:650,dice:1500,diceA:300,end:1250,endA:250};
+   0~.45초 대기실 자판이 틈으로 들어감(공통). .45~1.15초 디스플레이가 앞으로 나오며 넓어지고 플립이 촤르륵.
+   .85~1.6초 틈이 열리고 큰 자판·램프·옆 칸(버저)이 올라옴. 경주는 1.75초부터 펠트 가운데서 첫 차례 주사위 */
+const INTRO={ui:650,morph:[450,700],rise:[850,750],dice:1750,diceA:300,end:1700,endA:250};
 const DIE=.56;
 G.introMs=(again,rolls)=>Math.round(rolls?(again?INTRO.diceA:INTRO.dice)+DicePick.totalFor(rolls)+100:(again?INTRO.endA:INTRO.end));
 const IN={on:false,on3d:false,t0:0,total:0,r:0,again:false,fromLobby:true,said:false,fp:null,die:null,thud:{}};
@@ -739,23 +703,21 @@ G.intro=(t0,o)=>{
   IN.fp=race&&rolls?firstPick(t0+IN.r,{seats:V.ps.map((_,i)=>i),first:V.o.first,rolls,seed}):null;
   IN.on3d=true;
   $('#stage').classList.add('nb-intro');if(elNb&&IN.fromLobby)elNb.classList.add('intro');
-  lastBar='';Nb.dirty=true;
+  lastBar='';
 };
-const DROPS=[[100,380],[240,380],[240,380],[240,380],[420,380],[560,380]];
 function introStep(now,force){
   if(!Nb.built||!V||!V.o)return false;
   const e=now-IN.t0,done=force||e>=IN.total;
   if(done)IN.on3d=false;
-  [Nb.gP,Nb.gB,Nb.gS,Nb.gZ,Nb.gL,Nb.gK].forEach((g,i)=>{
-    const x=done||!IN.fromLobby?1:(e-DROPS[i][0])/DROPS[i][1];
-    g.position.y=dropY(Math.max(0,x),1.5);
-    const show=x>0;g.userData.hide=!show;
-    if(i===2||i===3){const race=V.o.md===2;g.visible=show&&(i===3?race:!race)}else g.visible=show;
-    if(!IN.thud[i]&&x>=.68&&IN.fromLobby&&!done){IN.thud[i]=1;tone(130,.08,{type:'triangle',vol:.1});hiss(.05,{freq:700,vol:.07})}
-  });
+  if(IN.fromLobby&&!done){
+    const m=smooth(clamp01((e-INTRO.morph[0])/INTRO.morph[1])),r=clamp01((e-INTRO.rise[0])/INTRO.rise[1]);
+    pose(m,r);
+    if(e>=INTRO.rise[0]&&!IN.thud.a){IN.thud.a=1;sfx('lid')}
+    if(e>=INTRO.morph[0]&&!IN.thud.b){IN.thud.b=1;const n=now;Nb.flaps.forEach((f,i)=>{f.until=n+INTRO.morph[1]+i*40})}
+  }else if(Nb.morph<1||Nb.rise<1)pose(1,1);
   if(IN.fp&&!IN.fp.fixed){
     if(!IN.die&&!done&&Nb.root){IN.die=DicePick.mesh(THREE,V.ps.length,SEAT_C);Nb.root.add(IN.die.g)}
-    if(IN.die){const p=Nb.gP.position;IN.die.apply(done||e<IN.r?null:IN.fp.pose(now),DIE,p.x,.03,p.z-PH/2)}
+    if(IN.die)IN.die.apply(done||e<IN.r?null:IN.fp.pose(now),DIE,0,.03,-.8);
   }
   if(done&&IN.die){IN.die.dispose();IN.die=null}
   return true;
@@ -772,19 +734,18 @@ function introTick(){
   if(e>=INTRO.ui&&elNb&&elNb.classList.contains('intro'))elNb.classList.remove('intro');
   if(!IN.fp&&e>=IN.total){IN.said=true}
   if(IN.fp&&e>=IN.r&&IN.fp.tick(IN.t0+e)){IN.said=true;fxSay(IN.fp.msg(),SEAT_C[IN.fp.first]);lastBar=''}
-  if(e>=IN.total){IN.on=false;IN.said=true;$('#stage').classList.remove('nb-intro');if(elNb)elNb.classList.remove('intro');lastBar='';lastHint='';Nb.dirty=true}
+  if(e>=IN.total){IN.on=false;IN.said=true;$('#stage').classList.remove('nb-intro');if(elNb)elNb.classList.remove('intro');lastBar='';lastHint=''}
   drawAll();
 }
-/* 누른 곳 → 탁자 위 칸 */
+/* 누른 곳 → 탁자 위 물건 (실제 물건을 맞힘: 비스듬한 시점에서도 보이는 그대로) */
 function hitAt(e){
-  if(!Nb.on||!Nb.cam)return null;
+  if(!Nb.on||!Nb.hitObjs)return null;
   const r=T.r.domElement.getBoundingClientRect();if(!r.width)return null;
   const ray=Nb.ray||(Nb.ray=new THREE.Raycaster());
-  ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},Nb.cam);
-  const o=ray.ray.origin,dv=ray.ray.direction;if(Math.abs(dv.y)<1e-6)return null;
-  const k=(.1-o.y)/dv.y,x=o.x+dv.x*k,z=o.z+dv.z*k;
-  if(V&&V.o&&V.o.md===2){const c=Nb.gZ.position;if(Math.hypot(x-c.x,z-c.z)<.62)return {t:'buzz'}}
-  return Nb.hits.find(h=>h.t==='side'?V&&V.o&&V.o.md!==2&&x>=h.x0&&x<=h.x1&&z>=h.z0&&z<=h.z1:x>=h.x0&&x<=h.x1&&z>=h.z0&&z<=h.z1)||null;
+  ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},T.cam);
+  const objs=Nb.hitObjs.filter(o=>{for(let p=o;p;p=p.parent)if(!p.visible)return false;return true});
+  const h=ray.intersectObjects(objs,false)[0];
+  return h?h.object.userData.hit:null;
 }
 function onDown(e){
   const h=hitAt(e);if(!h||!V||!V.o)return;
@@ -810,7 +771,7 @@ G.hud=inGame=>{
   elNb.hidden=!on;
   $('#stage').classList.toggle('nb-over',!!(on&&V.st==='over'));
   const d3=on&&nbBuild();
-  if(d3!==Nb.on){Nb.on=d3;Nb.lay='';if(Nb.root)Nb.root.visible=d3;$('#stage').classList.toggle('nb3d',d3);last2d='';lastHint='';if(d3&&V&&V.o){curG=0}}
+  if(d3!==Nb.on){Nb.on=d3;if(d3){Nb.root.visible=true;Nb.outAt=0}else if(Nb.root&&Nb.root.visible){Nb.outAt=clock()}$('#stage').classList.toggle('nb3d',d3);last2d='';lastHint='';if(d3&&V&&V.o){curG=0}}
   $('#stage').classList.toggle('nb2d',on&&!d3);
   if(!on){lastBar='';lastHint='';last2d='';return}
   nbSync();sideShow();drawAll();
@@ -822,6 +783,8 @@ G.overRank=p=>{
   return t?`<span class="left">${t}</span>`:'';
 };
 G.no3D=true;
+G.ownBoard=true;   // 게임 중에는 공통 디스플레이를 이 게임의 플립 판이 넘겨받음
+G.noView=true;     // 자판을 누르는 게임이라 고개 돌리기를 쓰지 않음
 G.buttons=()=>{$('#btnPass').hidden=true;$('#btnGura').hidden=true};
 G.live=()=>{
   if(IN.on)introTick();
@@ -840,7 +803,14 @@ G.pass=()=>{};
 G.keyPhase=st=>st==='play';
 G.onKey=()=>false;
 G.field3D=()=>{if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=false})};
-G.render3D=t=>{if(Nb.on)nbRender(t);else if(T.ok&&!$('#stage').classList.contains('nb2d'))T.r.render(T.scene,T.cam)};
+G.render3D=t=>{
+  if(Nb.on){nbRender(t);return}
+  if(Nb.outAt&&Nb.root){   // 대기실로 돌아갈 때: 자판이 들어가고 판이 디스플레이 자리로
+    const e=t-Nb.outAt,k=clamp01(e/500);pose(1-smooth(k),1-k);
+    if(k>=1){Nb.outAt=0;Nb.root.visible=false}
+  }
+  if(T.ok&&!$('#stage').classList.contains('nb2d'))T.r.render(T.scene,T.cam);
+};
 G.enter=()=>{
   $('#stage').classList.add('nbg');
   $('#btnPass').hidden=true;$('#btnGura').hidden=true;$('#numpick').hidden=true;
@@ -849,7 +819,7 @@ G.leave=()=>{
   introEnd();Nb.holdAt=0;
   $('#stage').classList.remove('nbg','nb-over','nb3d','nb2d');
   if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
-  if(Nb.root)Nb.root.visible=false;Nb.on=false;curG=0;
+  if(Nb.root)Nb.root.visible=false;Nb.outAt=0;Nb.on=false;curG=0;
   $('#btnPass').hidden=false;
   if(elNb){elNb.hidden=true;lastBar='';lastHint='';last2d=''}
 };
@@ -865,7 +835,6 @@ G.holoPiece=mk=>{
 G.init=()=>{
   const css=document.createElement('style');
   css.textContent=`
-.stage.nbg{background:radial-gradient(ellipse at 50% 38%,#f3e4c2 0%,#e2c89a 70%,#d3b27c 100%)}
 .stage.nbg.nb2d #cv,.stage.nbg #dim{visibility:hidden}
 .stage.nbg .actions,.stage.nbg #numpick{display:none}
 .stage.nbg .labels{visibility:hidden}
@@ -932,10 +901,9 @@ G.init=()=>{
     if(e.code==='Space'&&V.o.md===2){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat){if(Nb.on)holdStart();else{clearTimeout(Nb.t2d);if(buzzOpen())Nb.t2d=setTimeout(buzzGo,HOLD_MS);else sndNo()}}}
   },true);
   document.addEventListener('keyup',e=>{if(e.code==='Space'){if(Nb.holdAt)holdEnd();clearTimeout(Nb.t2d)}});
-  window.addEventListener('resize',()=>{Nb.lay=''});
   $('#cv').addEventListener('pointerdown',onDown);
 };
-G._nb={Nb,IN,introEnd,get buf(){return buf},get lamps(){return [...lampOff]},press,lampToggle,hitAt};   // 화면 검사용
+G._nb={Nb,IN,introEnd,pose,get buf(){return buf},get lamps(){return [...lampOff]},press,lampToggle,hitAt};   // 화면 검사용
 
 (window.GAMES=window.GAMES||{}).baseball=G;
 })();
