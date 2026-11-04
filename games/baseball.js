@@ -441,7 +441,7 @@ function boardWant(){
    게임 중에는 펠트가 없음. 시작: 대기실 장치가 구멍으로 들어감 → 구멍이 넓어짐 → 디스플레이 → 자판 → 전광판(pose의 시각 e) */
 const DW=3.3,DD=.94,HZ=3.2,BA=2.2,BTH=.08;              // 디스플레이: 폭, 높이, 경첩 z, 열린 각도, 두께
 const KW=.51,KH=.56,KZ=3.85;                             // 키 간격·깊이, 자판 가운데 z
-const TBW=4,TBH=1.72,TBZ=-.8,TBY=.42,TB_W={3:2.9,4:3.3,5:3.6},TROWS=6;         // 전광판: 폭, 높이, z, 바닥 높이, 한 묶음 줄 수
+const TBW=4,TBH=1.72,TBZ=-.8,TBY=.42,TB_W={3:2.9,4:3.46,5:3.76},TROWS=6;         // 전광판: 폭, 높이, z, 바닥 높이, 한 묶음 줄 수
 const BCW=1024,BCH=292,TCW=1024,TCH=420,BLINE=160;       // 그림 크기, 디스플레이 둘째 줄 시작
 const TL={sink:[420,380],felt:[200,600],hole:[800,340],disp:[1100,480],keys:[1500,440],score:[1720,480],end:2250};   // 시작 연출 시각표 [시작, 길이] ms
 const Nb={on:false,built:false,fail:false,root:null,down:{},holdAt:0,deny:0,printAt:0,flaps:[],lastBz:-1,winAt:0,seen:0,boardK:'',outAt:0,e:TL.end,led:null,tpage:0,tKey:'',resSeen:0};
@@ -640,7 +640,7 @@ function scoreDraw(){
     g.textAlign='left';g.fillStyle=r.x&&r.S!==o.L?'#ff6a5a':r.S===o.L?'#ffd23c':'#ffc24a';g.font='700 46px "IBM Plex Mono", monospace';
     if(!r.g){g.fillText('-'.repeat(o.L),cx+84,y+2);return}
     g.fillText(r.g,cx+84,y+2);
-    const x0=cx+84+o.L*27.6+18,sp=o.L>=5?19.5:21.5,rd=9.5,mid=x0+o.L*sp+6;
+    const x0=cx+84+o.L*27.6+18,sp=o.L>=5?18.5:21.5,rd=o.L>=5?9:9.5,mid=x0+o.L*sp+6;
     for(let i=0;i<o.L;i++)ledDot(g,x0+i*sp,y,rd,i<r.S,LED_S);
     for(let i=0;i<o.L;i++)ledDot(g,mid+i*sp,y,rd,i<r.B,LED_B);
     if(!r.S&&!r.B)ledDot(g,mid+o.L*sp+6,y,rd,true,LED_O);
