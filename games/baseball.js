@@ -449,7 +449,7 @@ function boardWant(){
    게임 중에는 펠트가 없음. 시작: 대기실 장치가 구멍으로 들어감 → 구멍이 넓어짐 → 디스플레이 → 자판 → 전광판(pose의 시각 e) */
 const DW=3.3,DD=.94,HZ=3.2,BA=2.2,BTH=.08;              // 디스플레이: 폭, 높이, 경첩 z, 열린 각도, 두께
 const KW=.51,KH=.56,KZ=3.85;                             // 키 간격·깊이, 자판 가운데 z
-const TBW=4,TBH=1.72,TBZ=-.8,TBY=.42,TB_W={3:2.9,4:3.46,5:3.76},TROWS=6;         // 전광판: 폭, 높이, z, 바닥 높이, 한 묶음 줄 수
+const TBW=4,TBH=1.72,TBZ=1,TBY=.34,TROWS=5,TB_W={3:3.3,4:3.76,5:3.86},TB_LW={3:708,4:845,5:918},TB_LH=364;   // 전광판: 폭·높이(기준), z, 바닥 높이, 한 묶음 줄 수, 자릿수별 폭, 그림 논리 폭·높이         // 전광판: 폭, 높이, z, 바닥 높이, 한 묶음 줄 수
 const BCW=1024,BCH=292,TCW=1024,TCH=420,BLINE=160;       // 그림 크기, 디스플레이 둘째 줄 시작
 const TL={sink:[420,380],felt:[200,600],hole:[800,340],disp:[1100,480],keys:[1500,440],score:[1720,480],end:2250};   // 시작 연출 시각표 [시작, 길이] ms
 const Nb={on:false,built:false,fail:false,root:null,down:{},holdAt:0,deny:0,printAt:0,flaps:[],lastBz:-1,winAt:0,seen:0,boardK:'',outAt:0,e:TL.end,led:null,tpage:0,tKey:'',resSeen:0};
@@ -520,15 +520,15 @@ function nbBuild(){
   return Nb.built;
 }
 /* 장치 모습: e = 시작 연출 시각(ms). TL.end면 게임 중 모습, 줄이면 그대로 되돌아감 */
-function pose(e){
+function pose(e,sc){
   Nb.e=e;
   const at=a=>smooth((e-a[0])/a[1]),md=V&&V.o?V.o.md:0;
   {const s=at(TL.sink);Nb.gO.visible=s<1;Nb.gO.position.set(0,.004-.46*s,3.9+.24*s)}
   {const h=at(TL.hole),hw=.76+((DW+.1)/2-.76)*h,z0=3.88+(HZ-.14-3.88)*h,z1=4.17+(KZ+KH+.03-4.17)*h;Nb.slit.scale.set(hw*2,z1-z0,1);Nb.slit.position.z=(z0+z1)/2}
   {const d=at(TL.disp),s=1-d;Nb.gB.visible=d>.001;Nb.gB.position.set(0,.004-s*.808*DD*1.2,HZ+s*.588*DD*1.2)}
   {const k=at(TL.keys);Nb.gK.visible=k>.001;Nb.gK.position.y=-.16+.22*k}
-  {const c=at(TL.score),lo=-(TBY+TBH+.7),w=TB_W[V&&V.o?V.o.L:4]||3.3;Nb.gT.visible=c>.001;Nb.gT.position.y=lo*(1-c);Nb.tHole.visible=c>.001&&c<1;
-   Nb.pn.scale.x=w/TBW;Nb.posts.forEach((m,i)=>{m.position.x=(i?1:-1)*(w/2-.34)});Nb.arrows.forEach((a,i)=>{a.hit.position.x=w/2-(i?.2:.64)});Nb.tHole.scale.x=w/3.3;}
+  {const L=V&&V.o?V.o.L:4,c=smooth(((sc==null?e:sc)-TL.score[0])/TL.score[1]),lo=-(TBY+TBH+.7),w=TB_W[L]||3.9,lw=TB_LW[L]||845,th=w*TB_LH/lw;Nb.gT.visible=c>.001;Nb.gT.position.y=lo*(1-c);Nb.tHole.visible=c>.001&&c<1;
+   Nb.pn.scale.set(w/TBW,th/TBH,1);Nb.pn0.position.y=TBY+th/2;Nb.posts.forEach((m,i)=>{m.position.x=(i?1:-1)*(w/2-.34)});Nb.arrows.forEach((a,i)=>{a.hit.position.set(w/2-(i?52:160)/lw*w,th/2-32/TB_LH*th,.1)});Nb.tHole.scale.x=w/3.3;}
   const race=md===2;Nb.gZ.visible=race;
   if(race){const L=V.o.L,x0=blockX(L)+14,x1=Math.min(994,x0+290),w=x1-x0,wW=w/BCW*DW*.975,cx=((x0+x1)/2/BCW-.5)*DW*.975,cz=(.5-84/BCH)*DD*.96;
     if(Nb.zL!==L){Nb.zL=L;Nb.zW=wW;
@@ -633,7 +633,7 @@ function scoreDraw(){
   else{const l=win(rec,TROWS*2);L1=l.slice(0,TROWS);L2=l.slice(TROWS);pages=Math.max(1,Math.ceil(rec.length/(TROWS*2)))}
   const key=JSON.stringify([L1,L2,page,pages,V.st,o.md,Nb.seen,V.ps.map(p=>p.n)]);if(key===Nb.tKey)return;Nb.tKey=key;
   Nb.tPages=pages;
-  const g=Nb.tc.getContext('2d'),Hc=TCH,W=Math.round(TCH*(TB_W[o.L]||3.3)/TBH),rh=56,top=64;g.setTransform(TCW/W,0,0,1,0,0);
+  const g=Nb.tc.getContext('2d'),Hc=TB_LH,W=TB_LW[o.L]||845,rh=60,top=64;g.setTransform(TCW/W,0,0,TCH/Hc,0,0);
   g.fillStyle='#0d120f';g.fillRect(0,0,W,Hc);
   g.fillStyle='#16201a';g.fillRect(0,0,W,60);g.fillStyle='#2a3a30';g.fillRect(W/2-2,0,4,Hc);
   g.textBaseline='middle';g.font='700 34px "IBM Plex Sans KR", sans-serif';g.fillStyle='#ffc24a';
@@ -717,9 +717,9 @@ function sideShow(){
 
 /* ---------- 시작 연출 (방장이 그동안 시간·봇을 멈춤) ----------
    대기실 자판 → 디스플레이가 구멍으로 들어감 · 펠트가 점으로 줄어듦 → 구멍이 넓어짐 → 디스플레이 → 자판 → 전광판(TL). 경주는 그 뒤 첫 차례 주사위 */
-const INTRO={ui:650,dice:2350,diceA:300,end:2300,endA:250};
+const INTRO={ui:650,dice:1980,diceA:520,end:2300,endA:250,sc:520,scA:460};   // 경주: 주사위가 전광판 자리에서 구르므로 전광판은 그 뒤에 올라옴(다시 시작이면 잠깐 내려감)
 const DIE=.56;
-G.introMs=(again,rolls)=>Math.round(rolls?(again?INTRO.diceA:INTRO.dice)+DicePick.totalFor(rolls)+100:(again?INTRO.endA:INTRO.end));
+G.introMs=(again,rolls)=>Math.round(rolls?(again?INTRO.diceA:INTRO.dice)+DicePick.totalFor(rolls)+100+INTRO.sc:(again?INTRO.endA:INTRO.end));
 const IN={on:false,on3d:false,t0:0,total:0,r:0,again:false,fromLobby:true,said:false,fp:null,die:null,thud:{}};
 const introOn=()=>IN.on&&clock()<IN.t0+IN.total;
 const introWait=()=>introOn()&&!IN.said;
@@ -734,14 +734,21 @@ G.intro=(t0,o)=>{
   $('#stage').classList.add('nb-intro');if(elNb&&IN.fromLobby)elNb.classList.add('intro');
   lastBar='';
 };
+/* 경주의 전광판 시각: 주사위가 끝난 뒤 올라옴. 바로 시작이면 먼저 내려갔다가 */
+function scT(e){
+  const up=IN.total-INTRO.sc,s0=TL.score[0],s1=TL.score[1];
+  if(e>=up)return s0+s1*(e-up)/INTRO.sc;
+  return !IN.fromLobby&&e<INTRO.scA?s0+s1*(1-e/INTRO.scA):0;
+}
 function introStep(now,force){
   if(!Nb.built||!V||!V.o)return false;
   const e=now-IN.t0,done=force||e>=IN.total;
   if(done)IN.on3d=false;
   if(IN.fromLobby&&!done){
-    pose(Math.min(e,TL.end));feltTo(1-smooth((e-TL.felt[0])/TL.felt[1]));
+    pose(Math.min(e,TL.end),IN.fp?scT(e):undefined);feltTo(1-smooth((e-TL.felt[0])/TL.felt[1]));
     for(const [k,at,f] of [['f',TL.felt[0],()=>hiss(.5,{freq:900,sweep:300,q:1,vol:.06})],['h',TL.hole[0],()=>sfx('lid')],['d',TL.disp[0],()=>sfx('lid')],['k',TL.keys[0],()=>sfx('lid')]])if(e>=at&&!IN.thud[k]){IN.thud[k]=1;f()}
-  }else{feltTo(0);if(Nb.e<TL.end)pose(TL.end)}
+  }else{feltTo(0);if(IN.fp&&!done)pose(TL.end,scT(e));else if(Nb.e<TL.end||IN.scOn){IN.scOn=false;pose(TL.end)}}
+  if(IN.fp&&!done)IN.scOn=true;
   if(IN.fp&&!IN.fp.fixed){
     if(!IN.die&&!done&&Nb.root){IN.die=DicePick.mesh(THREE,V.ps.length,SEAT_C);Nb.root.add(IN.die.g)}
     if(IN.die)IN.die.apply(done||e<IN.r?null:IN.fp.pose(now),DIE,0,.03,.7);
