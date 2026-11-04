@@ -56,7 +56,7 @@ function botNum(lv,pool,L,used,rnd){
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>숫자</b> : 비밀 숫자는 3~5자리이고 숫자가 겹치지 않습니다. 0은 맨 앞에도 올 수 있습니다</li><li><b>판정</b> : 숫자와 자리가 모두 맞으면 <b>S</b>(스트라이크), 숫자만 맞으면 <b>B</b>(볼), 하나도 없으면 <b>OUT</b>입니다. 자릿수만큼 S가 나오면 찾은 것입니다</li><li><b>혼자</b> : 정해진 숫자를 10번 안에 찾습니다. 시간제한은 없습니다</li><li><b>맞대결</b> : 두 사람이 각자 비밀 숫자를 정하고 매 턴 동시에 숫자를 부릅니다. 먼저 찾으면 승리, 같은 턴에 둘 다 찾으면 무승부입니다. 시간이 지나면 그 턴을 건너뜁니다. 20턴 안에 못 찾아도 무승부입니다</li><li><b>경주</b> : 정해진 숫자를 한 명씩 부르고 결과는 모두 함께 봅니다. 자기 차례에 맞히면 승리합니다. 이미 나온 수는 다시 부를 수 없습니다</li><li><b>버저</b> : 경주에서는 결과가 다 나온 뒤라면 언제든 빨간 버저를 꾹 눌러 정답에 도전할 수 있습니다. 게임이 멈추고 10초 안에 숫자를 넣습니다. 맞히면 승리, 틀리거나 시간을 넘기면 사망이고 틀린 수의 결과도 모두에게 공개됩니다. 마지막 한 명이 남으면 승리합니다</li><li><b>램프</b> : 자판 위 숫자 램프를 누르면 꺼지고 다시 누르면 켜집니다. 내 화면에서만 보이는 메모입니다</li><li><b>기록</b> : 지난 기록은 전광판에 뜹니다. 전광판을 누르면 앞 기록을 넘겨 봅니다</li><li><b>키보드</b> : 숫자키로 입력, Shift+숫자로 메모, Backspace로 지우기, Enter로 부르기, Space를 누르고 있으면 버저입니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>숫자</b> : 비밀 숫자는 3~5자리이고 숫자가 겹치지 않습니다. 0은 맨 앞에도 올 수 있습니다</li><li><b>판정</b> : 숫자와 자리가 모두 맞으면 <b>S</b>(스트라이크), 숫자만 맞으면 <b>B</b>(볼), 하나도 없으면 <b>OUT</b>입니다. 자릿수만큼 S가 나오면 찾은 것입니다</li><li><b>혼자</b> : 정해진 숫자를 10번 안에 찾습니다. 시간제한은 없습니다</li><li><b>맞대결</b> : 두 사람이 각자 비밀 숫자를 정하고 매 턴 동시에 숫자를 부릅니다. 먼저 찾으면 승리, 같은 턴에 둘 다 찾으면 무승부입니다. 시간이 지나면 그 턴을 건너뜁니다. 20턴 안에 못 찾아도 무승부입니다</li><li><b>경주</b> : 정해진 숫자를 한 명씩 부르고 결과는 모두 함께 봅니다. 자기 차례에 맞히면 승리합니다. 이미 나온 수는 다시 부를 수 없습니다</li><li><b>버저</b> : 경주에서는 결과가 다 나온 뒤라면 언제든 빨간 버저를 꾹 눌러 정답에 도전할 수 있습니다. 게임이 멈추고 10초 안에 숫자를 넣습니다. 맞히면 승리, 틀리거나 시간을 넘기면 사망이고 틀린 수의 결과도 모두에게 공개됩니다. 마지막 한 명이 남으면 승리합니다</li><li><b>램프</b> : 자판 위 숫자 램프를 누르면 꺼지고 다시 누르면 켜집니다. 내 화면에서만 보이는 메모입니다</li><li><b>기록</b> : 지난 기록은 전광판에 뜹니다. 기록이 넘치면 전광판 위쪽 화살표 버튼으로 앞 기록을 봅니다</li><li><b>키보드</b> : 숫자키로 입력, Shift+숫자로 메모, Backspace로 지우기, Enter로 부르기, Space를 누르고 있으면 버저입니다</li></ol>';
 G.modeDesc=['',''];
 G.defaults={max:2,turn:45,len:4,md:1};
 G.roomSet=[
@@ -258,7 +258,7 @@ G.engine={
     const md=mdOf(H.cfg),L=lenOf(H.cfg),n=H.players.length,prev=H.nb;
     H.players.forEach(p=>{p.finished=false;p.rank=null;p.surrendered=false;p.hand=[0]});
     const first=md===2?(prev&&prev.md===2?(prev.first+1)%n:firstSeat(n)):0;   // 경주 다음 판은 선을 넘김
-    H.nb={gn:((prev&&prev.gn)||0)+1,md,L,ph:md===1?'set':'guess',sec:md===1?'':randNum(L),secs:[null,null],rec:[],alive:H.players.map(()=>true),dead:[],first,bz:null,bzAt:H.players.map(()=>0),botAt:H.players.map(()=>0),pg:[null,null],round:0,idle:0,win:-1,rvUntil:0,logQ:[],res:null,tp:[0,0]};
+    H.nb={gn:((prev&&prev.gn)||0)+1,md,L,ph:md===1?'set':'guess',sec:md===1?'':randNum(L),secs:[null,null],rec:[],alive:H.players.map(()=>true),dead:[],first,bz:null,bzAt:H.players.map(()=>0),botAt:H.players.map(()=>0),pg:[null,null],round:0,idle:0,win:-1,rvUntil:0,logQ:[],res:null};
     H.turn=first;H.deadline=0;H.botActAt=0;
     if(md===1){const t=clock();H.deadline=t+turnMs();H.players.forEach((p,i)=>{if(p.bot)H.nb.botAt[i]=t+rand(1200,2600)})}
     if(md===2)raceTurn(first);else mark();
@@ -267,7 +267,7 @@ G.engine={
     if(a.t==='surrender'){doSurrender(seat);return}
     const O=H.nb;if(!O||H.phase!=='play'||seat<0||seat>=H.players.length||!H.players[seat]||H.players[seat].finished)return;
     if(O.md===0){if(a.t==='guess'&&O.ph==='guess'&&validNum(a.v,O.L)&&!usedBy(0).has(a.v))soloCall(a.v);return}
-    if(O.md===1){if(a.t==='tap'){O.tp[seat]=(O.tp[seat]||0)+1;mark();return}if(a.t==='set')vsSet(seat,a.v);else if(a.t==='guess')vsGuess(seat,a.v);return}
+    if(O.md===1){if(a.t==='set')vsSet(seat,a.v);else if(a.t==='guess')vsGuess(seat,a.v);return}
     if(a.t==='guess')raceCall(seat,a.v);else if(a.t==='buzz')raceBuzz(seat);else if(a.t==='ans')raceAnswer(seat,a.v);
   },
   tick(t){
@@ -287,7 +287,7 @@ G.engine={
     const O=H.nb,over=H.phase==='over',seat=you>=0&&you<H.players.length;
     const o={gn:O.gn,md:O.md,L:O.L,ph:O.ph,rec:O.rec,alive:O.alive.slice(),first:O.first,bz:O.ph==='buzz'&&O.bz?O.bz.s:-1,res:O.res?{...O.res}:null,left:SOLO_MAX-O.rec.length};
     if(O.md===1){
-      o.tp=O.tp.slice();o.dn=O.ph==='set'?O.secs.map(Boolean):O.ph==='guess'?O.pg.map(Boolean):[true,true];
+      o.dn=O.ph==='set'?O.secs.map(Boolean):O.ph==='guess'?O.pg.map(Boolean):[true,true];
       if(seat){o.my=O.secs[you];o.mg=O.pg[you]}
     }
     if(over)o.sec=O.md===1?O.secs.slice():O.sec;
@@ -355,7 +355,7 @@ function press(k){
   if(k==='del'){if(buf){buf=buf.slice(0,-1);sndKey()}else sndNo();boardSync();drawAll();return}
   if(k==='enter'){submit();return}
   if(buf.length>=L||buf.includes(k)){sndNo();Nb.deny=clock();return}
-  buf+=k;sndKey();if(V.o.md===1)sendAct({t:'tap'});boardSync();drawAll();
+  buf+=k;sndKey();boardSync();drawAll();
 }
 function submit(){
   const o=V.o;
@@ -437,14 +437,14 @@ function boardWant(){
 }
 
 /* ---------- 3D: 앉은 카메라(모든 게임과 같음) 그대로, 탁자 위 장치 ----------
-   앞에서 뒤로: 자판 두 줄 · 세운 디스플레이(첫째 줄 숫자 플립·S B O LED, 둘째 줄 숫자 메모, 경주는 모서리에 버저) · 기둥 위 전광판(지난 기록) · 맞대결은 맞은편에 상대 장치.
+   앞에서 뒤로: 자판 두 줄 · 세운 디스플레이(첫째 줄 숫자 플립·S B O LED, 둘째 줄 숫자 메모, 경주는 모서리에 버저) · 기둥 위 전광판(지난 기록) · 경주는 자판 옆에 정답 버튼.
    게임 중에는 펠트가 없음. 시작: 대기실 장치가 구멍으로 들어감 → 구멍이 넓어짐 → 디스플레이 → 자판 → 전광판(pose의 시각 e) */
-const DW=3.3,DD=1.34,HZ=3.2,BA=2.2,BTH=.08;              // 디스플레이: 폭, 높이, 경첩 z, 열린 각도, 두께
-const KW=.51,KH=.56,KZ=3.85;                             // 키 간격·깊이, 자판 가운데 z
-const TBW=4,TBH=1.72,TBZ=-1,TBY=.48,TROWS=6,OPZ=2.9,OPA=2.75;         // 전광판: 폭, 높이, z, 바닥 높이, 한 묶음 줄 수
-const BCW=1024,BCH=416,TCW=1024,TCH=420,BLINE=232;       // 그림 크기, 디스플레이 둘째 줄 시작
+const DW=3.3,DD=.94,HZ=3.2,BA=2.2,BTH=.08;              // 디스플레이: 폭, 높이, 경첩 z, 열린 각도, 두께
+const KW=.51,KH=.56,KZ=3.85,RKS=.82,RKX=-.31,ZX=1.21;                             // 키 간격·깊이, 자판 가운데 z
+const TBW=4,TBH=1.72,TBZ=-.8,TBY=.42,TB_W={3:2.9,4:3.3,5:3.6},TROWS=6;         // 전광판: 폭, 높이, z, 바닥 높이, 한 묶음 줄 수
+const BCW=1024,BCH=292,TCW=1024,TCH=420,BLINE=160;       // 그림 크기, 디스플레이 둘째 줄 시작
 const TL={sink:[420,380],felt:[200,600],hole:[800,340],disp:[1100,480],keys:[1500,440],score:[1720,480],end:2250};   // 시작 연출 시각표 [시작, 길이] ms
-const Nb={on:false,built:false,fail:false,root:null,down:{},holdAt:0,deny:0,printAt:0,flaps:[],lastBz:-1,winAt:0,seen:0,boardK:'',outAt:0,e:TL.end,led:null,tpage:0,oDown:{},oFlash:-1e9,tpSeen:0,bNext:0,tKey:'',resSeen:0};
+const Nb={on:false,built:false,fail:false,root:null,down:{},holdAt:0,deny:0,printAt:0,flaps:[],lastBz:-1,winAt:0,seen:0,boardK:'',outAt:0,e:TL.end,led:null,tpage:0,tKey:'',resSeen:0};
 const ease=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 function woodFill(g,w,h,base,dark){g.fillStyle=base;g.fillRect(0,0,w,h);g.strokeStyle=dark;g.globalAlpha=.16;for(let i=0;i<34;i++){g.lineWidth=1+(i%3);g.beginPath();const y=(i*53)%h;g.moveTo(0,y);g.bezierCurveTo(w*.3,y+7,w*.6,y-7,w,y+2);g.stroke()}g.globalAlpha=1}
 function keyCanvas(k){
@@ -476,39 +476,41 @@ function nbBuild(){
     const gB=new THREE.Group(),pb=new THREE.Group();gB.add(pb);pb.position.z=DD/2;gB.rotation.x=-BA;
     const box=new THREE.Mesh(new THREE.BoxGeometry(DW,BTH,DD),[wood,wood,back,dark,wood,wood]);box.position.y=-BTH/2;box.castShadow=true;pb.add(box);hull(new THREE.BoxGeometry(DW+.035,BTH+.03,DD+.035),box,pb);
     const scr=new THREE.Mesh(new THREE.PlaneGeometry(DW*.975,DD*.96),new THREE.MeshBasicMaterial({map:tex}));scr.rotation.x=Math.PI/2;scr.position.y=-BTH-.002;scr.userData.hit={t:'board'};pb.add(scr);
-    /* 버저: 판 위쪽 오른쪽 모서리에 붙음 */
-    const gZ=new THREE.Group();gZ.position.set(DW/2-.46,-BTH,DD+.3);gZ.rotation.x=Math.PI;
-    const tab=new THREE.Mesh(new THREE.BoxGeometry(.9,.06,.72),[wood,wood,back,dark,wood,wood]);tab.position.set(0,.05,.08);gZ.add(tab);hull(new THREE.BoxGeometry(.93,.09,.75),tab,gZ);
-    const base=new THREE.Mesh(new THREE.CylinderGeometry(.37,.4,.12,32),toon({color:0x3a302a,rim:.2}));base.position.y=.08;base.castShadow=true;gZ.add(base);hull(new THREE.CylinderGeometry(.39,.42,.14,32),base,gZ);
-    const domeM=toon({color:0xd8382a,rim:.35}),dome=new THREE.Mesh(new THREE.SphereGeometry(.31,28,14,0,Math.PI*2,0,Math.PI/2),domeM);dome.scale.y=.8;dome.position.y=.14;dome.castShadow=true;gZ.add(dome);hull(new THREE.SphereGeometry(.325,28,14,0,Math.PI*2,0,Math.PI/2),dome,gZ);
-    const ring=new THREE.Mesh(new THREE.RingGeometry(.33,.385,48,1),new THREE.MeshBasicMaterial({color:0xffd24a}));ring.rotation.x=-Math.PI/2;ring.position.y=.145;ring.geometry.setDrawRange(0,0);gZ.add(ring);
-    base.userData.hit=dome.userData.hit={t:'buzz'};pb.parent.add(gZ);Nb.gZ=gZ;Nb.dome=dome;Nb.domeM=domeM;Nb.ringM=ring;
     clipAll(gB);root.add(gB);Nb.gB=gB;Nb.bc=cv;Nb.bt=tex;
     /* 자판 */
-    const gK=new THREE.Group(),ks=toon({color:0xd9c7a8,rim:.2}),kw=KW-.045;Nb.keys=[];
+    const gK=new THREE.Group(),gKs=new THREE.Group(),ks=toon({color:0xd9c7a8,rim:.2}),kw=KW-.045;Nb.keys=[];
     KEYROW.forEach((k,i)=>{
       const top=new THREE.MeshBasicMaterial({map:keyCanvas(k)}),c=i%6,r=i<6?0:1;
-      const m=new THREE.Mesh(new THREE.BoxGeometry(kw,.2,KH-.05),[ks,ks,top,ks,ks,ks]);m.position.set((c-2.5)*KW,0,KZ+(r-.5)*KH);m.castShadow=true;gK.add(m);hull(new THREE.BoxGeometry(kw+.022,.22,KH-.028),m,gK);
+      const m=new THREE.Mesh(new THREE.BoxGeometry(kw,.2,KH-.05),[ks,ks,top,ks,ks,ks]);m.position.set((c-2.5)*KW,0,KZ+(r-.5)*KH);m.castShadow=true;gKs.add(m);hull(new THREE.BoxGeometry(kw+.022,.22,KH-.028),m,gKs);
       m.userData.hit={t:'key',k};Nb.keys.push({k,m,top});
     });
+    gK.add(gKs);Nb.gKs=gKs;
+    /* 정답 버튼: 경주에서 자판을 왼쪽으로 줄인 자리 (일곱째 칸) */
+    const gZ=new THREE.Group();gZ.position.set(ZX,0,KZ);
+    const base=new THREE.Mesh(new THREE.CylinderGeometry(.38,.41,.12,36),toon({color:0x3a302a,rim:.2}));base.position.y=-.02;base.castShadow=true;gZ.add(base);hull(new THREE.CylinderGeometry(.4,.43,.14,36),base,gZ);
+    const domeM=toon({color:0xd8382a,rim:.35}),dome=new THREE.Mesh(new THREE.SphereGeometry(.335,30,15,0,Math.PI*2,0,Math.PI/2),domeM);dome.scale.y=.85;dome.position.y=.04;dome.castShadow=true;gZ.add(dome);hull(new THREE.SphereGeometry(.35,30,15,0,Math.PI*2,0,Math.PI/2),dome,gZ);
+    const ring=new THREE.Mesh(new THREE.RingGeometry(.345,.4,48,1),new THREE.MeshBasicMaterial({color:0xffd24a}));ring.rotation.x=-Math.PI/2;ring.position.y=.045;ring.geometry.setDrawRange(0,0);gZ.add(ring);
+    base.userData.hit=dome.userData.hit={t:'buzz'};gK.add(gZ);Nb.gZ=gZ;Nb.dome=dome;Nb.domeM=domeM;Nb.ringM=ring;
     clipAll(gK);root.add(gK);Nb.gK=gK;
     /* 전광판: 기둥 위 어두운 판 (지난 기록) */
     const tc=document.createElement('canvas');tc.width=TCW;tc.height=TCH;const ttx=new THREE.CanvasTexture(tc);ttx.anisotropy=8;
     const gT=new THREE.Group(),steel=toon({color:0x4a4640,rim:.2}),frame=toon({color:0x2a2622,rim:.15});
-    for(const x of [-1.5,1.5]){const m=new THREE.Mesh(new THREE.BoxGeometry(.14,TBY+.3,.14),steel);m.position.set(x,(TBY+.3)/2,0);m.castShadow=true;gT.add(m);hull(new THREE.BoxGeometry(.165,TBY+.32,.165),m,gT)}
-    const pn=new THREE.Group();pn.position.set(0,TBY+TBH/2,0);pn.rotation.x=-.3;gT.add(pn);
-    const tb=new THREE.Mesh(new THREE.BoxGeometry(TBW,TBH,.14),[frame,frame,frame,frame,new THREE.MeshBasicMaterial({map:ttx}),frame]);tb.castShadow=true;tb.userData.hit={t:'score'};pn.add(tb);hull(new THREE.BoxGeometry(TBW+.04,TBH+.04,.17),tb,pn);
+    Nb.posts=[-1,1].map(()=>{const m=new THREE.Mesh(new THREE.BoxGeometry(.14,TBY+.3,.14),steel);m.position.y=(TBY+.3)/2;m.castShadow=true;gT.add(m);return m});
+    const pn0=new THREE.Group();pn0.position.set(0,TBY+TBH/2,0);pn0.rotation.x=-.3;gT.add(pn0);Nb.pn0=pn0;
+    const pn=new THREE.Group();pn0.add(pn);Nb.pn=pn;
+    const tb=new THREE.Mesh(new THREE.BoxGeometry(TBW,TBH,.14),[frame,frame,frame,frame,new THREE.MeshBasicMaterial({map:ttx}),frame]);tb.castShadow=true;pn.add(tb);hull(new THREE.BoxGeometry(TBW+.04,TBH+.04,.17),tb,pn);
+    /* 화살표 버튼: 전광판 위쪽. 기록이 넘치면 불이 켜짐 */
+    const hitM=new THREE.MeshBasicMaterial({visible:false});
+    Nb.arrows=[['up',1],['down',-1]].map(([t,d],i)=>{
+      const tx=canvasTex(96,64,(x,w,h)=>{x.fillStyle='#1b1714';x.fillRect(0,0,w,h);x.fillStyle='#fff';x.beginPath();if(d>0){x.moveTo(48,12);x.lineTo(76,52);x.lineTo(20,52)}else{x.moveTo(48,52);x.lineTo(76,12);x.lineTo(20,12)}x.closePath();x.fill()});
+      const mt=new THREE.MeshBasicMaterial({map:tx,color:0x4a4640});
+      const m=new THREE.Mesh(new THREE.BoxGeometry(.36,.2,.12),[frame,frame,frame,frame,mt,frame]);m.position.set(0,TBH/2+.13,0);m.castShadow=true;pn0.add(m);
+      const hit=new THREE.Mesh(new THREE.PlaneGeometry(.56,.58),hitM);hit.position.set(0,.06,.09);hit.userData.hit={t};m.add(hit);
+      return {t,m,mt,hit};
+    });
     clipAll(gT);gT.position.z=TBZ;root.add(gT);Nb.gT=gT;Nb.tc=tc;Nb.tt=ttx;
-    const th=new THREE.Mesh(new THREE.PlaneGeometry(3.3,.3),black);th.rotation.x=-Math.PI/2;th.position.set(0,.012,TBZ);root.add(th);Nb.tHole=th;
-    /* 상대 장치 (맞대결): 내 장치를 맞은편으로 돌린 모습. 실제 숫자는 없고 누를 때마다 아무 키나 눌림 */
-    const gV=new THREE.Group(),vK=new THREE.Group();gV.add(vK);Nb.oKeys=[];
-    const vs=new THREE.Mesh(new THREE.PlaneGeometry(KW*6+.1,KH*2+.1),black);vs.rotation.x=-Math.PI/2;vs.position.set(0,.008,KZ);gV.add(vs);
-    const pl=toon({color:0xf0e4cc,rim:.2});
-    for(let i=0;i<12;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(kw,.2,KH-.05),pl);m.position.set((i%6-2.5)*KW,0,KZ+((i<6?0:1)-.5)*KH);m.castShadow=true;vK.add(m);hull(new THREE.BoxGeometry(kw+.022,.22,KH-.028),m,vK);Nb.oKeys.push(m)}
-    const vB=new THREE.Group();vB.position.set(0,.004,HZ);vB.rotation.x=-OPA;const vp=new THREE.Mesh(new THREE.BoxGeometry(DW,BTH,DD),[wood,wood,back,dark,wood,wood]);vp.position.set(0,-BTH/2,DD/2);vp.castShadow=true;vB.add(vp);hull(new THREE.BoxGeometry(DW+.035,BTH+.03,DD+.035),vp,vB);
-    const led=new THREE.Mesh(new THREE.SphereGeometry(.13,16,12),new THREE.MeshBasicMaterial({color:0x3a2a20}));led.position.set(0,.03,DD*.62);vB.add(led);gV.add(vB);hull(new THREE.SphereGeometry(.15,16,12),led,vB);Nb.oLed=led;
-    clipAll(gV);gV.rotation.y=Math.PI;root.add(gV);Nb.gV=gV;
-    Nb.hitObjs=[...Nb.keys.map(k=>k.m),base,dome,scr,tb];
+    const th=new THREE.Mesh(new THREE.PlaneGeometry(3.3,.34),black);th.rotation.x=-Math.PI/2;th.position.set(0,.012,TBZ);root.add(th);Nb.tHole=th;
+    Nb.hitObjs=[...Nb.keys.map(k=>k.m),base,dome,scr,...Nb.arrows.map(a=>a.hit)];
     T.scene.add(root);Nb.root=root;Nb.built=true;pose(TL.end);
   }catch(e){Nb.fail=true;try{console.warn('숫자야구 3D 준비 실패',e)}catch(_){}}
   return Nb.built;
@@ -521,8 +523,9 @@ function pose(e){
   {const h=at(TL.hole),hw=.76+((DW+.1)/2-.76)*h,z0=3.88+(HZ-.14-3.88)*h,z1=4.17+(KZ+KH+.03-4.17)*h;Nb.slit.scale.set(hw*2,z1-z0,1);Nb.slit.position.z=(z0+z1)/2}
   {const d=at(TL.disp),s=1-d;Nb.gB.visible=d>.001;Nb.gB.position.set(0,.004-s*.808*DD*1.2,HZ+s*.588*DD*1.2)}
   {const k=at(TL.keys);Nb.gK.visible=k>.001;Nb.gK.position.y=-.16+.22*k}
-  {const c=at(TL.score),lo=-(TBY+TBH+.5);Nb.gT.visible=c>.001;Nb.gT.position.y=lo*(1-c);Nb.tHole.visible=c>.001&&c<1;Nb.gV.visible=md===1&&c>.001;Nb.gV.position.set(0,-.22*(1-c)*(1-c),OPZ)}
-  Nb.gZ.visible=md===2;
+  {const c=at(TL.score),lo=-(TBY+TBH+.7),w=TB_W[V&&V.o?V.o.L:4]||3.3;Nb.gT.visible=c>.001;Nb.gT.position.y=lo*(1-c);Nb.tHole.visible=c>.001&&c<1;
+   Nb.pn.scale.x=w/TBW;Nb.posts.forEach((m,i)=>{m.position.x=(i?1:-1)*(w/2-.34)});Nb.arrows.forEach((a,i)=>{a.m.position.x=w/2-.84+i*.6});Nb.tHole.scale.x=w/3.3;}
+  const race=md===2;Nb.gZ.visible=race;Nb.gKs.scale.x=race?RKS:1;Nb.gKs.position.x=race?RKX:0;
 }
 /* 펠트: 1 그대로 → 0 점으로 줄어 사라짐 (게임 중에는 나무 탁자) */
 function feltTo(k){
@@ -584,30 +587,30 @@ function ledDot(g,x,y,r,on,col){
 const LED_S='#ffd23c',LED_B='#3ce07a',LED_O='#ff4a3c';
 function boardDraw(lk){
   const o=V&&V.o;if(!o||!Nb.bc)return;
-  const g=Nb.bc.getContext('2d'),L=o.L,W=BCW,Hc=BCH,cw=L>=5?74:84,gap=7,x0=44,y=26,h=196;
+  const g=Nb.bc.getContext('2d'),L=o.L,W=BCW,Hc=BCH,cw=L>=5?80:92,gap=7,x0=44,y=20,h=128;
   woodFill(g,W,Hc,'#a97240','#54301a');
   g.fillStyle='#120c08';rr(g,16,12,W-32,Hc-24,18);g.fill();
-  Nb.flaps.forEach((f,i)=>flapCell(g,x0+i*(cw+gap),y,cw,h,f.ch,f.mid));
+  Nb.flaps.forEach((f,i)=>flapCell(g,x0+i*(cw+gap),y,cw,h,f.ch,f.mid,'',L>=5?128:146));
   if(Nb.dot>=0){g.fillStyle=SEAT_C[Nb.dot]||'#888';g.beginPath();g.arc(30,y+h/2,9,0,7);g.fill()}
   // S·B·OUT LED
   const lx=x0+L*(cw+gap)+22,led=Nb.led,n=lk<0?0:lk,sOn=led?Math.min(led.S,n):0,bOn=led?Math.max(0,Math.min(led.B,n-led.S)):0,out=!!(led&&!led.S&&!led.B&&n>0);
-  g.font='700 38px "IBM Plex Mono", monospace';g.textAlign='center';g.textBaseline='middle';
-  [['S',60,LED_S,sOn,L],['B',122,LED_B,bOn,L],['O',184,LED_O,out?1:0,1]].forEach(([c,yy,col,on,cnt])=>{
-    g.fillStyle=col;g.fillText(c,lx+14,yy+2);
-    for(let i=0;i<cnt;i++)ledDot(g,lx+56+i*42,yy,16,i<on,col);
+  g.font='700 30px "IBM Plex Mono", monospace';g.textAlign='center';g.textBaseline='middle';
+  [['S',42,LED_S,sOn,L],['B',84,LED_B,bOn,L],['O',126,LED_O,out?1:0,1]].forEach(([c,yy,col,on,cnt])=>{
+    g.fillStyle=col;g.fillText(c,lx+12,yy+2);
+    for(let i=0;i<cnt;i++)ledDot(g,lx+46+i*46,yy,18,i<on,col);
   });
   // 오른쪽 끝: 맞대결 내 비밀 숫자·눈, 정할 때는 주사위
-  const bx=lx+56+L*42+6;Nb.blockX=bx;
+  const bx=lx+46+L*46-8;Nb.blockX=bx;
   const set=o.md===1&&o.ph==='set'&&V.st==='play';
-  if(set){const c=Math.min(bx+70,W-90);g.fillStyle='#fffaf0';rr(g,c-62,y+36,124,124,22);g.fill();g.fillStyle='#cc3a2e';for(const [a,b] of [[-34,-34],[34,-34],[0,0],[-34,34],[34,34]]){g.beginPath();g.arc(c+a,y+98+b,12,0,7);g.fill()}}
+  if(set){const c=Math.min(bx+70,W-90);g.fillStyle='#fffaf0';rr(g,c-52,y+12,104,104,18);g.fill();g.fillStyle='#cc3a2e';for(const [a,b] of [[-28,-28],[28,-28],[0,0],[-28,28],[28,28]]){g.beginPath();g.arc(c+a,y+64+b,10,0,7);g.fill()}}
   else if(o.md===1&&o.my){
     const txt=secHide?'•'.repeat(L):o.my,w=W-30-bx,cc=Math.min(36,(w-6)/L-4),xs=bx+(w-L*(cc+4))/2;
-    [...txt].forEach((c,i)=>flapCell(g,xs+i*(cc+4),y+8,cc,92,c,0));
-    const c=bx+w/2;g.strokeStyle='#f6ecd8';g.lineWidth=6;g.lineCap='round';g.beginPath();g.ellipse(c,y+148,38,21,0,0,7);g.stroke();g.beginPath();g.arc(c,y+148,9,0,7);g.stroke();
-    if(secHide){g.beginPath();g.moveTo(c-40,y+176);g.lineTo(c+40,y+120);g.stroke()}
+    [...txt].forEach((c,i)=>flapCell(g,xs+i*(cc+4),y,cc,72,c,0));
+    const c=bx+w/2;g.strokeStyle='#f6ecd8';g.lineWidth=6;g.lineCap='round';g.beginPath();g.ellipse(c,y+102,30,16,0,0,7);g.stroke();g.beginPath();g.arc(c,y+102,7,0,7);g.stroke();
+    if(secHide){g.beginPath();g.moveTo(c-32,y+122);g.lineTo(c+32,y+82);g.stroke()}
   }
   // 둘째 줄: 숫자 메모
-  if(Nb.lf)Nb.lf.forEach((f,i)=>flapCell(g,28+i*96.8,BLINE,90,158,f.ch,f.mid,f.ch==='✕'?'#e0654f':'',96));
+  if(Nb.lf)Nb.lf.forEach((f,i)=>flapCell(g,28+i*96.8,BLINE,90,112,f.ch,f.mid,f.ch==='✕'?'#e0654f':'',112));
   Nb.bt.needsUpdate=true;
 }
 /* 전광판: 지난 기록. 혼자·경주는 두 묶음을 이어서, 맞대결은 왼쪽 내 공격·오른쪽 상대 공격 */
@@ -620,7 +623,7 @@ function scoreDraw(){
   else{const l=win(rec,TROWS*2);L1=l.slice(0,TROWS);L2=l.slice(TROWS);pages=Math.max(1,Math.ceil(rec.length/(TROWS*2)))}
   const key=JSON.stringify([L1,L2,page,pages,o.left,o.md,Nb.seen,V.ps.map(p=>p.n)]);if(key===Nb.tKey)return;Nb.tKey=key;
   Nb.tPages=pages;
-  const g=Nb.tc.getContext('2d'),W=TCW,Hc=TCH,rh=58,top=54;
+  const g=Nb.tc.getContext('2d'),Hc=TCH,W=Math.round(TCH*(TB_W[o.L]||3.3)/TBH),rh=58,top=54;g.setTransform(TCW/W,0,0,1,0,0);
   g.fillStyle='#0d120f';g.fillRect(0,0,W,Hc);
   g.fillStyle='#16201a';g.fillRect(0,0,W,50);g.fillStyle='#2a3a30';g.fillRect(W/2-2,0,4,Hc);
   g.textBaseline='middle';g.font='700 32px "IBM Plex Sans KR", sans-serif';g.fillStyle='#ffc24a';
@@ -628,32 +631,29 @@ function scoreDraw(){
   else{g.textAlign='left';g.fillText(o.md===0?`남은 ${Math.max(0,o.left)}번`:`${o.L}자리`,24,26)}
   if(pages>1){g.textAlign='right';g.fillStyle='#8fa596';g.fillText(`${pages-page}/${pages}`,W-24,26)}
   const row=(r,cx,y)=>{
-    g.fillStyle='rgba(255,255,255,.03)';g.fillRect(cx,y-rh/2+3,W/2-8,rh-6);
-    g.textAlign='right';g.fillStyle='#6f8577';g.font='600 30px "IBM Plex Mono", monospace';g.fillText(String(r.n),cx+50,y+2);
-    ledDot(g,cx+70,y,9,true,SEAT_C[r.s]);
+        g.textAlign='right';g.fillStyle='#6f8577';g.font='600 28px "IBM Plex Mono", monospace';g.fillText(String(r.n),cx+44,y+2);
+    ledDot(g,cx+64,y,8,true,SEAT_C[r.s]);
     g.textAlign='left';g.fillStyle=r.x&&r.S!==o.L?'#ff6a5a':r.S===o.L?'#ffd23c':'#ffc24a';g.font='700 46px "IBM Plex Mono", monospace';
-    if(!r.g){g.fillText('-'.repeat(o.L),cx+90,y+2);return}
-    g.fillText(r.g,cx+90,y+2);
-    const x0=cx+96+o.L*28+14,sz=o.L>=5?17:21;
-    for(let i=0;i<o.L;i++)ledDot(g,x0+i*sz,y-12,8,i<r.S,LED_S);
-    for(let i=0;i<o.L;i++)ledDot(g,x0+i*sz,y+12,8,i<r.B,LED_B);
-    if(!r.S&&!r.B)ledDot(g,x0+o.L*sz+8,y,10,true,LED_O);
+    if(!r.g){g.fillText('-'.repeat(o.L),cx+84,y+2);return}
+    g.fillText(r.g,cx+84,y+2);
+    const x0=cx+84+o.L*27.6+18,sp=o.L>=5?19.5:21.5,rd=9.5,mid=x0+o.L*sp+6;
+    for(let i=0;i<o.L;i++)ledDot(g,x0+i*sp,y,rd,i<r.S,LED_S);
+    for(let i=0;i<o.L;i++)ledDot(g,mid+i*sp,y,rd,i<r.B,LED_B);
+    if(!r.S&&!r.B)ledDot(g,mid+o.L*sp+6,y,rd,true,LED_O);
   };
   L1.forEach((r,i)=>row(r,4,top+i*rh+rh/2));
   L2.forEach((r,i)=>row(r,W/2+4,top+i*rh+rh/2));
   Nb.tt.needsUpdate=true;
 }
-function oppPress(t){const i=Math.random()*12|0;Nb.oDown[i]=t;Nb.oFlash=t}
 /* 새 상태 → 화면 */
 function nbSync(){
   if(!V||!V.o)return;
   const o=V.o;
   lampLoad();
-  if(o.gn!==curG){curG=o.gn;buf='';sent='';Nb.seen=0;Nb.printAt=0;Nb.lastBz=-1;Nb.winAt=0;Nb.resSeen=0;Nb.tpage=0;Nb.tKey='';Nb.tpSeen=(o.tp||[0,0]).slice();if(Nb.on)flapsReset()}
+  if(o.gn!==curG){curG=o.gn;buf='';sent='';Nb.seen=0;Nb.printAt=0;Nb.lastBz=-1;Nb.winAt=0;Nb.resSeen=0;Nb.tpage=0;Nb.tKey='';if(Nb.on)flapsReset()}
   if(!Nb.on)return;
   if(!Nb.flaps.length)flapsReset();
   const t=clock();
-  if(o.tp){const m=meIdx(),opp=m===0?1:m===1?0:1;if(o.tp[opp]>(Nb.tpSeen[opp]||0))oppPress(t);Nb.tpSeen=o.tp.slice()}
   if(o.rec.length>Nb.resSeen){   // 새 결과: 공개가 끝날 때 전광판에 뜸
     const r=o.rec[o.rec.length-1],me=meIdx(),mine=o.md===1?(o.rec.slice(Nb.resSeen).find(x=>x.s===me)||r):r;
     const first=!Nb.resSeen&&o.rec.length>1;
@@ -686,20 +686,15 @@ function nbRender(t){
     if(K.k==='enter'&&on&&o&&buf.length===o.L){const p=.5+.5*Math.sin(t/170);K.top.color.setRGB(1,.86+.14*(1-p),.55+.45*(1-p))}
     else K.top.color.setScalar(c);
   }
-  if(Nb.gV.visible&&o){
-    const m=meIdx(),opp=m===0?1:m===1?0:1,ps=V.ps[opp];
-    if(ps&&ps.b&&V.st==='play'&&o.dn&&!o.dn[opp]&&(o.ph==='set'||o.ph==='guess')&&!introWait()&&t>=Nb.bNext){Nb.bNext=t+260+Math.random()*520;oppPress(t)}
-    Nb.oKeys.forEach((k,i)=>{const e=t-(Nb.oDown[i]||-1e9);k.position.y=e<130?-Math.sin(Math.PI*e/130)*.065:0});
-    Nb.oLed.material.color.setHex(t-Nb.oFlash<220?0xffc24a:o.dn&&o.dn[opp]&&o.ph!=='rv'?0x3ce07a:0x3a2a20);
-  }
   if(Nb.gZ.visible){
     const open=buzzOpen(),me=meIdx(),dead=me>=0&&o&&!isAlive(me);
     let prog=0;
     if(Nb.holdAt){if(!open)Nb.holdAt=0;else{prog=Math.min(1,(t-Nb.holdAt)/HOLD_MS);if(prog>=1){Nb.holdAt=0;prog=0;buzzGo()}}}
     Nb.ringM.geometry.setDrawRange(0,Math.floor(prog*48)*6);
-    Nb.dome.position.y=.14-(prog>0?.07:0);
+    Nb.dome.position.y=.04-(prog>0?.06:0);
     Nb.domeM.color.setHex(dead?0x4a4038:open?0xd8382a:0x7a2a22);
   }
+  {const p=Nb.tPages||1;Nb.arrows[0].mt.color.setHex(Nb.tpage<p-1?0xffc24a:0x4a4640);Nb.arrows[1].mt.color.setHex(Nb.tpage>0?0xffc24a:0x4a4640)}
   T.timerBg.visible=T.timerArc.visible=false;
   T.r.render(T.scene,T.cam);
 }
@@ -769,7 +764,7 @@ function hitAt(e){
   const u=h.object.userData.hit;
   if(u.t==='board'&&h.uv){
     const x=h.uv.x*BCW,y=(1-h.uv.y)*BCH;
-    if(y>=BLINE-6){const i=Math.floor((x-24)/96.8);return i>=0&&i<10?{t:'lamp',k:LAMPS[i]}:null}
+    if(y>=BLINE-14){const i=Math.floor((x-24)/96.8);return i>=0&&i<10?{t:'lamp',k:LAMPS[i]}:null}
     return x>=(Nb.blockX||9999)?{t:'side'}:null;
   }
   return u;
@@ -780,7 +775,7 @@ function onDown(e){
   else if(h.t==='lamp')lampToggle(h.k);
   else if(h.t==='key')press(h.k);
   else if(h.t==='side')sideTap();
-  else if(h.t==='score'){if((Nb.tPages||1)>1){Nb.tpage=(Nb.tpage+1)%Nb.tPages;sndKey()}}
+  else if(h.t==='up'||h.t==='down'){const p=Nb.tPages||1,n=Nb.tpage+(h.t==='up'?1:-1);if(n<0||n>=p){sndNo();return}Nb.tpage=n;sndKey()}
 }
 /* 새 상태를 받았을 때 */
 G.preView=()=>{};
