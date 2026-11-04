@@ -1,7 +1,7 @@
 /* ===== 숫자야구 게임 모듈 =====
    공통 코드(index.html)가 GAMES.baseball의 함수를 불러서 이 게임의 규칙·봇·화면을 그림.
    숫자가 겹치지 않는 3~5자리 비밀 숫자를 추리함(0은 맨 앞도 가능). 자리까지 맞으면 S, 숫자만 맞으면 B, 하나도 없으면 OUT.
-   게임 모드 md: 0 혼자(10번 안에 찾기) · 1 맞대결(2명, 서로의 비밀 숫자를 동시 공격) · 2 경주(2~6명, 정해진 숫자를 번갈아 부르고 결과 공유, 버저로 언제든 정답 도전 · 틀리면 사망)
+   게임 모드 md: 0 혼자(10번 안에 찾기) · 1 맞대결(2명, 서로의 비밀 숫자를 동시 공격) · 2 경주(2~6명, 정해진 숫자를 번갈아 부르고 결과 공유, 정답 버튼으로 언제든 도전 · 틀리면 사망)
    화면은 앉은 카메라 그대로: 대기실 장치가 구멍으로 들어간 뒤 구멍이 넓어지고 큰 디스플레이(숫자 플립·S B LED·숫자 메모)와 6×2 자판이 올라옴. 지난 기록은 기둥 위 전광판.
    손패(hand)는 카드가 아니라 표시용 [0] (공통 코드가 hand가 비면 끝난 사람으로 봄) */
 (function(){
@@ -56,7 +56,7 @@ function botNum(lv,pool,L,used,rnd){
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>숫자</b> : 비밀 숫자는 3~5자리이고 숫자가 겹치지 않습니다. 0은 맨 앞에도 올 수 있습니다</li><li><b>판정</b> : 숫자와 자리가 모두 맞으면 <b>S</b>(스트라이크), 숫자만 맞으면 <b>B</b>(볼), 하나도 없으면 <b>OUT</b>입니다. 자릿수만큼 S가 나오면 찾은 것입니다</li><li><b>혼자</b> : 정해진 숫자를 10번 안에 찾습니다. 시간제한은 없습니다</li><li><b>맞대결</b> : 두 사람이 각자 비밀 숫자를 정하고 매 턴 동시에 숫자를 부릅니다. 먼저 찾으면 승리, 같은 턴에 둘 다 찾으면 무승부입니다. 시간이 지나면 그 턴을 건너뜁니다. 20턴 안에 못 찾아도 무승부입니다</li><li><b>경주</b> : 정해진 숫자를 한 명씩 부르고 결과는 모두 함께 봅니다. 자기 차례에 맞히면 승리합니다. 이미 나온 수는 다시 부를 수 없습니다</li><li><b>버저</b> : 경주에서는 결과가 다 나온 뒤라면 언제든 빨간 버저를 꾹 눌러 정답에 도전할 수 있습니다. 게임이 멈추고 10초 안에 숫자를 넣습니다. 맞히면 승리, 틀리거나 시간을 넘기면 사망이고 틀린 수의 결과도 모두에게 공개됩니다. 마지막 한 명이 남으면 승리합니다</li><li><b>램프</b> : 자판 위 숫자 램프를 누르면 꺼지고 다시 누르면 켜집니다. 내 화면에서만 보이는 메모입니다</li><li><b>기록</b> : 지난 기록은 전광판에 뜹니다. 기록이 넘치면 전광판 위쪽 화살표 버튼으로 앞 기록을 봅니다</li><li><b>키보드</b> : 숫자키로 입력, Shift+숫자로 메모, Backspace로 지우기, Enter로 부르기, Space를 누르고 있으면 버저입니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>숫자</b> : 비밀 숫자는 3~5자리이고 숫자가 겹치지 않습니다. 0은 맨 앞에도 올 수 있습니다</li><li><b>판정</b> : 숫자와 자리가 모두 맞으면 <b>S</b>(스트라이크), 숫자만 맞으면 <b>B</b>(볼), 하나도 없으면 <b>OUT</b>입니다. 자릿수만큼 S가 나오면 찾은 것입니다</li><li><b>혼자</b> : 정해진 숫자를 10번 안에 찾습니다. 시간제한은 없습니다</li><li><b>맞대결</b> : 두 사람이 각자 비밀 숫자를 정하고 매 턴 동시에 숫자를 부릅니다. 먼저 찾으면 승리, 같은 턴에 둘 다 찾으면 무승부입니다. 시간이 지나면 그 턴을 건너뜁니다. 20턴 안에 못 찾아도 무승부입니다</li><li><b>경주</b> : 정해진 숫자를 한 명씩 부르고 결과는 모두 함께 봅니다. 자기 차례에 맞히면 승리합니다. 이미 나온 수는 다시 부를 수 없습니다</li><li><b>정답 버튼</b> : 경주에서는 결과가 다 나온 뒤라면 언제든 빨간 [정답] 버튼을 꾹 눌러 도전할 수 있습니다. 게임이 멈추고 10초 안에 숫자를 넣습니다. 맞히면 승리, 틀리거나 시간을 넘기면 사망이고 틀린 수의 결과도 모두에게 공개됩니다. 마지막 한 명이 남으면 승리합니다</li><li><b>램프</b> : 자판 위 숫자 램프를 누르면 꺼지고 다시 누르면 켜집니다. 내 화면에서만 보이는 메모입니다</li><li><b>기록</b> : 지난 기록은 전광판에 뜹니다. 기록이 넘치면 전광판 위쪽 화살표 버튼으로 앞 기록을 봅니다</li><li><b>키보드</b> : 숫자키로 입력, Shift+숫자로 메모, Backspace로 지우기, Enter로 부르기, Space를 누르고 있으면 정답 버튼입니다</li></ol>';
 G.modeDesc=['',''];
 G.defaults={max:2,turn:45,len:4,md:1};
 G.roomSet=[
@@ -108,7 +108,7 @@ function pushRow(s,g,x){
   const O=H.nb,q=g?score(O.md===1?O.secs[1-s]:O.sec,g):{S:0,B:0},n=O.md===1?O.round:O.rec.length+1;
   O.rec.push({n,s,g:g||null,S:q.S,B:q.B,x:x?1:0});
   const pl=H.players[s].name,res=g?`${g} ${resText(q.S,q.B)}`:'시간 초과';
-  O.logQ.push([`${n} ${O.md?pl+' ':''}${x?'버저 ':''}${res}`,q.S===O.L?'fin':x&&g?'lie':g?'':'sys']);
+  O.logQ.push([`${n} ${O.md?pl+' ':''}${x?'정답 ':''}${res}`,q.S===O.L?'fin':x&&g?'lie':g?'':'sys']);
   return q.S===O.L;
 }
 function reveal(ms){const O=H.nb;O.ph='rv';O.rvUntil=clock()+ms;H.deadline=0;H.botActAt=0;mark()}
@@ -305,7 +305,7 @@ G.engine={
 /* 기록 글 (결과 창) */
 function recordText(v){
   const o=v.o,name=i=>v.ps[i]?v.ps[i].n:'?',L=['숫자야구 기록'];
-  (o.rec||[]).forEach(r=>L.push(`${r.n}  ${o.md?name(r.s)+'  ':''}${r.x?'버저 ':''}${r.g?r.g+'  '+resText(r.S,r.B):'시간 초과'}`));
+  (o.rec||[]).forEach(r=>L.push(`${r.n}  ${o.md?name(r.s)+'  ':''}${r.x?'정답 ':''}${r.g?r.g+'  '+resText(r.S,r.B):'시간 초과'}`));
   if(o.sec)L.push(`정답: ${o.md===1?o.sec.map((x,i)=>name(i)+' '+x).join(' · '):o.sec}`);
   return L.join('\n');
 }
@@ -406,9 +406,9 @@ function drawHint(){if(!elHint)return;const h=hintText();if(h!==lastHint){elHint
 /* ----- 2D (WebGL이 없을 때) ----- */
 function html2d(){
   const o=V.o,me=meIdx();
-  const rows=o.rec.map(r=>`<li><i class="dot" style="background:${SEAT_C[r.s]}"></i><b>${r.n}</b> ${r.x?'버저 ':''}${r.g?`${r.g} <em>${resText(r.S,r.B)}</em>`:'시간 초과'}</li>`).join('');
+  const rows=o.rec.map(r=>`<li><i class="dot" style="background:${SEAT_C[r.s]}"></i><b>${r.n}</b> ${r.x?'정답 ':''}${r.g?`${r.g} <em>${resText(r.S,r.B)}</em>`:'시간 초과'}</li>`).join('');
   const d=boardWant();
-  const side=o.md===2?`<button type="button" class="nb-buzz${buzzOpen()?'':' off'}" data-b="1" aria-label="버저"></button>`:o.md===1?(o.ph==='set'?'<button type="button" class="nb-side" data-s="1">주사위</button>':o.my?`<button type="button" class="nb-side" data-s="1">${secHide?'••••':o.my}</button>`:''):`<span class="nb-side">${Math.max(0,o.left)}</span>`;
+  const side=o.md===2?`<button type="button" class="nb-buzz${buzzOpen()?'':' off'}" data-b="1" aria-label="정답"></button>`:o.md===1?(o.ph==='set'?'<button type="button" class="nb-side" data-s="1">주사위</button>':o.my?`<button type="button" class="nb-side" data-s="1">${secHide?'••••':o.my}</button>`:''):`<span class="nb-side">${Math.max(0,o.left)}</span>`;
   const lamps=LAMPS.map(k=>`<button type="button" class="nb-lamp${lampOff.has(k)?' off':''}" data-l="${k}">${k}</button>`).join('');
   const keys=KEYROW.map(k=>`<button type="button" class="nb-key" data-k="${k}">${k==='del'?'←':k==='enter'?'↵':k}</button>`).join('');
   return `<ol class="nb-list">${rows}</ol><div class="nb-dsp"><span class="nb-num">${esc(d.d.padEnd(o.L,'·'))}</span><span class="nb-res">${esc(d.r)}</span>${side}</div><div class="nb-lamps">${lamps}</div><div class="nb-keys">${keys}</div>`;
@@ -440,7 +440,7 @@ function boardWant(){
    앞에서 뒤로: 자판 두 줄 · 세운 디스플레이(첫째 줄 숫자 플립·S B O LED, 둘째 줄 숫자 메모, 경주는 모서리에 버저) · 기둥 위 전광판(지난 기록) · 경주는 자판 옆에 정답 버튼.
    게임 중에는 펠트가 없음. 시작: 대기실 장치가 구멍으로 들어감 → 구멍이 넓어짐 → 디스플레이 → 자판 → 전광판(pose의 시각 e) */
 const DW=3.3,DD=.94,HZ=3.2,BA=2.2,BTH=.08;              // 디스플레이: 폭, 높이, 경첩 z, 열린 각도, 두께
-const KW=.51,KH=.56,KZ=3.85,RKS=.82,RKX=-.31,ZX=1.21;                             // 키 간격·깊이, 자판 가운데 z
+const KW=.51,KH=.56,KZ=3.85;                             // 키 간격·깊이, 자판 가운데 z
 const TBW=4,TBH=1.72,TBZ=-.8,TBY=.42,TB_W={3:2.9,4:3.3,5:3.6},TROWS=6;         // 전광판: 폭, 높이, z, 바닥 높이, 한 묶음 줄 수
 const BCW=1024,BCH=292,TCW=1024,TCH=420,BLINE=160;       // 그림 크기, 디스플레이 둘째 줄 시작
 const TL={sink:[420,380],felt:[200,600],hole:[800,340],disp:[1100,480],keys:[1500,440],score:[1720,480],end:2250};   // 시작 연출 시각표 [시작, 길이] ms
@@ -476,6 +476,14 @@ function nbBuild(){
     const gB=new THREE.Group(),pb=new THREE.Group();gB.add(pb);pb.position.z=DD/2;gB.rotation.x=-BA;
     const box=new THREE.Mesh(new THREE.BoxGeometry(DW,BTH,DD),[wood,wood,back,dark,wood,wood]);box.position.y=-BTH/2;box.castShadow=true;pb.add(box);hull(new THREE.BoxGeometry(DW+.035,BTH+.03,DD+.035),box,pb);
     const scr=new THREE.Mesh(new THREE.PlaneGeometry(DW*.975,DD*.96),new THREE.MeshBasicMaterial({map:tex}));scr.rotation.x=Math.PI/2;scr.position.y=-BTH-.002;scr.userData.hit={t:'board'};pb.add(scr);
+    /* 정답 버튼: 첫째 줄 LED 오른쪽 빈칸에서 솟은 빨간 사각 키 (경주). 누르고 있으면 아래쪽 막대가 참 */
+    {const gZ=new THREE.Group(),zh=112/BCH*DD*.96,zc=document.createElement('canvas');zc.width=300;zc.height=112;const zt=new THREE.CanvasTexture(zc);zt.anisotropy=8;
+     const domeM=toon({color:0xb02a20,rim:.2}),key=new THREE.Group();gZ.add(key);
+     const bx=new THREE.Mesh(new THREE.BoxGeometry(1,.09,zh),domeM);bx.position.y=-.045;bx.castShadow=true;key.add(bx);
+     const top=new THREE.Mesh(new THREE.PlaneGeometry(1,zh),new THREE.MeshBasicMaterial({map:zt}));top.rotation.x=Math.PI/2;top.position.y=-.092;key.add(top);
+     const bar=new THREE.Mesh(new THREE.PlaneGeometry(1,zh*.12),new THREE.MeshBasicMaterial({color:0xffd24a}));bar.rotation.x=Math.PI/2;bar.position.set(0,-.094,-zh*.4);gZ.add(bar);
+     gZ.position.y=-BTH;top.userData.hit=bx.userData.hit={t:'buzz'};pb.add(gZ);
+     Object.assign(Nb,{gZ,zKey:key,zBar:bar,zc,zt,zTop:top.material,domeM,buzzHit:[top,bx]})}
     clipAll(gB);root.add(gB);Nb.gB=gB;Nb.bc=cv;Nb.bt=tex;
     /* 자판 */
     const gK=new THREE.Group(),gKs=new THREE.Group(),ks=toon({color:0xd9c7a8,rim:.2}),kw=KW-.045;Nb.keys=[];
@@ -485,12 +493,6 @@ function nbBuild(){
       m.userData.hit={t:'key',k};Nb.keys.push({k,m,top});
     });
     gK.add(gKs);Nb.gKs=gKs;
-    /* 정답 버튼: 경주에서 자판을 왼쪽으로 줄인 자리 (일곱째 칸) */
-    const gZ=new THREE.Group();gZ.position.set(ZX,0,KZ);
-    const base=new THREE.Mesh(new THREE.CylinderGeometry(.38,.41,.12,36),toon({color:0x3a302a,rim:.2}));base.position.y=-.02;base.castShadow=true;gZ.add(base);hull(new THREE.CylinderGeometry(.4,.43,.14,36),base,gZ);
-    const domeM=toon({color:0xd8382a,rim:.35}),dome=new THREE.Mesh(new THREE.SphereGeometry(.335,30,15,0,Math.PI*2,0,Math.PI/2),domeM);dome.scale.y=.85;dome.position.y=.04;dome.castShadow=true;gZ.add(dome);hull(new THREE.SphereGeometry(.35,30,15,0,Math.PI*2,0,Math.PI/2),dome,gZ);
-    const ring=new THREE.Mesh(new THREE.RingGeometry(.345,.4,48,1),new THREE.MeshBasicMaterial({color:0xffd24a}));ring.rotation.x=-Math.PI/2;ring.position.y=.045;ring.geometry.setDrawRange(0,0);gZ.add(ring);
-    base.userData.hit=dome.userData.hit={t:'buzz'};gK.add(gZ);Nb.gZ=gZ;Nb.dome=dome;Nb.domeM=domeM;Nb.ringM=ring;
     clipAll(gK);root.add(gK);Nb.gK=gK;
     /* 전광판: 기둥 위 어두운 판 (지난 기록) */
     const tc=document.createElement('canvas');tc.width=TCW;tc.height=TCH;const ttx=new THREE.CanvasTexture(tc);ttx.anisotropy=8;
@@ -499,18 +501,12 @@ function nbBuild(){
     const pn0=new THREE.Group();pn0.position.set(0,TBY+TBH/2,0);pn0.rotation.x=-.3;gT.add(pn0);Nb.pn0=pn0;
     const pn=new THREE.Group();pn0.add(pn);Nb.pn=pn;
     const tb=new THREE.Mesh(new THREE.BoxGeometry(TBW,TBH,.14),[frame,frame,frame,frame,new THREE.MeshBasicMaterial({map:ttx}),frame]);tb.castShadow=true;pn.add(tb);hull(new THREE.BoxGeometry(TBW+.04,TBH+.04,.17),tb,pn);
-    /* 화살표 버튼: 전광판 위쪽. 기록이 넘치면 불이 켜짐 */
+    /* 화살표: 전광판 맨 윗줄 그림 안. 누르는 자리만 투명하게 크게 */
     const hitM=new THREE.MeshBasicMaterial({visible:false});
-    Nb.arrows=[['up',1],['down',-1]].map(([t,d],i)=>{
-      const tx=canvasTex(96,64,(x,w,h)=>{x.fillStyle='#1b1714';x.fillRect(0,0,w,h);x.fillStyle='#fff';x.beginPath();if(d>0){x.moveTo(48,12);x.lineTo(76,52);x.lineTo(20,52)}else{x.moveTo(48,52);x.lineTo(76,12);x.lineTo(20,12)}x.closePath();x.fill()});
-      const mt=new THREE.MeshBasicMaterial({map:tx,color:0x4a4640});
-      const m=new THREE.Mesh(new THREE.BoxGeometry(.36,.2,.12),[frame,frame,frame,frame,mt,frame]);m.position.set(0,TBH/2+.13,0);m.castShadow=true;pn0.add(m);
-      const hit=new THREE.Mesh(new THREE.PlaneGeometry(.56,.58),hitM);hit.position.set(0,.06,.09);hit.userData.hit={t};m.add(hit);
-      return {t,m,mt,hit};
-    });
+    Nb.arrows=['up','down'].map(t=>{const hit=new THREE.Mesh(new THREE.PlaneGeometry(.44,.58),hitM);hit.position.set(0,TBH/2-.2,.1);hit.userData.hit={t};pn0.add(hit);return {t,hit}});
     clipAll(gT);gT.position.z=TBZ;root.add(gT);Nb.gT=gT;Nb.tc=tc;Nb.tt=ttx;
     const th=new THREE.Mesh(new THREE.PlaneGeometry(3.3,.34),black);th.rotation.x=-Math.PI/2;th.position.set(0,.012,TBZ);root.add(th);Nb.tHole=th;
-    Nb.hitObjs=[...Nb.keys.map(k=>k.m),base,dome,scr,...Nb.arrows.map(a=>a.hit)];
+    Nb.hitObjs=[...Nb.keys.map(k=>k.m),...Nb.buzzHit,scr,...Nb.arrows.map(a=>a.hit)];
     T.scene.add(root);Nb.root=root;Nb.built=true;pose(TL.end);
   }catch(e){Nb.fail=true;try{console.warn('숫자야구 3D 준비 실패',e)}catch(_){}}
   return Nb.built;
@@ -524,8 +520,13 @@ function pose(e){
   {const d=at(TL.disp),s=1-d;Nb.gB.visible=d>.001;Nb.gB.position.set(0,.004-s*.808*DD*1.2,HZ+s*.588*DD*1.2)}
   {const k=at(TL.keys);Nb.gK.visible=k>.001;Nb.gK.position.y=-.16+.22*k}
   {const c=at(TL.score),lo=-(TBY+TBH+.7),w=TB_W[V&&V.o?V.o.L:4]||3.3;Nb.gT.visible=c>.001;Nb.gT.position.y=lo*(1-c);Nb.tHole.visible=c>.001&&c<1;
-   Nb.pn.scale.x=w/TBW;Nb.posts.forEach((m,i)=>{m.position.x=(i?1:-1)*(w/2-.34)});Nb.arrows.forEach((a,i)=>{a.m.position.x=w/2-.84+i*.6});Nb.tHole.scale.x=w/3.3;}
-  const race=md===2;Nb.gZ.visible=race;Nb.gKs.scale.x=race?RKS:1;Nb.gKs.position.x=race?RKX:0;
+   Nb.pn.scale.x=w/TBW;Nb.posts.forEach((m,i)=>{m.position.x=(i?1:-1)*(w/2-.34)});Nb.arrows.forEach((a,i)=>{a.hit.position.x=w/2-(i?.2:.64)});Nb.tHole.scale.x=w/3.3;}
+  const race=md===2;Nb.gZ.visible=race;
+  if(race){const L=V.o.L,x0=blockX(L)+14,x1=Math.min(994,x0+290),w=x1-x0,wW=w/BCW*DW*.975,cx=((x0+x1)/2/BCW-.5)*DW*.975,cz=(.5-84/BCH)*DD*.96;
+    if(Nb.zL!==L){Nb.zL=L;Nb.zW=wW;
+      Nb.zKey.scale.x=wW;Nb.zBar.scale.x=wW;
+      const g=Nb.zc.getContext('2d');g.setTransform(1,0,0,1,0,0);g.fillStyle='#d8382a';g.fillRect(0,0,300,112);g.fillStyle='#fff6e6';g.setTransform(300/w,0,0,1,0,0);g.font='700 78px "Jua","Black Han Sans",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('정답',w/2,60);Nb.zt.needsUpdate=true}
+    Nb.gZ.position.x=cx;Nb.gZ.position.z=cz}
 }
 /* 펠트: 1 그대로 → 0 점으로 줄어 사라짐 (게임 중에는 나무 탁자) */
 function feltTo(k){
@@ -585,6 +586,7 @@ function ledDot(g,x,y,r,on,col){
   g.strokeStyle='rgba(255,255,255,.14)';g.lineWidth=2;g.beginPath();g.arc(x,y,r,0,7);g.stroke();
 }
 const LED_S='#ffd23c',LED_B='#3ce07a',LED_O='#ff4a3c';
+const ledX=L=>44+L*((L>=5?80:92)+7)+22,blockX=L=>ledX(L)+46+L*46-8;
 function boardDraw(lk){
   const o=V&&V.o;if(!o||!Nb.bc)return;
   const g=Nb.bc.getContext('2d'),L=o.L,W=BCW,Hc=BCH,cw=L>=5?80:92,gap=7,x0=44,y=20,h=128;
@@ -593,14 +595,14 @@ function boardDraw(lk){
   Nb.flaps.forEach((f,i)=>flapCell(g,x0+i*(cw+gap),y,cw,h,f.ch,f.mid,'',L>=5?128:146));
   if(Nb.dot>=0){g.fillStyle=SEAT_C[Nb.dot]||'#888';g.beginPath();g.arc(30,y+h/2,9,0,7);g.fill()}
   // S·B·OUT LED
-  const lx=x0+L*(cw+gap)+22,led=Nb.led,n=lk<0?0:lk,sOn=led?Math.min(led.S,n):0,bOn=led?Math.max(0,Math.min(led.B,n-led.S)):0,out=!!(led&&!led.S&&!led.B&&n>0);
+  const lx=ledX(L),led=Nb.led,n=lk<0?0:lk,sOn=led?Math.min(led.S,n):0,bOn=led?Math.max(0,Math.min(led.B,n-led.S)):0,out=!!(led&&!led.S&&!led.B&&n>0);
   g.font='700 30px "IBM Plex Mono", monospace';g.textAlign='center';g.textBaseline='middle';
   [['S',42,LED_S,sOn,L],['B',84,LED_B,bOn,L],['O',126,LED_O,out?1:0,1]].forEach(([c,yy,col,on,cnt])=>{
     g.fillStyle=col;g.fillText(c,lx+12,yy+2);
     for(let i=0;i<cnt;i++)ledDot(g,lx+46+i*46,yy,18,i<on,col);
   });
   // 오른쪽 끝: 맞대결 내 비밀 숫자·눈, 정할 때는 주사위
-  const bx=lx+46+L*46-8;Nb.blockX=bx;
+  const bx=blockX(L);Nb.blockX=bx;
   const set=o.md===1&&o.ph==='set'&&V.st==='play';
   if(set){const c=Math.min(bx+70,W-90);g.fillStyle='#fffaf0';rr(g,c-52,y+12,104,104,18);g.fill();g.fillStyle='#cc3a2e';for(const [a,b] of [[-28,-28],[28,-28],[0,0],[-28,28],[28,28]]){g.beginPath();g.arc(c+a,y+64+b,10,0,7);g.fill()}}
   else if(o.md===1&&o.my){
@@ -623,13 +625,15 @@ function scoreDraw(){
   else{const l=win(rec,TROWS*2);L1=l.slice(0,TROWS);L2=l.slice(TROWS);pages=Math.max(1,Math.ceil(rec.length/(TROWS*2)))}
   const key=JSON.stringify([L1,L2,page,pages,o.left,o.md,Nb.seen,V.ps.map(p=>p.n)]);if(key===Nb.tKey)return;Nb.tKey=key;
   Nb.tPages=pages;
-  const g=Nb.tc.getContext('2d'),Hc=TCH,W=Math.round(TCH*(TB_W[o.L]||3.3)/TBH),rh=58,top=54;g.setTransform(TCW/W,0,0,1,0,0);
+  const g=Nb.tc.getContext('2d'),Hc=TCH,W=Math.round(TCH*(TB_W[o.L]||3.3)/TBH),rh=56,top=64;g.setTransform(TCW/W,0,0,1,0,0);
   g.fillStyle='#0d120f';g.fillRect(0,0,W,Hc);
-  g.fillStyle='#16201a';g.fillRect(0,0,W,50);g.fillStyle='#2a3a30';g.fillRect(W/2-2,0,4,Hc);
-  g.textBaseline='middle';g.font='700 32px "IBM Plex Sans KR", sans-serif';g.fillStyle='#ffc24a';
-  if(o.md===1){g.textAlign='center';g.fillText(V.ps[a]?V.ps[a].n:'',W/4,26);g.fillText(V.ps[1-a]?V.ps[1-a].n:'',W*3/4,26)}
-  else{g.textAlign='left';g.fillText(o.md===0?`남은 ${Math.max(0,o.left)}번`:`${o.L}자리`,24,26)}
-  if(pages>1){g.textAlign='right';g.fillStyle='#8fa596';g.fillText(`${pages-page}/${pages}`,W-24,26)}
+  g.fillStyle='#16201a';g.fillRect(0,0,W,60);g.fillStyle='#2a3a30';g.fillRect(W/2-2,0,4,Hc);
+  g.textBaseline='middle';g.font='700 34px "IBM Plex Sans KR", sans-serif';g.fillStyle='#ffc24a';
+  if(o.md===1){g.textAlign='center';g.fillText(V.ps[a]?V.ps[a].n:'',W/4,31);g.fillText(V.ps[1-a]?V.ps[1-a].n:'',W*3/4-70,31)}
+  else{g.textAlign='left';g.fillText(o.md===0?`${Math.max(0,o.left)}/${SOLO_MAX} 회`:`${o.L}자리`,20,31)}
+  {const ar=(x,up,on)=>{g.fillStyle=on?'#ffc24a':'#33423a';g.beginPath();if(up){g.moveTo(x,14);g.lineTo(x+22,48);g.lineTo(x-22,48)}else{g.moveTo(x,48);g.lineTo(x+22,14);g.lineTo(x-22,14)}g.closePath();g.fill()};
+   ar(W-160,true,page<pages-1);ar(W-52,false,page>0);
+   if(pages>1){g.textAlign='right';g.fillStyle='#8fa596';g.font='600 28px "IBM Plex Mono", monospace';g.fillText(`${pages-page}/${pages}`,W-200,31)}}
   const row=(r,cx,y)=>{
         g.textAlign='right';g.fillStyle='#6f8577';g.font='600 28px "IBM Plex Mono", monospace';g.fillText(String(r.n),cx+44,y+2);
     ledDot(g,cx+64,y,8,true,SEAT_C[r.s]);
@@ -665,7 +669,7 @@ function nbSync(){
     }
     Nb.resSeen=o.rec.length;
   }
-  if(o.bz>=0&&Nb.lastBz<0){sndBuzz();fxSay(`${nm(o.bz)} 버저!`,SEAT_C[o.bz])}
+  if(o.bz>=0&&Nb.lastBz<0){sndBuzz();fxSay(`${nm(o.bz)} 정답!`,SEAT_C[o.bz])}
   Nb.lastBz=o.bz;
   if(sent&&(clock()-sentAt>600||o.rec.some(r=>r.g===sent)||o.mg===sent))sent='';
   if(!canType()&&o.ph!=='set'&&o.ph!=='guess'&&o.ph!=='buzz')buf='';
@@ -690,11 +694,11 @@ function nbRender(t){
     const open=buzzOpen(),me=meIdx(),dead=me>=0&&o&&!isAlive(me);
     let prog=0;
     if(Nb.holdAt){if(!open)Nb.holdAt=0;else{prog=Math.min(1,(t-Nb.holdAt)/HOLD_MS);if(prog>=1){Nb.holdAt=0;prog=0;buzzGo()}}}
-    Nb.ringM.geometry.setDrawRange(0,Math.floor(prog*48)*6);
-    Nb.dome.position.y=.04-(prog>0?.06:0);
-    Nb.domeM.color.setHex(dead?0x4a4038:open?0xd8382a:0x7a2a22);
+    Nb.zKey.position.y=prog>0?.05:0;
+    Nb.zBar.visible=prog>0;if(prog>0){Nb.zBar.scale.x=Math.max(.001,prog*Nb.zW);Nb.zBar.position.x=-Nb.zW*(1-prog)/2}
+    Nb.domeM.color.setHex(dead?0x4a4442:open?0xb02a20:0x5a2a26);
+    Nb.zTop.color.setHex(dead?0x5a5654:open?0xffffff:0x7a5e5c);
   }
-  {const p=Nb.tPages||1;Nb.arrows[0].mt.color.setHex(Nb.tpage<p-1?0xffc24a:0x4a4640);Nb.arrows[1].mt.color.setHex(Nb.tpage>0?0xffc24a:0x4a4640)}
   T.timerBg.visible=T.timerArc.visible=false;
   T.r.render(T.scene,T.cam);
 }
