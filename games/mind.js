@@ -28,7 +28,7 @@ G.drawFace=function(g,w,h,id){
 };
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 한 팀입니다. 레벨마다 레벨 수만큼 카드를 받고, 모두의 카드를 <b>낮은 숫자부터</b> 가운데에 쌓으면 통과합니다</li><li><b>인원</b> : 2명은 레벨 12, 3명은 레벨 10, 4명은 레벨 8까지입니다. 생명은 인원수만큼, 표창은 1개로 시작합니다</li><li><b>침묵</b> : 게임 중에는 어떤 의사소통도 할 수 없습니다. 차례도 제한 시간도 없습니다</li><li><b>시작 버튼</b> : 레벨을 시작할 때와 실수·표창 뒤에는 탁자 위 시작 버튼을 <b>모두 함께</b> 꾹 누르고 있어야 시작합니다</li><li><b>내기</b> : 손의 카드를 누르면 살짝 올라와 반투명해지고, 탁자 위에 뒤집혀 올라가 다른 사람도 볼 수 있습니다. 반투명 카드를 잡고 손패 밖으로 빼면 냅니다. 같은 카드를 다시 누르면 내려놓습니다. 어떤 카드든 고를 수 있습니다</li><li><b>거의 동시에 냈을 때</b> : 0.15초 안에 나온 카드는 숫자순으로 놓입니다</li><li><b>실수</b> : 낸 숫자보다 작은 카드가 누구에게든 남아 있으면 생명 1개를 잃고 그 카드를 모두 공개해 버립니다. 생명이 없으면 게임이 끝납니다</li><li><b>표창</b> : 탁자 위 표창 버튼을 누르면 불이 켜지고 다시 누르면 꺼집니다. 모두 켜면 표창 1개를 쓰고 각자 가장 낮은 카드를 공개해 버립니다</li><li><b>보상</b> : 레벨 2·5·8을 통과하면 표창, 3·6·9를 통과하면 생명을 얻습니다. 최대 생명 5개, 표창 3개입니다</li><li><b>블라인드</b> : 모든 레벨을 통과하면 레벨 1부터 다시 시작하고, 낸 카드가 뒤집혀 쌓입니다. 레벨이 끝날 때 순서가 틀렸으면 생명 1개를 잃고 다음 레벨로 갑니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 한 팀입니다. 레벨마다 레벨 수만큼 카드를 받고, 모두의 카드를 <b>낮은 숫자부터</b> 가운데에 쌓으면 통과합니다</li><li><b>인원</b> : 2명은 레벨 12, 3명은 레벨 10, 4명은 레벨 8까지입니다. 생명은 인원수만큼, 표창은 1개로 시작합니다</li><li><b>침묵</b> : 게임 중에는 어떤 의사소통도 할 수 없습니다. 차례도 제한 시간도 없습니다</li><li><b>시작 버튼</b> : 레벨을 시작할 때와 실수·표창 뒤에는 탁자 위 시작 버튼을 <b>모두 함께</b> 꾹 누르고 있어야 시작합니다. 시작하면 같은 자리에 표창 버튼이 올라옵니다</li><li><b>내기</b> : 손의 카드를 누르면 살짝 올라와 반투명해지고, 탁자 위에 뒤집혀 올라가 다른 사람도 볼 수 있습니다. 카드를 잡고 손패 밖으로 빼면 바로 냅니다. 같은 카드를 다시 누르면 내려놓습니다. 어떤 카드든 고를 수 있습니다</li><li><b>거의 동시에 냈을 때</b> : 0.15초 안에 나온 카드는 숫자순으로 놓입니다</li><li><b>실수</b> : 낸 숫자보다 작은 카드가 누구에게든 남아 있으면 생명 1개를 잃고 그 카드를 모두 공개해 버립니다. 생명이 없으면 게임이 끝납니다</li><li><b>표창</b> : 탁자 위 표창 버튼을 누르면 불이 켜지고 다시 누르면 꺼집니다. 켠 사람 수는 표창 말 위에 보입니다. 모두 켜면 표창 1개를 쓰고 각자 가장 낮은 카드를 공개해 버립니다</li><li><b>보상</b> : 레벨 2·5·8을 통과하면 표창, 3·6·9를 통과하면 생명을 얻습니다. 최대 생명 5개, 표창 3개입니다</li><li><b>블라인드</b> : 모든 레벨을 통과하면 레벨 1부터 다시 시작하고, 낸 카드가 뒤집혀 쌓입니다. 레벨이 끝날 때 순서가 틀렸으면 생명 1개를 잃고 다음 레벨로 갑니다</li></ol>';
 G.modeDesc=['낮은 숫자부터 말없이','낮은 숫자부터 말없이'];
 G.defaults={max:4};
 G.roomSet=[];G.ruleSet=[];
@@ -257,7 +257,7 @@ G.play=()=>{
   if(!canPlay()){sfx('no');return}
   const id=[...sel][0];
   if(id==null){sfx('no');return}
-  if(id!==up){syncSel();return}
+  if(id!==up)syncSel();   // 끌어 빼면 바로 냄 (올리는 단계를 건너뜀)
   putUp();
 };
 G.pass=toggleStar;
@@ -297,9 +297,9 @@ G.cues=(v,pv)=>{
 };
 
 /* ---------- 3D: 공통 앉은 카메라 위의 물건 ----------
-   가운데 점선 원 = 쌓이는 카드, 위쪽 호 = 생명·표창 말, 아래쪽 = 레벨 글자. 자리마다 펠트 밖 나무 위에 시작 버튼, 펠트 위에 표창 버튼.
+   가운데 점선 원 = 쌓이는 카드, 위쪽 호 = 생명·표창 말, 한가운데 펠트 = 레벨 글자. 자리마다 펠트 밖 나무 위 구멍 하나: 시작 버튼이 들어가면 같은 구멍으로 표창 버튼이 올라옴.
    자리 물건은 seatAngle을 따라 놓임 */
-const R_UP=2.42,R_BTN=3.82,T_BTN=-1.15,R_ST=2.62,T_ST=1.2;
+const R_UP=2.42,R_BTN=3.82,T_BTN=-1.15;
 const M={on:false,built:false,fail:false,root:null,seats:[],lv:[],sv:[],ups:[],showC:[],showId:0,key:'',dirty:true,raf:0,ray:null,hk:-1,hkAt:0};
 const ez=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 function heartTex(){return canvasTex(128,128,(g,w,h)=>{
@@ -319,23 +319,23 @@ function build(){
     M.sb=[capM('#e9dfca','#3a404a',0xb9ab90),capM('#ffd24a','#3a2a10',0xd9a52e,true),capM('#6b6f75','#44484e',0x4c5056)];   // 표창 버튼: 꺼짐 · 켜짐 · 표창 없음
     const add=(p,g,m,y)=>{const o=new THREE.Mesh(g,m);o.position.y=y||0;o.castShadow=true;p.add(o);return o};
     const gCap=new THREE.CylinderGeometry(.34,.37,.2,36),gInk=new THREE.CylinderGeometry(.385,.41,.22,36),gHole=new THREE.CircleGeometry(.46,40);
-    const gBase=new THREE.CylinderGeometry(.42,.44,.05,36),gSCap=new THREE.CylinderGeometry(.32,.34,.14,36),gSInk=new THREE.CylinderGeometry(.35,.37,.16,36);
+    const gSCap=new THREE.CylinderGeometry(.32,.34,.14,36),gSInk=new THREE.CylinderGeometry(.35,.37,.16,36);
     for(let i=0;i<4;i++){
       const g=new THREE.Group();root.add(g);
       const h=new THREE.Mesh(gHole,hole);h.rotation.x=-Math.PI/2;h.position.y=.022;g.add(h);
       const cap=new THREE.Group();g.add(cap);add(cap,gCap,M.rd[0]);add(cap,gInk,ink);
       const ring=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:0xffd24a,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.03;ring.visible=false;g.add(ring);
-      const b=new THREE.Group();root.add(b);const ba=add(b,gBase,M.star[1],.03);ba.receiveShadow=true;
-      const lamp=add(b,gSCap,M.sb[0],.13);add(lamp,gSInk,ink);
-      M.seats.push({g,h,cap,capM:cap.children[0],ring,b,lamp,o:0,t0:-1e9,want:false,rk:-1});
+      const lamp=add(g,gSCap,M.sb[0]);add(lamp,gSInk,ink);
+      M.seats.push({g,h,cap,capM:cap.children[0],ring,lamp,t0:-1e9,mode:'',from:'',rk:-1});
     }
     const gT=new THREE.CylinderGeometry(.16,.16,.05,28),hm=toon({map:heartTex(),rim:0}),sd=toon({color:0xc9352e});
     for(let k=0;k<MAX_LIVES;k++){const o=new THREE.Mesh(gT,[sd,hm,sd]);o.castShadow=true;root.add(o);o.visible=false;M.lv.push({o,on:false,t0:-1e9})}
     const gS=new THREE.ExtrudeGeometry(starShape(.27,.095),{depth:.05,bevelEnabled:false});
     for(let k=0;k<MAX_STARS;k++){const o=new THREE.Mesh(gS,M.star[0]);o.rotation.x=-Math.PI/2;o.castShadow=true;root.add(o);o.visible=false;M.sv.push({o,on:false,t0:-1e9})}
-    {const c=document.createElement('canvas');c.width=640;c.height=120;const t=new THREE.CanvasTexture(c);t.anisotropy=4;
-     const m=new THREE.Mesh(new THREE.PlaneGeometry(2.2,.4125),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(0,.024,1.36);m.renderOrder=1;root.add(m);M.lvT={c,t,key:''};
-     if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{M.lvT.key=''})}
+    const texPlane=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;const t=new THREE.CanvasTexture(c);t.anisotropy=4;return {c,t,key:''}};
+    {const L=texPlane(640,160),m=new THREE.Mesh(new THREE.PlaneGeometry(3.2,.8),new THREE.MeshBasicMaterial({map:L.t,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(0,.024,0);m.renderOrder=1;root.add(m);M.lvT=L;
+     if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{L.key=''})}
+    {const L=texPlane(256,96),sp=new THREE.Sprite(new THREE.SpriteMaterial({map:L.t,transparent:true,depthTest:false,depthWrite:false}));sp.scale.set(1,.375,1);sp.renderOrder=50;sp.visible=false;root.add(sp);L.sp=sp;M.cnt=L}
     M.ray=new THREE.Raycaster();M.built=true;
   }catch(e){M.fail=true;try{console.warn('더 마인드 3D 준비 실패',e)}catch(_){}}
   return M.built;
@@ -343,24 +343,24 @@ function build(){
 function place3D(){
   const n=V.ps.length,key=n+':'+myIdx();if(key===M.key)return;M.key=key;
   M.seats.forEach((s,i)=>{
-    const on=i<n;s.g.visible=on;s.b.visible=on;if(!on)return;
+    const on=i<n;s.g.visible=on;if(!on)return;
     const a=seatAngle(i),sn=Math.sin(a),cs=Math.cos(a);
     s.g.position.set(sn*R_BTN+cs*T_BTN,0,cs*R_BTN-sn*T_BTN);
-    s.b.position.set(sn*R_ST+cs*T_ST,0,cs*R_ST-sn*T_ST);
   });
   const lay=(L,mid)=>L.forEach((t,k)=>{const [x,z]=tokenPos(k,L.length,mid);t.o.position.set(x,.04,z)});
   lay(M.lv,-Math.PI*.72);lay(M.sv,-Math.PI*.27);
+  {const [x,z]=tokenPos(0,1,-Math.PI*.27);M.cnt.sp.position.set(x,.5,z)}
 }
 /* 매 프레임: 버튼·말 움직임 (시작 시각과의 차이로) */
 function step(){
   M.raf=0;if(!M.on||!V||!V.o)return;
   M.raf=requestAnimationFrame(step);
-  const now=clock(),o=V.o,foc=V.st==='play'&&o.ph==='focus'&&!dealingV();
+  const now=clock(),o=V.o,mode=V.st!=='play'||dealingV()?'':o.ph==='focus'?'go':o.ph==='play'||o.ph==='show'?'st':'',foc=mode==='go';
   M.seats.forEach((s,i)=>{
     if(!s.g.visible)return;
-    if(s.want!==foc){s.want=foc;s.t0=now}
-    const e=now-s.t0;
-    const op=foc?ez(e/220):1-ez((e-200)/200),ri=foc?ez((e-180)/260):1-ez(e/200);   // 구멍이 먼저 열리고 올라옴, 들어갈 때는 버튼 먼저
+    if(s.mode!==mode){s.from=s.mode;s.mode=mode;s.t0=now}
+    const e=now-s.t0,down=ez(e/200),rise=ez((e-220)/240),lift=m=>m===s.mode?rise:m===s.from?1-down:0;   // 앞 버튼이 들어간 뒤 같은 구멍으로 다음 버튼이 올라옴
+    const op=mode?(s.from?1:ez(e/200)):s.from?1-ez((e-200)/200):0,ri=lift('go'),rs=lift('st');
     s.h.scale.setScalar(Math.max(.001,op));s.h.visible=op>.01;
     const pressed=i===myIdx()?holding||o.hd[i]:o.hd[i];
     s.cap.position.y=-.14+ri*(pressed?.14:.21);s.cap.visible=ri>.01;
@@ -369,7 +369,7 @@ function step(){
     let k=-1;if(foc&&o.hk>=0)k=1-Math.max(0,(M.hkAt+o.hk-now))/HOLD_MS;
     if(k>=0){k=Math.min(1,k);const q=Math.round(k*48);if(q!==s.rk){s.rk=q;s.ring.geometry.dispose();s.ring.geometry=new THREE.RingGeometry(.48,.56,48,1,Math.PI/2,-Math.max(.01,k)*Math.PI*2)}s.ring.visible=true}else{s.ring.visible=false;s.rk=-1}
     const lit=V.st==='play'&&o.st[i],can=o.stars>0;
-    s.lamp.material=M.sb[lit?1:can?0:2];s.lamp.position.y=lit?.09:.13;
+    s.lamp.material=M.sb[lit?1:can?0:2];s.lamp.position.y=-.1+rs*(lit?.19:.23);s.lamp.visible=rs>.01;
   });
   const tok=(L,n)=>L.forEach((t,k)=>{
     const on=k<n;if(on!==t.on){t.on=on;t.t0=now}
@@ -377,7 +377,9 @@ function step(){
     t.o.visible=x>.01;t.o.scale.setScalar(Math.max(.001,x*(1+b)));
   });
   tok(M.lv,o.lives);tok(M.sv,o.stars);
-  {const L=M.lvT,txt=levelText(o);if(L.key!==txt){L.key=txt;const g=L.c.getContext('2d'),w=L.c.width,h=L.c.height;g.clearRect(0,0,w,h);g.fillStyle='rgba(255,250,235,.92)';g.font='76px "Jua", "Black Han Sans", sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(txt,w/2,h/2+4);L.t.needsUpdate=true}}
+  {const L=M.lvT,txt=`${o.blind?'BLIND':'LEVEL'} ${o.lv}`;if(L.key!==txt){L.key=txt;const g=L.c.getContext('2d'),w=L.c.width,h=L.c.height;g.clearRect(0,0,w,h);g.fillStyle='#2f7350';g.font='700 118px "IBM Plex Mono", monospace';g.textAlign='center';g.textBaseline='middle';g.fillText(txt,w/2,h/2+6);L.t.needsUpdate=true}}
+  {const L=M.cnt,n=V.st==='play'&&o.ph==='play'?o.st.filter(Boolean).length:0,txt=`(${n}/${o.st.length})`;L.sp.visible=n>0;
+   if(n&&L.key!==txt){L.key=txt;const g=L.c.getContext('2d'),w=L.c.width,h=L.c.height;g.clearRect(0,0,w,h);g.font='700 66px "IBM Plex Mono", monospace';g.textAlign='center';g.textBaseline='middle';g.lineWidth=10;g.lineJoin='round';g.strokeStyle='#3a2a10';g.strokeText(txt,w/2,h/2+3);g.fillStyle='#ffd24a';g.fillText(txt,w/2,h/2+3);L.t.needsUpdate=true}}
 }
 G.field3D=(v,pv,me)=>{
   const o=v.o;if(!o||!T.ok||!M.built)return;
@@ -520,8 +522,8 @@ G.init=()=>{
   cv.addEventListener('pointerdown',e=>{
     if(currentG()!==G||!M.on||!iSeat()||e.button)return;
     const s=M.seats[myIdx()];
-    if(canHold()&&near(e,s.g,.62)){e.preventDefault();hold(true);return}
-    if(near(e,s.b,.48)){toggleStar();return}
+    if(!near(e,s.g,.62))return;
+    if(canHold()){e.preventDefault();hold(true)}else if(V.o.ph==='play')toggleStar();
   });
   const off=()=>{if(holding)hold(false)};
   window.addEventListener('pointerup',off);window.addEventListener('pointercancel',off);window.addEventListener('blur',off);
