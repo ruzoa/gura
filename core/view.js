@@ -622,7 +622,7 @@ const BGM = {
 });
 function myIdx(){return V&&V.ps&&Number.isInteger(V.you)&&V.you>=0&&V.you<V.ps.length?V.you:-1}
 function myHand(){const i=myIdx();return i>=0&&Array.isArray(V.ps[i].h)?V.ps[i].h:[]}
-function activeV(i){const p=V.ps[i];return p&&!p.f&&p.c>0}
+function activeV(i){const p=V.ps[i];return p&&!p.f&&(p.c>0||!!G.emptyHandOk)}   // emptyHandOk: 손패가 0장이어도 게임 중인 게임(보난자)
 function myReady(){const i=myIdx();return V&&!dealingV()&&V.st==='play'&&V.t===i&&i>=0&&activeV(i)&&clock()>=V.graceAt}
 function sendAct(a){
   if(mode==='host'&&H)hostAct(hostSeat(),a);

@@ -1,4 +1,4 @@
-# 탁자하나 (A table) — 게임 모음 (구라! · 대부호 · 쿼리도 · 야추다이스 · 오목 · 체스 · 장기 · 블랙잭 · 포커 · 알까기 · 흑과백 · 동물장기 · 숫자야구 · 픽셀 · 아발론 · 더 마인드)
+# 탁자하나 (A table) — 게임 모음 (구라! · 대부호 · 쿼리도 · 야추다이스 · 오목 · 체스 · 장기 · 블랙잭 · 포커 · 알까기 · 흑과백 · 동물장기 · 숫자야구 · 픽셀 · 아발론 · 더 마인드 · 보난자)
 
 사이트 이름은 **탁자하나**(영어 A table), 로비 메뉴는 **상차리기**(방 만들기)·**참여하기**(방 들어가기), 링크 미리보기 문구는 "그저 탁자 하나"입니다. 구라!는 그 안의 게임 하나입니다.
 화면에서 방은 **탁자**로 부릅니다: 탁자 이름, 탁자 번호(4자리 코드), 공개 탁자·비공개 탁자, 탁자 목록, 아무 탁자나 앉기, 번호로 참여하기, 탁자 설정, 탁자 떠나기. **방장**과 **대기실**은 그대로 씁니다. 코드 안의 이름(`room`, `H.code`, `gura-` 저장 키, PeerJS 이름표)은 바꾸지 않습니다.
@@ -30,6 +30,7 @@
 | `games/pixel.js` | 픽셀 (2~4명·60칸 판·슬라이더 둘·2~3명 4목/4명 3목·줄 수 판정·봇 4단계·Web Worker) | `docs/pixel.md` |
 | `games/abalone.js` | 아발론 (2명·61칸 육각판·구슬 1~3개 밀기·6개 승리·시작 배치 3가지·체스 시계·3단계 봇(Web Worker)) | `docs/abalone.md` |
 | `games/mind.js` | 더 마인드 (2~4명 협력·1~100 카드·차례 없음·탁자 위 시작 버튼을 모두 함께 누름·뒤집어 올린 뒤 내기·표창 버튼·블라인드·쉬움 봇) | `docs/mind.md` |
+| `games/bohnanza.js` | 보난자 (3~5명 콩 심기·거래·수확·양쪽 수락 제안·임시 구역·새싹 보호법·쉬움 봇) | `docs/bohnanza.md` |
 | `tests/`, `dicepick.js`, `lab*.html`, `manifest.webmanifest`, `sw.js`, 아이콘 | 테스트(`node tests/engine.test.js`, `node tests/dicepick.test.js`), 첫 차례 주사위 계산·주사위 만들기, 연출·아이콘 테스트룸, 홈 화면 앱 | `docs/tools.md` |
 
 - 공통 코드는 `G`(지금 화면의 게임)와 `EG()`(방장 엔진이 돌리는 게임)를 통해 게임 모듈의 함수를 부릅니다. 기준 모듈은 `games/gura.js`입니다.
@@ -55,7 +56,7 @@
   - 안 되는 곳을 누르면 글 대신 공통 금지 소리 `sfx('no')`를 냅니다. 왜 안 되는지는 화면에 보여야 합니다(초록 점, 빨간 ✕, 빨간 벽 등).
   - 안내 줄에는 꼭 필요한 것만 짧게 남깁니다(진행 단계, 판 시작 안내, 결과, 조커처럼 화면만으로 알 수 없는 규칙). 비면 자리만 남기고 숨깁니다(`:empty{visibility:hidden}` 또는 고정 높이).
 - **안전 영역(노치·홈 바)**: `body.fs` 한 곳에서만 `env(safe-area-inset-*)` 패딩을 줍니다. `html`/`:root`에 또 주면 홈 화면 앱 위쪽에 띠가 두 번 생깁니다.
-- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`, `gura-roomcfg-chess`, `gura-roomcfg-janggi`, `gura-roomcfg-blackjack`, `gura-roomcfg-poker`, `gura-roomcfg-alkkagi`, `gura-roomcfg-blackwhite`, `gura-roomcfg-animal`, `gura-roomcfg-baseball`, `gura-roomcfg-pixel`, `gura-roomcfg-abalone`, `gura-roomcfg-mind`). 더 마인드는 인원별 최고 기록(`gura-mind-best`)도 저장합니다. 숫자야구는 그 판의 숫자 메모(`gura-nb-lamp`)도 저장합니다. 오목은 이 밖에 커스텀 규칙 기억(`gura-omok-custom`)과 세부 설정 펼침(`gura-omok-more`)도 저장합니다.
+- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`, `gura-roomcfg-chess`, `gura-roomcfg-janggi`, `gura-roomcfg-blackjack`, `gura-roomcfg-poker`, `gura-roomcfg-alkkagi`, `gura-roomcfg-blackwhite`, `gura-roomcfg-animal`, `gura-roomcfg-baseball`, `gura-roomcfg-pixel`, `gura-roomcfg-abalone`, `gura-roomcfg-mind`, `gura-roomcfg-bohnanza`). 더 마인드는 인원별 최고 기록(`gura-mind-best`)도 저장합니다. 숫자야구는 그 판의 숫자 메모(`gura-nb-lamp`)도 저장합니다. 오목은 이 밖에 커스텀 규칙 기억(`gura-omok-custom`)과 세부 설정 펼침(`gura-omok-more`)도 저장합니다.
 - **움직임 줄이기**: 기기의 '움직임 줄이기'(`prefers-reduced-motion`) 설정을 보고 게임 움직임을 끄지 않습니다. 시작 연출, 주사위 굴리기, 말·벽 이동, 돌 놓기처럼 게임 진행을 보여 주는 움직임은 설정과 상관없이 모든 기기에서 똑같이 보여야 합니다. `matchMedia('(prefers-reduced-motion…')`로 움직임을 건너뛰는 코드를 새로 넣지 않습니다. (아직 남은 예외: `games/yahtzee.js`의 2D 주사위 CSS. 손볼 때 같이 정리)
 
 ## 모든 모드 공통 원칙
