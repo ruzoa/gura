@@ -41,6 +41,8 @@ function frontHoloPiece(id){
     const k=GAMES.baseball.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else if(id==='pixel'&&GAMES.pixel&&GAMES.pixel.holoPiece){   // 도트 말과 그 위를 지나는 슬라이더 둘
     const k=GAMES.pixel.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
+  else if(id==='abalone'&&GAMES.abalone&&GAMES.abalone.holoPiece){   // 육각 판과 구슬 (게임이 모양을 정하고 재질은 여기서)
+    const k=GAMES.abalone.holoPiece(c=>{const m=holoMat(c);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else if(id==='animal'&&GAMES.animal&&GAMES.animal.holoPiece){   // 사자 타일과 병아리 타일 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.animal.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else add(new THREE.OctahedronGeometry(.25),holoMat(0xffffff));

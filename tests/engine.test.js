@@ -39,6 +39,7 @@ run(fs.readFileSync(path.join(root,'games/blackwhite.js'),'utf8'),'blackwhite.js
 run(fs.readFileSync(path.join(root,'games/animal.js'),'utf8'),'animal.js');
 run(fs.readFileSync(path.join(root,'games/baseball.js'),'utf8'),'baseball.js');
 run(fs.readFileSync(path.join(root,'games/pixel.js'),'utf8'),'pixel.js');
+run(fs.readFileSync(path.join(root,'games/abalone.js'),'utf8'),'abalone.js');
 run(cut('/* 카드 id 규칙은','const PEER_PREFIX='),'core-consts');
 run(cut('let H=null, flushQueued=false, lastBeat=0;','function seatOfConn(conn){').replace('setInterval(engineTick,100);',''),'core-engine');
 run(`
@@ -339,10 +340,14 @@ run(`{
 const PX=GAMES.pixel;
 `+fs.readFileSync(path.join(__dirname,'pixel.cases.js'),'utf8')+`
 }`,'pixel.cases.js');
+run(`{
+const AB=GAMES.abalone;
+`+fs.readFileSync(path.join(__dirname,'abalone.cases.js'),'utf8')+`
+}`,'abalone.cases.js');
 // 탈주: 나가기 버튼은 바로, 연결 끊김은 DESERT_WAIT(45초) 이어질 때 항복 처리 + 표시 (모든 게임).
 //  기다리는 동안 봇은 두지 않고 제한 시간은 그대로 흐름(멈추면 끊어서 시간을 벌 수 있음). 그 전에 돌아오면 그대로. 방장은 해당 없음
 run(`
-for(const [g,n] of [['gura',3],['president',3],['quoridor',3],['yahtzee',3],['omok',2],['chess',2],['janggi',2],['blackjack',3],['poker',3],['alkkagi',2],['blackwhite',2],['animal',2],['baseball',2],['pixel',3]]){
+for(const [g,n] of [['gura',3],['president',3],['quoridor',3],['yahtzee',3],['omok',2],['chess',2],['janggi',2],['blackjack',3],['poker',3],['alkkagi',2],['blackwhite',2],['animal',2],['baseball',2],['pixel',3],['abalone',2]]){
   const setup=(bots)=>{hostNew(false,'t','t');H.cfg={...cfgFor(g),game:g,turn:120};
     H.members=[];for(let i=0;i<n;i++)H.members.push(bots&&i?{name:'b'+i,bot:true,conn:null,host:false,lv:1}:{name:'p'+i,bot:false,conn:i?{}:null,host:i===0,cid:i?'c'+i:''});
     hostStart();for(let k=0;k<60;k++){NOW+=250;engineTick()}   // 시작 연출이 끝날 때까지 (제한 시간 안)
@@ -353,13 +358,13 @@ for(const [g,n] of [['gura',3],['president',3],['quoridor',3],['yahtzee',3],['om
   const doneOK=p=>p.finished||H.phase==='over';
   // 1) 차례인 사람의 연결이 끊김: 45초 동안 봇은 안 두고 시간은 흐름 → 그 뒤 탈주(항복)
   setup();let i=H.turn;away(i);
-  const oleft=()=>g==='chess'||g==='janggi'||g==='animal'?H.c.rem[H.c.mv_]-Math.max(0,NOW-H.c.since):H.o.rem[H.o.mv]-Math.max(0,NOW-H.o.since),clk=g==='omok'||g==='chess'||g==='janggi'||g==='animal',left0=clk?oleft():H.deadline-NOW,c0=H.players[i].hand.length,y0=g==='yahtzee'?JSON.stringify(H.y.dice)+H.y.left:'',q0=g==='quoridor'?JSON.stringify(H.q.pos)+H.q.walls.length:'',o0=g==='omok'?H.o.b.join(''):g==='chess'||g==='janggi'||g==='animal'?H.c.mv.join():g==='alkkagi'?H.ak.cnt+'|'+JSON.stringify(H.ak.aim):g==='blackwhite'?JSON.stringify(H.bw.hand):'';
+  const oleft=()=>g==='chess'||g==='janggi'||g==='animal'||g==='abalone'?H.c.rem[H.c.mv_]-Math.max(0,NOW-H.c.since):H.o.rem[H.o.mv]-Math.max(0,NOW-H.o.since),clk=g==='omok'||g==='chess'||g==='janggi'||g==='animal'||g==='abalone',left0=clk?oleft():H.deadline-NOW,c0=H.players[i].hand.length,y0=g==='yahtzee'?JSON.stringify(H.y.dice)+H.y.left:'',q0=g==='quoridor'?JSON.stringify(H.q.pos)+H.q.walls.length:'',o0=g==='omok'?H.o.b.join(''):g==='chess'||g==='janggi'||g==='animal'||g==='abalone'?H.c.mv.join():g==='alkkagi'?H.ak.cnt+'|'+JSON.stringify(H.ak.aim):g==='blackwhite'?JSON.stringify(H.bw.hand):'';
   for(let k=0;k<(DESERT_WAIT/250)-4;k++){NOW+=250;engineTick()}
   {const p=H.players[i];
    if(p.deserter||p.finished)fail(g+' deserted too early');
    if(H.turn!==i)fail(g+' turn moved while waiting');
    {const el=DESERT_WAIT-1000,now=clk?oleft():H.deadline-NOW;if(Math.abs(now-(left0-el))>300)fail(g+' timer must keep running '+now+' vs '+(left0-el))}
-   if(p.hand.length!==c0||(g==='yahtzee'&&JSON.stringify(H.y.dice)+H.y.left!==y0)||(g==='quoridor'&&JSON.stringify(H.q.pos)+H.q.walls.length!==q0)||(g==='omok'&&H.o.b.join('')!==o0)||((g==='chess'||g==='janggi'||g==='animal')&&H.c.mv.join()!==o0)||(g==='alkkagi'&&H.ak.cnt+'|'+JSON.stringify(H.ak.aim)!==o0)||(g==='blackwhite'&&JSON.stringify(H.bw.hand)!==o0))fail(g+' bot played while waiting')}
+   if(p.hand.length!==c0||(g==='yahtzee'&&JSON.stringify(H.y.dice)+H.y.left!==y0)||(g==='quoridor'&&JSON.stringify(H.q.pos)+H.q.walls.length!==q0)||(g==='omok'&&H.o.b.join('')!==o0)||((g==='chess'||g==='janggi'||g==='animal'||g==='abalone')&&H.c.mv.join()!==o0)||(g==='alkkagi'&&H.ak.cnt+'|'+JSON.stringify(H.ak.aim)!==o0)||(g==='blackwhite'&&JSON.stringify(H.bw.hand)!==o0))fail(g+' bot played while waiting')}
   for(let k=0;k<12;k++){NOW+=250;engineTick()}
   {const p=H.players[i];
    if(!p.deserter)fail(g+' disconnect not deserted');
