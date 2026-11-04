@@ -291,21 +291,9 @@ body.kb .card.cur::before{content:"";position:absolute;left:50%;top:-15px;margin
 .holotag span.pickable{pointer-events:auto;cursor:pointer}
 #stage.holo .holotag span.pickable{pointer-events:none}
 .holotag span{font:400 24px var(--f-display);color:#fff1dc;-webkit-text-stroke:.8px rgba(170,80,10,.5);paint-order:stroke fill;text-shadow:0 0 4px #ff9a3c,0 0 10px rgba(255,140,40,.8),0 2px 3px rgba(90,40,5,.45)}
-.rc-hot{z-index:6;touch-action:none}
-body.rc3d #btnLog,body.rc3d #logPanel{display:none}   /* 3D가 있으면 진행 기록은 영수증으로 */
-body.rc3d .fsbtn.fs{right:10px}body.rc3d .fsbtn.cfg{right:58px}body.rc3d.nofs .fsbtn.cfg{right:10px}
+body.gl3d #btnLog,body.gl3d #logPanel{display:none}   /* 3D 화면에는 진행 기록을 두지 않음 (2D 화면만) */
+body.gl3d .fsbtn.fs{right:10px}body.gl3d .fsbtn.cfg{right:58px}body.gl3d.nofs .fsbtn.cfg{right:10px}
 body.camok #cv{touch-action:none}   /* 고개 돌릴 수 있을 때 탁자 바깥을 끌어도 브라우저가 스크롤·확대하지 않게 */
-.rcov{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(40,28,18,.18)}
-.rc2d{position:relative;width:min(300px,100%);max-height:100%;overflow-y:auto;overscroll-behavior:contain;background:#fbfaf4;color:#2c2620;padding:18px 18px 22px;font:500 14px/1.55 ui-monospace,'D2Coding','Nanum Gothic Coding',monospace;box-shadow:0 10px 30px -10px rgba(0,0,0,.45);
-  -webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/12px 100%,conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) 50%/12px 100%;-webkit-mask-composite:source-in;mask-composite:intersect;
-  animation:rcIn .28s ease-out}   /* 감열지 영수증: 위아래 톱니 */
-@keyframes rcIn{from{transform:translateY(24px) scale(.96);opacity:0}}
-.rc-head{text-align:center;font-weight:700;padding-bottom:8px;margin-bottom:6px;border-bottom:2px dashed rgba(44,38,32,.45)}
-.rc-lines{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
-.rc-lines li{word-break:keep-all}
-.rc-lines li.lg-gura,.rc-lines li.lg-fin{font-weight:800}
-.rc-lines li.lg-sys{opacity:.6}
-.rc-take{display:block;width:100%;margin-top:14px;padding:10px 0 4px;border:0;border-top:2px dashed rgba(44,38,32,.45);background:none;font:inherit;font-weight:700;color:#2c2620;cursor:pointer}
 .holocnt{position:absolute;transform:translateX(-50%);pointer-events:none;z-index:3;font:400 15px var(--f-display);color:#fff1dc;-webkit-text-stroke:.6px rgba(170,80,10,.5);paint-order:stroke fill;text-shadow:0 0 4px #ff9a3c,0 0 8px rgba(255,140,40,.7);white-space:nowrap}   /* 게임 말 아래 인원 */
 .holotag.bad span{color:#ffc4c4;text-shadow:0 0 6px #ff4d6d}
 .holotag i{font:400 19px var(--f-display);font-style:normal;line-height:1.25;color:#ffe9cc;opacity:.82;-webkit-text-stroke:.8px rgba(170,80,10,.45);paint-order:stroke fill;text-shadow:0 0 4px #ff9a3c,0 0 8px rgba(255,140,40,.65),0 2px 3px rgba(90,40,5,.4)}   /* 게임 모드(규칙) 줄: 게임 이름보다 한 단계 작고 조금 어둡게. 모드가 없거나 게임을 넘겨 보는 중이면 자리만 남김 */

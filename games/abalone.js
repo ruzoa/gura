@@ -685,7 +685,7 @@ function d3Layout(t){
   if(key===P3.lay)return false;
   P3.lay=key;
   const s=Math.min(B.fw/(2*FHX),B.fh/(2*FHZ)),cam=P3.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(s*f);
-  P3.root.rotation.y=fl?Math.PI:0;   // 탁자·영수증은 그대로 두고 판만 돌림
+  P3.root.rotation.y=fl?Math.PI:0;   // 탁자는 그대로 두고 판만 돌림
   cam.aspect=Wd/Hh;cam.clearViewOffset();cam.up.set(0,0,-1);cam.position.set(0,MY+d,0);cam.lookAt(0,MY,0);cam.updateProjectionMatrix();cam.updateMatrixWorld();
   chipsAt(B.cy-FHZ*s,B.cy+FHZ*s);
   P3.d=d;P3.dirty=true;

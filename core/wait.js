@@ -83,7 +83,7 @@ function frame(){
   const t=clock(),dt=Math.min(.05,(t-lastFrame)/1000);lastFrame=t;
   if(T.ok){
     GFX_U.time.value=t/1000+FR.tw;   // 타임머신 중에는 구름·바람이 빨라짐
-    frontUpdate(t,dt);rcptUpdate(t);
+    frontUpdate(t,dt);
     if(T.bubbles.length)updBubbles(t);
     const k=1-Math.exp(-dt*7);
     dealUpdate(t);

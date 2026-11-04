@@ -5,7 +5,7 @@
    화면은 앉은 카메라 그대로: 대기실 장치가 구멍으로 들어간 뒤 구멍이 넓어지고 큰 디스플레이(숫자 플립·S B LED·숫자 메모)와 6×2 자판이 올라옴. 지난 기록은 기둥 위 전광판.
    손패(hand)는 카드가 아니라 표시용 [0] (공통 코드가 hand가 비면 끝난 사람으로 봄) */
 (function(){
-const G={id:'baseball',name:'숫자야구',short:'야구',lead:'숫자와 자리를 추리해 먼저 찾기',brand:'숫자야구',brandPx:48,maxHi:6,noFast:true,rcOwn:true};   // rcOwn: 공통 영수증을 숨김 (지난 기록은 전광판)
+const G={id:'baseball',name:'숫자야구',short:'야구',lead:'숫자와 자리를 추리해 먼저 찾기',brand:'숫자야구',brandPx:48,maxHi:6,noFast:true};
 const MD_NAME=['혼자','맞대결','경주'],MD_MAX=[1,2,6];
 const mdOf=c=>{const m=Math.round(+(c&&c.md));return m>=0&&m<=2?m:1};
 const lenOf=c=>{const n=Math.round(+(c&&c.len));return n>=3&&n<=5?n:4};
@@ -934,7 +934,7 @@ G.init=()=>{
   document.addEventListener('pointercancel',()=>{if(Nb.holdAt)holdEnd();clearTimeout(Nb.t2d)});
   function holdStart2d(){if(!buzzOpen()){sndNo();return}sfx('key');clearTimeout(Nb.t2d);Nb.t2d=setTimeout(buzzGo,HOLD_MS)}
   /* 키보드: 숫자는 입력, Shift+숫자는 램프 */
-  const keyOn=()=>elNb&&!elNb.hidden&&V&&V.o&&V.st==='play'&&$('#rcOv').hidden;
+  const keyOn=()=>elNb&&!elNb.hidden&&V&&V.o&&V.st==='play';
   document.addEventListener('keydown',e=>{
     if(!keyOn()||e.ctrlKey||e.metaKey||e.altKey||(e.target&&e.target.matches&&e.target.matches('input,textarea')))return;
     const m=/^(?:Digit|Numpad)([0-9])$/.exec(e.code);

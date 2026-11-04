@@ -129,6 +129,7 @@ function init3D(){
   try{
     const cv=$('#cv');
     T.r=new THREE.WebGLRenderer({canvas:cv,antialias:true});T.r.localClippingEnabled=true;   // 키판이 디스플레이 아래에서 나올 때
+    {const r0=T.r.render.bind(T.r);T.r.render=(sc,cam)=>{if(sc===T.scene)T.lastCam=cam;r0(sc,cam)}}   // 마지막으로 공통 장면을 그린 카메라 (자기 카메라로 그리는 게임을 알아봄). 따로 그리는 장면(알까기 3D 손의 윤곽선 합치기 등)의 카메라는 뺌
     T.r.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
     T.r.shadowMap.enabled=true;T.r.shadowMap.type=THREE.PCFSoftShadowMap;
     GFX_RAMP=gfxRamp();GFX_CLOUD=gfxCloud();
@@ -188,7 +189,7 @@ function init3D(){
     frontBuild();
     if(window.ResizeObserver)new ResizeObserver(resize3D).observe($('#stage'));else window.addEventListener('resize',resize3D);
     resize3D();
-    T.ok=true;
+    T.ok=true;document.body.classList.add('gl3d');
     if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{T.back.map=backTex();T.back.needsUpdate=true});
   }catch(e){$('#nogl').hidden=false;document.body.classList.add('no3d');T.ok=false}
 }
