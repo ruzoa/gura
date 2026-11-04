@@ -43,6 +43,8 @@ function frontHoloPiece(id){
     const k=GAMES.pixel.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else if(id==='mind'&&GAMES.mind&&GAMES.mind.holoPiece){   // 엎은 카드와 숫자 카드 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.mind.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
+  else if(id==='robo77'&&GAMES.robo77&&GAMES.robo77.holoPiece){   // 엎은 카드와 77 카드 (게임이 모양을 정하고 재질은 여기서)
+    const k=GAMES.robo77.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else if(id==='bohnanza'&&GAMES.bohnanza&&GAMES.bohnanza.holoPiece){   // 콩 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.bohnanza.holoPiece(c=>{const m=holoMat(c);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else if(id==='abalone'&&GAMES.abalone&&GAMES.abalone.holoPiece){   // 육각 판과 구슬 (게임이 모양을 정하고 재질은 여기서)
