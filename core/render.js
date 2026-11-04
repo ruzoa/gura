@@ -231,7 +231,7 @@ function renderPanel(){
     const pickF=!!(G.firstPick&&+V.cfg.pickfirst);
     let fi=pickF?V.ps.findIndex(p=>p.n===V.fn):-1;if(pickF&&fi<0)fi=Math.max(0,V.ps.findIndex(p=>p.hs));
     const fBtn=i=>!pickF?'':isHost?`<button type="button" class="firstbtn${i===fi?' on':''}" data-act="first:${i}" aria-pressed="${i===fi}" title="눌러서 선 플레이어로 정하기">선</button>`:i===fi?'<span class="firstbtn on ro">선</span>':'';
-    let li=V.ps.map((p,i)=>`<li data-i="${i}">${G.nameTag?G.nameTag(p,i):''}${esc(p.n)}${i===me?' (나)':''}${p.b&&!G.oneBotLv?(isHost?`<button type="button" class="botlv lv${p.lv??1}" data-act="botlv:${i}" data-name="${esc(p.n)}" title="눌러서 난이도 바꾸기">${BOT_LV[p.lv??1]}</button>`:`<span class="botlv lv${p.lv??1} ro">${BOT_LV[p.lv??1]}</span>`):''}<span class="tag ${p.hs?'host':''}">${p.hs?'방장':p.b?'봇':p.aw?'연결 끊김':'참가자'}</span>${fBtn(i)}${i===me?'<button type="button" class="slot-emo emo-open" data-act="emopad" aria-label="이모티콘" title="이모티콘">😊</button>':''}${isHost&&!p.hs?`<button type="button" class="kick" data-act="kick:${i}" data-name="${esc(p.n)}" aria-label="${esc(p.n)} 내보내기" title="내보내기">✕</button>`:''}</li>`).join('');
+    let li=V.ps.map((p,i)=>`<li data-i="${i}">${G.nameTag?G.nameTag(p,i):''}${esc(p.n)}${i===me?' (나)':''}${p.b&&!G.oneBotLv?(isHost?`<button type="button" class="botlv lv${p.lv??1}" data-act="botlv:${i}" data-name="${esc(p.n)}" title="눌러서 난이도 바꾸기">${botLvNames(G)[p.lv??1]}</button>`:`<span class="botlv lv${p.lv??1} ro">${botLvNames(G)[p.lv??1]}</span>`):''}<span class="tag ${p.hs?'host':''}">${p.hs?'방장':p.b?'봇':p.aw?'연결 끊김':'참가자'}</span>${fBtn(i)}${i===me?'<button type="button" class="slot-emo emo-open" data-act="emopad" aria-label="이모티콘" title="이모티콘">😊</button>':''}${isHost&&!p.hs?`<button type="button" class="kick" data-act="kick:${i}" data-name="${esc(p.n)}" aria-label="${esc(p.n)} 내보내기" title="내보내기">✕</button>`:''}</li>`).join('');
     for(let k=V.ps.length;k<max;k++)li+='<li class="empty">빈 자리</li>';
     const full=V.ps.length>=max;
     const sv=Array.isArray(V.sv)?V.sv:[],spm=+(V.cfg.spec??4);
@@ -332,7 +332,7 @@ $('#panel').addEventListener('click',e=>{
   if(a.startsWith('tog:')){toggleRule(a.slice(4));return}
   if(a.startsWith('set:')){const p=a.split(':');setRule(p[1],p[2]);return}
   if(a.startsWith('game:')){hostSetGame(a.slice(5));return}
-  if(a.startsWith('botlv:')){const i=+a.slice(6),m=H&&H.members[i];if(mode==='host'&&H.phase==='wait'&&m&&m.bot&&m.name===b.dataset.name){m.lv=((m.lv??1)+1)%3;sfx('tick');mark()}return}
+  if(a.startsWith('botlv:')){const i=+a.slice(6),m=H&&H.members[i];if(mode==='host'&&H.phase==='wait'&&m&&m.bot&&m.name===b.dataset.name){m.lv=((m.lv??1)+1)%botLvNames(G).length;sfx('tick');mark()}return}
   if(a==='mode0'||a==='mode1'){if(H.phase==='wait'&&!EG().noFast){H.cfg={...H.cfg,fast:a==='mode1'?1:0};mark()}return}
   if(a==='addbot')hostAddBot();
   else if(a==='start')hostStart();

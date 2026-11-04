@@ -105,6 +105,7 @@ function hostSetGame(id){
   const keep={max:Math.max(H.cfg.max,H.members.length,2),spec:H.cfg.spec,pub:H.cfg.pub,fast:H.cfg.fast};
   if(mx)keep.max=Math.min(keep.max,mx);
   if(keep.max<+H.cfg.max)shrinkSeats(keep.max);   // 줄어드는 만큼 뒤쪽 빈 의자부터 뺌(앉은 사람·봇 자리 순서 그대로)
+  {const top=botLvNames(GAMES[id]).length-1;H.members.forEach(m=>{if(m.bot&&(m.lv??1)>top)m.lv=top})}   // 난이도 단계가 적은 게임으로 바꾸면 그 게임의 맨 위 단계로
   H.cfg={...cfgFor(id),...keep};if(GAMES[id].fixCfg)H.cfg=GAMES[id].fixCfg(H.cfg,H.members.length,false);store('gura-game',id);
   if(GAMES[id].engine.reset)GAMES[id].engine.reset();
   addLog(`게임을 ${GAMES[id].name}(으)로 바꿨습니다.`,'sys');

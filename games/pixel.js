@@ -5,7 +5,7 @@
    승리: 2~3명 4목, 4명 3목(가로·세로·대각선, 더 길어도 승리). 판이 차거나 둘 칸이 없으면 끝나고 한 칸 짧은 줄이 많은 사람이 승리, 같으면 무승부
    손패(hand)는 표시용 값 [0] (공통 코드가 hand가 비면 끝난 사람으로 봄) */
 (function(){
-const G={id:'pixel',name:'픽셀',short:'픽셀',lead:'슬라이더로 말을 놓아 줄 만들기',brand:'픽셀',brandPx:60,maxHi:4,minN:2,noFast:true,firstPick:true,oneBotLv:true};
+const G={id:'pixel',name:'픽셀',short:'픽셀',lead:'슬라이더로 말을 놓아 줄 만들기',brand:'픽셀',brandPx:60,maxHi:4,minN:2,noFast:true,firstPick:true,botLvs:['쉬움','중간','어려움','극악']};
 
 /* ---------- 규칙 (방장 엔진·화면·봇·테스트가 같은 함수를 씀) ---------- */
 const W=8,CELLS=64,CUT=[0,7,56,63];
@@ -70,6 +70,169 @@ function botPick(b,sq,seat,nextSeat,need,rnd){
   return best;
 }
 
+/* 중간·어려움·극악 봇: 2명은 알파-베타 탐색, 3~4명은 각자 자기 값이 가장 좋은 수를 둔다고 보고 읽음(자리마다 값을 따로 들고 다님, 좋은 수 7개만).
+   수마다 '다음 사람이 바로 이길 칸이 슬라이더 줄에 걸리나'를 먼저 봐서 그런 수는 더 읽지 않음. 줄(창)마다 놓인 수를 바로바로 고쳐 평가가 빠름.
+   lv 1 중간: 2수·흔들림 큼, lv 2 어려움: 7수(3~4명 4수)·흔들림 작음·0.25초, lv 3 극악: 흔들림 없음·1.2초 안에서 깊어짐(3명 7수, 4명 6수까지) */
+const BOTLV=[null,{depth:2,mdepth:2,noise:30,ms:60},{depth:7,mdepth:4,noise:2,ms:250},{depth:60,mdepth:60,noise:0,ms:1200}];
+let BOTSCALE=1;
+const WINV=100000,MATE=WINV/4,VAL={3:[0,1,16,0],4:[0,1,4,20,0]};
+const WND={};   // need → {list: 창마다 칸들, of: 칸마다 그 칸이 든 창 번호들}
+function windows(need){
+  if(WND[need])return WND[need];
+  const list=[],of=Array.from({length:CELLS},()=>[]);
+  for(let y=0;y<W;y++)for(let x=0;x<W;x++)for(const [dx,dy] of LINE){
+    const c=[];for(let k=0;k<need;k++){const a=x+dx*k,b=y+dy*k;if(!isCell(a,b)){c.length=0;break}c.push(IX(a,b))}
+    if(c.length){const n=list.push(c)-1;c.forEach(i=>of[i].push(n))}
+  }
+  return WND[need]={list,of};
+}
+const ZB=new Int32Array(CELLS*5),ZB2=new Int32Array(CELLS*5),ZS=new Int32Array(CELLS),ZS2=new Int32Array(CELLS),ZT=new Int32Array(4),ZT2=new Int32Array(4);
+{let s=0x3C6EF372;const r=()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return s|0};for(const A of [ZB,ZB2,ZS,ZS2,ZT,ZT2])for(let i=0;i<A.length;i++)A[i]=r()}
+const TTN=1<<20,TTM=TTN-1,TTF={k:null};
+function ttInit(){if(!TTF.k){TTF.k=new Int32Array(TTN);TTF.v=new Int32Array(TTN);TTF.d=new Int8Array(TTN);TTF.f=new Int8Array(TTN);TTF.m=new Int8Array(TTN)}TTF.k.fill(0);TTF.d.fill(-1)}
+class Stop extends Error{}
+function think(b0,sq0,order,ti0,need,lv,rnd){
+  rnd=rnd||Math.random;
+  const P=BOTLV[lv],me=order[ti0],n=order.length,{list,of}=windows(need),WN=list.length,b=Int8Array.from(b0),vals=VAL[need];
+  const tot=new Uint8Array(WN),cnt=[0,1,2,3].map(()=>new Uint8Array(WN)),hist=new Int32Array(CELLS),nextIdx=i=>(i+1)%n;
+  let h1=0,h2=0;
+  const put=(c,s)=>{b[c]=s+1;h1^=ZB[c*5+s+1];h2^=ZB2[c*5+s+1];const o=of[c],q=cnt[s];for(let i=0;i<o.length;i++){tot[o[i]]++;q[o[i]]++}};
+  const take=(c,s)=>{b[c]=0;h1^=ZB[c*5+s+1];h2^=ZB2[c*5+s+1];const o=of[c],q=cnt[s];for(let i=0;i<o.length;i++){tot[o[i]]--;q[o[i]]--}};
+  for(let i=0;i<CELLS;i++)if(b0[i]){const s=b0[i]-1;b[i]=0;put(i,s)}
+  const until=Date.now()+P.ms*BOTSCALE;let nodes=0,sel=0;
+  const wins=(c,s)=>{const o=of[c],q=cnt[s];for(let i=0;i<o.length;i++){const w=o[i];if(q[w]===need-1&&tot[w]===need-1)return true}return false};
+  const mask=new Uint8Array(CELLS);   // 다음 사람이 이길 빈 칸 표시
+  function threats(s,out){
+    let k=0;const q=cnt[s];
+    for(let w=0;w<WN;w++)if(q[w]===need-1&&tot[w]===need-1){const c=list[w];for(let i=0;i<need;i++)if(!b[c[i]]){out[k++]=c[i];break}}
+    return k;
+  }
+  function evalPos(ti){
+    let mine=0,best=-1e9;
+    for(let k=0;k<n;k++){
+      const s=order[k],q=cnt[s];let v=0;
+      for(let w=0;w<WN;w++){const c=q[w];if(c&&c===tot[w])v+=vals[c]}
+      if(s===me)mine=v;else if(v>best)best=v;
+    }
+    return mine-best+(order[ti]===me?1:0);
+  }
+  function endScore(ply){
+    const L=need-1;let mine=0,best=-1;
+    for(let k=0;k<n;k++){const s=order[k],c=linesOf(b,s+1,L).length;if(s===me)mine=c;else if(c>best)best=c}
+    return mine>best?WINV/2-ply:mine<best?ply-WINV/2:0;
+  }
+  const tb=[[],[],[],[],[],[],[],[]];   // 깊이별 임시 목록
+  function sr(sq,ti,depth,ply,a,z){
+    if((++nodes&2047)===0&&Date.now()>until)throw new Stop();
+    const s=order[ti],mx=s===me,ms=legal(b,sq);
+    if(!ms.length)return endScore(ply);
+    for(let i=0;i<ms.length;i++)if(wins(ms[i],s))return mx?WINV-ply:ply-WINV;
+    if(depth<=0)return evalPos(ti);
+    const k1=h1^ZS[sq]^ZT[ti],k2=(h2^ZS2[sq]^ZT2[ti])|1,ix=k1&TTM;let tm=-1;
+    if(TTF.k[ix]===k2){
+      tm=TTF.m[ix];
+      if(TTF.d[ix]>=depth){
+        let v=TTF.v[ix];if(v>MATE)v-=ply;else if(v<-MATE)v+=ply;
+        const f=TTF.f[ix];if(f===0)return v;if(f===1&&v>=z)return v;if(f===2&&v<=a)return v;
+      }
+    }
+    const ni=nextIdx(ti),ns=order[ni],thr=ply<40?tb[ply&7]:[],nt=threats(ns,thr);
+    let row=0,col=0;   // 다음 사람이 이길 칸이 있는 줄(비트)
+    for(let i=0;i<nt;i++){col|=1<<X(thr[i]);row|=1<<Y(thr[i])}
+    const sc=new Array(ms.length);
+    for(let i=0;i<ms.length;i++){
+      const m=ms[i],o=of[m],q=cnt[s];let v=hist[m]>>3;
+      if(m===tm)v+=1e7;
+      for(let j=0;j<o.length;j++){const w=o[j];if(q[w]&&q[w]===tot[w])v+=q[w]*q[w]*6;else if(tot[w]&&!q[w])v+=2}
+      sc[i]=v;
+    }
+    const a0=a,z0=z;let best=mx?-1e9:1e9,bm=ms[0];
+    for(let done=0;done<ms.length;done++){
+      let bi=-1,bv=-1e18;for(let i=0;i<ms.length;i++)if(sc[i]>bv){bv=sc[i];bi=i}
+      sc[bi]=-1e18;const m=ms[bi];let v;
+      /* 이 수를 두면 다음 사람이 바로 이기나: 이길 칸이 m의 가로·세로줄에 있고 m 자신이 그 칸이 아님 */
+      let open=false;
+      if((col>>X(m)&1)||(row>>Y(m)&1))for(let i=0;i<nt;i++){const t=thr[i];if(t!==m&&(X(t)===X(m)||Y(t)===Y(m))){open=true;break}}
+      if(open&&ns!==s)v=ns===me?WINV-ply-1:ply+1-WINV;
+      else{put(m,s);try{v=sr(m,ni,depth-1,ply+1,a,z)}finally{take(m,s)}}
+      if(mx){if(v>best){best=v;bm=m}if(v>a)a=v}else{if(v<best){best=v;bm=m}if(v<z)z=v}
+      if(a>=z){hist[m]+=depth*depth*8;break}
+    }
+    const d0=TTF.d[ix];
+    if(depth>=d0||TTF.k[ix]!==k2){
+      let v=best;if(v>MATE)v+=ply;else if(v<-MATE)v-=ply;
+      TTF.k[ix]=k2;TTF.v[ix]=v;TTF.d[ix]=depth;TTF.f[ix]=best<=a0?2:best>=z0?1:0;TTF.m[ix]=bm;
+    }
+    return best;
+  }
+  /* 3~4명: 돌려줌 = 자리별 값. 이긴 자리는 +, 나머지는 - */
+  const vWin=(w,ply)=>{const v=[0,0,0,0];for(let k=0;k<n;k++){const q=order[k];v[q]=q===w?WINV-ply:ply-WINV}return v};
+  function vScores(){
+    const c=[0,0,0,0];let t=0;
+    for(let k=0;k<n;k++){const s=order[k],q=cnt[s];let v=0;for(let w=0;w<WN;w++){const x=q[w];if(x&&x===tot[w])v+=vals[x]}c[s]=v;t+=v}
+    const o=[0,0,0,0];for(let k=0;k<n;k++){const s=order[k];o[s]=c[s]-(t-c[s])/(n-1)}return o;
+  }
+  function vEnd(ply){
+    const L=need-1,c=[-1,-1,-1,-1];let top=-1,tw=0,who=-1;
+    for(let k=0;k<n;k++){const s=order[k],x=linesOf(b,s+1,L).length;c[s]=x;if(x>top){top=x;tw=1;who=s}else if(x===top)tw++}
+    return tw===1?vWin(who,ply):[0,0,0,0];
+  }
+  function mn(sq,ti,depth,ply){
+    if((++nodes&2047)===0&&Date.now()>until)throw new Stop();
+    const s=order[ti],ms=legal(b,sq);
+    if(!ms.length)return vEnd(ply);
+    for(let i=0;i<ms.length;i++)if(wins(ms[i],s))return vWin(s,ply);
+    if(depth<=0)return vScores();
+    const ni=nextIdx(ti),ns=order[ni],thr=[],nt=threats(ns,thr),q=cnt[s];
+    const sc=ms.map(m=>{const o=of[m];let v=hist[m]>>3;for(let j=0;j<o.length;j++){const w=o[j];if(q[w]&&q[w]===tot[w])v+=q[w]*q[w]*6;else if(tot[w]&&!q[w])v+=tot[w]*tot[w]*3}return [v,m]}).sort((x,y)=>y[0]-x[0]);
+    let best=null,bm=-1;
+    for(let i=0;i<sc.length&&i<(P.width||7);i++){
+      const m=sc[i][1];let open=false;
+      for(let k=0;k<nt;k++){const t=thr[k];if(t!==m&&(X(t)===X(m)||Y(t)===Y(m))){open=true;break}}
+      let v;
+      if(open)v=vWin(ns,ply+1);
+      else{put(m,s);try{v=mn(m,ni,depth-1,ply+1)}finally{take(m,s)}}
+      if(!best||v[s]>best[s]){best=v;bm=m}
+      if(best[s]>MATE)break;
+    }
+    if(bm>=0)hist[bm]+=depth*depth;
+    return best;
+  }
+  ttInit();
+  const root=legal(b,sq0);if(!root.length)return -1;
+  for(const m of root)if(wins(m,me))return m;
+  for(let i=root.length-1;i>0;i--){const j=rnd()*(i+1)|0;[root[i],root[j]]=[root[j],root[i]]}
+  const ni0=nextIdx(ti0);let bestM=root[0];
+  try{
+    for(let d=1,maxD=n>2?(lv===3?(n===3?7:6):P.mdepth):P.depth;d<=maxD;d++){
+      let a=-1e9,cur=root[0],cv=-1e9;const sc=[];
+      for(const m of root){
+        put(m,me);let v;
+        try{v=n>2?mn(m,ni0,d-1,1)[me]:sr(m,ni0,d-1,1,P.noise?-1e9:a,1e9)}finally{take(m,me)}
+        if(P.noise&&Math.abs(v)<MATE)v+=rnd()*P.noise;
+        sc.push([m,v]);
+        if(v>cv){cv=v;cur=m}if(v>a)a=v;
+      }
+      think.depth=d;think.val=cv;bestM=cur;sc.sort((x,y)=>y[1]-x[1]);root.length=0;sc.forEach(e=>root.push(e[0]));
+      if(Math.abs(cv)>MATE)break;
+    }
+  }catch(e){if(!(e instanceof Stop))throw e}
+  think.nodes=nodes;
+  return bestM;
+}
+
+/* 일꾼(Web Worker): 같은 파일을 일꾼으로 띄워 생각을 맡겨 방장 화면이 멈추지 않게 함 (체스와 같은 방식). 요청 {id,b,sq,order,ti,need,lv} → 답 {id,m} */
+const IS_WORKER=typeof window==='undefined'&&typeof self!=='undefined'&&typeof importScripts==='function';
+if(IS_WORKER)self.onmessage=e=>{const d=e.data||{};try{self.postMessage({id:d.id,m:think(d.b,d.sq,d.order,d.ti,d.need,d.lv)})}catch(err){self.postMessage({id:d.id,m:-1})}};
+const BOTW={w:null,fail:false,id:0,pend:null};
+function botWorker(){
+  if(BOTW.w||BOTW.fail)return BOTW.w;
+  try{if(typeof Worker==='undefined'||typeof document==='undefined'){BOTW.fail=true;return null}
+    const src=(document.querySelector('script[src*="games/pixel.js"]')||{}).src||'games/pixel.js';
+    BOTW.w=new Worker(src);BOTW.w.onmessage=e=>botReply(e.data);BOTW.w.onerror=()=>{BOTW.fail=true;BOTW.w=null;BOTW.pend=null}}catch(e){BOTW.fail=true;BOTW.w=null}
+  return BOTW.w;
+}
+
 /* ---------- 규칙 설명·방 설정 ---------- */
 G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 말을 한 줄로 이으면 이깁니다. <b>2~3명은 4개</b>, <b>4명은 3개</b>입니다. 가로·세로·대각선 모두 되고, 더 길게 이어져도 이깁니다</li><li><b>판</b> : 8×8에서 네 귀퉁이를 뺀 60칸입니다. 각자 가운데 네 칸에 말 하나씩 놓고 시작하고(자리는 자동, 2명이면 대각선), 두 슬라이더는 첫 플레이어의 말에서 만납니다</li><li><b>내 차례</b> : 슬라이더 <b>하나</b>를 움직여 두 슬라이더가 만나는 <b>빈 칸</b>에 내 말을 놓습니다. 놓은 말은 옮길 수 없습니다. 말이 있는 칸은 건너뛸 수 있지만 멈출 수는 없습니다</li><li><b>수비</b> : 내가 놓은 칸의 가로줄·세로줄이 다음 사람이 둘 수 있는 곳입니다. 다음 사람에게 좋은 줄로 슬라이더를 보내지 않는 것이 중요합니다</li><li><b>판이 끝날 때</b> : 판이 다 차거나 지금 슬라이더로 둘 칸이 없으면 끝납니다. 2~3명은 3줄, 4명은 2줄을 가장 많이 만든 사람이 이기고, 같으면 무승부입니다. 빈칸 없이 이어진 묶음 하나가 한 줄입니다</li><li><b>제한 시간</b> : 시간이 지나면 둘 수 있는 칸에 무작위로 놓습니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다. 항복·탈주한 사람의 말은 판에 남습니다</li><li><b>선 플레이어</b> : 첫 판은 탁자 설정으로 정합니다(무작위면 주사위, 선택이면 방장이 대기실에서 고름). 결과 화면에서 바로 시작하면 다음 사람이 먼저 둡니다</li><li><b>조작</b> : 슬라이더를 끌거나 점이 찍힌 칸을 누르면 미리 보기, <b>[놓기]</b>로 확정합니다. 설정의 <b>두 번 눌러 놓기</b>를 켜면 같은 칸을 한 번 더 눌러 바로 놓습니다</li></ol>';
 G.modeDesc=['줄을 이으면 끝','줄을 이으면 끝'];
@@ -99,7 +262,8 @@ function pickFirst(again,cnt){
 }
 function startTurn(i){
   H.turn=i;H.graceUntil=0;H.deadline=clock()+H.cfg.turn*1000;
-  H.botActAt=H.players[i].bot?clock()+rand(900,1700):0;
+  const pl=H.players[i],lv=pl.bot?botLv(pl):0;
+  H.botActAt=pl.bot?clock()+(lv>=2?rand(500,900):rand(900,1700)):0;   // 많이 생각하는 봇은 생각하는 시간만큼 일찍 시작
   mark();
 }
 function over(res){
@@ -145,15 +309,29 @@ function doSurrender(i){
   if(act.length<=1){if(act.length)addLog(`${H.players[act[0]].name} 승리`,'fin');over({why:'last',w:act});return}
   if(H.turn===i)startTurn(nextP(i));else mark();
 }
-function botTurn(i){
-  const X_=H.pxl,m=botPick(X_.b,X_.sq,i,nextP(i),X_.need);
-  if(m<0||!doMove(i,m))timeout();
+function easyMove(i){const X_=H.pxl,m=botPick(X_.b,X_.sq,i,nextP(i),X_.need);if(m<0||!doMove(i,m))timeout()}
+function botTurn(i,force){
+  const X_=H.pxl,lv=Math.max(0,Math.min(3,botLv(H.players[i])|0));
+  BOTW.pend=null;
+  if(force||!lv){easyMove(i);return}
+  const order=[];for(let k=0;k<X_.cnt;k++)if(!H.players[k].finished)order.push(k);
+  const ti=order.indexOf(i),w=lv>=2?botWorker():null;
+  if(w){const id=++BOTW.id;BOTW.pend={id,n:X_.mv.length,seat:i,x:X_};H.botActAt=0;try{w.postMessage({id,b:X_.b.slice(),sq:X_.sq,order,ti,need:X_.need,lv});return}catch(e){BOTW.pend=null;BOTW.fail=true;BOTW.w=null}}
+  const m=think(X_.b,X_.sq,order,ti,X_.need,lv);
+  if(m<0||!doMove(i,m))easyMove(i);
+}
+/* 일꾼의 답: 그사이 판이 바뀌었으면 버림 */
+function botReply(d){
+  const P=BOTW.pend;if(!P||!d||d.id!==P.id)return;BOTW.pend=null;
+  if(typeof H==='undefined'||!H||H.pxl!==P.x||H.phase!=='play'||H.pxl.mv.length!==P.n||H.turn!==P.seat)return;
+  const pl=H.players[P.seat];if(!pl||!pl.bot)return;
+  if(d.m<0||!doMove(P.seat,d.m))easyMove(P.seat);
 }
 function timeout(){
   const X_=H.pxl,ms=legal(X_.b,X_.sq),i=H.turn;
   if(ms.length)doMove(i,ms[Math.random()*ms.length|0]);
 }
-G._test={legal,isCell,winCells,linesOf,needOf,startCells,botPick,cellName,doMove,doSurrender,timeout,pickFirst,IX,X,Y,finishCount};
+G._test={BOTLV,legal,isCell,winCells,linesOf,needOf,startCells,botPick,think,setBotScale:f=>{BOTSCALE=f},cellName,doMove,doSurrender,timeout,pickFirst,IX,X,Y,finishCount};
 G.engine={
   start(){
     const again=H.phase==='over',cnt=Math.max(2,Math.min(H.players.length,4));
@@ -172,7 +350,7 @@ G.engine={
   tick(t){
     if(H.phase!=='play')return;
     const cur=H.players[H.turn];
-    if(t>=H.deadline){if(cur.bot&&!awayHuman(cur))botTurn(H.turn);else timeout()}
+    if(t>=H.deadline){if(cur.bot&&!awayHuman(cur))botTurn(H.turn,true);else timeout()}
     else if(cur.bot&&H.botActAt&&t>=H.botActAt&&!(cur.away&&t<cur.awayAt+AWAY_WAIT))botTurn(H.turn);
   },
   snap(s,you,t){

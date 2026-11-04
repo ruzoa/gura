@@ -175,6 +175,7 @@ body.nofs .fsbtn.cfg{right:58px}
 .slots .firstbtn.ro{padding:3px 8px}
 .slots .botlv.lv0{color:var(--ok);border-color:#9bc4a8}
 .slots .botlv.lv2{color:var(--gura);border-color:#e3a59d}
+.slots .botlv.lv3{color:#7a1f8f;border-color:#c79bd3}
 .slots .botlv.ro{cursor:default}
 .slots .kick,.specs .kick{width:26px;height:26px;flex:none;margin:-4px -6px -4px 2px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--panel);color:var(--gura);font-size:12px;font-weight:700;line-height:1;padding:0}
 .specs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px;font-size:13px}
@@ -329,7 +330,7 @@ body.camok #cv{touch-action:none}   /* 고개 돌릴 수 있을 때 탁자 바�
 .wseat .nm{font-weight:700;font-size:13.5px;max-width:132px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}   /* 긴 닉네임은 줄임표로 (전체 이름은 aria-label) */
 .wseat small{font-size:11px;color:var(--muted)}
 .wseat.mine button{border-color:var(--mustard);box-shadow:0 0 0 2px var(--mustard),0 3px 0 rgba(110,69,38,.25)}
-.wseat.bot.lv0 small{color:#2c7d47}.wseat.bot.lv2 small{color:var(--gura)}
+.wseat.bot.lv0 small{color:#2c7d47}.wseat.bot.lv2 small{color:var(--gura)}.wseat.bot.lv3 small{color:#7a1f8f}
 .wseat.empty button{min-width:52px;height:40px;justify-content:center;color:var(--muted);background:rgba(255,250,240,.35);border-style:dashed;box-shadow:none;pointer-events:none;opacity:.85}
 .wseat.empty button svg{width:24px;height:24px}
 .wseat.empty.sitok button{pointer-events:auto}

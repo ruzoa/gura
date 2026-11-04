@@ -27,6 +27,17 @@ for(let r=0;r<4;r++){const s=T.startCells(2,r);eq(Math.abs(T.X(s[0])-T.X(s[1])),
 {const b=E();b[I(1,3)]=1;b[I(2,3)]=1;b[I(3,3)]=1;b[I(0,3)]=2;for(let k=0;k<30;k++)eq(T.botPick(b,I(3,3),0,1,4),I(4,3),'bot wins');
  const f=E();f[I(3,3)]=1;for(let k=0;k<100;k++)if(!T.legal(f,I(3,3)).includes(T.botPick(f,I(3,3),0,1,4)))fail('pixel bot illegal');}
 
+/* 중간·어려움·극악: 둘 수 있는 칸만, 이기는 칸을 두고, 다음 사람에게 바로 지는 수를 피함 */
+T.setBotScale(.02);
+for(const lv of [1,2,3]){
+  const f=E();f[I(3,3)]=1;f[I(4,4)]=2;if(!T.legal(f,I(3,3)).includes(T.think(f,I(3,3),[0,1],0,4,lv)))fail('pixel think illegal '+lv);
+  const w=E();w[I(1,3)]=1;w[I(2,3)]=1;w[I(3,3)]=1;w[I(0,3)]=2;eq(T.think(w,I(3,3),[0,1],0,4,lv),I(4,3),'think wins '+lv);
+  /* 2의 승리 칸 (1,6): 슬라이더를 1번 세로줄·6번 가로줄로 보내면 짐 */
+  const d=E();for(const x of [2,3,4])d[I(x,6)]=2;d[I(5,6)]=1;d[I(3,2)]=1;
+  for(let k=0;k<6;k++){const m=T.think(d,I(3,2),[0,1],0,4,lv);if(T.X(m)===1||T.Y(m)===6)fail('pixel think opens win '+lv)}
+  const m=E();T.startCells(4,0).forEach((c,k)=>{m[c]=k+1});if(!T.legal(m,T.startCells(4,0)[0]).includes(T.think(m,T.startCells(4,0)[0],[0,1,2,3],0,3,lv)))fail('pixel think 4p illegal '+lv);
+}
+eq(PX.botLvs.length,4,'four levels');eq(botLvNames(PX)[3],'극악','level name');eq(botLvNames(GAMES.chess).length,3,'others keep three');
 const setup=(n,bots,turn)=>{
   hostNew(false,'t','t');H.cfg={...cfgFor('pixel'),game:'pixel',turn:turn||30,max:4};
   H.members=[];for(let i=0;i<n;i++)H.members.push(bots?{name:'b'+i,bot:true,conn:null,host:i===0,lv:0}:{name:'p'+i,bot:false,conn:i?{}:null,host:i===0,cid:i?'c'+i:''});
@@ -68,4 +79,10 @@ for(const n of [2,3,4])for(let g=0;g<8;g++){setup(n,true);let k=0;for(;k<20000&&
  const seen=new Set(X_.st);for(const m of X_.mv){if(seen.has(m))fail('pixel overwrite');seen.add(m)}
  if(H.players.slice(0,n).some(p=>p.rank==null))fail('pixel rank missing');
  if(X_.res.why==='line'&&!X_.win.length)fail('pixel no win cells')}
+/* 난이도를 섞은 봇끼리 끝까지 */
+for(const n of [2,3,4]){hostNew(false,'t','t');H.cfg={...cfgFor('pixel'),game:'pixel',turn:30,max:4};H.members=[];for(let i=0;i<n;i++)H.members.push({name:'b'+i,bot:true,conn:null,host:i===0,lv:(i+n)%4});
+ hostStart();let k=0;for(;k<20000&&H.phase==='play';k++){NOW+=250;engineTick()}eq(H.phase,'over','mixed levels end '+n)}
+/* 게임을 바꾸면 난이도를 그 게임 단계 안으로 */
+hostNew(false,'t','t');H.cfg={...cfgFor('pixel'),game:'pixel'};H.members.push({name:'b',bot:true,conn:null,host:false,lv:3});mode='host';hostSetGame('chess');eq(H.members[1].lv,2,'level clamped');
+T.setBotScale(1);
 console.log('pixel ok');

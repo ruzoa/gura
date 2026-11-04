@@ -37,6 +37,7 @@ const MODE_DESC=['끝까지 순위를 정함','1등이 나오면 끝'];
 const OPT_HTML={fast:v=>`<b>${OPT_LABEL.fast[v]}</b><small>${MODE_DESC[v]}</small>`,gi:v=>`<b>${gameOf(GAME_IDS[v]).name}</b><small>${gameOf(GAME_IDS[v]).lead}</small>`};
 const cfg={gi:Math.max(0,GAME_IDS.indexOf(store('gura-game')||'gura')),fast:0,pub:0};   // 방 만들기 화면에서 고른 값
 const BOT_LV=['쉬움','보통','어려움'];
+const botLvNames=g=>(g&&g.botLvs)||BOT_LV;   // 게임이 자기 난이도 이름을 줄 수 있음 (픽셀 4단계)
 /* 방 설정 항목: 대기실의 '방 설정'에서 −/+ 버튼으로 조절. 모든 게임 공통 + 게임별(G.roomSet) */
 const COMMON_SET=[
   {k:'max',label:'최대 인원',unit:'명',lo:2,hi:8,step:1,desc:'현재 인원보다 적게 줄일 수 없습니다'},

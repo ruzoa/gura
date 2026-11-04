@@ -23,7 +23,7 @@ function seatPopOpen(key,anchor){
       if(me>=0)h+=`<button type="button" data-sp="swap:${i}" data-name="${esc(p.n)}">자리 바꾸기</button>`;
       if(!p.b)h+=`<button type="button" data-sp="emomute:${i}">이모티콘 ${emoMuted.has(p.n)?'켜기':'끄기'}</button>`;   // 로비에서도 상대 이모티콘을 끄고 켬
       if(isHost){
-      if(p.b&&!G.oneBotLv)h+=`<div class="sp-lv">${BOT_LV.map((t,k)=>`<button type="button" data-sp="lv:${i}:${k}"${(p.lv??1)===k?' class="on"':''}>${t}</button>`).join('')}</div>`;
+      if(p.b&&!G.oneBotLv)h+=`<div class="sp-lv">${botLvNames(G).map((t,k)=>`<button type="button" data-sp="lv:${i}:${k}"${(p.lv??1)===k?' class="on"':''}>${t}</button>`).join('')}</div>`;
       if(pickF)h+=`<button type="button" data-sp="first:${i}">선 플레이어</button>`;
       h+=`<button type="button" class="danger" data-sp="kick:${i}" data-name="${esc(p.n)}">내보내기</button>`;
       }
@@ -63,7 +63,7 @@ function waitSeatsHTML(){
   const at=ps.map((p,i)=>p.st!=null?p.st:i);   // 자리 번호 → 사람 순서
   for(let k=0;k<Math.max(max,ps.length);k++){
     const i=at.indexOf(k),p=i>=0?ps[i]:null;
-    if(p){const sub=p.hs?'방장':p.b?(G.oneBotLv?'봇':`봇 · ${BOT_LV[p.lv??1]}`):p.aw?'연결 끊김':'';
+    if(p){const sub=p.hs?'방장':p.b?(G.oneBotLv?'봇':`봇 · ${botLvNames(G)[p.lv??1]}`):p.aw?'연결 끊김':'';
       h+=`<div class="seat wseat${i===me?' mine':''}${p.b?' bot lv'+(p.lv??1):''}" data-w="${k}"><button type="button" data-seat="s${i}" aria-label="${esc(p.n)}${i===me?' (나)':''}">${i===fi?'<i class="fsel">선</i>':''}<span class="nm">${G.nameTag?G.nameTag(p,i):''}${esc(p.n)}</span>${sub?`<small>${esc(sub)}</small>`:''}</button>${i===me?'<button type="button" class="wemo" aria-label="이모티콘" title="이모티콘">😊</button>':''}</div>`}
     else h+=`<div class="seat wseat empty${me>=0||V.spec?' sitok':''}" data-w="${k}"><button type="button" data-seat="e${k}" aria-label="빈 자리"${me>=0||V.spec?'':' tabindex="-1"'}>${CHAIR_SVG}</button></div>`;   // 빈 자리: 빈 의자 점선 그림 (앉아 있으면 눌러서 옮기고, 관전 중이면 눌러서 앉음)
   }
