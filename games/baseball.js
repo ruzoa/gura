@@ -623,14 +623,14 @@ function scoreDraw(){
   let L1,L2,pages;
   if(o.md===1){const x=rec.filter(r=>r.s===a),y=rec.filter(r=>r.s!==a);L1=win(x,TROWS);L2=win(y,TROWS);pages=Math.max(1,Math.ceil(Math.max(x.length,y.length)/TROWS))}
   else{const l=win(rec,TROWS*2);L1=l.slice(0,TROWS);L2=l.slice(TROWS);pages=Math.max(1,Math.ceil(rec.length/(TROWS*2)))}
-  const key=JSON.stringify([L1,L2,page,pages,o.left,o.md,Nb.seen,V.ps.map(p=>p.n)]);if(key===Nb.tKey)return;Nb.tKey=key;
+  const key=JSON.stringify([L1,L2,page,pages,V.st,o.md,Nb.seen,V.ps.map(p=>p.n)]);if(key===Nb.tKey)return;Nb.tKey=key;
   Nb.tPages=pages;
   const g=Nb.tc.getContext('2d'),Hc=TCH,W=Math.round(TCH*(TB_W[o.L]||3.3)/TBH),rh=56,top=64;g.setTransform(TCW/W,0,0,1,0,0);
   g.fillStyle='#0d120f';g.fillRect(0,0,W,Hc);
   g.fillStyle='#16201a';g.fillRect(0,0,W,60);g.fillStyle='#2a3a30';g.fillRect(W/2-2,0,4,Hc);
   g.textBaseline='middle';g.font='700 34px "IBM Plex Sans KR", sans-serif';g.fillStyle='#ffc24a';
   if(o.md===1){g.textAlign='center';g.fillText(V.ps[a]?V.ps[a].n:'',W/4,31);g.fillText(V.ps[1-a]?V.ps[1-a].n:'',W*3/4-70,31)}
-  else{g.textAlign='left';g.fillText(o.md===0?`${Math.max(0,o.left)}/${SOLO_MAX} 회`:`${o.L}자리`,20,31)}
+  else{g.textAlign='left';g.fillText(o.md===0?`${V.st==='over'?Nb.seen:Math.min(SOLO_MAX,Nb.seen+1)}/${SOLO_MAX} 회`:`${o.L}자리`,20,31)}
   {const ar=(x,up,on)=>{g.fillStyle=on?'#ffc24a':'#33423a';g.beginPath();if(up){g.moveTo(x,14);g.lineTo(x+22,48);g.lineTo(x-22,48)}else{g.moveTo(x,48);g.lineTo(x+22,14);g.lineTo(x-22,14)}g.closePath();g.fill()};
    ar(W-160,true,page<pages-1);ar(W-52,false,page>0);
    if(pages>1){g.textAlign='right';g.fillStyle='#8fa596';g.font='600 28px "IBM Plex Mono", monospace';g.fillText(`${pages-page}/${pages}`,W-200,31)}}
