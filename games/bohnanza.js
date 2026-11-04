@@ -422,11 +422,12 @@ G.buttons=()=>{
   const pb=$('#btnPlay'),ps=$('#btnPass'),o=V&&V.o;
   $('#btnGura').hidden=true;
   const tr=inTrade(),p1=!!(o&&o.ph==='p1'&&isAct());
+  const was=pb.hidden+':'+ps.hidden;
   pb.hidden=!tr;pb.disabled=!tr;pb.classList.toggle('ready',tr&&C.open);
   if(tr){if($('#playMain').textContent!=='거래')$('#playMain').textContent='거래';const sub=keyLabel(KEYS.play);if($('#playSub').textContent!==sub)$('#playSub').textContent=sub}
   const showP=p1||(tr&&isAct());ps.hidden=!showP;ps.disabled=!(tr||(p1&&o.pl>=1));
   const t=tr?'거래 끝':'넘기기';if(ps.firstChild.nodeValue!==t)ps.firstChild.nodeValue=t;
-  setBottom();
+  if(was!==pb.hidden+':'+ps.hidden)requestAnimationFrame(layoutFan);   // 버튼 수가 바뀌면 손패 자리를 다시 맞춤
 };
 G.logCue=()=>false;
 G.cues=(v,pv)=>{
@@ -441,57 +442,51 @@ G.cues=(v,pv)=>{
 
 /* ---------- 3D: 공통 앉은 카메라 위의 카드 ----------
    자리마다 사람 쪽에서 중심을 향해: 밭(겹쳐 쌓음) · 밭 아래 배지 · 왼쪽 코인 · 밭 앞 임시 구역. 가운데 줄: 더미 · 공개 카드 · 버린 카드 */
-const R_F=2.6,R_B=3.52,R_T=1.62,FW=.8,CS=.8,TS=.62,PX=.42,PZ=-.62,UZ=.3;
-const M={on:false,built:false,fail:false,root:null,cards:new Map(),seats:[],deck:null,info:null,ray:null,gn:0};
+const R_F=2.6,R_B=3.56,R_T=1.62,FW=.8,CS=.8,TS=.62,PX=.42,PZ=-.62,UZ=.42,MAX_COIN=24;
+const CW=.62*1.2*CS,CH=.9*1.2*CS;   // 밭 카드 크기 (공통 카드 .62×.9 × T.cardK 1.2 × CS)
+const M={on:false,built:false,fail:false,root:null,cards:new Map(),where:new Map(),seats:[],deck:null,labels:[],info:null,ray:null,gn:0,raf:0,hb:null,vp:null};
 const posOf=(i,r,t,y)=>{const a=seatAngle(i),s=Math.sin(a),c=Math.cos(a);return new THREE.Vector3(s*r+c*t,y||0,c*r-s*t)};
 const fieldTan=(f,nf)=>(f-(nf-1)/2)*FW;
-const coinTan=nf=>-(nf/2)*FW-.5;
-function plane(w,h,cw,ch){
-  const c=document.createElement('canvas');c.width=cw;c.height=ch;const t=new THREE.CanvasTexture(c);t.anisotropy=4;
-  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}));
-  m.rotation.x=-Math.PI/2;m.position.y=.026;m.renderOrder=2;m.visible=false;M.root.add(m);return {m,c,t,key:''};
+const coinTan=nf=>-(nf/2)*FW-.42;
+/* 탁자 위 글자는 2D 표: 3D 자리를 따라가고 늘 똑바로, 어느 화면에서나 같은 크기 (step이 자리를 옮김) */
+function label(cls){const el=document.createElement('div');el.className='bn-lb '+cls;el.hidden=true;M.lbBox.appendChild(el);M.labels.push(el);return el}
+function setLabel(el,at,html){
+  el.hidden=false;el._p=at;
+  if(el._h!==html){el._h=html;el.innerHTML=html}
 }
-const coinIcon=(g,x,y,r)=>{g.fillStyle='#f0c24a';g.strokeStyle='#8a5f14';g.lineWidth=r*.2;g.beginPath();g.arc(x,y,r,0,7);g.fill();g.stroke();g.strokeStyle='#b98a22';g.beginPath();g.arc(x,y,r*.58,0,7);g.stroke()};
-function pill(g,w,h,bg){g.clearRect(0,0,w,h);g.fillStyle=bg;rr(g,3,3,w-6,h-6,(h-6)/2);g.fill()}
+const COIN='<i class="bn-co"></i>';
 /* 밭 아래 작은 배지: 지금/다음(코인) · 수확 준비 · 새싹 보호 */
 function badgeOf(i,f){
   const L=V.o.fd[i][f];if(!L||!L.length)return null;
   const t=typ(L[0]),n=L.length,nx=nextStep(t,n);
   return {n,at:nx?nx.at:0,c:nx?nx.c:0,now:coinsFor(t,n),lock:!canH(i,f),arm:i===myIdx()&&arm===f};
 }
-function drawBadge(B,b){
-  const key=JSON.stringify(b);if(B.key===key)return;B.key=key;
-  const g=B.c.getContext('2d'),w=B.c.width,h=B.c.height,my=h/2+2;
-  pill(g,w,h,b.arm?'rgba(181,50,30,.94)':'rgba(47,32,22,.84)');
-  g.textBaseline='middle';g.textAlign='left';g.font='700 48px "IBM Plex Mono","Jua",monospace';g.fillStyle='#fff6e4';
-  let x=22;
-  const put=s=>{g.fillText(s,x,my);x+=g.measureText(s).width};
-  if(b.arm){g.font='700 44px "Jua",sans-serif';put('수확 ');g.font='700 48px "IBM Plex Mono",monospace';coinIcon(g,x+22,my,20);x+=50;put(String(b.now))}
-  else if(b.at){put(`${b.n}/${b.at} `);coinIcon(g,x+22,my,20);x+=50;put(String(b.c))}
-  else{put(`${b.n} MAX`)}
-  if(b.lock){g.strokeStyle='#ff6b5a';g.lineWidth=8;g.lineCap='round';const a=w-52,s=16;g.beginPath();g.moveTo(a-s,my-s);g.lineTo(a+s,my+s);g.moveTo(a+s,my-s);g.lineTo(a-s,my+s);g.stroke()}
-  B.t.needsUpdate=true;
-}
+const badgeHTML=b=>b.arm?`수확 ${COIN}${b.now}`:`${b.at?`${b.n}/${b.at} ${COIN}${b.c}`:`${b.n} MAX`}${b.lock?'<u>✕</u>':''}`;
+/* 코인 3D: 다섯 개씩 쌓고 옆으로 */
+const coinBase=(i,nf)=>i===myIdx()?{r:R_B+.42,t:-.3,lt:-.72}:{r:R_F+.1,t:coinTan(nf),lt:coinTan(nf)};
+function coinAt(i,nf,k){const b=coinBase(i,nf);return posOf(i,b.r,b.t+Math.floor(k/5)*.3,.035+(k%5)*.056)}
 function slotTex(col){return canvasTex(132,190,(g,w,h)=>{g.clearRect(0,0,w,h);g.strokeStyle=col;g.lineWidth=5;g.setLineDash([14,10]);rr(g,6,6,w-12,h-12,14);g.stroke()})}
 function build(){
   if(M.built||M.fail)return M.built;
   if(!T.ok||typeof THREE==='undefined'){M.fail=true;return false}
   try{
     const root=new THREE.Group();root.visible=false;T.scene.add(root);M.root=root;
-    const gS=new THREE.PlaneGeometry(.68,.98);
-    M.sN=new THREE.MeshBasicMaterial({map:slotTex('rgba(255,250,240,.45)'),transparent:true,depthWrite:false});
+    const gS=new THREE.PlaneGeometry(CW+.08,CH+.08);
+    M.sN=new THREE.MeshBasicMaterial({map:slotTex('rgba(255,250,240,.55)'),transparent:true,depthWrite:false});
     M.sH=new THREE.MeshBasicMaterial({map:slotTex('#ffd24a'),transparent:true,depthWrite:false});
+    const gC=new THREE.CylinderGeometry(.13,.13,.05,28),cT=toon({color:0xf0c24a}),cE=toon({color:0xb98a22}),ink=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide}),gI=new THREE.CylinderGeometry(.145,.145,.06,28);
     for(let i=0;i<5;i++){
-      const s={slots:[],badges:[],coin:plane(.72,.3,216,90)};
+      const s={slots:[],badges:[],coins:[],lb:label('bn-cn'),shown:0,to:0,at:0};
       for(let f=0;f<3;f++){
         const o=new THREE.Mesh(gS,M.sN);o.rotation.x=-Math.PI/2;o.position.y=.022;o.visible=false;root.add(o);s.slots.push(o);
-        s.badges.push(plane(.76,.22,344,100));
+        s.badges.push(label('bn-bd'));
       }
+      for(let k=0;k<MAX_COIN;k++){const c=new THREE.Mesh(gC,[cE,cT,cT]);c.castShadow=true;c.add(new THREE.Mesh(gI,ink));c.visible=false;root.add(c);s.coins.push(c)}
       M.seats.push(s);
     }
-    M.info=plane(1.1,.26,330,78);
+    M.info=label('bn-if');
+    M.hb=new THREE.Vector3();
     M.ray=new THREE.Raycaster();M.built=true;
-    if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{for(const s of M.seats){s.coin.key='';s.badges.forEach(b=>b.key='')}M.info.key='';if(M.on&&V)G.field3D(V,null,myIdx())});
   }catch(e){M.fail=true;try{console.warn('보난자 3D 준비 실패',e)}catch(_){}}
   return M.built;
 }
@@ -500,49 +495,67 @@ function placeCard(id,p,rx,ry,s,from){
   if(!g){const f=from||p;g=makeCard(f,rx,ry,s);g.children[0].material=faceMat(id);M.cards.set(id,g)}
   const u=g.userData;u.p.copy(p);u.rx=rx;u.ry=ry;u.s=s;return g;
 }
-function drawCoin(P,n){
-  if(P.key===String(n))return;P.key=String(n);
-  const g=P.c.getContext('2d'),w=P.c.width,h=P.c.height;pill(g,w,h,'rgba(47,32,22,.84)');
-  coinIcon(g,44,h/2,24);g.font='700 50px "IBM Plex Mono",monospace';g.fillStyle='#fff6e4';g.textBaseline='middle';g.textAlign='left';g.fillText(String(n),82,h/2+3);P.t.needsUpdate=true;
-}
 G.field3D=(v,pv,me)=>{
   const o=v.o;if(!o||!T.ok||!M.built||!M.on)return;
   if(v.st==='wait')return;
   if(M.gn!==o.gn){clearCards();M.gn=o.gn}
-  const seen=new Set(),n=v.ps.length,target=plantTarget(),deal=!!T.deal;
+  const seen=new Set(),where=new Map(),gain=M.seats.map((S,i)=>i<v.ps.length?Math.max(0,o.cn[i]-S.to):0),n=v.ps.length,target=plantTarget(),deal=!!T.deal;
   const handFrom=i=>{const f=i===me?nearMe():seatPos(i,3.85);f.y=.5;return f};
   const deckAt=new THREE.Vector3(-PX,.5,PZ);
+  M.labels.forEach(el=>{el.hidden=true});
   M.seats.forEach((S,i)=>{
     const on=i<n&&!deal;
-    S.coin.m.visible=on;
-    S.slots.forEach((o2,f)=>{o2.visible=false;S.badges[f].m.visible=false});
-    if(!on)return;
+    S.slots.forEach(o2=>{o2.visible=false});
+    if(!on){S.coins.forEach(c=>{c.visible=false});return}
     const a=seatAngle(i),F=o.fd[i],nf=F.length;
-    const cp=i===me?posOf(i,R_B+.14,0,.026):posOf(i,R_F+.3,coinTan(nf),.026);S.coin.m.position.copy(cp);drawCoin(S.coin,o.cn[i]);
+    {const b=coinBase(i,nf);if(S.to!==o.cn[i]){const up=o.cn[i]>S.to;S.to=o.cn[i];S.at=clock()+(up?420:0)}setLabel(S.lb,posOf(i,i===me?b.r:b.r+.32,i===me?b.lt:b.lt,.05),`${COIN}${S.shown}`)}
+    S.coins.forEach((c,k)=>{c.position.copy(coinAt(i,nf,k))});
     F.forEach((L,f)=>{
       const tan=fieldTan(f,nf),sl=S.slots[f];
       sl.position.copy(posOf(i,R_F,tan,.022));sl.rotation.set(-Math.PI/2,0,a);sl.visible=true;
       sl.material=i===me&&target>=0&&accepts(L,target)?M.sH:M.sN;
-      const k=L.length;
-      L.forEach((id,c)=>{const q=Math.min(c,9),p=posOf(i,R_F-.22+q*.05,tan,.03+c*.006);seen.add(id);placeCard(id,p,-Math.PI/2,a,CS,handFrom(i))});
-      const b=badgeOf(i,f),B=S.badges[f];
-      if(b){B.m.position.copy(posOf(i,R_B-.1,tan,.026));drawBadge(B,b);B.m.visible=true}
+      L.forEach((id,c)=>{const q=Math.min(c,9),p=posOf(i,R_F+q*.05,tan,.03+c*.006);seen.add(id);where.set(id,i);placeCard(id,p,-Math.PI/2,a,CS,handFrom(i))});
+      const b=badgeOf(i,f);
+      if(b){setLabel(S.badges[f],posOf(i,R_B,tan,.03),badgeHTML(b));S.badges[f].classList.toggle('arm',!!b.arm)}
     });
     if(+v.cfg.buy3&&n>3&&nf<3&&i===me&&v.st==='play'){const sl=S.slots[2];sl.position.copy(posOf(i,R_F,fieldTan(nf,nf)+.05,.022));sl.rotation.set(-Math.PI/2,0,a);sl.visible=true;sl.material=o.cn[i]>=FIELD3?M.sH:M.sN}
     const Tp=o.tmp[i];
-    Tp.forEach((id,k)=>{const lift=i===me&&id===tmpSel?.22:0,p=posOf(i,R_T-lift*.3,(k-(Tp.length-1)/2)*.4,.05+k*.008+lift);seen.add(id);placeCard(id,p,-Math.PI/2,a,TS,deckAt)});
+    Tp.forEach((id,k)=>{const lift=i===me&&id===tmpSel?.22:0,p=posOf(i,R_T-lift*.3,(k-(Tp.length-1)/2)*.4,.05+k*.008+lift);seen.add(id);where.set(id,i);placeCard(id,p,-Math.PI/2,a,TS,deckAt)});
   });
   o.up.forEach((id,k)=>{
     const lift=C.gf.includes(id)||C.wf.includes(id)?.2:0,p=new THREE.Vector3((k-(o.up.length-1)/2)*.84,.05+lift,UZ);seen.add(id);placeCard(id,p,-Math.PI/2,0,.8,deckAt);
   });
   if(o.dt>=0){seen.add(o.dt);placeCard(o.dt,new THREE.Vector3(PX,.03,PZ),-Math.PI/2,0,.55,new THREE.Vector3(PX,.4,PZ))}
-  for(const [id,g] of M.cards)if(!seen.has(id)){const u=g.userData;u.p.set(PX,.2,PZ);u.s=.4;u.die=true;M.cards.delete(id)}
+  for(const [id,g] of M.cards)if(!seen.has(id)){
+    const u=g.userData,s=M.where.get(id);
+    if(s!=null&&gain[s]>0){gain[s]--;const q=coinAt(s,o.fd[s].length,Math.min(MAX_COIN-1,M.seats[s].to-1-gain[s]));u.p.copy(q);u.p.y+=.06;u.rx=Math.PI/2;u.s=.3}   // 코인이 되는 카드: 뒤집혀 코인 더미로
+    else{u.p.set(PX,.2,PZ);u.s=.4}
+    u.die=true;M.cards.delete(id);
+  }
+  M.where=where;
   if(!M.deck){M.deck=makeCard(new THREE.Vector3(-PX,.04,PZ),Math.PI/2,0,.55)}
   M.deck.visible=!deal&&o.dk>0;
-  {const I=M.info,txt=`더미 ${o.dk} · ${o.runs}/3회`;I.m.visible=!deal;I.m.position.set(0,.026,PZ-.47);
-   if(I.key!==txt){I.key=txt;const g=I.c.getContext('2d'),w=I.c.width,h=I.c.height;pill(g,w,h,'rgba(47,32,22,.72)');g.fillStyle='#fff6e4';g.font='700 38px "Jua",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(txt,w/2,h/2+2);I.t.needsUpdate=true}}
+  if(!deal)setLabel(M.info,new THREE.Vector3(0,.03,PZ-.5),`더미 ${o.dk} · ${o.runs}/3회`);
 };
-function clearCards(){for(const g of M.cards.values())killCard(g);M.cards.clear();if(M.deck){killCard(M.deck);M.deck=null}}
+/* 매 프레임: 표를 3D 자리로, 코인을 카드가 닿은 뒤에 (시작 시각과의 차이로), 펠트는 이 게임 동안 숨김 */
+function hideFelt(on){if(!T.felt)return;T.felt.mat.visible=!on;if(T.felt.ink)T.felt.ink.visible=!on}
+function step(){
+  M.raf=0;if(!M.on||!V||!V.o)return;
+  M.raf=requestAnimationFrame(step);
+  hideFelt(true);
+  const now=clock(),r=$('#cv').getBoundingClientRect(),st=$('#stage').getBoundingClientRect(),v=M.hb;
+  for(const el of M.labels){
+    if(el.hidden||!el._p)continue;
+    v.copy(el._p).project(T.cam);
+    const x=Math.round(r.left-st.left+(v.x+1)/2*r.width),y=Math.round(r.top-st.top+(1-v.y)/2*r.height),k=x+','+y;
+    if(el._k!==k){el._k=k;el.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%)`}
+  }
+  M.seats.forEach(S=>{
+    if(S.shown===S.to||now<S.at)return;
+    S.shown=S.to;S.coins.forEach((c,k)=>{c.visible=k<S.shown});S.lb._h='';if(V)S.lb.innerHTML=`${COIN}${S.shown}`;
+  });
+}
+function clearCards(){M.where.clear();for(const S of M.seats){S.shown=S.to=0;S.coins.forEach(c=>{c.visible=false})}for(const el of M.labels)el.hidden=true;for(const g of M.cards.values())killCard(g);M.cards.clear();if(M.deck){killCard(M.deck);M.deck=null}}
 function tablePoint(e){
   const r=$('#cv').getBoundingClientRect();if(!r.width)return null;
   M.ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},T.cam);
@@ -555,16 +568,19 @@ function tableClick(e){
   const up=o.up.findIndex((id,k)=>Math.abs(P.x-(k-(o.up.length-1)/2)*.84)<.4&&Math.abs(P.z-UZ)<.5);
   if(up>=0){tapUp(o.up[up]);return}
   if(!iSeat())return;
-  const Tp=o.tmp[me];
+  const Tp=o.tmp[me],open=C.open;
   for(let k=Tp.length-1;k>=0;k--){const p=posOf(me,R_T,(k-(Tp.length-1)/2)*.4);if(Math.abs(P.x-p.x)<.26&&Math.abs(P.z-p.z)<.42){tapTemp(Tp[k]);return}}
   const nf=o.fd[me].length;
-  for(let f=0;f<nf;f++){const p=posOf(me,R_F+.1,fieldTan(f,nf));if(Math.abs(P.x-p.x)<.4&&Math.abs(P.z-p.z)<.9){tapField(f);return}}
-  if(+V.cfg.buy3&&V.ps.length>3&&nf<3){const p=posOf(me,R_F,fieldTan(nf,nf)+.05);if(Math.abs(P.x-p.x)<.4&&Math.abs(P.z-p.z)<.6){if(o.cn[me]>=FIELD3)sendAct({t:'buy'});else sfx('no')}}
+  for(let f=0;f<nf;f++){const p=posOf(me,R_F+.2,fieldTan(f,nf));if(Math.abs(P.x-p.x)<.4&&Math.abs(P.z-p.z)<.75){tapField(f);return}}
+  if(+V.cfg.buy3&&V.ps.length>3&&nf<3){const p=posOf(me,R_F,fieldTan(nf,nf)+.05);if(Math.abs(P.x-p.x)<.4&&Math.abs(P.z-p.z)<.6){if(o.cn[me]>=FIELD3)sendAct({t:'buy'});else sfx('no');return}}
+  if(open){C.open=false;refresh()}   // 빈 곳을 누르면 거래 창을 닫음
 }
 
 /* ---------- 2D 칸: 단계·거래 (3D 위) + WebGL이 없을 때의 밭 ---------- */
 const chip=(t,n)=>`<span class="bn-chip" style="--c:${BEANS[t].col}">${BEANS[t].n}${n>1?'×'+n:''}</span>`;
-function chips(L){const m=new Map();for(const t of L)m.set(t,(m.get(t)||0)+1);return m.size?[...m].map(([t,n])=>chip(t,n)).join(''):'<span class="bn-none">없음</span>'}
+function chips(L){const m=new Map();for(const t of L)m.set(t,(m.get(t)||0)+1);return m.size?[...m].map(([t,n])=>chip(t,n)).join(''):'<span class="bn-none"></span>'}
+/* 언제나 왼쪽 = 내가 줄 것, 오른쪽 = 내가 받을 것 */
+const swapLine=(give,get)=>`<span class="bn-sw">${chips(give)}</span><span class="bn-ar">→</span><span class="bn-sw">${chips(get)}</span>`;
 const phText=o=>o.ph==='p1'?`심기 ${Math.min(2,o.pl+1)}/2`:o.ph==='trade'?'거래':o.ph==='p3'?'임시 구역 심기':'';
 function drawPan(){
   if(!elPan||!V||!V.o)return;
@@ -572,15 +588,15 @@ function drawPan(){
   if(!tr){if(lastPan){elPan.innerHTML='';lastPan=''}return}
   const P=V.ps,H2=[...sel].filter(id=>myHand().includes(id)),act=isAct();
   const ofHTML=o.of.map(x=>{
-    const mine=x.f===me,other=mine?x.to:x.f,get=mine?[...x.w,...x.wf.map(typ)]:x.g,give=mine?x.g:[...x.w,...x.wf.map(typ)];
+    const mine=x.f===me,other=mine?x.to:x.f,wants=[...x.w,...x.wf.map(typ)],get=mine?wants:x.g,give=mine?x.g:wants;
     const can=mine||!!pickFor(x);
-    return `<div class="bn-of" data-o="${x.id}"><b>${esc(P[other].n)}</b><span class="bn-l">받음</span>${chips(get)}<span class="bn-l">줌</span>${chips(give)}<span class="bn-sp"></span>${mine?`<button type="button" data-k="cancel" data-o="${x.id}">취소</button>`:`<button type="button" class="bn-ok" data-k="accept" data-o="${x.id}"${can?'':' disabled'}>수락</button><button type="button" data-k="counter" data-o="${x.id}">다시 제안</button><button type="button" data-k="reject" data-o="${x.id}">거절</button>`}</div>`}).join('');
+    return `<div class="bn-of" data-o="${x.id}"><b>${esc(P[other].n)}</b>${swapLine(give,get)}<span class="bn-sp"></span>${mine?`<button type="button" data-k="cancel" data-o="${x.id}">취소</button>`:`<button type="button" class="bn-ok" data-k="accept" data-o="${x.id}"${can?'':' disabled'}>수락</button><button type="button" data-k="counter" data-o="${x.id}">다시 제안</button><button type="button" data-k="reject" data-o="${x.id}">거절</button>`}</div>`}).join('');
   let comp='';
   if(C.open){
-    const pick=act?P.map((p,i)=>i===me||p.f?'':`<button type="button" class="bn-to${C.to===i?' on':''}" data-to="${i}">${esc(p.n)}</button>`).join(''):`<b>${esc(P[o.act].n)}</b>`;
-    const upc=o.up.map(id=>{const on=C.gf.includes(id)||C.wf.includes(id);return `<button type="button" class="bn-pick${on?' on':''}" data-u="${id}">${chip(typ(id),1)}</button>`}).join('');
-    const grid=BEANS.map((b,t)=>`<button type="button" class="bn-pick" data-w="${t}">${chip(t,1)}</button>`).join('');
-    comp=`<div class="bn-tr"><div class="bn-r"><span class="bn-l">상대</span>${pick}</div>${upc?`<div class="bn-r"><span class="bn-l">공개</span>${upc}</div>`:''}<div class="bn-r"><span class="bn-l">줌</span>${chips([...H2.map(typ),...C.gf.map(typ)])}</div><div class="bn-r"><span class="bn-l">받음</span>${chips([...C.want,...C.wf.map(typ)])}${C.want.length?'<button type="button" data-k="unwant">지우기</button>':''}</div><div class="bn-g">${grid}</div><div class="bn-r bn-e"><button type="button" data-k="clear">비우기</button><button type="button" class="bn-ok" data-k="send">제안</button></div></div>`;
+    const pick=act?P.map((p,i)=>i===me||p.f?'':`<button type="button" class="bn-to${C.to===i?' on':''}" data-to="${i}">${esc(p.n)}</button>`).join(''):`<b class="bn-who">${esc(P[o.act].n)}</b>`;
+    const grid=BEANS.map((b,t)=>`<button type="button" class="bn-bean" data-w="${t}" aria-label="${b.n}">${beanSvg(b.col)}<span>${b.n}</span></button>`).join('');
+    const giveL=[...H2.map(typ),...C.gf.map(typ)],getL=[...C.want,...C.wf.map(typ)];
+    comp=`<div class="bn-tr"><div class="bn-r bn-tabs">${pick}<span class="bn-sp"></span><button type="button" class="bn-x" data-k="close" aria-label="닫기">✕</button></div><div class="bn-r bn-line">${swapLine(giveL,getL)}</div><div class="bn-g">${grid}</div><div class="bn-r bn-e"><button type="button" data-k="clear">비우기</button>${C.want.length?'<button type="button" data-k="unwant">하나 빼기</button>':''}<span class="bn-sp"></span><button type="button" class="bn-ok" data-k="send">제안</button></div></div>`;
   }
   const h=ofHTML+comp;
   if(h!==lastPan){elPan.innerHTML=h;lastPan=h;lockTick()}
@@ -599,24 +615,17 @@ function draw2d(){
   const h=`<div class="bn-p"><span class="bn-l">더미 ${o.dk} · ${o.runs}/3회</span></div>${up}${rows}`;
   if(h!==last2d){el2d.innerHTML=h;last2d=h}
 }
-function setBottom(){
-  if(!elPan)return;
-  const st=$('#stage').getBoundingClientRect(),c=$('#hand').children[0],top=c?Math.min(...[...$('#hand').children].map(x=>x.getBoundingClientRect().top)):st.bottom-96;
-  let y=top;   // 좁은 화면은 버튼이 손패 위에 있으므로 버튼 위로
-  if(st.width<700)for(const b of [$('#btnPlay'),$('#btnPass')])if(!b.hidden)y=Math.min(y,b.getBoundingClientRect().top);
-  elPan.style.setProperty('--bnb',Math.max(96,Math.round(st.bottom-y+6))+'px');
-}
-G.afterFan=setBottom;
 G.hud=inGame=>{
   if(!elBox)return;
   const on=!!(inGame&&V&&V.o);
   elBox.hidden=!on;
   const d3=on&&build();
-  if(d3!==M.on){M.on=d3;if(M.root)M.root.visible=d3;$('#stage').classList.toggle('bn3d',d3);if(!d3)clearCards()}
+  if(d3!==M.on){M.on=d3;if(M.root)M.root.visible=d3;$('#stage').classList.toggle('bn3d',d3);if(d3){hideFelt(true);if(!M.raf)M.raf=requestAnimationFrame(step)}else{hideFelt(false);clearCards()}}
+  if(M.lbBox)M.lbBox.hidden=!d3;
   $('#stage').classList.toggle('bng',on);
   $('#stage').classList.toggle('bn2d',on&&!d3);
   if(!on)return;
-  drawPan();draw2d();setBottom();
+  drawPan();draw2d();
 };
 G.live=()=>{
   if(!elSt||!V||!V.o)return;
@@ -630,7 +639,7 @@ G.enter=()=>{$('#btnGura').hidden=true};
 G.leave=()=>{
   clearCards();M.gn=0;clearC();C.open=false;tmpSel=-1;arm=-1;lockAt.clear();lastPan='';last2d='';
   if(elBox)elBox.hidden=true;if(elPan)elPan.innerHTML='';if(el2d)el2d.innerHTML='';
-  if(M.root)M.root.visible=false;M.on=false;
+  if(M.root)M.root.visible=false;M.on=false;hideFelt(false);if(M.lbBox)M.lbBox.hidden=true;
   $('#stage').classList.remove('bng','bn3d','bn2d');
   $('#btnPlay').hidden=false;$('#btnPlay').disabled=false;
   $('#btnPass').hidden=false;$('#btnPass').disabled=false;$('#btnPass').firstChild.nodeValue='패스';
@@ -646,16 +655,32 @@ G.init=()=>{
 .bn-box[hidden]{display:none}
 .bn-st{position:absolute;top:8px;left:50%;transform:translateX(-50%);padding:3px 12px;border-radius:999px;background:rgba(47,32,22,.78);color:#fff6e4;font:600 13px "Jua","IBM Plex Mono",sans-serif;white-space:nowrap}
 .bn-st:empty{visibility:hidden}
-.bn-pan{position:absolute;left:50%;transform:translateX(-50%);bottom:var(--bnb,150px);width:min(460px,calc(100% - 16px));display:flex;flex-direction:column;gap:4px}
+.bn-pan{position:absolute;left:50%;transform:translateX(-50%);top:56px;width:min(440px,calc(100% - 16px));display:flex;flex-direction:column;gap:4px}
+.bn-lbs{position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden}
+.bn-lbs[hidden]{display:none}
+.bn-lb{position:absolute;left:0;top:0;display:flex;align-items:center;justify-content:center;gap:2px;padding:1px 7px;border-radius:999px;background:rgba(47,32,22,.84);color:#fff6e4;font:600 12px "IBM Plex Mono","Jua",monospace;white-space:nowrap;text-align:center}
+.bn-lb[hidden]{display:none}
+.bn-lb.arm{background:#b5321e}
+.bn-lb u{text-decoration:none;color:#ff8a7a;margin-left:3px}
+.bn-if{font-family:"Jua",sans-serif;font-size:11.5px;background:rgba(47,32,22,.66)}
+.bn-co{display:inline-block;width:.85em;height:.85em;margin:0 1px;border-radius:50%;background:#f0c24a;border:1.5px solid #8a5f14;box-sizing:border-box}
 .bn-of,.bn-tr,.bn-p{pointer-events:auto;background:rgba(255,250,240,.96);border:1px solid var(--line-strong);border-radius:10px;padding:5px 7px;color:#3b2a1f;font-size:13px}
-.bn-of{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
-.bn-tr{display:flex;flex-direction:column;gap:5px}
+.bn-of{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:5px}
+.bn-tr{display:flex;flex-direction:column;gap:6px;padding:7px 8px}
+.bn-sw{display:inline-flex;flex-wrap:wrap;justify-content:center;gap:3px;min-width:58px}
+.bn-ar{font-weight:700;color:#7a6650}
+.bn-line{justify-content:center;gap:8px;min-height:30px;padding:3px;border-radius:8px;background:rgba(59,42,31,.07)}
+.bn-tabs .bn-who{padding:2px 4px}
+.bn-box button.bn-x{border:none;background:none;padding:2px 6px;color:#7a6650}
+.bn-box button.bn-bean{display:flex;flex-direction:column;align-items:center;gap:0;padding:3px 0 2px;border:none;background:none;min-width:0}
+.bn-box button.bn-bean:active{background:rgba(59,42,31,.1)}
+.bn-bean svg{width:30px;height:22px;display:block}
+.bn-bean span{font-size:10px;line-height:1.2;color:#3b2a1f;white-space:nowrap}
 .bn-r{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-height:24px}
-.bn-e{justify-content:flex-end}
-.bn-g{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+.bn-g{display:grid;grid-template-columns:repeat(8,1fr);gap:1px}
 .bn-sp{flex:1}
 .bn-l{font-size:11.5px;color:#7a6650}
-.bn-none{font-size:12px;color:#a08f7a}
+.bn-none{display:inline-block;width:46px;height:19px;border:1.5px dashed #b6a58f;border-radius:7px;box-sizing:border-box}
 .bn-chip{display:inline-block;padding:1px 6px;border-radius:8px;background:var(--c);color:#fff;font-size:12px;font-weight:600;white-space:nowrap}
 .bn-box button{font:inherit;font-size:12.5px;padding:3px 8px;border-radius:8px;border:1px solid var(--line-strong);background:#fff;color:#3b2a1f;cursor:pointer}
 .bn-box button:disabled{opacity:.45}
@@ -663,6 +688,7 @@ G.init=()=>{
 .bn-box .bn-ok{background:#2e7d4f;border-color:#2e7d4f;color:#fff}
 .bn-box .bn-to.on,.bn-box .bn-pick.on{outline:2px solid #e0a020}
 .bn-box .bn-pick{padding:1px;background:none;border:none;line-height:1.3}
+@media(max-width:699px){.stage.bng #actions{transform:translateY(64px)}.stage.bng #actions button{min-height:0;height:36px;padding:0 10px;font-size:15px}.stage.bng #actions button small{display:none}}
 .stage.bng .card.bn-c{overflow:hidden}
 .stage.bng .card.bn-c .bn-nm{position:absolute;left:0;right:0;top:0;padding:2px 0;background:var(--rc);color:#fffcf5;font:600 11px "Jua",sans-serif;text-align:left;padding-left:5px;white-space:nowrap}
 .stage.bng .card.bn-c .bn-be{position:absolute;left:7px;right:7px;top:27px;pointer-events:none}
@@ -678,6 +704,7 @@ G.init=()=>{
   document.head.appendChild(css);
   elBox=document.createElement('div');elBox.className='bn-box';elBox.hidden=true;elBox.innerHTML='<div class="bn-st"></div><div class="bn-2d"></div><div class="bn-pan"></div>';
   $('#stage').appendChild(elBox);
+  M.lbBox=document.createElement('div');M.lbBox.className='bn-lbs';M.lbBox.hidden=true;$('#stage').appendChild(M.lbBox);
   elSt=elBox.querySelector('.bn-st');elPan=elBox.querySelector('.bn-pan');el2d=elBox.querySelector('.bn-2d');
   $('#cv').addEventListener('click',tableClick);
   elBox.addEventListener('click',e=>{
@@ -688,6 +715,7 @@ G.init=()=>{
     else if(d.u!=null)tapUp(+d.u);
     else if(d.to!=null){C.to=+d.to;sfx('pick');drawPan()}
     else if(d.w!=null){if(C.want.length<MAX_WANT){C.want.push(+d.w);sfx('pick');drawPan()}else sfx('no')}
+    else if(k==='close'){C.open=false;drawPan()}
     else if(k==='send')sendOffer();
     else if(k==='clear'){clearC();sel.clear();renderMe();refresh()}
     else if(k==='unwant'){C.want.pop();drawPan()}
