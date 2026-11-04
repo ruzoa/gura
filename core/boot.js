@@ -11,3 +11,4 @@ requestAnimationFrame(()=>document.body.classList.remove('booting'));   // 첫 3
 render();
 renderKeys();
 if(noPeerLib()){setNote('#netNote','온라인 연결 라이브러리를 불러오지 못했습니다. 새로고침이 필요합니다.',true)}
+setTimeout(resumeOrInvite,0);   // 하던 탁자로 돌아가기·초대 링크 (모든 파일과 첫 화면이 준비된 뒤)

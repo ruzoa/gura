@@ -707,7 +707,8 @@ syncFastField();['click','keydown'].forEach(ev=>$('#segGame').addEventListener(e
 function setPubSw(v){cfg.pub=v?1:0;const b=$('#swPub');b.classList.toggle('on',!!v);b.setAttribute('aria-checked',!!v)}
 $('#swPub').addEventListener('click',()=>{setPubSw(!cfg.pub);sfx('tick')});/* 대기 시간·제한 시간 등은 대기실 방 설정에서 조절 (범위 밖이면 가까운 값으로) */
 $('#inNick').value=store('gura-nick')||'나';
-const invited=(()=>{const q=new URLSearchParams(location.search).get('room');if(q&&/^[a-z0-9]{4}$/i.test(q)){$('#inCode').value=q.toUpperCase();setNote('#netNote','초대받은 탁자입니다. 참가를 누르면 앉습니다.');return true}return false})();
+/* 초대 링크(?room=번호): 페이지가 다 준비되면 resumeOrInvite가 바로 찾아감. 값은 쓰고 나면 비움 */
+let invited=(()=>{const q=new URLSearchParams(location.search).get('room');if(q&&/^[a-z0-9]{4}$/i.test(q)){$('#inCode').value=q.toUpperCase();setNote('#netNote','초대받은 탁자입니다. 참가를 누르면 앉습니다.');return q.toLowerCase()}return ''})();
 
 /* 로비 Enter 흐름: 닉네임 → (초대 코드가 있으면 참가, 없으면 코드 칸), 방 이름 → 방 만들기 */
 /* 로비 닉네임: 수정 버튼 → 입력칸, Enter·저장으로 확정, Esc로 취소 */
@@ -766,17 +767,24 @@ function showView(v,focus=true){
 $('#lobby').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){if(b.dataset.pub)setPubSw(1);if(b.dataset.go==='create'&&FR.ok){showView('main',false);frontCreate();return}showView(b.dataset.go)}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#lobby').hidden&&$('#keysOv').hidden&&lobbyView!=='main'){e.preventDefault();if(lobbyView==='settings')saveNick();showView('main')}});
 function focusLobby(){showView(invited?'join':'main')}
-/* 페이지를 열었을 때 10분 안에 하던 방이 있으면 이어서 */
-setTimeout(()=>{
+/* 페이지를 열었을 때: 방장이던 탁자 > 초대 링크 > 참가하던 탁자 순서. 첫 화면이 준비된 뒤 boot에서 부름 */
+function resumeOrInvite(){
+  if(invited&&(!FR.ok||noPeerLib()))showView('join',false);   // 2D 로비·연결 라이브러리 없음: 안내가 보이는 참여 창에서
   if(noPeerLib()||mode!=='lobby')return;
   let sv=null,gv=null;
   try{sv=JSON.parse(store('gura-host')||'null')}catch(e){}
   try{gv=JSON.parse(store('gura-guest')||'null')}catch(e){}
   if(sv&&sv.H&&soloTable(sv.H)){unstore('gura-host');sv=null}   // 사람이 혼자 봇과 하던 게임 중에 앱을 닫았으면 탁자를 떠난 것으로 (이어서 열지 않음)
-  if(sv&&sv.H&&sv.H.code&&Date.now()-sv.at<RESUME_MS){restoreHost(sv,0);return}
-  unstore('gura-host');
+  const ownInvite=!!(invited&&sv&&sv.H&&sv.H.code===invited);   // 내 탁자 초대 링크를 같은 브라우저 새 탭에서 엶: 방장 탭이 살아 있을 수 있으니 복구하지 않고 찾아감
+  if(!ownInvite&&sv&&sv.H&&sv.H.code&&Date.now()-sv.at<RESUME_MS){restoreHost(sv,0);return}   // 초대보다 먼저: 내가 차린 탁자가 없어지지 않게 (초대 번호는 떠날 때 참여 창에 남음)
+  if(!ownInvite)unstore('gura-host');
+  if(invited){
+    const c=invited;invited='';unstore('gura-guest');
+    try{history.replaceState(null,'',location.pathname+location.hash)}catch(e){}   // 주소에서 지움: 떠난 뒤 새로고침해도 다시 찾아가지 않게
+    joinRoom(c);return;
+  }
   if(gv&&/^[a-z0-9]{4}$/.test(gv.code||'')&&Date.now()-gv.at<RESUME_MS){showView('join');$('#inCode').value=gv.code.toUpperCase();joinRoom(gv.code);return}
   unstore('gura-guest');
-},0);
-focusLobby();
+}
+showView('main');
 

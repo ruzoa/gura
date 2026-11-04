@@ -130,6 +130,7 @@ function restoreHost(sv,tries){
     // 방금 끊긴 이전 연결이 아직 코드를 잡고 있으면 잠시 뒤 다시 시도
     if((e.type==='unavailable-id'||e.type==='network'||e.type==='server-error'||e.type==='socket-error')&&tries<20){setTimeout(()=>{if(mode==='lobby')restoreHost(sv,tries+1)},2000);return}
     unstore('gura-host');setNote('#resumeNote','이전 탁자를 다시 차리지 못했습니다.',true);
+    if(invited)resumeOrInvite();   // 초대 링크로 열었으면 이제 그쪽으로
   });
 }
 let createTries=0;
