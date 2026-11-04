@@ -28,7 +28,7 @@ G.drawFace=function(g,w,h,id){
 };
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 한 팀입니다. 레벨마다 레벨 수만큼 카드를 받고, 모두의 카드를 <b>낮은 숫자부터</b> 가운데에 쌓으면 통과합니다</li><li><b>인원</b> : 2명은 레벨 12, 3명은 레벨 10, 4명은 레벨 8까지입니다. 생명은 인원수만큼, 표창은 1개로 시작합니다</li><li><b>침묵</b> : 게임 중에는 어떤 의사소통도 할 수 없습니다. 차례도 제한 시간도 없습니다</li><li><b>시작 버튼</b> : 레벨을 시작할 때와 실수·표창 뒤에는 탁자 위 시작 버튼을 <b>모두 함께</b> 꾹 누르고 있어야 시작합니다. 시작하면 같은 자리에 표창 버튼이 올라옵니다</li><li><b>내기</b> : 손의 카드를 누르면 살짝 올라와 반투명해지고, 탁자 위에 뒤집혀 올라가 다른 사람도 볼 수 있습니다. 카드를 잡고 손패 밖으로 빼면 바로 냅니다. 같은 카드를 다시 누르면 내려놓습니다. 어떤 카드든 고를 수 있습니다</li><li><b>거의 동시에 냈을 때</b> : 0.15초 안에 나온 카드는 숫자순으로 놓입니다</li><li><b>실수</b> : 낸 숫자보다 작은 카드가 누구에게든 남아 있으면 생명 1개를 잃고 그 카드를 모두 공개해 버립니다. 생명이 없으면 게임이 끝납니다</li><li><b>표창</b> : 탁자 위 표창 버튼을 누르면 불이 켜지고 다시 누르면 꺼집니다. 켠 사람 수는 표창 말 위에 보입니다. 모두 켜면 표창 1개를 쓰고 각자 가장 낮은 카드를 공개해 버립니다</li><li><b>보상</b> : 레벨 2·5·8을 통과하면 표창, 3·6·9를 통과하면 생명을 얻습니다. 최대 생명 5개, 표창 3개입니다</li><li><b>블라인드</b> : 모든 레벨을 통과하면 레벨 1부터 다시 시작하고, 낸 카드가 뒤집혀 쌓입니다. 레벨이 끝날 때 순서가 틀렸으면 생명 1개를 잃고 다음 레벨로 갑니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 한 팀입니다. 레벨마다 레벨 수만큼 카드를 받고, 모두의 카드를 <b>낮은 숫자부터</b> 가운데에 쌓으면 통과합니다</li><li><b>인원</b> : 2명은 레벨 12, 3명은 레벨 10, 4명은 레벨 8까지입니다. 생명은 인원수만큼, 표창은 1개로 시작합니다</li><li><b>침묵</b> : 게임 중에는 어떤 의사소통도 할 수 없습니다. 차례도 제한 시간도 없습니다</li><li><b>시작 버튼</b> : 레벨을 시작할 때와 실수·표창 뒤에는 탁자 위 시작 버튼을 <b>모두 함께</b> 꾹 누르고 있어야 시작합니다. 시작하면 같은 자리에 표창 버튼이 올라옵니다</li><li><b>내기</b> : 손의 카드를 누르면 살짝 올라와 반투명해지고, 탁자 위에 뒤집혀 올라가 다른 사람도 볼 수 있습니다. 카드를 잡고 손패 밖으로 빼면 바로 냅니다. 같은 카드를 다시 누르면 내려놓습니다. 어떤 카드든 고를 수 있습니다</li><li><b>거의 동시에 냈을 때</b> : 0.15초 안에 나온 카드는 숫자순으로 놓입니다</li><li><b>실수</b> : 낸 숫자보다 작은 카드가 누구에게든 남아 있으면 생명 1개를 잃고 그 카드를 모두 공개해 버립니다. 생명이 없으면 게임이 끝납니다</li><li><b>표창</b> : 탁자 위 표창 버튼을 누르면 불이 켜지고 다시 누르면 꺼집니다. 켠 사람 수만큼 표창 말 옆 홈에 불이 들어옵니다. 모두 켜면 표창 1개를 쓰고 각자 가장 낮은 카드를 공개해 버립니다</li><li><b>보상</b> : 레벨 2·5·8을 통과하면 표창, 3·6·9를 통과하면 생명을 얻습니다. 최대 생명 5개, 표창 3개입니다</li><li><b>블라인드</b> : 모든 레벨을 통과하면 레벨 1부터 다시 시작하고, 낸 카드가 뒤집혀 쌓입니다. 레벨이 끝날 때 순서가 틀렸으면 생명 1개를 잃고 다음 레벨로 갑니다</li></ol>';
 G.modeDesc=['낮은 숫자부터 말없이','낮은 숫자부터 말없이'];
 G.defaults={max:4};
 G.roomSet=[];G.ruleSet=[];
@@ -235,7 +235,6 @@ function hold(on){
 function toggleStar(){
   if(!canPlay()||!(V.o.stars>0)){sfx('no');return}
   const on=!V.o.st[myIdx()];sendAct({t:'star',on});starSent=on;
-  tone(on?880:440,.07,{type:'triangle',vol:.1});
 }
 function putUp(){
   if(!canPlay()||up<0)return;
@@ -284,7 +283,8 @@ G.buttons=()=>{
 G.logCue=()=>false;
 G.cues=(v,pv)=>{
   const a=v.o,b=pv&&pv.o;if(!a||!b)return;
-  if(a.pc>b.pc&&a.gn===b.gn&&a.lv===b.lv)sfx('play',1);
+  if(a.pc>b.pc&&a.gn===b.gn&&a.lv===b.lv&&!M.on)sfx('play',1);   // 3D에서는 카드가 내려앉는 순간에 (fly)
+  {const n=x=>x.st.filter(Boolean).length,d=n(a)-n(b);if(a.ph==='play'&&b.ph==='play'&&d)tone(d>0?880:440,.07,{type:'triangle',vol:.1})}
   if(b.ph==='focus'&&a.ph==='play')tone(660,.1,{type:'sine',vol:.1});
   a.ups.forEach((u,i)=>{if(u&&!b.ups[i])hiss(.05,{freq:2600,q:1.2,vol:.1})});
   if(a.show&&(!b.show||b.show.id!==a.show.id)){
@@ -300,7 +300,7 @@ G.cues=(v,pv)=>{
    가운데 점선 원 = 쌓이는 카드, 위쪽 호 = 생명·표창 말, 한가운데 펠트 = 레벨 글자. 자리마다 펠트 밖 나무 위 구멍 하나: 시작 버튼이 들어가면 같은 구멍으로 표창 버튼이 올라옴.
    자리 물건은 seatAngle을 따라 놓임 */
 const R_UP=2.42,R_BTN=3.82,T_BTN=-1.15;
-const M={on:false,built:false,fail:false,root:null,seats:[],lv:[],sv:[],ups:[],showC:[],showId:0,key:'',dirty:true,raf:0,ray:null,hk:-1,hkAt:0};
+const M={on:false,built:false,fail:false,root:null,seats:[],lamps:[],fly:[],lv:[],sv:[],ups:[],showC:[],showId:0,key:'',dirty:true,raf:0,ray:null,hk:-1,hkAt:0};
 const ez=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 function heartTex(){return canvasTex(128,128,(g,w,h)=>{
   g.fillStyle='#fff3e0';g.fillRect(0,0,w,h);g.fillStyle='#d83a3a';g.beginPath();g.moveTo(64,106);g.bezierCurveTo(10,66,18,20,64,44);g.bezierCurveTo(110,20,118,66,64,106);g.fill()})}
@@ -335,7 +335,8 @@ function build(){
     const texPlane=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;const t=new THREE.CanvasTexture(c);t.anisotropy=4;return {c,t,key:''}};
     {const L=texPlane(640,160),m=new THREE.Mesh(new THREE.PlaneGeometry(3.2,.8),new THREE.MeshBasicMaterial({map:L.t,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(0,.024,0);m.renderOrder=1;root.add(m);M.lvT=L;
      if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{L.key=''})}
-    {const L=texPlane(256,96),sp=new THREE.Sprite(new THREE.SpriteMaterial({map:L.t,transparent:true,depthTest:false,depthWrite:false}));sp.scale.set(1,.375,1);sp.renderOrder=50;sp.visible=false;root.add(sp);L.sp=sp;M.cnt=L}
+    {const gH=new THREE.CircleGeometry(.1,24),gB=new THREE.SphereGeometry(.078,18,10),bm=new THREE.MeshBasicMaterial({color:0xffd24a});   // 표창 불: 인원수만큼 판 홈
+     for(let k=0;k<4;k++){const h=new THREE.Mesh(gH,hole);h.rotation.x=-Math.PI/2;h.position.y=.022;root.add(h);const b=new THREE.Mesh(gB,bm);b.position.y=.03;root.add(b);M.lamps.push({h,b,on:false,t0:-1e9})}}
     M.ray=new THREE.Raycaster();M.built=true;
   }catch(e){M.fail=true;try{console.warn('더 마인드 3D 준비 실패',e)}catch(_){}}
   return M.built;
@@ -349,7 +350,7 @@ function place3D(){
   });
   const lay=(L,mid)=>L.forEach((t,k)=>{const [x,z]=tokenPos(k,L.length,mid);t.o.position.set(x,.04,z)});
   lay(M.lv,-Math.PI*.72);lay(M.sv,-Math.PI*.27);
-  {const [x,z]=tokenPos(0,1,-Math.PI*.27);M.cnt.sp.position.set(x,.5,z)}
+  M.lamps.forEach((l,k)=>{const on=k<n;l.h.visible=on;l.b.visible=false;if(!on)return;const a=-Math.PI*.27+(k-(n-1)/2)*.27,x=Math.cos(a)*1.9,z=Math.sin(a)*1.9;l.h.position.x=l.b.position.x=x;l.h.position.z=l.b.position.z=z});
 }
 /* 매 프레임: 버튼·말 움직임 (시작 시각과의 차이로) */
 function step(){
@@ -378,8 +379,28 @@ function step(){
   });
   tok(M.lv,o.lives);tok(M.sv,o.stars);
   {const L=M.lvT,txt=`${o.blind?'BLIND':'LEVEL'} ${o.lv}`;if(L.key!==txt){L.key=txt;const g=L.c.getContext('2d'),w=L.c.width,h=L.c.height;g.clearRect(0,0,w,h);g.fillStyle='#2f7350';g.font='700 118px "IBM Plex Mono", monospace';g.textAlign='center';g.textBaseline='middle';g.fillText(txt,w/2,h/2+6);L.t.needsUpdate=true}}
-  {const L=M.cnt,n=V.st==='play'&&o.ph==='play'?o.st.filter(Boolean).length:0,txt=`(${n}/${o.st.length})`;L.sp.visible=n>0;
-   if(n&&L.key!==txt){L.key=txt;const g=L.c.getContext('2d'),w=L.c.width,h=L.c.height;g.clearRect(0,0,w,h);g.font='700 66px "IBM Plex Mono", monospace';g.textAlign='center';g.textBaseline='middle';g.lineWidth=10;g.lineJoin='round';g.strokeStyle='#3a2a10';g.strokeText(txt,w/2,h/2+3);g.fillStyle='#ffd24a';g.fillText(txt,w/2,h/2+3);L.t.needsUpdate=true}}
+  {const n=V.st==='play'&&o.ph==='play'?o.st.filter(Boolean).length:0;
+   M.lamps.forEach((l,k)=>{if(!l.h.visible)return;const on=k<n;if(on!==l.on){l.on=on;l.t0=now}
+     const x=l.on?ez((now-l.t0)/140):1-ez((now-l.t0)/140);l.b.visible=x>.01;l.b.scale.set(Math.max(.01,x),Math.max(.01,x*.6),Math.max(.01,x))})}
+  flyStep(now);
+}
+/* 카드 뒤집어 내기: 탁자를 뚫지 않게 위로 들어 올리면서 뒤집고 내려앉음 (시작 시각과의 차이로) */
+const FLY_MS=420,FLY_H=.8;
+function fly(c,to,rx,ry,snd){
+  const u=c.userData;u.man=true;
+  M.fly.push({c,t0:clock(),x0:c.position.x,y0:c.position.y,z0:c.position.z,r0:c.rotation.x,ry0:c.rotation.y,s0:c.scale.x,to:to.clone(),rx,ry,snd});
+}
+function flyStep(now){
+  M.fly=M.fly.filter(f=>{
+    const c=f.c;if(!T.cards.has(c))return false;
+    const k=Math.min(1,Math.max(0,(now-f.t0)/FLY_MS)),e=ez(k),L=(a,b)=>a+(b-a)*e;
+    c.position.set(L(f.x0,f.to.x),L(f.y0,f.to.y)+Math.sin(Math.PI*k)*FLY_H,L(f.z0,f.to.z));
+    c.rotation.x=L(f.r0,f.rx);c.rotation.y=L(f.ry0,f.ry);c.scale.setScalar(L(f.s0,1));
+    if(k<1)return true;
+    const u=c.userData;u.man=false;u.p.copy(f.to);u.rx=f.rx;u.ry=f.ry;u.s=1;
+    if(f.snd)sfx('play',1);
+    return false;
+  });
 }
 G.field3D=(v,pv,me)=>{
   const o=v.o;if(!o||!T.ok||!M.built)return;
@@ -403,12 +424,12 @@ G.field3D=(v,pv,me)=>{
   if(o.pc<T.field.length)while(T.field.length>o.pc)killCard(T.field.pop());
   while(T.field.length<o.pc){
     const k=T.field.length,val=o.pv?o.pv[k]:null,f=M.upFrom||seatPos(o.ls>=0?o.ls:0,R_UP);f.y=.2;M.upFrom=null;
-    const c=makeCard(f,Math.PI/2,0,1),u=c.userData;
-    u.p.set(0,.03+k*.012,0);u.ry=rand(-.14,.14);u.rx=val==null?Math.PI/2:-Math.PI/2;
+    const c=makeCard(f,Math.PI/2,0,1),u=c.userData,to=new THREE.Vector3(0,.03+k*.012,0),rx=val==null?Math.PI/2:-Math.PI/2,ry=rand(-.14,.14),live=!!(pv&&pv.o&&pv.o.pc===k&&pv.o.gn===o.gn);
     if(val!=null)c.children[0].material=faceMat(val);
+    if(live)fly(c,to,rx,ry,true);else{u.p.copy(to);u.rx=rx;u.ry=ry;c.position.copy(to);c.rotation.x=rx;c.rotation.y=ry}
     T.field.push(c);
   }
-  if(o.pv&&v.st==='over')T.field.forEach((c,k)=>{if(c.userData.rx>0){c.children[0].material=faceMat(o.pv[k]);c.userData.rx=-Math.PI/2}});
+  if(o.pv&&v.st==='over')T.field.forEach((c,k)=>{if(c.userData.rx>0&&!c.userData.man){c.children[0].material=faceMat(o.pv[k]);fly(c,c.userData.p,-Math.PI/2,c.userData.ry,false)}});
   // 버린 카드: 앞면으로 떠서 보여 줌
   const sid=o.show&&o.show.c.length?o.show.id:0;
   if(sid!==M.showId){
@@ -451,13 +472,20 @@ G.hud=inGame=>{
   const on=!!(inGame&&V&&V.o);
   elBox.hidden=!on;
   const d3=on&&build();
-  if(d3!==M.on){M.on=d3;if(M.root)M.root.visible=d3;$('#stage').classList.toggle('md3d',d3);if(d3){M.key='';if(!M.raf)M.raf=requestAnimationFrame(step)}}
+  if(d3!==M.on){M.on=d3;plainFelt(d3);if(M.root)M.root.visible=d3;$('#stage').classList.toggle('md3d',d3);if(d3){M.key='';if(!M.raf)M.raf=requestAnimationFrame(step)}}
   $('#stage').classList.add('mdg');
   $('#stage').classList.toggle('md2d',on&&!d3);
   if(!on){clearField();return}
   draw2d();
   if(V.st==='over'&&bestGn!==V.o.gn){bestGn=V.o.gn;saveBest()}
 };
+/* 이 게임 동안만 노란 점선이 없는 펠트 그림으로 (공통 그림은 나갈 때 되돌림) */
+function plainFelt(on){
+  if(!T.ok||!T.felt)return;
+  const m=T.felt.mat.material[1];
+  if(!M.feltT){const src=T.felt.tex;M.feltO=src;M.feltT=canvasTex(1024,1024,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,80,w/2,h/2,w/2);gr.addColorStop(0,'#5fae7b');gr.addColorStop(1,'#3f8a5f');g.fillStyle=gr;g.fillRect(0,0,w,h);g.strokeStyle='rgba(255,250,240,.5)';g.lineWidth=6;g.beginPath();g.arc(w/2,h/2,488,0,7);g.stroke()})}
+  const want=on?M.feltT:M.feltO;if(m.map!==want){m.map=want;m.needsUpdate=true}
+}
 function clearField(){
   for(const c of M.ups)if(c)killCard(c);M.ups=[];
   for(const c of M.showC)killCard(c);M.showC=[];M.showId=0;
@@ -488,7 +516,7 @@ G.enter=()=>{$('#btnGura').hidden=true};
 G.leave=()=>{
   holding=false;up=-1;clearField();
   if(elBox)elBox.hidden=true;
-  if(M.root)M.root.visible=false;M.on=false;M.key='';
+  if(M.root)M.root.visible=false;M.on=false;M.key='';plainFelt(false);M.fly=[];
   $('#stage').classList.remove('mdg','md3d','md2d');
   $('#btnPass').hidden=false;
   $('#btnPass').firstChild.nodeValue='패스';
