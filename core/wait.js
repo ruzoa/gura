@@ -110,6 +110,7 @@ function frame(){
   liveUI(t);
   requestAnimationFrame(frame);
 }
+const HOLO_TAG_Y=1.266,HOLO_TAG_H=99;   // 평소 홀로그램 글씨 아래 끝의 3D 높이(frontHoloPose: 투사기 .006 + .27 + 빛기둥 .85 + .14)와 글씨 묶음 높이(px)
 function placeLabels(){
   if(!V||!V.ps)return;
   const st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight;
@@ -129,6 +130,13 @@ function placeLabels(){
     else{const a=seatAngle(i);x=W/2+Math.sin(a)*W*.38;y=Hh/2+Math.cos(a)*Hh*.36}
     const hw=el.offsetWidth/2,hh=el.offsetHeight/2;
     x=Math.max(hw+6,Math.min(W-hw-6,x));y=Math.max(hh+6,Math.min(Hh-hh-6,y));
+    if(el.dataset.w!=null&&T.ok){   // 홀로그램 글씨를 평소 자리 기준으로 비킴(게임 고를 때 글씨가 올라가도 이름표는 그대로). 위에 자리가 없으면 옆으로
+      const q=new THREE.Vector3(0,HOLO_TAG_Y,0).project(T.cam),cx=(q.x+1)/2*W,bot=(1-q.y)/2*Hh,top=bot-HOLO_TAG_H,half=Math.max($('#holoTitle').offsetWidth,130)/2,gap=6;
+      if(Math.abs(x-cx)<half+hw+gap&&y+hh>top-gap&&y-hh<bot+gap){
+        if(top-gap-hh*2>=6)y=top-gap-hh;
+        else{x=cx+(x<cx?-1:1)*(half+hw+gap);y=hh+6}   // 맨 위 줄로 올려 옆자리 이름표(8인)와 겹치지 않게
+      }
+    }
     // 위쪽 HUD·오른쪽 위 버튼과 겹치면 그 아래로, 오른쪽 아래 행동 버튼과 겹치면 위로
     // 겹치는 상자의 가운데보다 위면 위로, 아래면 아래로 비켜 감 (두 번 확인)
     for(let pass=0;pass<2;pass++)for(const r of avoid){
@@ -159,7 +167,7 @@ function placeLabels(){
     }else vd.style.top='8px';
   }
 }
-/* 이름표가 비켜 갈 화면 요소. 홀로그램 글씨(#holoTag)는 넣지 않음: 게임을 고를 때 글씨 높이가 바뀌어 맞은편 이름표가 위아래로 튐 */
+/* 이름표가 비켜 갈 화면 요소. 홀로그램 글씨(#holoTag)는 게임을 고를 때 높이가 바뀌어 맞은편 이름표가 튀므로 넣지 않고, placeLabels가 평소 자리(HOLO_TAG_Y)를 비킴 */
 function stageRects(){
   const st=$('#stage').getBoundingClientRect(),out=[];
   for(const id of ['btnLog','btnFs','btnMenu','actions','numpick','me','ruleBadges']){
