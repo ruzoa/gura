@@ -29,6 +29,8 @@ act(1,{t:'guess',v:'0123'});eq(H.nb.rec.length,2,'both shown');pass(T.WIN_RV);eq
 setup(1,2);act(0,{t:'set',v:'0123'});act(1,{t:'set',v:'4567'});act(0,{t:'guess',v:'4567'});NOW+=46000;engineTick();eq(H.nb.rec.filter(r=>r.g).length,1,'timeout skips');eq(H.nb.rec[1].g,null,'skip row');pass(T.WIN_RV);eq(H.nb.res.w,0,'one found wins');
 setup(1,2);act(0,{t:'set',v:'0123'});NOW+=46000;engineTick();eq(H.nb.ph,'guess','secret auto');eq(T.validNum(H.nb.secs[1],4),true,'auto secret valid');
 setup(1,2);act(0,{t:'set',v:'0123'});act(1,{t:'set',v:'4567'});for(let k=0;k<3;k++){NOW+=46000;engineTick();pass(T.RV_MS)}eq(H.phase,'over','idle ends');eq(H.nb.res.w,-1,'idle draw');
+/* 맞대결: 누른 횟수만 알림 (숫자는 없음) */
+setup(1,2);act(0,{t:'tap'});eq(snapFor(1).o.tp[0],1,'tap count');eq(JSON.stringify(snapFor(1).o).includes('"tap"'),false,'no key sent');
 /* 경주: 차례, 이미 나온 수, 버저 */
 setup(2,3);
 {let a=H.turn,O=H.nb,s=O.sec,g=wrong(s),o=(a+1)%3;

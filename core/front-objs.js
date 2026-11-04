@@ -337,7 +337,7 @@ function frontUpdate(t,dt){
   if(FR.oa.to!==ow)sfx('lid');
   FR.open=frontTween(FR.oa,ow,t,ow?520:420);
   if(T.board){const o=smooth(FR.open),fb=t-(FR.fullAt||-1e9);T.board.g.rotation.x=-o*2.05;T.board.g.position.x=fb<260?Math.sin(fb/22)*.018*(1-fb/260):0;   // 4자리 넘게 누르면 부르르
-    T.board.hole.visible=o>.02;T.board.screen.visible=o>.02;T.board.g.visible=o>.001&&!(G.ownBoard&&V&&V.st&&V.st!=='wait'&&mode!=='lobby')}   // 닫히면 덮개도 안 보임(탁자 위는 깔끔하게)   // 첫 화면(서서 볼 때)은 탁자만: 덮개도 안 보임
+    T.board.hole.visible=o>.02;T.board.screen.visible=o>.02;T.board.g.visible=o>.001&&!(G.boardHide||(G.ownBoard&&V&&V.st&&V.st!=='wait'&&mode!=='lobby'))}   // 닫히면 덮개도 안 보임(탁자 위는 깔끔하게)   // 첫 화면(서서 볼 때)은 탁자만: 덮개도 안 보임
   // 키판: 첫 화면에서 디스플레이가 열리면 올라옴. 누르면 그 키가 쑥 들어감 (주사위 키는 구르듯 흔들림)
   // 키판: 디스플레이 아래에서 미끄러져 나온 뒤(0~.6) 올라옴(.6~1). 들어갈 때는 거꾸로. 목록 판과 번갈아 나옴
   if(!lobby||!FR.sit||FR.spread||FR.warp)FR.list=false;
