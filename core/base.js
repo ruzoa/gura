@@ -13,7 +13,7 @@ const isJ=id=>id>=JOKER_BASE;
 const JOKER_C='#efbc4e';
 /* ===== 게임 목록 =====
    G = 지금 화면에 보이는 게임, EG() = 방장 엔진이 돌리는 게임 (방장 화면에서는 둘이 같음) */
-const GAME_IDS=['gura','president','quoridor','yahtzee','omok','chess','janggi','blackjack','poker','alkkagi','blackwhite','animal'];
+const GAME_IDS=['gura','president','quoridor','yahtzee','omok','chess','janggi','blackjack','poker','alkkagi','blackwhite','animal','baseball'];
 let G=GAMES.gura;
 const EG=()=>(H&&H.cfg&&GAMES[H.cfg.game])||GAMES.gura;
 const gameOf=id=>GAMES[id]||GAMES.gura;
@@ -41,7 +41,7 @@ const BOT_LV=['쉬움','보통','어려움'];
 const COMMON_SET=[
   {k:'max',label:'최대 인원',unit:'명',lo:2,hi:8,step:1,desc:'현재 인원보다 적게 줄일 수 없습니다'},
   {k:'spec',label:'관전 인원',unit:'명',lo:0,hi:8,step:1,desc:'게임 중이거나 탁자가 가득 차면 관전으로 들어옵니다'}];
-const roomSetOf=(g,c)=>[...COMMON_SET.map(d=>{const hi=d.k==='max'?(g.maxOf&&c?g.maxOf(c):g.maxHi):0;return hi?{...d,hi}:d}),...g.roomSet];   // g.maxHi: 그 게임의 최대 인원 (쿼리도 4명), g.maxOf(방 설정): 규칙에 따라 달라지는 최대 인원 (알까기 오목 모드 2명)
+const roomSetOf=(g,c)=>[...COMMON_SET.map(d=>{const hi=d.k==='max'?(g.maxOf&&c?g.maxOf(c):g.maxHi):0;return hi?{...d,hi,lo:Math.min(d.lo,hi)}:d}),...g.roomSet];   // g.maxHi: 그 게임의 최대 인원 (쿼리도 4명), g.maxOf(방 설정): 규칙에 따라 달라지는 최대 인원 (알까기 오목 모드 2명)
 const cfgKey=id=>id==='gura'?'gura-roomcfg':'gura-roomcfg-'+id;
 /* 게임별로 저장해 둔 방 설정 (없으면 기본값). 범위 밖이면 가까운 값으로 */
 function cfgFor(id){

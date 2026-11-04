@@ -102,7 +102,7 @@ function hostSetGame(id){
   if(mode!=='host'||!H||H.phase!=='wait'||!GAMES[id]||H.cfg.game===id)return;
   const mx=GAMES[id].maxHi;   // 인원 제한이 있는 게임: 지금 인원이 넘으면 바꾸지 않음
   if(mx&&H.members.length>mx){addLog(`${GAMES[id].name}은(는) 최대 ${mx}명까지 할 수 있습니다.`,'sys');mark();return}
-  const keep={max:Math.max(H.cfg.max,H.members.length),spec:H.cfg.spec,pub:H.cfg.pub,fast:H.cfg.fast};
+  const keep={max:Math.max(H.cfg.max,H.members.length,2),spec:H.cfg.spec,pub:H.cfg.pub,fast:H.cfg.fast};
   if(mx)keep.max=Math.min(keep.max,mx);
   if(keep.max<+H.cfg.max)shrinkSeats(keep.max);   // 줄어드는 만큼 뒤쪽 빈 의자부터 뺌(앉은 사람·봇 자리 순서 그대로)
   H.cfg={...cfgFor(id),...keep};if(GAMES[id].fixCfg)H.cfg=GAMES[id].fixCfg(H.cfg,H.members.length,false);store('gura-game',id);

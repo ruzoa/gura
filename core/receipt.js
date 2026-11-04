@@ -65,6 +65,7 @@ function rcptUpdate(t){
   const on=!!(T.ok&&V&&V.code&&V.st&&V.st!=='wait'&&(mode==='host'||mode==='guest'))&&!(G.no3D&&!G.render3D)&&!/\b(qd2d|om2d)\b/.test($('#stage').className);
   document.body.classList.toggle('rc3d',!!T.ok);
   if(on)rcptSync();else if(R.rows.length&&!(V&&V.st&&V.st!=='wait')){R.rows=[];if(R.open)rcptClose(true)}
+  if(G.rcOwn){R.out.visible=R.inn.visible=R.paper.visible=R.ink.visible=false;$('#rcHot').classList.add('off');return}   // 종이를 게임이 직접 그림(숫자야구): 기록만 받고 2D 영수증은 그대로 씀
   const cam=T.lastCam||T.cam,st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight;
   // 카메라가 멈췄는지 (시작 연출·화면 크기 변경 중에는 자리를 정하지 않음)
   cam.updateMatrixWorld();const e=cam.matrixWorld.elements,ck=[e[12],e[13],e[14],e[8],e[9],e[10],cam.projectionMatrix.elements[0]].map(v=>v.toFixed(3)).join(',');

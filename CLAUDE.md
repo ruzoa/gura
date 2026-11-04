@@ -1,4 +1,4 @@
-# 탁자하나 (A table) — 게임 모음 (구라! · 대부호 · 쿼리도 · 야추다이스 · 오목 · 체스 · 장기 · 블랙잭 · 포커 · 알까기 · 흑과백 · 동물장기)
+# 탁자하나 (A table) — 게임 모음 (구라! · 대부호 · 쿼리도 · 야추다이스 · 오목 · 체스 · 장기 · 블랙잭 · 포커 · 알까기 · 흑과백 · 동물장기 · 숫자야구)
 
 사이트 이름은 **탁자하나**(영어 A table), 로비 메뉴는 **상차리기**(방 만들기)·**참여하기**(방 들어가기), 링크 미리보기 문구는 "그저 탁자 하나"입니다. 구라!는 그 안의 게임 하나입니다.
 화면에서 방은 **탁자**로 부릅니다: 탁자 이름, 탁자 번호(4자리 코드), 공개 탁자·비공개 탁자, 탁자 목록, 아무 탁자나 앉기, 번호로 참여하기, 탁자 설정, 탁자 떠나기. **방장**과 **대기실**은 그대로 씁니다. 코드 안의 이름(`room`, `H.code`, `gura-` 저장 키, PeerJS 이름표)은 바꾸지 않습니다.
@@ -26,6 +26,7 @@
 | `games/alkkagi.js`, `games/hand3d.js` | 알까기 (2~4명·물리는 방장만·3D 손·게임 모드 바둑/오목(2명, 아무 점에 놓거나 튕김)/장기(2명, 장기판·상차림, 알마다 크기·무게, 부딪히면 돎)) | `docs/alkkagi.md` |
 | `games/blackwhite.js` | 흑과백 (2명 숫자 타일 0~8·색만 보고 겨루기·0은 8을 잡음·5점/9판·쉬움 봇) | `docs/blackwhite.md` |
 | `games/animal.js` | 동물장기 (3×4 판·포로 놓기·사자 잡기/도착·3단계 봇·3D 타일 말·게임 모드 십이장기(한자 말, 상대 진영 포로 금지, 왕 도착은 상대 한 수 뒤 승리)) | `docs/animal.md` |
+| `games/baseball.js` | 숫자야구 (3~5자리·게임 모드 혼자(10번)/맞대결(동시 공격)/경주(결과 공유·버저, 틀리면 사망)·플립 판·램프 메모·6×2 자판·판 옆 긴 영수증·3단계 봇) | `docs/baseball.md` |
 | `tests/`, `dicepick.js`, `lab*.html`, `manifest.webmanifest`, `sw.js`, 아이콘 | 테스트(`node tests/engine.test.js`, `node tests/dicepick.test.js`), 첫 차례 주사위 계산·주사위 만들기, 연출·아이콘 테스트룸, 홈 화면 앱 | `docs/tools.md` |
 
 - 공통 코드는 `G`(지금 화면의 게임)와 `EG()`(방장 엔진이 돌리는 게임)를 통해 게임 모듈의 함수를 부릅니다. 기준 모듈은 `games/gura.js`입니다.
@@ -51,7 +52,7 @@
   - 안 되는 곳을 누르면 글 대신 공통 금지 소리 `sfx('no')`를 냅니다. 왜 안 되는지는 화면에 보여야 합니다(초록 점, 빨간 ✕, 빨간 벽 등).
   - 안내 줄에는 꼭 필요한 것만 짧게 남깁니다(진행 단계, 판 시작 안내, 결과, 조커처럼 화면만으로 알 수 없는 규칙). 비면 자리만 남기고 숨깁니다(`:empty{visibility:hidden}` 또는 고정 높이).
 - **안전 영역(노치·홈 바)**: `body.fs` 한 곳에서만 `env(safe-area-inset-*)` 패딩을 줍니다. `html`/`:root`에 또 주면 홈 화면 앱 위쪽에 띠가 두 번 생깁니다.
-- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`, `gura-roomcfg-chess`, `gura-roomcfg-janggi`, `gura-roomcfg-blackjack`, `gura-roomcfg-poker`, `gura-roomcfg-alkkagi`, `gura-roomcfg-blackwhite`, `gura-roomcfg-animal`). 오목은 이 밖에 커스텀 규칙 기억(`gura-omok-custom`)과 세부 설정 펼침(`gura-omok-more`)도 저장합니다.
+- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`, `gura-roomcfg-chess`, `gura-roomcfg-janggi`, `gura-roomcfg-blackjack`, `gura-roomcfg-poker`, `gura-roomcfg-alkkagi`, `gura-roomcfg-blackwhite`, `gura-roomcfg-animal`, `gura-roomcfg-baseball`). 숫자야구는 그 판의 램프 메모(`gura-nb-lamp`)도 저장합니다. 오목은 이 밖에 커스텀 규칙 기억(`gura-omok-custom`)과 세부 설정 펼침(`gura-omok-more`)도 저장합니다.
 - **움직임 줄이기**: 기기의 '움직임 줄이기'(`prefers-reduced-motion`) 설정을 보고 게임 움직임을 끄지 않습니다. 시작 연출, 주사위 굴리기, 말·벽 이동, 돌 놓기처럼 게임 진행을 보여 주는 움직임은 설정과 상관없이 모든 기기에서 똑같이 보여야 합니다. `matchMedia('(prefers-reduced-motion…')`로 움직임을 건너뛰는 코드를 새로 넣지 않습니다. (아직 남은 예외: `games/yahtzee.js`의 2D 주사위 CSS. 손볼 때 같이 정리)
 
 ## 모든 모드 공통 원칙
@@ -90,7 +91,7 @@
 - **걸기 전 물건과 건 물건은 자리를 나눔**: 올려 둔 칩은 '베팅할 칩 공간'에서만 누르기·밀기, 확정되면 '베팅한 칩 공간'으로 가서 못 건드림(블랙잭·포커 `V3.pend`).
 - **펠트 크기는 고정값으로 쓰지 않음**: 게임 중 펠트가 커질 수 있으니(블랙잭·포커 천 확대) 펠트 위 판단은 `T.felt.mat.scale`을 읽음(영수증 `rcY`).
 - **쌓인 물건은 맨 위를 누름**: 칩 기둥은 맨 위 칩 높이에서 누르는 자리를 잡고(`topChipAt`), 높은 기둥이 화면에서 뒤 칸을 가리지 않게 카메라 쪽으로 물림. 펠트에 까는 표시(시간 바)도 쌓이는 물건 바로 뒤가 아니라 카메라 쪽 앞에.
-- **영수증 자리는 공통 장면 카메라로만**(`T.lastCam`).
+- **영수증 자리는 공통 장면 카메라로만**(`T.lastCam`). 기록을 보면서 추리하는 게임은 `G.rcOwn`으로 공통 종이를 숨기고 판 옆에 직접 깔 수 있음(기록·2D 영수증은 공통 그대로, 숫자야구).
 - **화면 전체를 도는 그림 단계는 물건 자리만**(`setScissor`).
 - **연출 중에 다시 만든 물건은 그 시각의 모습으로**: 상태가 바뀌어 물건을 다시 만들면(배치가 돌거나 칩 기둥이 바뀜) 만들자마자 연출 시작 시각 기준으로 첫 모습을 맞춤(블랙잭 `dropGroup`·`rootDropY`).
 - **결과는 연출을 앞지르지 않음**: 점수·남은 수·진행 기록·카드 합계는 연출이 그 장면에 닿았을 때 바꿉니다(블랙잭 `landedOf`).
