@@ -4,20 +4,53 @@ const FLOOR_Y=-2.6;   // 바닥 높이 (탁자 윗면 0). 의자·풀·나무가
 const T={ok:false,cards:new Set(),field:[],stacks:new Map(),faces:new Map()};
 function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.anisotropy=4;return t}
 function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
-/* 카드 뒷면: 위에서 본 둥근 탁자와 나무 기둥 의자 4개. 모든 게임이 같은 그림이고, 카드를 돌려도 티가 나지 않게 180도 대칭으로 그림 */
-function backTex(){return canvasTex(256,372,(g,w,h)=>{
-  const INK='#fffcf5',RED='#cc3a2e',FELT='#a92c22',cx=w/2,cy=h/2;
+/* 카드 뒷면: 나무 상판 하나. 어두운 초록 테두리 + 크림 띠 + 판자 3장 + 네 귀퉁이 그루터기 + 가운데 도토리 조각.
+   모든 게임이 같은 그림이고, 카드를 돌려도 티가 나지 않게 네 쪽을 거울로 맞춰 그림 */
+function backTex(){return canvasTex(512,744,(g,w,h)=>{
+  const CREAM='#f3e9d6',GREEN='#1d4632',GOLD='#d8b75e',WOOD='#c8965a',WOOD2='#bb8749',SEAM='#7f5230',GRAIN='rgba(112,70,34,.3)',
+    BARK='#5b3820',CUT='#e8c690',RING='#b0824c',DEEP='#74492a',DEEP2='#57351e',LIGHT='#e4bb7e',CAP='#a9743f',cx=w/2,cy=h/2,MIR=[[1,1],[-1,1],[1,-1],[-1,-1]];
   const disc=(x,y,r,c)=>{g.fillStyle=c;g.beginPath();g.arc(x,y,r,0,7);g.fill()};
-  g.fillStyle=INK;rr(g,0,0,w,h,22);g.fill();
-  g.fillStyle=RED;rr(g,12,12,w-24,h-24,14);g.fill();
-  g.save();rr(g,12,12,w-24,h-24,14);g.clip();g.strokeStyle='rgba(255,255,255,.13)';g.lineWidth=3;   // 옅은 다이아몬드 격자: 가운데에서 대칭으로
-  for(let k=-24;k<=24;k++){const d=k*36;g.beginPath();g.moveTo(cx+d-h,cy-h);g.lineTo(cx+d+h,cy+h);g.moveTo(cx+d+h,cy-h);g.lineTo(cx+d-h,cy+h);g.stroke()}
+  const ring=(x,y,r,c,l)=>{g.strokeStyle=c;g.lineWidth=l;g.beginPath();g.arc(x,y,r,0,7);g.stroke()};
+  g.fillStyle=CREAM;rr(g,0,0,w,h,44);g.fill();
+  g.fillStyle=GREEN;rr(g,12,12,w-24,h-24,36);g.fill();
+  g.fillStyle=CREAM;rr(g,42,42,w-84,h-84,24);g.fill();
+  const pw=w/2-58,ph=h/2-58;   // 나무 면의 절반 크기
+  g.save();rr(g,58,58,w-116,h-116,14);g.clip();
+  for(const [sx,sy] of MIR){   // 오른쪽 아래 한 쪽만 그려 네 쪽으로
+    g.save();g.beginPath();g.rect(sx>0?cx:0,sy>0?cy:0,cx,cy);g.clip();g.translate(cx,cy);g.scale(sx,sy);
+    g.fillStyle=WOOD;g.fillRect(0,0,70,ph);g.fillStyle=WOOD2;g.fillRect(70,0,pw-70,ph);
+    g.strokeStyle=GRAIN;g.lineWidth=3;g.lineCap='round';
+    for(const [x,a,b] of [[26,40,190],[48,120,300],[104,10,120],[126,90,220],[150,30,110]]){g.beginPath();g.moveTo(x,a);g.quadraticCurveTo(x+5,(a+b)/2,x,b);g.stroke()}
+    g.fillStyle=SEAM;g.fillRect(68,0,5,ph);
+    disc(pw-56,ph-54,62,BARK);disc(pw-50,ph-44,56,CUT);   // 그루터기
+    for(const r of [14,28,42])ring(pw-50,ph-44,r,RING,4);disc(pw-50,ph-44,5,RING);
+    g.restore();
+  }
   g.restore();
-  disc(cx,cy,112,RED);   // 격자가 탁자·의자에 닿지 않게 비워 둠
-  for(const [x,y] of [[0,-92],[92,0],[0,92],[-92,0]])disc(cx+x,cy+y,15,INK);   // 의자
-  disc(cx,cy,66,INK);disc(cx,cy,53,FELT);   // 나무 띠 + 펠트
-  g.strokeStyle=INK;g.lineWidth=4;g.lineCap='round';   // 펠트 가운데 점선 원
-  for(let k=0;k<12;k++){const a=k*Math.PI/6+.1;g.beginPath();g.arc(cx,cy,30,a,a+.3);g.stroke()}
+  g.fillStyle=GOLD;   // 초록 테두리의 굵은 땀
+  for(const [sx,sy] of MIR){g.save();g.translate(cx,cy);g.scale(sx,sy);
+    for(let x=14;x<cx-56;x+=32){g.beginPath();g.ellipse(x,cy-27,9,3.5,0,0,7);g.fill()}
+    for(let y=14;y<cy-56;y+=32){g.beginPath();g.ellipse(cx-27,y,3.5,9,0,0,7);g.fill()}
+    g.restore()}
+  /* 가운데 조각: 파인 꽃 모양 + 잎 4장 + 도토리 4개 */
+  g.save();g.translate(cx,cy);
+  const rose=(r,k,c)=>{disc(0,0,r,c);for(let i=0;i<8;i++){const a=i*Math.PI/4+Math.PI/8;disc(Math.cos(a)*r*.9,Math.sin(a)*r*.9,k,c)}};
+  rose(116,42,DEEP2);rose(108,38,DEEP);
+  const leaf=()=>{   // 끝이 바깥쪽(-y)인 떡갈잎
+    g.fillStyle=LIGHT;g.beginPath();g.ellipse(0,-30,15,34,0,0,7);g.fill();
+    for(const [y,a] of [[-16,20],[-34,24],[-52,17]])for(const s of [-1,1]){g.beginPath();g.ellipse(s*a*.72,y,a*.62,10,s*-.5,0,7);g.fill()}
+    g.strokeStyle=DEEP;g.lineWidth=4;g.lineCap='round';g.beginPath();g.moveTo(0,8);g.lineTo(0,-56);g.stroke();
+  };
+  const nut=()=>{   // 모자가 바깥쪽(-y)인 도토리
+    g.fillStyle=LIGHT;g.beginPath();g.ellipse(0,6,25,32,0,0,7);g.fill();g.beginPath();g.moveTo(-6,35);g.lineTo(0,46);g.lineTo(6,35);g.fill();
+    g.fillStyle=CAP;g.beginPath();g.moveTo(-29,-4);g.quadraticCurveTo(-30,-32,0,-33);g.quadraticCurveTo(30,-32,29,-4);g.quadraticCurveTo(0,6,-29,-4);g.fill();
+    g.strokeStyle=CAP;g.lineWidth=7;g.lineCap='round';g.beginPath();g.moveTo(0,-32);g.lineTo(3,-44);g.stroke();
+    g.fillStyle='rgba(255,255,255,.3)';g.beginPath();g.ellipse(-10,12,4,11,.15,0,7);g.fill();
+  };
+  for(const [x,y,a] of [[0,-68,0],[0,68,Math.PI],[-68,0,-Math.PI/2],[68,0,Math.PI/2]]){g.save();g.translate(x,y);g.rotate(a);g.scale(.92,.92);leaf();g.restore()}
+  for(const [sx,sy] of MIR){g.save();g.scale(sx,sy);g.translate(52,60);g.rotate(Math.PI-Math.PI/4);g.scale(.84,.84);nut();g.restore()}
+  disc(0,0,10,LIGHT);
+  g.restore();
 })}
 function faceMat(id){
   const gm=G,fk=gm.id+':'+id;   // 같은 id라도 게임마다 그림이 다름

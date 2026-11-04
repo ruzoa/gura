@@ -1324,7 +1324,7 @@ G.init=()=>{
 #pk2d .card{width:36px;height:52px;transform:none!important;cursor:default}
 #pk2d .card .cn{font-size:12px;left:3px;top:1px}#pk2d .card .cn i{font-size:9px}
 #pk2d .card .big{font-size:20px;top:20px}
-#pk2d .card.back{background:#cc3a2e;border:2px solid #fffcf5}
+#pk2d .card.back{background:#1d4632;border:2px solid #f3e9d6}
 #pkNums{position:absolute;inset:0;pointer-events:none;z-index:4}
 .pk-num.hand{padding:1px 8px 2px;background:rgba(255,250,240,.92);border:1.5px solid var(--line-strong);color:var(--ink);font-family:var(--f-body);font-size:12px;box-shadow:0 2px 5px -2px rgba(59,42,31,.4)}
 .pk-num.hand.w{border-color:var(--mustard-edge);box-shadow:0 0 0 2px var(--mustard);color:#7a5200}

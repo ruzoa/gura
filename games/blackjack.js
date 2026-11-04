@@ -1330,7 +1330,7 @@ G.init=()=>{
 #bj2d .card+.card{margin-left:-10px}
 #bj2d .card .cn{font-size:12px;left:3px;top:1px}#bj2d .card .cn i{font-size:9px}
 #bj2d .card .big{font-size:20px;top:20px}#bj2d .card .cn2{display:none}
-#bj2d .card.back{background:#cc3a2e;border:2px solid #fffcf5}
+#bj2d .card.back{background:#1d4632;border:2px solid #f3e9d6}
 #bj2d .t2 b{font-family:var(--f-num)}#bj2d .r2.dl .t2 b{color:#f4ead9}
 #bj2d .t2 b.bust{color:var(--gura)}#bj2d .t2 b.bj{color:#c08a17}
 `;
