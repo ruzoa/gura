@@ -39,7 +39,7 @@ G.drawFace=function(g,w,h,id){
 };
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 콩을 심고 수확해 코인을 가장 많이 모읍니다. 3명은 밭 3개, 4~5명은 밭 2개로 시작합니다</li><li><b>손패</b> : 처음 5장을 받습니다. 손패 순서는 바꿀 수 없습니다. 왼쪽 맨 앞 카드가 다음에 심을 카드이고 새 카드는 맨 뒤로 들어갑니다</li><li><b>1. 손패 심기</b> : 맨 앞 카드를 꼭 심고, 다음 카드도 심을 수 있습니다. 밭을 눌러 심습니다. 한 밭에는 한 종류만 심습니다</li><li><b>2. 공개와 거래</b> : 더미에서 2장을 공개합니다. 차례인 사람은 공개 카드와 손패로, 다른 사람은 손패로 차례인 사람과 거래합니다. 다른 사람끼리는 거래할 수 없고 밭의 카드는 거래할 수 없습니다. 주기만 하는 기증도 됩니다</li><li><b>제안과 수락</b> : 제안을 보내고 상대가 수락하면 바로 교환합니다. 상대는 콩 종류만 볼 수 있고 손패 몇 번째 카드인지는 알 수 없습니다. 제안을 바꾸면 수락은 처음부터 다시 받습니다. 같은 콩이 여러 장이면 손패에서 줄 카드를 먼저 누르고 수락합니다(누르지 않으면 맨 뒤 카드부터 줍니다)</li><li><b>임시 구역</b> : 거래로 받은 카드와 남은 공개 카드는 밭 앞 임시 구역에 놓입니다. 손패로 가져올 수 없고 다시 거래할 수 없습니다</li><li><b>3. 임시 구역 심기</b> : 거래가 끝나면 모두 임시 구역의 카드를 원하는 순서로 전부 심습니다. 카드를 누른 뒤 밭을 누릅니다</li><li><b>4. 뽑기</b> : 차례인 사람이 3장을 뽑아 손패 맨 뒤에 넣습니다</li><li><b>수확</b> : 언제든 내 밭을 두 번 눌러 수확합니다. 밭 전체를 수확하고 장수에 맞는 코인을 얻습니다. 밭 아래 표시는 지금 장수/다음 코인까지 필요한 장수입니다</li><li><b>새싹 보호법</b> : 2장 이상인 밭이 있으면 1장뿐인 밭은 수확할 수 없습니다</li><li><b>끝</b> : 더미가 세 번째로 떨어지면 끝납니다. 뽑기 중이면 바로, 공개 중이면 심기까지 마치고 끝납니다. 남은 밭을 모두 수확하고 코인이 많은 사람이 이깁니다. 같으면 첫 차례 사람에게서 시계 방향으로 가장 먼 사람이 이깁니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 콩을 심고 수확해 코인을 가장 많이 모읍니다. 3명은 밭 3개, 4~5명은 밭 2개로 시작합니다</li><li><b>손패</b> : 처음 5장을 받습니다. 손패 순서는 바꿀 수 없습니다. 왼쪽 맨 앞 카드가 다음에 심을 카드이고 새 카드는 맨 뒤로 들어갑니다. 손패를 꾹 누르면 카드를 크게 볼 수 있습니다</li><li><b>1. 손패 심기</b> : 맨 앞 카드를 꼭 심고, 다음 카드도 심을 수 있습니다. 밭을 눌러 심습니다. 한 밭에는 한 종류만 심습니다</li><li><b>2. 공개와 거래</b> : 더미에서 2장을 공개합니다. 차례인 사람은 공개 카드와 손패로, 다른 사람은 손패로 차례인 사람과 거래합니다. 다른 사람끼리는 거래할 수 없고 밭의 카드는 거래할 수 없습니다. 주기만 하는 기증도 됩니다</li><li><b>제안과 수락</b> : 제안을 보내고 상대가 수락하면 바로 교환합니다. 상대는 콩 종류만 볼 수 있고 손패 몇 번째 카드인지는 알 수 없습니다. 제안을 바꾸면 수락은 처음부터 다시 받습니다. 같은 콩이 여러 장이면 손패에서 줄 카드를 먼저 누르고 수락합니다(누르지 않으면 맨 뒤 카드부터 줍니다)</li><li><b>임시 구역</b> : 거래로 받은 카드와 남은 공개 카드는 밭 앞 임시 구역에 놓입니다. 손패로 가져올 수 없고 다시 거래할 수 없습니다</li><li><b>3. 임시 구역 심기</b> : 거래가 끝나면 모두 임시 구역의 카드를 원하는 순서로 전부 심습니다. 카드를 누른 뒤 밭을 누릅니다</li><li><b>4. 뽑기</b> : 차례인 사람이 3장을 뽑아 손패 맨 뒤에 넣습니다</li><li><b>수확</b> : 언제든 내 밭을 두 번 눌러 수확합니다. 밭 전체를 수확하고 장수에 맞는 코인을 얻습니다. 밭 아래 표시는 지금 장수/다음 코인까지 필요한 장수입니다</li><li><b>새싹 보호법</b> : 2장 이상인 밭이 있으면 1장뿐인 밭은 수확할 수 없습니다</li><li><b>끝</b> : 더미가 세 번째로 떨어지면 끝납니다. 뽑기 중이면 바로, 공개 중이면 심기까지 마치고 끝납니다. 남은 밭을 모두 수확하고 코인이 많은 사람이 이깁니다. 같으면 첫 차례 사람에게서 시계 방향으로 가장 먼 사람이 이깁니다</li></ol>';
 G.modeDesc=['콩을 심고 거래하기','콩을 심고 거래하기'];
 G.defaults={max:5,turn:20,tt:45,buy3:0};
 G.roomSet=[
@@ -323,7 +323,7 @@ G.engine={
 };
 
 /* ---------- 화면: 조작 ---------- */
-let elBox=null,elSt=null,elPan=null,el2d=null,lastPan='',last2d='',tmpSel=-1,arm=-1,armAt=0;
+let elBox=null,elZoom=null,elSt=null,elPan=null,el2d=null,lastPan='',last2d='',tmpSel=-1,arm=-1,armAt=0;
 const C={open:false,to:-1,gf:[],want:[],wf:[]};   // 쓰고 있는 제안 (줄 손패는 공통 sel)
 const lockAt=new Map();   // 제안 id → 수락할 수 있는 시각
 const currentG=()=>typeof GAMES!=='undefined'&&V&&V.cfg&&GAMES[V.cfg.game]?GAMES[V.cfg.game]:null;
@@ -429,6 +429,15 @@ G.buttons=()=>{
   const t=tr?'거래 끝':'넘기기';if(ps.firstChild.nodeValue!==t)ps.firstChild.nodeValue=t;
   if(was!==pb.hidden+':'+ps.hidden)requestAnimationFrame(layoutFan);   // 버튼 수가 바뀌면 손패 자리를 다시 맞춤
 };
+/* 손패를 꾹 누르면 큰 2D 카드 (바깥을 누르면 닫힘) */
+const LP={timer:0,x:0,y:0,fired:false};
+function zoomOpen(id){
+  const t=typ(id),b=BEANS[t],rows=b.m.map((n,k)=>n?`<li><span>${n}장</span><b>${'<i class="bn-co"></i>'.repeat(k+1)}</b></li>`:'').join('');
+  elZoom.innerHTML=`<div class="bn-zc" style="--rc:${b.col}"><div class="bn-zn">${b.n}</div><div class="bn-zb">${beanSvg(b.col)}</div><ul>${rows}</ul><p>${b.c}장</p></div>`;
+  elZoom.hidden=false;sfx('tick');
+}
+function zoomClose(){if(elZoom&&!elZoom.hidden){elZoom.hidden=true;elZoom.innerHTML=''}}
+const lpStop=()=>{clearTimeout(LP.timer);LP.timer=0};
 G.logCue=()=>false;
 G.cues=(v,pv)=>{
   const a=v.o,b=pv&&pv.o;if(!a||!b||a.gn!==b.gn)return;
@@ -442,12 +451,13 @@ G.cues=(v,pv)=>{
 
 /* ---------- 3D: 공통 앉은 카메라 위의 카드 ----------
    자리마다 사람 쪽에서 중심을 향해: 밭(겹쳐 쌓음) · 밭 아래 배지 · 왼쪽 코인 · 밭 앞 임시 구역. 가운데 줄: 더미 · 공개 카드 · 버린 카드 */
-const R_F=2.6,R_B=3.56,R_T=1.62,FW=.8,CS=.8,TS=.62,PX=.42,PZ=-.62,UZ=.42,MAX_COIN=24;
+const R_F=2.6,R_B=3.56,R_T=1.62,FW=.8,CS=.8,TS=.62,PX=.42,PZ=-.62,UZ=.42,MAX_COIN=24,R_ARC=4.36,ARC=1.1;
 const CW=.62*1.2*CS,CH=.9*1.2*CS;   // 밭 카드 크기 (공통 카드 .62×.9 × T.cardK 1.2 × CS)
 const M={on:false,built:false,fail:false,root:null,cards:new Map(),where:new Map(),seats:[],deck:null,labels:[],info:null,ray:null,gn:0,raf:0,hb:null,vp:null};
 const posOf=(i,r,t,y)=>{const a=seatAngle(i),s=Math.sin(a),c=Math.cos(a);return new THREE.Vector3(s*r+c*t,y||0,c*r-s*t)};
-const fieldTan=(f,nf)=>(f-(nf-1)/2)*FW;
-const coinTan=nf=>-(nf/2)*FW-.42;
+const fw=i=>i===myIdx()?FW:FW+.24;   // 상대 밭은 조금 넓게: 내 화면 기준 카드 아래 표가 옆 밭 카드에 얹히지 않게
+const fieldTan=(f,nf,i)=>(f-(nf-1)/2)*fw(i);
+const coinTan=(nf,i)=>-(nf/2)*fw(i)-.34;
 /* 탁자 위 글자는 2D 표: 3D 자리를 따라가고 늘 똑바로, 어느 화면에서나 같은 크기 (step이 자리를 옮김) */
 function label(cls){const el=document.createElement('div');el.className='bn-lb '+cls;el.hidden=true;M.lbBox.appendChild(el);M.labels.push(el);return el}
 function setLabel(el,at,html){
@@ -463,7 +473,10 @@ function badgeOf(i,f){
 }
 const badgeHTML=b=>b.arm?`수확 ${COIN}${b.now}`:`${b.at?`${b.n}/${b.at} ${COIN}${b.c}`:`${b.n} MAX`}${b.lock?'<u>✕</u>':''}`;
 /* 코인 3D: 다섯 개씩 쌓고 옆으로 */
-const coinBase=(i,nf)=>i===myIdx()?{r:R_B+.42,t:-.3,lt:-.72}:{r:R_F+.1,t:coinTan(nf),lt:coinTan(nf)};
+const coinBase=(i,nf)=>i===myIdx()?{r:R_B+.42,t:-.15}:{r:R_F-.3,t:coinTan(nf,i)};
+/* 내 화면 기준 물건 바로 아래 (탁자 z가 클수록 화면 아래) */
+function coinLabelAt(i,nf,n){const a=coinAt(i,nf,0),b=coinAt(i,nf,5*Math.max(0,Math.ceil(n/5)-1));return new THREE.Vector3((a.x+b.x)/2,.03,Math.max(a.z,b.z)+.24)}
+function fieldLabelAt(i,tan,k){const a=seatAngle(i),c=.05*Math.min(Math.max(0,k-1),9),p=posOf(i,R_F+c/2,tan,.03);p.z+=Math.abs(Math.cos(a))*(CH+c)/2+Math.abs(Math.sin(a))*CW/2+.13;return p}
 function coinAt(i,nf,k){const b=coinBase(i,nf);return posOf(i,b.r,b.t+Math.floor(k/5)*.3,.035+(k%5)*.056)}
 function slotTex(col){return canvasTex(132,190,(g,w,h)=>{g.clearRect(0,0,w,h);g.strokeStyle=col;g.lineWidth=5;g.setLineDash([14,10]);rr(g,6,6,w-12,h-12,14);g.stroke()})}
 function build(){
@@ -485,6 +498,8 @@ function build(){
       M.seats.push(s);
     }
     M.info=label('bn-if');
+    M.arcM=new THREE.MeshBasicMaterial({color:0xffc83a,transparent:true,opacity:.8,depthWrite:false,side:THREE.DoubleSide});
+    for(let i=0;i<5;i++){const o=new THREE.Mesh(new THREE.RingGeometry(R_ARC,R_ARC+.16,64,1,-Math.PI/2-ARC/2,ARC),M.arcM);o.position.y=.024;o.visible=false;o.rotation.order='YXZ';o.rotation.x=-Math.PI/2;root.add(o);M.seats[i].arc=o}
     M.hb=new THREE.Vector3();
     M.ray=new THREE.Raycaster();M.built=true;
   }catch(e){M.fail=true;try{console.warn('보난자 3D 준비 실패',e)}catch(_){}}
@@ -506,19 +521,20 @@ G.field3D=(v,pv,me)=>{
   M.seats.forEach((S,i)=>{
     const on=i<n&&!deal;
     S.slots.forEach(o2=>{o2.visible=false});
+    S.arc.visible=on&&v.st==='play'&&(o.ph==='p3'?o.tmp[i].length>0:o.act===i);if(on)S.arc.rotation.y=seatAngle(i);
     if(!on){S.coins.forEach(c=>{c.visible=false});return}
     const a=seatAngle(i),F=o.fd[i],nf=F.length;
-    {const b=coinBase(i,nf);if(S.to!==o.cn[i]){const up=o.cn[i]>S.to;S.to=o.cn[i];S.at=clock()+(up?420:0)}setLabel(S.lb,posOf(i,i===me?b.r:b.r+.32,i===me?b.lt:b.lt,.05),`${COIN}${S.shown}`)}
+    {if(S.to!==o.cn[i]){const up=o.cn[i]>S.to;S.to=o.cn[i];S.at=clock()+(up?420:0)}setLabel(S.lb,coinLabelAt(i,nf,S.to),`${COIN}${S.shown}`)}
     S.coins.forEach((c,k)=>{c.position.copy(coinAt(i,nf,k))});
     F.forEach((L,f)=>{
-      const tan=fieldTan(f,nf),sl=S.slots[f];
+      const tan=fieldTan(f,nf,i),sl=S.slots[f];
       sl.position.copy(posOf(i,R_F,tan,.022));sl.rotation.set(-Math.PI/2,0,a);sl.visible=true;
       sl.material=i===me&&target>=0&&accepts(L,target)?M.sH:M.sN;
       L.forEach((id,c)=>{const q=Math.min(c,9),p=posOf(i,R_F+q*.05,tan,.03+c*.006);seen.add(id);where.set(id,i);placeCard(id,p,-Math.PI/2,a,CS,handFrom(i))});
       const b=badgeOf(i,f);
-      if(b){setLabel(S.badges[f],posOf(i,R_B,tan,.03),badgeHTML(b));S.badges[f].classList.toggle('arm',!!b.arm)}
+      if(b){setLabel(S.badges[f],fieldLabelAt(i,tan,L.length),badgeHTML(b));S.badges[f].classList.toggle('arm',!!b.arm)}
     });
-    if(+v.cfg.buy3&&n>3&&nf<3&&i===me&&v.st==='play'){const sl=S.slots[2];sl.position.copy(posOf(i,R_F,fieldTan(nf,nf)+.05,.022));sl.rotation.set(-Math.PI/2,0,a);sl.visible=true;sl.material=o.cn[i]>=FIELD3?M.sH:M.sN}
+    if(+v.cfg.buy3&&n>3&&nf<3&&i===me&&v.st==='play'){const sl=S.slots[2];sl.position.copy(posOf(i,R_F,fieldTan(nf,nf,i)+.05,.022));sl.rotation.set(-Math.PI/2,0,a);sl.visible=true;sl.material=o.cn[i]>=FIELD3?M.sH:M.sN}
     const Tp=o.tmp[i];
     Tp.forEach((id,k)=>{const lift=i===me&&id===tmpSel?.22:0,p=posOf(i,R_T-lift*.3,(k-(Tp.length-1)/2)*.4,.05+k*.008+lift);seen.add(id);where.set(id,i);placeCard(id,p,-Math.PI/2,a,TS,deckAt)});
   });
@@ -543,6 +559,7 @@ function step(){
   M.raf=0;if(!M.on||!V||!V.o)return;
   M.raf=requestAnimationFrame(step);
   hideFelt(true);
+  M.arcM.opacity=.62+.3*Math.sin(clock()/320);
   const now=clock(),r=$('#cv').getBoundingClientRect(),st=$('#stage').getBoundingClientRect(),v=M.hb;
   for(const el of M.labels){
     if(el.hidden||!el._p)continue;
@@ -571,16 +588,16 @@ function tableClick(e){
   const Tp=o.tmp[me],open=C.open;
   for(let k=Tp.length-1;k>=0;k--){const p=posOf(me,R_T,(k-(Tp.length-1)/2)*.4);if(Math.abs(P.x-p.x)<.26&&Math.abs(P.z-p.z)<.42){tapTemp(Tp[k]);return}}
   const nf=o.fd[me].length;
-  for(let f=0;f<nf;f++){const p=posOf(me,R_F+.2,fieldTan(f,nf));if(Math.abs(P.x-p.x)<.4&&Math.abs(P.z-p.z)<.75){tapField(f);return}}
-  if(+V.cfg.buy3&&V.ps.length>3&&nf<3){const p=posOf(me,R_F,fieldTan(nf,nf)+.05);if(Math.abs(P.x-p.x)<.4&&Math.abs(P.z-p.z)<.6){if(o.cn[me]>=FIELD3)sendAct({t:'buy'});else sfx('no');return}}
+  for(let f=0;f<nf;f++){const p=posOf(me,R_F+.2,fieldTan(f,nf,me));if(Math.abs(P.x-p.x)<.4&&Math.abs(P.z-p.z)<.75){tapField(f);return}}
+  if(+V.cfg.buy3&&V.ps.length>3&&nf<3){const p=posOf(me,R_F,fieldTan(nf,nf,me)+.05);if(Math.abs(P.x-p.x)<.4&&Math.abs(P.z-p.z)<.6){if(o.cn[me]>=FIELD3)sendAct({t:'buy'});else sfx('no');return}}
   if(open){C.open=false;refresh()}   // 빈 곳을 누르면 거래 창을 닫음
 }
 
 /* ---------- 2D 칸: 단계·거래 (3D 위) + WebGL이 없을 때의 밭 ---------- */
 const chip=(t,n)=>`<span class="bn-chip" style="--c:${BEANS[t].col}">${BEANS[t].n}${n>1?'×'+n:''}</span>`;
 function chips(L){const m=new Map();for(const t of L)m.set(t,(m.get(t)||0)+1);return m.size?[...m].map(([t,n])=>chip(t,n)).join(''):'<span class="bn-none"></span>'}
-/* 언제나 왼쪽 = 내가 줄 것, 오른쪽 = 내가 받을 것 */
-const swapLine=(give,get)=>`<span class="bn-sw">${chips(give)}</span><span class="bn-ar">→</span><span class="bn-sw">${chips(get)}</span>`;
+/* 이름 옆의 콩 = 그 사람이 내놓는 콩. 왼쪽은 언제나 나 */
+const swapLine=(other,give,get)=>`<span class="bn-sw"><b class="bn-w">나</b>${chips(give)}</span><span class="bn-ar">⇄</span><span class="bn-sw"><b class="bn-w">${esc(other)}</b>${chips(get)}</span>`;
 const phText=o=>o.ph==='p1'?`심기 ${Math.min(2,o.pl+1)}/2`:o.ph==='trade'?'거래':o.ph==='p3'?'임시 구역 심기':'';
 function drawPan(){
   if(!elPan||!V||!V.o)return;
@@ -590,13 +607,13 @@ function drawPan(){
   const ofHTML=o.of.map(x=>{
     const mine=x.f===me,other=mine?x.to:x.f,wants=[...x.w,...x.wf.map(typ)],get=mine?wants:x.g,give=mine?x.g:wants;
     const can=mine||!!pickFor(x);
-    return `<div class="bn-of" data-o="${x.id}"><b>${esc(P[other].n)}</b>${swapLine(give,get)}<span class="bn-sp"></span>${mine?`<button type="button" data-k="cancel" data-o="${x.id}">취소</button>`:`<button type="button" class="bn-ok" data-k="accept" data-o="${x.id}"${can?'':' disabled'}>수락</button><button type="button" data-k="counter" data-o="${x.id}">다시 제안</button><button type="button" data-k="reject" data-o="${x.id}">거절</button>`}</div>`}).join('');
+    return `<div class="bn-of" data-o="${x.id}"><div class="bn-line">${swapLine(P[other].n,give,get)}</div><span class="bn-sp"></span>${mine?`<button type="button" data-k="cancel" data-o="${x.id}">취소</button>`:`<button type="button" class="bn-ok" data-k="accept" data-o="${x.id}"${can?'':' disabled'}>수락</button><button type="button" data-k="counter" data-o="${x.id}">역제안</button><button type="button" data-k="reject" data-o="${x.id}">거절</button>`}</div>`}).join('');
   let comp='';
   if(C.open){
     const pick=act?P.map((p,i)=>i===me||p.f?'':`<button type="button" class="bn-to${C.to===i?' on':''}" data-to="${i}">${esc(p.n)}</button>`).join(''):`<b class="bn-who">${esc(P[o.act].n)}</b>`;
     const grid=BEANS.map((b,t)=>`<button type="button" class="bn-bean" data-w="${t}" aria-label="${b.n}">${beanSvg(b.col)}<span>${b.n}</span></button>`).join('');
     const giveL=[...H2.map(typ),...C.gf.map(typ)],getL=[...C.want,...C.wf.map(typ)];
-    comp=`<div class="bn-tr"><div class="bn-r bn-tabs">${pick}<span class="bn-sp"></span><button type="button" class="bn-x" data-k="close" aria-label="닫기">✕</button></div><div class="bn-r bn-line">${swapLine(giveL,getL)}</div><div class="bn-g">${grid}</div><div class="bn-r bn-e"><button type="button" data-k="clear">비우기</button>${C.want.length?'<button type="button" data-k="unwant">하나 빼기</button>':''}<span class="bn-sp"></span><button type="button" class="bn-ok" data-k="send">제안</button></div></div>`;
+    comp=`<div class="bn-tr"><div class="bn-r bn-tabs">${pick}<span class="bn-sp"></span><button type="button" class="bn-x" data-k="close" aria-label="닫기">✕</button></div><div class="bn-r bn-line">${swapLine((act?(P[C.to]&&P[C.to].n):P[o.act].n)||'상대',giveL,getL)}</div><div class="bn-g">${grid}</div><div class="bn-r bn-e"><button type="button" data-k="clear">비우기</button>${C.want.length?'<button type="button" data-k="unwant">하나 빼기</button>':''}<span class="bn-sp"></span><button type="button" class="bn-ok" data-k="send">제안</button></div></div>`;
   }
   const h=ofHTML+comp;
   if(h!==lastPan){elPan.innerHTML=h;lastPan=h;lockTick()}
@@ -631,13 +648,14 @@ G.live=()=>{
   if(!elSt||!V||!V.o)return;
   const o=V.o,t=phText(o),sec=V.st==='play'&&!dealingV()?Math.ceil(Math.max(0,(V.deadAt-clock())/1000)):0,txt=t&&sec?`${t} ${sec}`:t;
   if(elSt.textContent!==txt)elSt.textContent=txt;
+  elSt.classList.toggle('my',V.st==='play'&&myIdx()>=0&&V.t===myIdx());
   lockTick();
   if(arm>=0&&clock()-armAt>3000){arm=-1;refresh()}
 };
 G.overRank=p=>{const t=p.sr===3?'탈주':p.sr?'항복':`${+p.cn||0}코인`;return `<span class="left">${t}</span>`};
 G.enter=()=>{$('#btnGura').hidden=true};
 G.leave=()=>{
-  clearCards();M.gn=0;clearC();C.open=false;tmpSel=-1;arm=-1;lockAt.clear();lastPan='';last2d='';
+  zoomClose();lpStop();clearCards();M.gn=0;clearC();C.open=false;tmpSel=-1;arm=-1;lockAt.clear();lastPan='';last2d='';
   if(elBox)elBox.hidden=true;if(elPan)elPan.innerHTML='';if(el2d)el2d.innerHTML='';
   if(M.root)M.root.visible=false;M.on=false;hideFelt(false);if(M.lbBox)M.lbBox.hidden=true;
   $('#stage').classList.remove('bng','bn3d','bn2d');
@@ -667,9 +685,10 @@ G.init=()=>{
 .bn-of,.bn-tr,.bn-p{pointer-events:auto;background:rgba(255,250,240,.96);border:1px solid var(--line-strong);border-radius:10px;padding:5px 7px;color:#3b2a1f;font-size:13px}
 .bn-of{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:5px}
 .bn-tr{display:flex;flex-direction:column;gap:6px;padding:7px 8px}
-.bn-sw{display:inline-flex;flex-wrap:wrap;justify-content:center;gap:3px;min-width:58px}
+.bn-sw{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:3px}
+.bn-w{max-width:5.5em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bn-ar{font-weight:700;color:#7a6650}
-.bn-line{justify-content:center;gap:8px;min-height:30px;padding:3px;border-radius:8px;background:rgba(59,42,31,.07)}
+.bn-line{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;min-height:30px;padding:3px;border-radius:8px;background:rgba(59,42,31,.07)}
 .bn-tabs .bn-who{padding:2px 4px}
 .bn-box button.bn-x{border:none;background:none;padding:2px 6px;color:#7a6650}
 .bn-box button.bn-bean{display:flex;flex-direction:column;align-items:center;gap:0;padding:3px 0 2px;border:none;background:none;min-width:0}
@@ -688,7 +707,18 @@ G.init=()=>{
 .bn-box .bn-ok{background:#2e7d4f;border-color:#2e7d4f;color:#fff}
 .bn-box .bn-to.on,.bn-box .bn-pick.on{outline:2px solid #e0a020}
 .bn-box .bn-pick{padding:1px;background:none;border:none;line-height:1.3}
-@media(max-width:699px){.stage.bng #actions{transform:translateY(64px)}.stage.bng #actions button{min-height:0;height:36px;padding:0 10px;font-size:15px}.stage.bng #actions button small{display:none}}
+@media(max-width:699px){.stage.bng #actions{transform:translateY(64px)}.stage.bng #actions{justify-content:space-between}.stage.bng #actions button{flex:0 0 37%;min-width:0;min-height:0;height:36px;padding:0 6px;font-size:15px}.stage.bng #actions button small{display:none}}
+.stage.bng #dim{display:none}
+.bn-st.my{background:#e8ad24;color:#3b2a1f}
+.bn-zoom{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(28,18,10,.35);pointer-events:auto}
+.bn-zoom[hidden]{display:none}
+.bn-zc{width:min(230px,62vw);border-radius:16px;overflow:hidden;background:#fffcf5;border:2px solid #3b2a1f;color:#3b2a1f;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.bn-zn{padding:8px 0;background:var(--rc);color:#fffcf5;font:600 22px "Jua",sans-serif}
+.bn-zb{padding:12px 34px 4px}.bn-zb svg{display:block;width:100%}
+.bn-zc ul{list-style:none;margin:6px 16px;padding:0}
+.bn-zc li{display:flex;justify-content:space-between;align-items:center;padding:3px 4px;border-bottom:1px solid #e3d4bb;font:600 15px "IBM Plex Mono",monospace}
+.bn-zc li b{display:flex;gap:2px;font-size:15px}
+.bn-zc p{margin:4px 0 8px;font-size:12px;color:#7a6650}
 .stage.bng .card.bn-c{overflow:hidden}
 .stage.bng .card.bn-c .bn-nm{position:absolute;left:0;right:0;top:0;padding:2px 0;background:var(--rc);color:#fffcf5;font:600 11px "Jua",sans-serif;text-align:left;padding-left:5px;white-space:nowrap}
 .stage.bng .card.bn-c .bn-be{position:absolute;left:7px;right:7px;top:27px;pointer-events:none}
@@ -707,6 +737,16 @@ G.init=()=>{
   M.lbBox=document.createElement('div');M.lbBox.className='bn-lbs';M.lbBox.hidden=true;$('#stage').appendChild(M.lbBox);
   elSt=elBox.querySelector('.bn-st');elPan=elBox.querySelector('.bn-pan');el2d=elBox.querySelector('.bn-2d');
   $('#cv').addEventListener('click',tableClick);
+  elZoom=document.createElement('div');elZoom.className='bn-zoom';elZoom.hidden=true;$('#stage').appendChild(elZoom);
+  elZoom.addEventListener('pointerdown',e=>{if(!e.target.closest('.bn-zc'))zoomClose()});
+  const hd=$('#hand');
+  hd.addEventListener('pointerdown',e=>{
+    if(currentG()!==G||e.button)return;const c=e.target.closest('.card');if(!c)return;
+    LP.x=e.clientX;LP.y=e.clientY;LP.fired=false;lpStop();LP.timer=setTimeout(()=>{LP.timer=0;LP.fired=true;zoomOpen(+c.dataset.id)},350);
+  });
+  hd.addEventListener('pointermove',e=>{if(LP.timer&&Math.hypot(e.clientX-LP.x,e.clientY-LP.y)>10)lpStop()});
+  for(const k of ['pointerup','pointercancel','lostpointercapture'])hd.addEventListener(k,lpStop);
+  hd.addEventListener('click',e=>{if(currentG()===G&&LP.fired){LP.fired=false;e.stopPropagation();e.preventDefault()}},true);   // 크게 본 뒤 손을 뗀 것은 고르기가 아님
   elBox.addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b||!V||!V.o)return;
     const d=b.dataset,k=d.k,id=+d.o;
