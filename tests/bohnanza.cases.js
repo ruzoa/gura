@@ -5,7 +5,7 @@ const pass=ms=>{for(let k=0;k<ms/50;k++){NOW+=50;engineTick()}};
 const setup=(n,bots,over)=>{
   hostNew(false,'t','t');H.cfg={...cfgFor('bohnanza'),game:'bohnanza',...(over||{})};
   H.members=[];for(let i=0;i<n;i++)H.members.push(bots&&i>=bots?{name:'b'+i,bot:true,conn:null,host:false,lv:0}:{name:'p'+i,bot:false,conn:i?{}:null,host:i===0,cid:i?'c'+i:''});
-  hostStart();pass(DEAL_MS+100);
+  hostStart();eq(snapFor(0).t,undefined,'turn hidden while dealing');eq(snapFor(0).o.act,-1,'act hidden while dealing');while(dealing()){NOW+=50;engineTick()}
 };
 const act=(s,a)=>BN.engine.act(s,a);
 const O=()=>H.bn;
@@ -77,3 +77,6 @@ for(let rep=0;rep<18;rep++){
   eq(H.phase,'over','bots finish n='+n);trades+=H.bn.ts;
 }
 if(!trades)fail('bohnanza bots never traded');
+/* 첫 차례: 주사위 시간만큼 기다리고, 선택이면 방장이 고른 사람 */
+setup(3,0,{pickfirst:1});eq(O().rolls,-1,'picked no dice');eq(O().act,H.players.findIndex(p=>p.host),'picked host');
+H.firstName='p2';H.phase='over';hostStart();eq(O().act,2,'picked seat');

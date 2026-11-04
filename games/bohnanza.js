@@ -5,7 +5,7 @@
    거래: 제안(offer)을 보내면 제안자의 수락, 받는 쪽이 수락하면 그 자리에서 교환. 제안 내용은 바꿀 수 없고 다시 보내면 새 제안(수락도 처음부터).
    받는 쪽에는 콩 종류만 보냄: 손패 카드 id·위치는 제안자에게만 있음(snap 참고). 거래로 받은 카드는 임시 구역으로 가고 다시 거래할 수 없음 */
 (function(){
-const G={id:'bohnanza',name:'보난자',short:'보난자',lead:'콩을 심고 거래해 코인을 모으는 카드 게임',dealAnim:true,maxHi:5,minN:3,noFast:true,oneBotLv:true,emptyHandOk:true};
+const G={id:'bohnanza',name:'보난자',short:'보난자',lead:'콩을 심고 거래해 코인을 모으는 카드 게임',dealAnim:true,maxHi:5,minN:3,noFast:true,oneBotLv:true,emptyHandOk:true,firstPick:true};
 
 /* ---------- 규칙 값 ---------- */
 /* m: 1·2·3·4코인에 필요한 장수 (0이면 그 코인 칸 없음) */
@@ -17,6 +17,7 @@ const typ=id=>TYPE[id];
 const coinsFor=(t,n)=>{let c=0;BEANS[t].m.forEach((x,k)=>{if(x&&n>=x)c=k+1});return c};
 /* 다음 코인까지: {at:필요 장수, c:그때 코인} / 더 없으면 null */
 const nextStep=(t,n)=>{const m=BEANS[t].m;for(let k=0;k<4;k++)if(m[k]&&n<m[k])return {at:m[k],c:k+1};return null};
+const DICE_LEAD=300,DICE_REST=800;   // 카드를 나눈 뒤 첫 차례 주사위
 const HAND0=5,DRAW=3,TURN_UP=2,LAST_RUN=3,LOCK_MS=1000,MAX_WANT=8;
 const FIELD3=3;   // 세 번째 밭 값 (예전 판 규칙, 설정으로 켬)
 
@@ -39,16 +40,16 @@ G.drawFace=function(g,w,h,id){
 };
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 콩을 심고 수확해 코인을 가장 많이 모읍니다. 3명은 밭 3개, 4~5명은 밭 2개로 시작합니다</li><li><b>손패</b> : 처음 5장을 받습니다. 손패 순서는 바꿀 수 없습니다. 왼쪽 맨 앞 카드가 다음에 심을 카드이고 새 카드는 맨 뒤로 들어갑니다. 손패를 꾹 누르면 카드를 크게 볼 수 있습니다</li><li><b>1. 손패 심기</b> : 맨 앞 카드를 꼭 심고, 다음 카드도 심을 수 있습니다. 밭을 눌러 심습니다. 한 밭에는 한 종류만 심습니다</li><li><b>2. 공개와 거래</b> : 더미에서 2장을 공개합니다. 차례인 사람은 공개 카드와 손패로, 다른 사람은 손패로 차례인 사람과 거래합니다. 다른 사람끼리는 거래할 수 없고 밭의 카드는 거래할 수 없습니다. 주기만 하는 기증도 됩니다</li><li><b>제안과 수락</b> : 제안을 보내고 상대가 수락하면 바로 교환합니다. 상대는 콩 종류만 볼 수 있고 손패 몇 번째 카드인지는 알 수 없습니다. 제안을 바꾸면 수락은 처음부터 다시 받습니다. 같은 콩이 여러 장이면 손패에서 줄 카드를 먼저 누르고 수락합니다(누르지 않으면 맨 뒤 카드부터 줍니다)</li><li><b>임시 구역</b> : 거래로 받은 카드와 남은 공개 카드는 밭 앞 임시 구역에 놓입니다. 손패로 가져올 수 없고 다시 거래할 수 없습니다</li><li><b>3. 임시 구역 심기</b> : 거래가 끝나면 모두 임시 구역의 카드를 원하는 순서로 전부 심습니다. 카드를 누른 뒤 밭을 누릅니다</li><li><b>4. 뽑기</b> : 차례인 사람이 3장을 뽑아 손패 맨 뒤에 넣습니다</li><li><b>수확</b> : 언제든 내 밭을 두 번 눌러 수확합니다. 밭 전체를 수확하고 장수에 맞는 코인을 얻습니다. 밭 아래 표시는 지금 장수/다음 코인까지 필요한 장수입니다</li><li><b>새싹 보호법</b> : 2장 이상인 밭이 있으면 1장뿐인 밭은 수확할 수 없습니다</li><li><b>끝</b> : 더미가 세 번째로 떨어지면 끝납니다. 뽑기 중이면 바로, 공개 중이면 심기까지 마치고 끝납니다. 남은 밭을 모두 수확하고 코인이 많은 사람이 이깁니다. 같으면 첫 차례 사람에게서 시계 방향으로 가장 먼 사람이 이깁니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 콩을 심고 수확해 코인을 가장 많이 모읍니다. 3명은 밭 3개, 4~5명은 밭 2개로 시작합니다</li><li><b>첫 차례</b> : 카드를 나눈 뒤 주사위로 정합니다. 방장이 대기실에서 고르도록 설정할 수 있습니다</li><li><b>손패</b> : 처음 5장을 받습니다. 손패 순서는 바꿀 수 없습니다. 왼쪽 맨 앞 카드가 다음에 심을 카드이고 새 카드는 맨 뒤로 들어갑니다. 손패를 꾹 누르면 카드를 크게 볼 수 있습니다</li><li><b>1. 손패 심기</b> : 맨 앞 카드를 꼭 심고, 다음 카드도 심을 수 있습니다. 밭을 눌러 심습니다. 한 밭에는 한 종류만 심습니다</li><li><b>2. 공개와 거래</b> : 더미에서 2장을 공개합니다. 차례인 사람은 공개 카드와 손패로, 다른 사람은 손패로 차례인 사람과 거래합니다. 다른 사람끼리는 거래할 수 없고 밭의 카드는 거래할 수 없습니다. 주기만 하는 기증도 됩니다</li><li><b>제안과 수락</b> : 제안을 보내고 상대가 수락하면 바로 교환합니다. 상대는 콩 종류만 볼 수 있고 손패 몇 번째 카드인지는 알 수 없습니다. 제안을 바꾸면 수락은 처음부터 다시 받습니다. 같은 콩이 여러 장이면 손패에서 줄 카드를 먼저 누르고 수락합니다(누르지 않으면 맨 뒤 카드부터 줍니다)</li><li><b>임시 구역</b> : 거래로 받은 카드와 남은 공개 카드는 밭 앞 임시 구역에 놓입니다. 손패로 가져올 수 없고 다시 거래할 수 없습니다</li><li><b>3. 임시 구역 심기</b> : 거래가 끝나면 모두 임시 구역의 카드를 원하는 순서로 전부 심습니다. 카드를 누른 뒤 밭을 누릅니다</li><li><b>4. 뽑기</b> : 차례인 사람이 3장을 뽑아 손패 맨 뒤에 넣습니다</li><li><b>수확</b> : 언제든 내 밭을 두 번 눌러 수확합니다. 밭 전체를 수확하고 장수에 맞는 코인을 얻습니다. 밭 아래 표시는 지금 장수/다음 코인까지 필요한 장수입니다</li><li><b>새싹 보호법</b> : 2장 이상인 밭이 있으면 1장뿐인 밭은 수확할 수 없습니다</li><li><b>끝</b> : 더미가 세 번째로 떨어지면 끝납니다. 뽑기 중이면 바로, 공개 중이면 심기까지 마치고 끝납니다. 남은 밭을 모두 수확하고 코인이 많은 사람이 이깁니다. 같으면 첫 차례 사람에게서 시계 방향으로 가장 먼 사람이 이깁니다</li></ol>';
 G.modeDesc=['콩을 심고 거래하기','콩을 심고 거래하기'];
-G.defaults={max:5,turn:20,tt:45,buy3:0};
+G.defaults={max:5,turn:20,tt:45,buy3:0,pickfirst:0};
 G.roomSet=[
   {k:'turn',label:'심기 제한 시간',unit:'초',lo:10,hi:60,step:5,desc:'손패 심기와 임시 구역 심기의 제한 시간입니다. 지나면 자동으로 심습니다'},
   {k:'tt',label:'거래 제한 시간',unit:'초',lo:20,hi:180,step:5,desc:'거래 단계의 제한 시간입니다. 지나면 거래가 끝납니다'}];
-G.ruleSet=[{k:'buy3',label:'세 번째 밭 사기',desc:'예전 판 규칙: 4~5명일 때 3코인으로 세 번째 밭을 살 수 있습니다. 현행 규칙서 기본 게임에는 없습니다'}];
+G.ruleSet=[{k:'pickfirst',pick:1,label:'선 플레이어',desc:'선택: 방장이 대기실에서 먼저 시작할 사람을 고릅니다. 무작위: 카드를 나눈 뒤 주사위로 정합니다'},{k:'buy3',label:'세 번째 밭 사기',desc:'예전 판 규칙: 4~5명일 때 3코인으로 세 번째 밭을 살 수 있습니다. 현행 규칙서 기본 게임에는 없습니다'}];
 G.fixCfg=(c,n,strict)=>{const r={...c};if(!(+r.max>=3))r.max=3;return r};
 G.cfgChips=c=>`<span class="chip">심기 <b>${+c.turn||20}초</b></span><span class="chip">거래 <b>${+c.tt||45}초</b></span>`;
-G.cfgSum=c=>`심기 ${+c.turn||20}초 · 거래 ${+c.tt||45}초${+c.buy3?' · 세 번째 밭 사기':''}`;
+G.cfgSum=c=>`심기 ${+c.turn||20}초 · 거래 ${+c.tt||45}초 · 선 ${+c.pickfirst?'선택':'무작위'}${+c.buy3?' · 세 번째 밭 사기':''}`;
 G.roomSub=()=>'3~5명 거래 카드 게임';
 G.pubExtra=()=>({});
 G.cardInfo=()=>'<p class="cardinfo">3명은 밭 3개, 4~5명은 밭 2개로 시작합니다.</p>';
@@ -248,15 +249,16 @@ function plantHand(s,f){
 }
 function plantTmp(s,id,f){const O=H.bn;O.tmp[s]=O.tmp[s].filter(v=>v!==id);O.fd[s][f].push(id)}
 G._test={BEANS,TYPE,coinsFor,nextStep,canHarvest,LOCK_MS,turnMs,tradeMs};
+/* 카드 나누기 뒤 주사위 시간: 공통 dealExtra (방장이 시간·봇을 멈춤) */
+G.dealExtra=()=>H.bn?Math.round(DICE_LEAD+DicePick.totalFor(H.bn.rolls)+DICE_REST):0;
 G.engine={
   start(){
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,rankBottom:H.players.length,known:{},turn:0,botActAt:0,deadline:0});
     const n=H.players.length,deck=shuffle(TYPE.map((_,i)=>i));
     H.players.forEach(p=>{p.finished=false;p.rank=null;p.surrendered=false;p.hand=deck.splice(0,HAND0)});
-    const first=Math.floor(Math.random()*n),nf=n===3?3:2;
-    H.bn={gn:((H.bn&&H.bn.gn)||0)+1,ph:'p1',act:first,first,pl:0,deck,disc:[],up:[],of:[],oid:0,ts:0,hs:0,runs:0,last:0,t0:0,botEnd:0,tried:{},asked:{},
+    const first=firstSeat(n),nf=n===3?3:2;
+    H.bn={gn:((H.bn&&H.bn.gn)||0)+1,rolls:+H.cfg.pickfirst?-1:DicePick.pickRolls(n),ph:'p1',act:first,first,pl:0,deck,disc:[],up:[],of:[],oid:0,ts:0,hs:0,runs:0,last:0,t0:0,botEnd:0,tried:{},asked:{},
       fd:H.players.map(()=>Array.from({length:nf},()=>[])),tmp:H.players.map(()=>[]),coin:H.players.map(()=>[]),bt:H.players.map(()=>0)};
-    addLog(`${H.players[first].name}부터 시작합니다.`,'sys');
     startTurn(first);
   },
   act(s,a){
@@ -311,6 +313,7 @@ G.engine={
       dk:O.deck.length,ds:O.disc.length,dt:O.disc.length?O.disc[O.disc.length-1]:-1,runs:Math.min(LAST_RUN,O.runs+1),ts:O.ts,hs:O.hs,of,dl:H.deadline?Math.max(0,H.deadline-t):0};
     s.ps.forEach((p,i)=>{p.cn=O.coin[i].length});
     s.gr=0;s.dl=s.o.dl;
+    if(H.dealUntil>t){s.o.act=-1;s.o.dice={rolls:O.rolls,first:O.first,seed:H.dealId||1};delete s.t}   // 주사위가 멈출 때까지 첫 차례를 보이지 않음
     if(H.phase==='play'){
       if(O.ph==='p3'){if(seat&&O.tmp[you].length)s.t=you;else if(!O.tmp.some(L=>L.length))delete s.t}
     }
@@ -412,6 +415,7 @@ G.keyPhase=st=>st==='play';
 G.onKey=()=>false;
 G.preView=()=>{
   const o=V.o;if(!o)return;
+  diceStart();
   if(o.ph!=='trade'){clearC();C.open=false}
   else{C.gf=C.gf.filter(id=>o.up.includes(id));C.wf=C.wf.filter(id=>o.up.includes(id))}
   const i=myIdx();if(i<0||!o.tmp[i]||!o.tmp[i].includes(tmpSel))tmpSel=-1;
@@ -551,14 +555,46 @@ G.field3D=(v,pv,me)=>{
   M.where=where;
   if(!M.deck){M.deck=makeCard(new THREE.Vector3(-PX,.04,PZ),Math.PI/2,0,.55)}
   M.deck.visible=!deal&&o.dk>0;
-  if(!deal)setLabel(M.info,new THREE.Vector3(0,.03,PZ-.5),`더미 ${o.dk} · ${o.runs}/3회`);
+  if(!deal&&o.act>=0)setLabel(M.info,new THREE.Vector3(0,.03,PZ-.5),`더미 ${o.dk} · ${o.runs}/3회`);
 };
 /* 매 프레임: 표를 3D 자리로, 코인을 카드가 닿은 뒤에 (시작 시각과의 차이로), 펠트는 이 게임 동안 숨김 */
-function hideFelt(on){if(!T.felt)return;T.felt.mat.visible=!on;if(T.felt.ink)T.felt.ink.visible=!on}
+const FELT_MS=650;
+function feltK(k){
+  if(!T.felt)return;
+  const m=T.felt.mat,i=T.felt.ink,a=Math.max(.001,k);m.visible=k>.002;m.scale.set(a,1,a);if(i){i.visible=k>.002;i.scale.set(a,a,1)}
+}
+/* 펠트는 가운데 점으로 줄어들며 사라지고, 게임을 떠나면 다시 펼쳐짐 (시작 시각과의 차이로) */
+const FL={t0:-1e9,to:1};
+function feltGo(to){FL.t0=clock();FL.to=to;if(!FL.raf)FL.raf=requestAnimationFrame(feltStep)}
+function feltStep(){
+  FL.raf=0;
+  const e=Math.min(1,(clock()-FL.t0)/FELT_MS),q=e*e*(3-2*e);
+  feltK(FL.to?q:1-q);
+  if(e<1)FL.raf=requestAnimationFrame(feltStep);
+}
+function feltNow(){if(FL.raf){cancelAnimationFrame(FL.raf);FL.raf=0}FL.to=1;feltK(1)}
+/* 첫 차례 주사위: 카드를 나눈 뒤. 결과는 방장이 정하고 모두 같은 굴림을 재생 */
+const DC={gn:0,fp:null,die:null,said:false,end:0};
+function diceStart(){
+  const o=V&&V.o;if(!o||!o.dice||!V.dk||DC.gn===o.gn)return;
+  DC.gn=o.gn;DC.said=false;
+  const t0=V.dealAt-DICE_REST-DicePick.totalFor(o.dice.rolls);
+  DC.end=V.dealAt;DC.fp=firstPick(t0,{seats:V.ps.map((_,i)=>i),first:o.dice.first,rolls:o.dice.rolls,seed:o.dice.seed});
+}
+function diceEnd(){if(DC.die){M.root.remove(DC.die.g);DC.die.dispose();DC.die=null}DC.fp=null}
+function diceFrame(now){
+  const fp=DC.fp;if(!fp)return;
+  if(now>=DC.end){diceEnd();return}
+  if(now<fp.t0)return;
+  if(M.on&&!fp.fixed){
+    if(!DC.die){DC.die=DicePick.mesh(THREE,V.ps.length,V.ps.map((_,i)=>DicePick.SEAT_COL[i%8]));M.root.add(DC.die.g)}
+    DC.die.apply(fp.pose(now),.55,0,.02,0);
+  }
+  if(fp.tick(now)&&!DC.said){DC.said=true;fxSay(fp.msg(),DicePick.SEAT_COL[fp.first%8])}
+}
 function step(){
   M.raf=0;if(!M.on||!V||!V.o)return;
   M.raf=requestAnimationFrame(step);
-  hideFelt(true);
   M.arcM.opacity=.62+.3*Math.sin(clock()/320);
   const now=clock(),r=$('#cv').getBoundingClientRect(),st=$('#stage').getBoundingClientRect(),v=M.hb;
   for(const el of M.labels){
@@ -567,6 +603,7 @@ function step(){
     const x=Math.round(r.left-st.left+(v.x+1)/2*r.width),y=Math.round(r.top-st.top+(1-v.y)/2*r.height),k=x+','+y;
     if(el._k!==k){el._k=k;el.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%)`}
   }
+  diceFrame(now);
   M.seats.forEach(S=>{
     if(S.shown===S.to||now<S.at)return;
     S.shown=S.to;S.coins.forEach((c,k)=>{c.visible=k<S.shown});S.lb._h='';if(V)S.lb.innerHTML=`${COIN}${S.shown}`;
@@ -598,7 +635,12 @@ const chip=(t,n)=>`<span class="bn-chip" style="--c:${BEANS[t].col}">${BEANS[t].
 function chips(L){const m=new Map();for(const t of L)m.set(t,(m.get(t)||0)+1);return m.size?[...m].map(([t,n])=>chip(t,n)).join(''):'<span class="bn-none"></span>'}
 /* 이름 옆의 콩 = 그 사람이 내놓는 콩. 왼쪽은 언제나 나 */
 const swapLine=(other,give,get)=>`<span class="bn-sw"><b class="bn-w">나</b>${chips(give)}</span><span class="bn-ar">⇄</span><span class="bn-sw"><b class="bn-w">${esc(other)}</b>${chips(get)}</span>`;
-const phText=o=>o.ph==='p1'?`심기 ${Math.min(2,o.pl+1)}/2`:o.ph==='trade'?'거래':o.ph==='p3'?'임시 구역 심기':'';
+const whoTurn=o=>{const p=V.ps[o.act];if(!p)return '';if(o.act===myIdx())return '내 턴';const n=[...p.n];return `${n.length>6?n.slice(0,6).join('')+'…':p.n} 턴`};
+const phText=o=>{
+  if(o.ph==='p3')return '모두 심기';
+  if(o.act<0)return '';
+  return o.ph==='p1'?`${whoTurn(o)} · 심기 ${Math.min(2,o.pl+1)}/2`:o.ph==='trade'?`${whoTurn(o)} · 거래`:'';
+};
 function drawPan(){
   if(!elPan||!V||!V.o)return;
   const o=V.o,me=myIdx(),tr=inTrade();
@@ -637,7 +679,7 @@ G.hud=inGame=>{
   const on=!!(inGame&&V&&V.o);
   elBox.hidden=!on;
   const d3=on&&build();
-  if(d3!==M.on){M.on=d3;if(M.root)M.root.visible=d3;$('#stage').classList.toggle('bn3d',d3);if(d3){hideFelt(true);if(!M.raf)M.raf=requestAnimationFrame(step)}else{hideFelt(false);clearCards()}}
+  if(d3!==M.on){M.on=d3;if(M.root)M.root.visible=d3;$('#stage').classList.toggle('bn3d',d3);if(d3){feltGo(0);if(!M.raf)M.raf=requestAnimationFrame(step)}else{feltGo(1);clearCards();diceEnd()}}
   if(M.lbBox)M.lbBox.hidden=!d3;
   $('#stage').classList.toggle('bng',on);
   $('#stage').classList.toggle('bn2d',on&&!d3);
@@ -646,10 +688,11 @@ G.hud=inGame=>{
 };
 G.live=()=>{
   if(!elSt||!V||!V.o)return;
-  const o=V.o,t=phText(o),sec=V.st==='play'&&!dealingV()?Math.ceil(Math.max(0,(V.deadAt-clock())/1000)):0,txt=t&&sec?`${t} ${sec}`:t;
+  const o=V.o,t=phText(o),sec=V.st==='play'&&!dealingV()?Math.ceil(Math.max(0,(V.deadAt-clock())/1000)):0,txt=t&&sec?`${t} · ${sec}`:t;
   if(elSt.textContent!==txt)elSt.textContent=txt;
   elSt.classList.toggle('my',V.st==='play'&&myIdx()>=0&&V.t===myIdx());
   lockTick();
+  if(!M.on)diceFrame(clock());
   if(arm>=0&&clock()-armAt>3000){arm=-1;refresh()}
 };
 G.overRank=p=>{const t=p.sr===3?'탈주':p.sr?'항복':`${+p.cn||0}코인`;return `<span class="left">${t}</span>`};
@@ -657,7 +700,7 @@ G.enter=()=>{$('#btnGura').hidden=true};
 G.leave=()=>{
   zoomClose();lpStop();clearCards();M.gn=0;clearC();C.open=false;tmpSel=-1;arm=-1;lockAt.clear();lastPan='';last2d='';
   if(elBox)elBox.hidden=true;if(elPan)elPan.innerHTML='';if(el2d)el2d.innerHTML='';
-  if(M.root)M.root.visible=false;M.on=false;hideFelt(false);if(M.lbBox)M.lbBox.hidden=true;
+  if(M.root)M.root.visible=false;M.on=false;feltNow();diceEnd();DC.gn=0;if(M.lbBox)M.lbBox.hidden=true;
   $('#stage').classList.remove('bng','bn3d','bn2d');
   $('#btnPlay').hidden=false;$('#btnPlay').disabled=false;
   $('#btnPass').hidden=false;$('#btnPass').disabled=false;$('#btnPass').firstChild.nodeValue='패스';
