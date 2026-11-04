@@ -5,7 +5,7 @@
    칸 id: n1~n6(윗칸), three, four, full, small, large, yahtzee, chance(아랫칸). 점수판은 칸 순서(CATS)대로 배열로도 주고받음.
    손패(hand)는 카드가 아니라 '점수판 1장'을 뜻하는 표시: 공통 코드가 hand가 비면 끝난 사람으로 보기 때문에 게임 중에는 [0]으로 둠 */
 (function(){
-const G={id:'yahtzee',name:'야추다이스',short:'야추',lead:'주사위를 굴려 족보를 채우는 게임',brand:'야추',brandPx:62,maxHi:4,noFast:true};
+const G={id:'yahtzee',name:'야추다이스',short:'야추',lead:'주사위를 굴려 족보를 채우는 게임',maxHi:4,noFast:true};
 
 /* ---------- 규칙 (방장 엔진과 화면이 같은 함수를 씀) ---------- */
 const CATS=[

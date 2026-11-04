@@ -16,7 +16,6 @@ function useGame(id){
   G.leave();G=g;G.enter();
   sel.clear();pickNum=null;newCards=new Set();
   $('#hand').innerHTML='';$('#hand').dataset.key='';
-  if(T.ok&&T.back){T.back.map=backTex();T.back.needsUpdate=true}
   renderKeys();
 }
 let newCards=new Set();

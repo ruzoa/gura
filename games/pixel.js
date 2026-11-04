@@ -5,7 +5,7 @@
    승리: 2~3명 4목, 4명 3목(가로·세로·대각선, 더 길어도 승리). 판이 차거나 둘 칸이 없으면 끝나고 한 칸 짧은 줄이 많은 사람이 승리, 같으면 무승부
    손패(hand)는 표시용 값 [0] (공통 코드가 hand가 비면 끝난 사람으로 봄) */
 (function(){
-const G={id:'pixel',name:'픽셀',short:'픽셀',lead:'슬라이더로 말을 놓아 줄 만들기',brand:'픽셀',brandPx:60,maxHi:4,minN:2,noFast:true,firstPick:true,botLvs:['쉬움','중간','어려움','극악']};
+const G={id:'pixel',name:'픽셀',short:'픽셀',lead:'슬라이더로 말을 놓아 줄 만들기',maxHi:4,minN:2,noFast:true,firstPick:true,botLvs:['쉬움','중간','어려움','극악']};
 
 /* ---------- 규칙 (방장 엔진·화면·봇·테스트가 같은 함수를 씀) ---------- */
 const W=8,CELLS=64,CUT=[0,7,56,63];

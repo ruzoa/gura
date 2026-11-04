@@ -7,7 +7,7 @@
    숨김: 낸 숫자는 끝날 때까지 상대·관전자에게 보이지 않음(색만). 상대 손의 타일은 판마다 섞은 순서로 색만 보냄(자리로 숫자를 알 수 없게).
    손패(hand)는 카드가 아니라 표시용 [0] (공통 코드가 hand가 비면 끝난 사람으로 봄) */
 (function(){
-const G={id:'blackwhite',name:'흑과백',short:'흑백',lead:'색만 보고 숫자를 겨루기',brand:'흑과백',brandPx:56,maxHi:2,minN:2,noFast:true,firstPick:true,oneBotLv:true};
+const G={id:'blackwhite',name:'흑과백',short:'흑백',lead:'색만 보고 숫자를 겨루기',maxHi:2,minN:2,noFast:true,firstPick:true,oneBotLv:true};
 
 /* ---------- 규칙 (방장 엔진과 화면이 같은 함수를 씀) ---------- */
 const N=9,WIN=5;

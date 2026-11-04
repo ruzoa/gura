@@ -5,7 +5,7 @@
    수: 일직선으로 붙은 내 구슬 1~3개를 방향 d로 한 칸. 줄 방향이면 더 적은 상대 줄을 밀 수 있고, 밀린 구슬이 판 밖으로 나가면 떨어짐. 상대 구슬 6개를 떨어뜨리면 승리
    손패(hand)는 표시용 값 [0] (공통 코드가 hand가 비면 끝난 사람으로 봄) */
 (function(){
-const G={id:'abalone',name:'아발론',short:'아발론',lead:'구슬을 밀어 판 밖으로',brand:'아발론',brandPx:60,maxHi:2,minN:2,noFast:true,firstPick:true};
+const G={id:'abalone',name:'아발론',short:'아발론',lead:'구슬을 밀어 판 밖으로',maxHi:2,minN:2,noFast:true,firstPick:true};
 
 /* ---------- 규칙 (방장 엔진·화면·봇·테스트가 같은 함수를 씀) ---------- */
 const CELLS=61,NEED=6,NP_MAX=60,REP=3;

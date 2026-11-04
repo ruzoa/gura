@@ -5,7 +5,7 @@
    무승부: 스테일메이트, 50수(100수 반 동안 폰 이동·잡기 없음), 같은 국면 3번, 기물 부족은 저절로 무승부. 그 밖에 무승부 제안(상대가 받으면 무승부)
    손패(hand)는 카드가 아니라 표시용 값: 공통 코드가 hand가 비면 끝난 사람으로 보기 때문에 게임 중에는 [0]으로 둠 */
 (function(){
-const G={id:'chess',name:'체스',short:'체스',lead:'클래식 체스와 체스 시계',brand:'체스',brandPx:62,maxHi:2,minN:2,noFast:true,firstPick:true};
+const G={id:'chess',name:'체스',short:'체스',lead:'클래식 체스와 체스 시계',maxHi:2,minN:2,noFast:true,firstPick:true};
 
 /* ---------- 규칙 엔진 (방장 엔진·화면·봇·테스트가 같은 함수를 씀) ---------- */
 const PW=1,NN=2,BB=3,RR=4,QQ=5,KK=6;

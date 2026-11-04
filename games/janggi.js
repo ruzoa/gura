@@ -6,7 +6,7 @@
    반복(3회까지): 같은 국면(같은 쪽 차례)이 네 번째로 나오는 수는 둘 수 없음. 단 양쪽 모두 덤을 뺀 점수가 30점 미만이면 둘 수 있고, 두면 점수로 판정
    손패(hand)는 표시용 값 [0] (공통 코드가 hand가 비면 끝난 사람으로 봄) */
 (function(){
-const G={id:'janggi',name:'장기',short:'장기',lead:'상차림부터 외통까지',brand:'장기',brandPx:62,maxHi:2,minN:2,noFast:true,firstPick:true,oneBotLv:true};
+const G={id:'janggi',name:'장기',short:'장기',lead:'상차림부터 외통까지',maxHi:2,minN:2,noFast:true,firstPick:true,oneBotLv:true};
 
 /* ---------- 규칙 엔진 (방장 엔진·화면·봇·테스트가 같은 함수를 씀) ---------- */
 const ZOL=1,SA=2,SANG=3,MA=4,PO=5,CHA=6,JANG=7;

@@ -9,7 +9,7 @@
    알은 납작한 바둑알(타원체)이라, 기울어진 채 부딪히면 위로 뜸: 세게 미끄러지는 알은 앞이 숙어 상대를 띄우고, 손가락으로 튕길 때 기우뚱함
    손패(hand)는 카드가 아니라 '알이 있음' 표시: 공통 코드가 hand가 비면 끝난 사람으로 보기 때문에 게임 중에는 [0]으로 둠 */
 (function(){
-const G={id:'alkkagi',name:'알까기',short:'알까기',lead:'바둑알을 튕겨 상대 알을 판 밖으로',brand:'알까기',brandPx:56,maxHi:4,noFast:true,firstPick:true};   // firstPick: 대기실 이름표 메뉴의 [선]을 씀 (주사위 연출은 아직 없음)
+const G={id:'alkkagi',name:'알까기',short:'알까기',lead:'바둑알을 튕겨 상대 알을 판 밖으로',maxHi:4,noFast:true,firstPick:true};   // firstPick: 대기실 이름표 메뉴의 [선]을 씀 (주사위 연출은 아직 없음)
 const OM_MAX=2;   // 오목·장기 모드 최대 인원
 /* 게임 모드 md: 0 바둑, 1 오목, 2 장기. 예전에 저장한 설정(오목 스위치 omok)도 읽음 */
 const mdOf=c=>{const m=Math.round(+c.md||0);return m>0&&m<=2?m:+c.omok?1:0};

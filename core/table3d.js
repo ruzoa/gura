@@ -4,16 +4,20 @@ const FLOOR_Y=-2.6;   // 바닥 높이 (탁자 윗면 0). 의자·풀·나무가
 const T={ok:false,cards:new Set(),field:[],stacks:new Map(),faces:new Map()};
 function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.anisotropy=4;return t}
 function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
+/* 카드 뒷면: 위에서 본 둥근 탁자와 나무 기둥 의자 4개. 모든 게임이 같은 그림이고, 카드를 돌려도 티가 나지 않게 180도 대칭으로 그림 */
 function backTex(){return canvasTex(256,372,(g,w,h)=>{
-  g.fillStyle='#fffcf5';rr(g,0,0,w,h,22);g.fill();
-  g.fillStyle='#cc3a2e';rr(g,12,12,w-24,h-24,14);g.fill();
-  g.save();rr(g,12,12,w-24,h-24,14);g.clip();g.strokeStyle='rgba(255,255,255,.22)';g.lineWidth=5;
-  for(let k=-h;k<w+h;k+=18){g.beginPath();g.moveTo(k,0);g.lineTo(k+h,h);g.stroke()}g.restore();
-  g.fillStyle='#fffcf5';g.beginPath();g.arc(w/2,h/2,92,0,7);g.fill();
-  g.strokeStyle='#cc3a2e';g.lineWidth=5;g.beginPath();g.arc(w/2,h/2,82,0,7);g.stroke();
-  g.save();g.translate(w/2,h/2);g.rotate(-Math.PI/5);
-  g.fillStyle='#cc3a2e';g.font=`${G.brandPx||62}px "Jua", "Black Han Sans", sans-serif`;g.textAlign='center';g.textBaseline='middle';g.fillText(G.brand,0,4);
+  const INK='#fffcf5',RED='#cc3a2e',FELT='#a92c22',cx=w/2,cy=h/2;
+  const disc=(x,y,r,c)=>{g.fillStyle=c;g.beginPath();g.arc(x,y,r,0,7);g.fill()};
+  g.fillStyle=INK;rr(g,0,0,w,h,22);g.fill();
+  g.fillStyle=RED;rr(g,12,12,w-24,h-24,14);g.fill();
+  g.save();rr(g,12,12,w-24,h-24,14);g.clip();g.strokeStyle='rgba(255,255,255,.13)';g.lineWidth=3;   // 옅은 다이아몬드 격자: 가운데에서 대칭으로
+  for(let k=-24;k<=24;k++){const d=k*36;g.beginPath();g.moveTo(cx+d-h,cy-h);g.lineTo(cx+d+h,cy+h);g.moveTo(cx+d+h,cy-h);g.lineTo(cx+d-h,cy+h);g.stroke()}
   g.restore();
+  disc(cx,cy,112,RED);   // 격자가 탁자·의자에 닿지 않게 비워 둠
+  for(const [x,y] of [[0,-92],[92,0],[0,92],[-92,0]])disc(cx+x,cy+y,15,INK);   // 의자
+  disc(cx,cy,66,INK);disc(cx,cy,53,FELT);   // 나무 띠 + 펠트
+  g.strokeStyle=INK;g.lineWidth=4;g.lineCap='round';   // 펠트 가운데 점선 원
+  for(let k=0;k<12;k++){const a=k*Math.PI/6+.1;g.beginPath();g.arc(cx,cy,30,a,a+.3);g.stroke()}
 })}
 function faceMat(id){
   const gm=G,fk=gm.id+':'+id;   // 같은 id라도 게임마다 그림이 다름
@@ -190,7 +194,6 @@ function init3D(){
     if(window.ResizeObserver)new ResizeObserver(resize3D).observe($('#stage'));else window.addEventListener('resize',resize3D);
     resize3D();
     T.ok=true;document.body.classList.add('gl3d');
-    if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{T.back.map=backTex();T.back.needsUpdate=true});
   }catch(e){$('#nogl').hidden=false;document.body.classList.add('no3d');T.ok=false}
 }
 function resize3D(){

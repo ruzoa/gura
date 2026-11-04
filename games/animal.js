@@ -8,7 +8,7 @@
    방 설정: 총 시간 tm(분), 추가 시간 inc(초), 선 플레이어 pickfirst(선택이면 방장이 대기실에서 고름). 바로 시작하면 선·후를 바꿈
    손패(hand)는 표시용 값 [0] (공통 코드가 hand가 비면 끝난 사람으로 봄) */
 (function(){
-const G={id:'animal',name:'동물장기',short:'동물',lead:'사자를 잡거나 끝 줄까지',brand:'동물장기',brandPx:52,maxHi:2,minN:2,noFast:true,firstPick:true};
+const G={id:'animal',name:'동물장기',short:'동물',lead:'사자를 잡거나 끝 줄까지',maxHi:2,minN:2,noFast:true,firstPick:true};
 
 /* ---------- 규칙 엔진 (방장 엔진·화면·봇·테스트가 같은 함수를 씀) ---------- */
 const HIY=1,ZOU=2,KIR=3,LION=4,NIW=5;

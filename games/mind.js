@@ -6,7 +6,7 @@
    단계 ph: focus(모두 시작 버튼을 함께 누름) → play → show(버린 카드·통과를 보여 줌) → focus 또는 다음 레벨. 모든 레벨을 넘기면 블라인드로 이어짐.
    거의 동시에 낸 카드는 방장이 BATCH_MS 동안 모아 숫자순으로 내려놓음(인터넷 지연으로 억울한 실패가 나지 않게) */
 (function(){
-const G={id:'mind',name:'더 마인드',short:'마인드',lead:'말없이 숫자를 맞추는 협력 게임',brand:'마인드',brandPx:44,dealAnim:true,maxHi:4,minN:2,noFast:true,oneBotLv:true};
+const G={id:'mind',name:'더 마인드',short:'마인드',lead:'말없이 숫자를 맞추는 협력 게임',dealAnim:true,maxHi:4,minN:2,noFast:true,oneBotLv:true};
 
 /* ---------- 규칙 값 ---------- */
 const TOP={2:12,3:10,4:8},REWARD={2:'star',3:'life',5:'star',6:'life',8:'star',9:'life'};
