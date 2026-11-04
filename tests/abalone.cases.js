@@ -80,3 +80,17 @@ for(const l of [0,1,2]){for(let r=0;r<2;r++){
   let g=0;while(H.phase!=='over'&&g++<30000){NOW+=250;engineTick();const C=H.c;
     if(C&&C.b.filter(v=>v===1).length+C.out[0]!==14)fail('abalone black count');if(C&&C.b.filter(v=>v===2).length+C.out[1]!==14)fail('abalone white count')}
   eq(H.phase,'over','bots finish '+l)}}
+/* 보통·어려움 봇: 이기는 수, 판을 건드리지 않음, 둘 수 있는 수만, 무승부 피하기·60수 판정 */
+T.setBotScale(.04);
+{const r=RW[4],b=E();b[r[6]]=1;b[r[7]]=1;b[r[8]]=2;for(const x of [0,1,2,3,4,5,6,7])b[RW[0].concat(RW[1])[x]]=2;for(const c of RW[8])b[c]=1;
+ for(const lv of [1,2]){const s0=b.join(),m=T.botSearch(b,1,lv,{},0);eq(m.off,r[8],'search takes marble '+lv);eq(b.join(),s0,'search keeps board '+lv)}
+ const f=T.startBoard(2),ok=new Set(T.legal(f,1).map(key));for(let k=0;k<8;k++)if(!ok.has(key(T.botSearch(f,1,1+k%2,{},0))))fail('abalone search illegal')}
+{const b=T.startBoard(1),k=[];for(const m of T.legal(b,1))k.push(T.repKey(T.applyMove(b,m),1));   // 앞서 있으면 무승부가 되는 수를 고르지 않음
+ const best=T.botSearch(b,1,2,{},0),rp={[T.repKey(T.applyMove(b,best),1)]:2};for(let i=0;i<4;i++){const m=T.botSearch(b,1,2,rp,0);if(rp[T.repKey(T.applyMove(b,m),1)]>=2&&T.evalFor(b,1)>0)fail('abalone rep not avoided')}}
+/* legal과 tryMove가 같음 */
+{let b=T.startBoard(1);const k2=m=>key(m)+':'+m.p.join()+':'+m.off;for(let g=0;g<120;g++){const v=g%2+1,L=T.legal(b,v);for(const m of L){const r=T.tryMove(b,m.c,m.d,v);if(!r||k2(r)!==k2(m))fail('abalone legal differs')}if(!L.length)break;b=T.applyMove(b,L[Math.random()*L.length|0])}}
+/* 끝까지: 어려움 대 쉬움, 보통 대 어려움 */
+for(const [a,c] of [[2,0],[1,2]]){hostNew(false,'t','t');H.cfg={...cfgFor('abalone'),game:'abalone',lay:1,max:2};
+ H.members=[a,c].map((lv,i)=>({name:'b'+i,bot:true,conn:null,host:i===0,lv}));hostStart();
+ let g=0;while(H.phase!=='over'&&g++<30000){NOW+=250;engineTick()}eq(H.phase,'over','level bots finish');if(a===2)eq(H.players[0].rank,1,'hard beats easy')}
+T.setBotScale(1);

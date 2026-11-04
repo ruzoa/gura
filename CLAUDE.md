@@ -28,7 +28,7 @@
 | `games/animal.js` | 동물장기 (3×4 판·포로 놓기·사자 잡기/도착·3단계 봇·3D 타일 말·게임 모드 십이장기(한자 말, 상대 진영 포로 금지, 왕 도착은 상대 한 수 뒤 승리)) | `docs/animal.md` |
 | `games/baseball.js` | 숫자야구 (3~5자리·게임 모드 혼자(10번)/맞대결(동시 공격)/경주(결과 공유·버저, 틀리면 사망)·숫자 플립·S B LED·숫자 메모 디스플레이·6×2 자판·전광판·앉은 카메라·3단계 봇) | `docs/baseball.md` |
 | `games/pixel.js` | 픽셀 (2~4명·60칸 판·슬라이더 둘·2~3명 4목/4명 3목·줄 수 판정·봇 4단계·Web Worker) | `docs/pixel.md` |
-| `games/abalone.js` | 아발론 (2명·61칸 육각판·구슬 1~3개 밀기·6개 승리·시작 배치 3가지·체스 시계·쉬움 봇) | `docs/abalone.md` |
+| `games/abalone.js` | 아발론 (2명·61칸 육각판·구슬 1~3개 밀기·6개 승리·시작 배치 3가지·체스 시계·3단계 봇(Web Worker)) | `docs/abalone.md` |
 | `tests/`, `dicepick.js`, `lab*.html`, `manifest.webmanifest`, `sw.js`, 아이콘 | 테스트(`node tests/engine.test.js`, `node tests/dicepick.test.js`), 첫 차례 주사위 계산·주사위 만들기, 연출·아이콘 테스트룸, 홈 화면 앱 | `docs/tools.md` |
 
 - 공통 코드는 `G`(지금 화면의 게임)와 `EG()`(방장 엔진이 돌리는 게임)를 통해 게임 모듈의 함수를 부릅니다. 기준 모듈은 `games/gura.js`입니다.

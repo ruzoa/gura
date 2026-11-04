@@ -5,7 +5,7 @@
    수: 일직선으로 붙은 내 구슬 1~3개를 방향 d로 한 칸. 줄 방향이면 더 적은 상대 줄을 밀 수 있고, 밀린 구슬이 판 밖으로 나가면 떨어짐. 상대 구슬 6개를 떨어뜨리면 승리
    손패(hand)는 표시용 값 [0] (공통 코드가 hand가 비면 끝난 사람으로 봄) */
 (function(){
-const G={id:'abalone',name:'아발론',short:'아발론',lead:'구슬을 밀어 판 밖으로',brand:'아발론',brandPx:60,maxHi:2,minN:2,noFast:true,firstPick:true,oneBotLv:true};
+const G={id:'abalone',name:'아발론',short:'아발론',lead:'구슬을 밀어 판 밖으로',brand:'아발론',brandPx:60,maxHi:2,minN:2,noFast:true,firstPick:true};
 
 /* ---------- 규칙 (방장 엔진·화면·봇·테스트가 같은 함수를 씀) ---------- */
 const CELLS=61,NEED=6,NP_MAX=60,REP=3;
@@ -64,14 +64,31 @@ function applyMove(b,m){
   for(const c of m.p)if(c!==m.off)nb[NB[c][m.d]]=o;
   return nb;
 }
+/* 둘 수 있는 수 전부 (봇 탐색이 자주 부르므로 tryMove를 거치지 않고 바로 셈. 결과는 tryMove와 같음) */
+const NOP=[];
 function legal(b,v){
-  const o=[],add=cs=>{for(let d=0;d<6;d++){const m=tryMove(b,cs,d,v);if(m)o.push(m)}};
+  const out=[],o=3-v;
+  const inline=(cs,head,d)=>{
+    const s=NB[head][d];if(s<0)return;const x=b[s];if(x===v)return;
+    if(!x){out.push({c:cs,d,p:NOP,off:-1,inl:true});return}
+    const n=cs.length,p=[s];let c=NB[s][d];
+    while(c>=0&&b[c]===o){p.push(c);if(p.length>=n)return;c=NB[c][d]}
+    if(p.length>=n||(c>=0&&b[c]===v))return;
+    out.push({c:cs,d,p,off:c<0?p[p.length-1]:-1,inl:true});
+  };
+  const broad=(cs,a)=>{for(let d=0;d<6;d++){if(d%3===a)continue;let ok=true;for(let k=0;k<cs.length;k++){const t=NB[cs[k]][d];if(t<0||b[t]){ok=false;break}}if(ok)out.push({c:cs,d,p:NOP,off:-1,inl:false})}};
   for(let i=0;i<CELLS;i++){
     if(b[i]!==v)continue;
-    add([i]);
-    for(let a=0;a<3;a++){const j=NB[i][a];if(j<0||b[j]!==v)continue;add([i,j]);const k=NB[j][a];if(k>=0&&b[k]===v)add([i,j,k])}
+    const N=NB[i];
+    for(let d=0;d<6;d++){const t=N[d];if(t>=0&&!b[t])out.push({c:[i],d,p:NOP,off:-1,inl:false})}
+    for(let a=0;a<3;a++){
+      const j=N[a];if(j<0||b[j]!==v)continue;
+      const c2=[i,j];inline(c2,j,a);inline(c2,i,a+3);broad(c2,a);
+      const k=NB[j][a];if(k<0||b[k]!==v)continue;
+      const c3=[i,j,k];inline(c3,k,a);inline(c3,i,a+3);broad(c3,a);
+    }
   }
-  return o;
+  return out;
 }
 /* 고른 구슬로 갈 수 있는 방향 → 그 방향을 누르는 칸. 옆으로 미는 수는 이웃 방향과 겹치지 않는 끝 칸 */
 function arrowsOf(b,cells,v){
@@ -99,6 +116,89 @@ function botPick(b,v,rnd){
   }
   return best;
 }
+
+/* 보통·어려움 봇: 알파-베타 탐색. 어려움은 정해진 시간 안에서 한 수씩 더 깊이(수당 1초). 점수는 떨어진 구슬이 가장 크고, 가운데·뭉침·가장자리 순 */
+const AI={mat:900,cen:[34,26,17,6,-16],coh:5,win:1e6};
+let BOTSCALE=1;   // 테스트에서 생각 시간을 줄임
+const LEVEL=[null,{ms:220,depth:2,noise:30},{ms:1000,depth:9,noise:4}];
+const CEN=[];for(let i=0;i<CELLS;i++)CEN.push(AI.cen[hexDist(i)]);
+function evalFor(b,v){   // v 쪽에서 본 점수
+  let me=0,op=0,n=0,m=0;
+  for(let i=0;i<CELLS;i++){
+    const x=b[i];if(!x)continue;
+    let s=CEN[i];const N=NB[i];
+    for(let d=0;d<3;d++){const j=N[d];if(j>=0&&b[j]===x)s+=AI.coh*2}
+    if(x===v){me+=s;n++}else{op+=s;m++}
+  }
+  return me-op+(n-m)*AI.mat;
+}
+function makeM(b,m){
+  const v=b[m.c[0]],o=3-v,N=m.d;
+  for(const c of m.c)b[c]=0;
+  for(const c of m.p)b[c]=0;
+  for(const c of m.c)b[NB[c][N]]=v;
+  for(const c of m.p)if(c!==m.off)b[NB[c][N]]=o;
+  return v;
+}
+function unmakeM(b,m,v){
+  const o=3-v,N=m.d;
+  for(const c of m.c)b[NB[c][N]]=0;
+  for(const c of m.p)if(c!==m.off)b[NB[c][N]]=0;
+  for(const c of m.c)b[c]=v;
+  for(const c of m.p)b[c]=o;
+}
+const moveOrder=m=>(m.off>=0?4000:0)+m.p.length*300+m.c.length*40+m.c.reduce((a,c)=>a+CEN[NB[c][m.d]]-CEN[c],0);
+const countV=(b,v)=>{let n=0;for(let i=0;i<CELLS;i++)if(b[i]===v)n++;return n};
+class SearchStop extends Error{}
+function searchAB(b,v,dep,al,be,S,ply){
+  if((++S.nodes&255)===0&&Date.now()>S.end)throw new SearchStop();
+  if(countV(b,v)<=8)return -AI.win+ply;
+  if(countV(b,3-v)<=8)return AI.win-ply;
+  if(S.np+ply>=NP_MAX){const d=countV(b,v)-countV(b,3-v);return d>0?AI.win/2-ply:d<0?-AI.win/2+ply:0}   // 60수 판정
+  if(dep<=0)return evalFor(b,v);
+  const ms=legal(b,v);if(!ms.length)return -AI.win+ply;
+  ms.forEach(m=>{m.o=moveOrder(m)});ms.sort((x,y)=>y.o-x.o);
+  let best=-Infinity;
+  for(const m of ms){
+    const vv=makeM(b,m);let s;
+    try{const S0=S.np;if(m.off>=0)S.np=-ply-1;s=-searchAB(b,3-v,dep-1,-be,-al,S,ply+1);S.np=S0}finally{unmakeM(b,m,vv)}
+    if(s>best)best=s;
+    if(best>al)al=best;
+    if(al>=be)break;
+  }
+  return best;
+}
+/* rp: 지금까지 나온 국면 횟수(같은 국면 3번이면 무승부), np: 구슬이 안 떨어진 수. 돌려줌: 수 */
+function botSearch(b0,v,lv,rp,np,rnd){
+  rnd=rnd||Math.random;
+  const L=LEVEL[lv]||LEVEL[1],b=b0.slice(),ms=legal(b,v);if(!ms.length)return null;
+  if(ms.length===1)return ms[0];
+  const S={nodes:0,end:Date.now()+L.ms*BOTSCALE,np:np||0};
+  ms.forEach(m=>{m.o=moveOrder(m)});ms.sort((x,y)=>y.o-x.o);
+  const col=v-1,repOf=m=>{const nb=applyMove(b,m);return (rp&&rp[repKey(nb,1-col)])||0};
+  let best=ms[0];
+  for(let dep=1;dep<=L.depth;dep++){
+    let al=-Infinity,cur=null;const sc=new Map();
+    try{
+      for(const m of ms){
+        const r=m.off>=0?0:repOf(m);let s;
+        if(r>=2)s=0;   // 이 수로 무승부가 됨: 이길 때는 피하고 질 때는 찾음
+        else{
+          const vv=makeM(b,m),S0=S.np;if(m.off>=0)S.np=-1;
+          try{s=-searchAB(b,3-v,dep-1,-Infinity,al===-Infinity?Infinity:-al+L.noise,S,1)}finally{S.np=S0;unmakeM(b,m,vv)}
+          if(r===1)s-=60;   // 같은 국면을 되풀이하지 않게
+        }
+        s+=rnd()*L.noise;sc.set(m,s);
+        if(s>al){al=s;cur=m}
+      }
+    }catch(e){if(!(e instanceof SearchStop))throw e;break}
+    best=cur;
+    ms.sort((x,y)=>(sc.get(y)??-1e9)-(sc.get(x)??-1e9));
+    if(Math.abs(al)>AI.win/4)break;
+  }
+  return best;
+}
+const botChoose=(b,v,lv,rp,np)=>lv>=1?botSearch(b,v,lv,rp,np):botPick(b,v);
 
 /* ---------- 규칙 설명·방 설정 ---------- */
 G.rulesHTML='<ol class="rules"><li><b>목표</b> : 상대 구슬 <b>6개</b>를 판 밖으로 밀어내면 이깁니다</li><li><b>내 차례</b> : 일직선으로 붙은 내 구슬 <b>1~3개</b>를 한 칸 옮깁니다. 줄 방향으로도, 줄째 옆으로도 옮길 수 있습니다. 옆으로 옮길 때는 가는 칸이 모두 비어 있어야 합니다</li><li><b>밀기</b> : 줄 방향으로 옮길 때 내 구슬이 더 많으면 상대 구슬을 밉니다(2:1, 3:1, 3:2). 상대 줄 바로 뒤에 내 구슬이 있으면 밀 수 없고, 내 구슬 1개로는 밀 수 없습니다. 내 구슬은 판 밖으로 옮길 수 없습니다</li><li><b>시작 배치</b> : 표준·벨기안 데이지·독일 데이지 가운데 설정에서 고릅니다. 표준은 지키기 쉬워 판이 길어질 수 있습니다</li><li><b>판이 끝날 때</b> : 같은 국면이 3번 나오면 무승부입니다. 구슬이 떨어지지 않고 60수(두 사람 합계)가 지나면 더 많이 밀어낸 사람이 이기고, 같으면 무승부입니다</li><li><b>시계</b> : 체스처럼 총 시간에 한 수마다 추가 시간이 붙습니다. 시간을 다 쓰면 패배합니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다</li><li><b>선 플레이어</b> : 흑이 먼저 둡니다. 첫 판은 탁자 설정으로 정하고(무작위면 주사위, 선택이면 방장이 대기실에서 고름), 결과 화면에서 바로 시작하면 선·후를 바꿉니다</li><li><b>조작</b> : 구슬을 누르거나 끌어 1~3개를 고르면 갈 수 있는 곳에 화살표가 나옵니다. 화살표를 누르거나 고른 구슬을 그 방향으로 밀면 미리 보기, <b>[두기]</b>로 확정합니다. 설정의 <b>두 번 눌러 놓기</b>를 켜면 화살표를 한 번 더 눌러 바로 둡니다</li></ol>';
@@ -143,6 +243,20 @@ G.keys={};
 G.keyActions=[];
 G.cardHTML=()=>'';G.drawFace=()=>{};G.cmpCard=()=>0;G.labelOf=()=>'';
 
+/* 일꾼(Web Worker): 같은 파일을 일꾼으로 띄워 생각을 맡김. 요청 {id,b,v,lv,rp,np} → 답 {id,c,d} */
+const IS_WORKER=typeof window==='undefined'&&typeof self!=='undefined'&&typeof importScripts==='function';
+if(IS_WORKER){
+  self.onmessage=e=>{const a=e.data||{};try{const m=botChoose(a.b,a.v,a.lv|0,a.rp,a.np);self.postMessage({id:a.id,c:m?m.c:null,d:m?m.d:-1})}catch(err){self.postMessage({id:a.id,c:null,d:-1,err:String(err)})}};
+}
+const BOTW={w:null,fail:false,id:0,pend:null};
+function botWorker(){
+  if(BOTW.w||BOTW.fail)return BOTW.w;
+  try{if(typeof Worker==='undefined'||typeof document==='undefined'){BOTW.fail=true;return null}
+    const src=(document.querySelector('script[src*="games/abalone.js"]')||{}).src||'games/abalone.js';
+    BOTW.w=new Worker(src);BOTW.w.onmessage=e=>botReply(e.data);BOTW.w.onerror=()=>{BOTW.fail=true;BOTW.w=null;BOTW.pend=null}}catch(e){BOTW.fail=true;BOTW.w=null}
+  return BOTW.w;
+}
+
 /* ---------- 방장 엔진 ---------- */
 const other=i=>1-i;
 const WHY_LOG={rep:'같은 국면 3번',long:'60수 동안 떨어진 구슬 없음'};
@@ -152,14 +266,14 @@ function pickFirst(again){
   if(again&&L&&ns.length===2&&ns.every(n=>L.ns.includes(n))&&ns.includes(L.h))return ns.indexOf(L.h);
   return typeof firstSeat==='function'?firstSeat(2):(Math.random()<.5?0:1);
 }
-const botDelay=()=>rand(600,1400);
+const botDelay=p=>botLv(p)===2?rand(150,350):rand(600,1400);   // 어려움은 생각하는 시간이 길어서 앞 기다림을 줄임
 function setMover(to,inc){
   const C=H.c,t=clock(),from=C.mv_,cur=H.players[from];
   if(cur&&!cur.bot)C.rem[from]=Math.max(0,C.rem[from]-Math.max(0,t-C.since));   // 사람이 쓴 시간만 깎음
   if(inc&&from!==to&&cur&&!cur.bot)C.rem[from]+=C.R.inc*1000;
   C.mv_=to;H.turn=to;C.since=t;
   const nx=H.players[to];C.mvBot=nx&&nx.bot?1:0;
-  H.botActAt=nx&&nx.bot?t+botDelay():0;
+  H.botActAt=nx&&nx.bot?t+botDelay(nx):0;
   mark();
 }
 function finishGame(winSeat,why){
@@ -203,11 +317,23 @@ function doSurrender(seat){
   finishGame(other(seat),H.players[seat].deserter?'desert':'surrender');
 }
 function timeout(){finishGame(other(H.c.mv_),'time')}
+/* 봇 차례: 보통·어려움은 일꾼이 있으면 판을 보내고 답을 기다림(그동안 방장 화면은 그대로 움직임), 없으면 바로 계산 */
 function botTurn(i){
-  const C=H.c,m=botPick(C.b,C.co[i]+1);
+  const C=H.c,lv=botLv(H.players[i]),v=C.co[i]+1,w=lv?botWorker():null;
+  if(w){const id=++BOTW.id;BOTW.pend={id,n:C.mv.length,seat:i,c:C,at:clock()};H.botActAt=0;
+    try{w.postMessage({id,b:C.b,v,lv,rp:C.rp,np:C.np});return}catch(e){BOTW.pend=null;BOTW.fail=true;BOTW.w=null}}
+  const m=botChoose(C.b,v,lv,C.rp,C.np);
   if(!m||!doMove(i,m.c,m.d))finishGame(other(i),'stuck');
 }
-G._test={ROW,NB,CELLS,NEED,NP_MAX,startBoard,lineOf,tryMove,applyMove,legal,arrowsOf,botPick,cellName,doMove,timeout,pickFirst,hexDist,repKey,LAY_NAME};
+/* 일꾼의 답: 그사이 판이 바뀌었거나(다른 수·새 판·방장이 바뀜) 사람이 돌아왔으면 버림 */
+function botReply(a){
+  const P=BOTW.pend;if(!P||!a||a.id!==P.id)return;BOTW.pend=null;
+  if(typeof H==='undefined'||!H||H.c!==P.c||H.phase!=='play'||H.c.mv.length!==P.n||H.c.mv_!==P.seat)return;
+  const pl=H.players[P.seat];if(!pl||!pl.bot)return;
+  if(a.c&&doMove(P.seat,a.c,a.d))return;
+  const C=H.c,m=botPick(C.b,C.co[P.seat]+1);if(m)doMove(P.seat,m.c,m.d);else finishGame(other(P.seat),'stuck');
+}
+G._test={setBotScale:f=>{BOTSCALE=f},botSearch,evalFor,makeM,unmakeM,ROW,NB,CELLS,NEED,NP_MAX,startBoard,lineOf,tryMove,applyMove,legal,arrowsOf,botPick,cellName,doMove,timeout,pickFirst,hexDist,repKey,LAY_NAME};
 G.engine={
   start(){
     const again=H.phase==='over',R={tm:Math.max(1,+H.cfg.tm||10),inc:Math.max(0,+H.cfg.inc||0)},lay=layOf(H.cfg);
@@ -231,6 +357,7 @@ G.engine={
     if(p.bot&&!awayHuman(p)){
       if(!C.mvBot){C.rem[C.mv_]=Math.max(0,C.rem[C.mv_]-Math.max(0,t-C.since));C.mvBot=1}
       C.since=t;
+      if(BOTW.pend){if(BOTW.pend.c===C&&t-BOTW.pend.at<6000)return;BOTW.pend=null}   // 일꾼 답을 기다림 (오래 안 오면 다시 생각)
       if(!H.botActAt)H.botActAt=t+300;
       if(t>=H.botActAt&&!(p.away&&t<p.awayAt+AWAY_WAIT))botTurn(C.mv_);
       return;
@@ -853,5 +980,5 @@ G.init=()=>{
 };
 G._d3={P3,IN,introEnd,worldAt,cellAt,get CS(){return CS},tapCell,get sel(){return sel},get pick(){return pick},arrows,wx,wz,MY};   // 화면 검사용
 
-if(typeof window!=='undefined')(window.GAMES=window.GAMES||{}).abalone=G;
+if(!IS_WORKER)(window.GAMES=window.GAMES||{}).abalone=G;
 })();
