@@ -264,7 +264,7 @@ G.engine={
 };
 
 /* ---------- 화면: 조작 ---------- */
-let elBox=null,elBar=null,elOne=null,elCh=null,elSuits=null,elRv=null,elD=null;
+let elBox=null,elOne=null,elCh=null,elSuits=null,elRv=null,elD=null;
 let lockAt=-1e9,pickId=null,oneAt=-1e9,lastRv='',lastD='',layKey='';
 const iSeat=()=>{const i=myIdx();return i>=0&&V&&V.ps&&i<V.ps.length};
 const myTurn=()=>!!(V&&V.o&&V.st==='play'&&V.o.ph==='turn'&&iSeat()&&V.t===myIdx()&&!dealingV());
@@ -276,8 +276,7 @@ function closePick(){pickId=null;if(elSuits)elSuits.hidden=true}
 G.handMarks=(i,h,hand)=>{
   if(sel.size>1){const keep=[...sel].pop();sel.clear();sel.add(keep)}
   if(pickId!=null&&!sel.has(pickId))closePick();
-  const t=myTurn();
-  for(const el of hand.children){const id=+el.dataset.id;el.classList.toggle('sel',sel.has(id));el.classList.toggle('oc-no',t&&!legalV(id))}
+  for(const el of hand.children){const id=+el.dataset.id;el.classList.toggle('sel',sel.has(id));el.classList.toggle('match',legalV(id))}
 };
 G.me=()=>{$('#numpick').hidden=true};
 function sendPlay(id,suit){if(clock()-lockAt<300)return;lockAt=clock();sel.clear();closePick();sendAct({t:'play',id,suit})}
@@ -295,6 +294,7 @@ function pressOne(){
   if(!live1()){sfx('no');return}
   if(clock()-oneAt<400)return;oneAt=clock();sfx('play',1);sendAct({t:'one'});
 }
+function keyTags(){for(const [el,k] of [[elOne,KEYS.onecard],[elCh,KEYS.ocChal]]){const t=keyLabel(k),s=el.querySelector('small');if(s.textContent!==t)s.textContent=t}}
 function pressCh(){if(!myTurn()||!V.o.ch){sfx('no');return}closePick();sendAct({t:'ch'})}
 G.keyPhase=st=>st==='play';
 G.onKey=(act,e)=>{
@@ -306,7 +306,7 @@ G.preView=()=>{};
 G.postView=()=>{};
 G.buttons=()=>{
   const pb=$('#btnPlay'),ps=$('#btnPass'),t=myTurn(),ok=t&&picked()!=null;
-  $('#btnGura').hidden=true;ps.hidden=false;pb.hidden=false;
+  $('#btnGura').hidden=true;ps.hidden=false;pb.hidden=false;   // 내기 버튼은 CSS로 숨김: 끌어서 내기·Space가 이 버튼 상태를 씀
   pb.disabled=!ok;pb.classList.toggle('ready',ok);
   if($('#playMain').textContent!=='내기')$('#playMain').textContent='내기';
   const sub=keyLabel(KEYS.play);if($('#playSub').textContent!==sub)$('#playSub').textContent=sub;
@@ -324,7 +324,7 @@ const sndCall=()=>{tone(660,.1,{type:'triangle',vol:.16});tone(880,.16,{type:'tr
 const nameOf=i=>V&&V.ps&&V.ps[i]?V.ps[i].n:'';
 function evCue(e){
   if(e.k==='p'){sfx('play',1);if(e.atk)sndHit()}
-  else if(e.k==='c'){sndCall();fxSay('원카드!','#b5521e')}
+  else if(e.k==='c'){sndCall();showBubble(e.s,'<span class="bt">원카드!</span>',2000,'one')}
   else if(e.k==='f'){sfx('no')}
   else if(e.k==='r'){fxSay('도전','#b5521e')}
   else if(e.k==='x'){fxSay(e.ok?'도전 성공':'도전 실패',e.ok?'#2f7a3a':'#b03a2e');if(e.ok)sndCall();else sndHit()}
@@ -415,8 +415,7 @@ function clearPile(){for(const c of T.field)killCard(c);T.field=[];M.fly=[];M.q=
 G.field3D=(v,pv,me)=>{
   const o=v.o;if(!o||!T.ok||!M.built||v.st==='wait')return;
   if(M.gn!==o.gn){
-    clearPile();M.gn=o.gn;M.dir=o.dir;M.nextFly=0;M.sq=o.sq;M.dc=o.dc;M.atk=o.atk;M.su=o.su;M.top=o.top;
-    const to=pileSpot(0),c=makeCard(to,-Math.PI/2,rand(-.3,.3),1);c.children[0].material=faceMat(o.top);T.field.push(c);
+    clearPile();M.gn=o.gn;M.dir=o.dir;M.nextFly=0;M.sq=o.sq;M.dc=o.dc;M.atk=o.atk;M.su=o.su;M.top=o.top;M.needTop=true;
   }
   M.dc=o.dc;
   for(const e of o.ev)if(e.q>M.sq){M.sq=e.q;enqueue(e,me)}
@@ -427,6 +426,10 @@ function step(){
   M.raf=0;if(!M.on||!V||!V.o)return;
   M.raf=requestAnimationFrame(step);
   const now=clock(),o=V.o,show=V.st!=='wait'&&!dealingV();
+  if(M.needTop&&show){   // 시작 연출에서 뒤집은 카드가 끝나면 그 자리에 진짜 카드
+    M.needTop=false;
+    if(!T.field.length){const c=makeCard(pileSpot(0),-Math.PI/2,0,1);c.children[0].material=faceMat(o.top);T.field.push(c)}
+  }
   flyStep(now);
   M.deck.visible=show&&o.dc>0;
   if(M.deck.visible){const h=Math.max(.012,o.dc*.009);M.deck.scale.y=h;M.deck.position.y=.02+h/2}
@@ -456,18 +459,25 @@ function drawReveal(){
   if(h!==lastRv){lastRv=h;elRv.innerHTML=h;elRv.hidden=!h}
 }
 function layoutBar(){
-  const st=$('#stage');if(!elBar)return;
-  const fh=+T.fanH||0,nar=(st.style.getPropertyValue('--actB')||'').trim()!=='14px',key=fh+':'+nar;
+  const st=$('#stage'),fh=+T.fanH||0,key=String(fh);
   if(key===layKey)return;layKey=key;
-  st.style.setProperty('--ocB',(fh+(nar?64:6))+'px');elBar.classList.toggle('nar',nar);
+  st.style.setProperty('--ocB',(fh+6)+'px');
 }
 G.afterFan=layoutBar;
+/* 시작 연출: 남은 카드도 같이 섞고, 나눈 뒤 왼쪽 더미 자리로 옮기고 맨 위 한 장을 뒤집어 오른쪽에 펼침 */
+const REST_MS=[2520,2800],FLIP_MS=[2820,3220];
+G.dealPile=v=>v.o?(+v.o.dc||0)+1:0;
+G.dealRest=(c,a,fy)=>{
+  const u=smooth((a-REST_MS[0])/(REST_MS[1]-REST_MS[0])),s=.8+.2*u,x=-PX*u;
+  if(c.pile>1||a<FLIP_MS[0]){setPose(c.g,x,fy,0,Math.PI/2,0,0,s);return}
+  if(!c.faced&&V&&V.o){c.faced=1;c.g.children[0].material=faceMat(V.o.top);sfx('play',1)}
+  const f=smooth((a-FLIP_MS[0])/(FLIP_MS[1]-FLIP_MS[0]));
+  setPose(c.g,-PX+2*PX*f,fy+(.03-fy)*f+Math.sin(Math.PI*f)*.7,0,Math.PI/2-Math.PI*f,0,0,1);
+};
 G.live=()=>{
-  if(!elBar||!V||!V.o)return;
+  if(!elOne||!V||!V.o)return;
   layoutBar();
-  const on=!!(iSeat()&&V.st==='play'&&!V.ps[myIdx()].f);
-  if(elBar.hidden===on)elBar.hidden=!on;
-  elOne.disabled=!live1();
+  keyTags();elOne.disabled=!live1();
   const c=myTurn()&&!!V.o.ch;if(elCh.hidden===c)elCh.hidden=!c;
   if(pickId!=null&&!legalV(pickId))closePick();
   drawReveal();
@@ -479,7 +489,7 @@ G.hud=inGame=>{
   const d3=on&&build();
   if(d3!==M.on){M.on=d3;if(M.root)M.root.visible=d3;if(d3){M.key='';if(!M.raf)M.raf=requestAnimationFrame(step)}}
   $('#stage').classList.add('ocg');
-  if(!on){if(T.ok&&T.field.length)clearPile();M.gn=-1;closePick();if(elBar)elBar.hidden=true;return}
+  if(!on){if(T.ok&&T.field.length)clearPile();M.gn=-1;closePick();return}
   draw2d();
 };
 G.overRank=p=>{const t=p.sr===3?'탈주':p.sr?'항복':'';return t?`<span class="left">${t}</span>`:''};
@@ -489,7 +499,7 @@ G.leave=()=>{
   if(elBox)elBox.hidden=true;
   if(M.root)M.root.visible=false;
   Object.assign(M,{on:false,gn:-1,sq:0,key:'',top:-1,atk:0});
-  closePick();layKey='';
+  closePick();layKey='';M.needTop=false;
   const st=$('#stage');st.classList.remove('ocg');st.style.removeProperty('--ocB');
   const ps=$('#btnPass');delete ps.dataset.oc;ps.innerHTML=`패스<small>${esc(keyLabel(KEYS.pass))}</small>`;ps.hidden=false;
 };
@@ -506,16 +516,14 @@ G.init=()=>{
 .oc-box[hidden]{display:none}
 .stage.ocg .card.oc-a .big{font-family:"IBM Plex Mono","Jua",monospace;font-weight:700;font-size:30px;color:var(--rc)}
 .stage.ocg .card.joker.oc-a .big{color:${JOKER_C}}
-.stage.ocg .card.oc-no{filter:grayscale(.75) brightness(.82)}
-.oc-bar{position:absolute;left:50%;bottom:var(--ocB,120px);transform:translateX(-50%);display:flex;gap:8px;align-items:center;pointer-events:auto}
-.oc-bar.nar{left:auto;right:12px;transform:none}
-.oc-bar[hidden]{display:none}
-.oc-btn{height:50px;min-width:104px;padding:0 14px;border:0;border-radius:14px;background:#d6452f;color:#fffaf0;font:400 22px "Jua",sans-serif;box-shadow:0 4px 0 #8e2a1c,0 6px 12px rgba(0,0,0,.28);cursor:pointer;touch-action:manipulation}
-.oc-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #8e2a1c}
-.oc-btn:disabled{filter:grayscale(.6);opacity:.65}
-.oc-btn.oc-ch{background:#6258a8;box-shadow:0 4px 0 #3f3773,0 6px 12px rgba(0,0,0,.28);min-width:76px}
-.oc-btn.oc-ch[hidden]{display:none}
-.oc-suits{position:absolute;left:50%;bottom:calc(var(--ocB,120px) + 62px);transform:translateX(-50%);display:flex;gap:8px;padding:8px;border-radius:16px;background:rgba(59,42,31,.92);pointer-events:auto}
+.oc-act{display:none}
+.stage.ocg .oc-act{display:flex}
+.stage.ocg .oc-act[hidden]{display:none}
+.stage.ocg #btnPlay{display:none}
+.stage.ocg .actions{left:50%;right:auto;bottom:var(--ocB,120px);width:min(340px,calc(100% - 20px));justify-content:center;transform:translateX(-50%) scale(var(--actS,1));transform-origin:50% 100%}
+.stage.ocg .actions .act{flex:1;min-width:0;pointer-events:auto}
+.bubble.one .bt{font-size:calc(27px*var(--bk,1))}
+.oc-suits{position:absolute;left:50%;bottom:calc(var(--ocB,120px) + 70px);transform:translateX(-50%);display:flex;gap:8px;padding:8px;border-radius:16px;background:rgba(59,42,31,.92);pointer-events:auto}
 .oc-suits[hidden]{display:none}
 .oc-suits button{width:60px;height:60px;border:0;border-radius:12px;background:#fffcf5;font-size:36px;line-height:1;cursor:pointer;touch-action:manipulation}
 .oc-rv{position:absolute;left:50%;top:24%;transform:translateX(-50%);max-width:calc(100% - 24px);padding:8px 12px 12px;border-radius:14px;background:rgba(59,42,31,.92);color:#fffaf0;text-align:center;font-family:"Jua",sans-serif}
@@ -528,9 +536,11 @@ G.init=()=>{
 `;
   document.head.appendChild(css);
   elBox=document.createElement('div');elBox.className='oc-box';elBox.hidden=true;
-  elBox.innerHTML=`<div class="oc-2d"></div><div class="oc-rv" hidden></div><div class="oc-suits" hidden>${SUITS.map((s,i)=>`<button type="button" data-s="${i}" aria-label="${s}" style="color:${SUIT_COL[i]}">${s}</button>`).join('')}</div><div class="oc-bar" hidden><button type="button" class="oc-btn oc-ch" hidden>도전</button><button type="button" class="oc-btn oc-one">원카드!</button></div>`;
+  elBox.innerHTML=`<div class="oc-2d"></div><div class="oc-rv" hidden></div><div class="oc-suits" hidden>${SUITS.map((s,i)=>`<button type="button" data-s="${i}" aria-label="${s}" style="color:${SUIT_COL[i]}">${s}</button>`).join('')}</div>`;
   $('#stage').appendChild(elBox);
-  elBar=elBox.querySelector('.oc-bar');elOne=elBox.querySelector('.oc-one');elCh=elBox.querySelector('.oc-ch');elSuits=elBox.querySelector('.oc-suits');elRv=elBox.querySelector('.oc-rv');elD=elBox.querySelector('.oc-2d');
+  const acts=$('#actions');
+  acts.insertAdjacentHTML('beforeend',`<button type="button" class="act act-play oc-act" id="ocCh" hidden>도전<small></small></button><button type="button" class="act act-gura oc-act" id="ocOne">원카드!<small></small></button>`);
+  elOne=$('#ocOne');elCh=$('#ocCh');elSuits=elBox.querySelector('.oc-suits');elRv=elBox.querySelector('.oc-rv');elD=elBox.querySelector('.oc-2d');
   elOne.addEventListener('click',pressOne);elCh.addEventListener('click',pressCh);
   elSuits.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||pickId==null)return;if(!legalV(pickId)){closePick();sfx('no');return}sendPlay(pickId,+b.dataset.s)});
 };

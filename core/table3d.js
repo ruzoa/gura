@@ -301,13 +301,14 @@ function dealStart(v,t0,key){
   dealAbort();
   const me=myIdx(),n=v.ps.length;
   const cnt=v.ps.map((p,i)=>i===me?myHand().length:Math.max(0,+p.c||0));
-  const N=cnt.reduce((a,b)=>a+b,0);if(!N)return;
+  const ND=cnt.reduce((a,b)=>a+b,0);if(!ND)return;
+  const N=ND+(G.dealPile?Math.max(0,+G.dealPile(v)||0):0);   // dealPile: 나누지 않고 더미에 남는 카드 수. 같이 섞이고 남은 뒤 G.dealRest가 움직임(원카드)
   const d={key,t0,me,N,cards:[],fired:{},fanned:false,cutAt:0};
   if(me>=0)$('#hand').classList.add('dealing');
   $('#stage').classList.add('dealing');
   // 나누는 순서: 첫 차례인 사람부터 돌아가며 한 장씩 (장수가 다르면 다 받은 사람은 건너뜀)
   const got=Array(n).fill(0),order=[];let s0=v.t!=null&&v.t>=0?v.t:0;
-  for(let k=0,i=s0;k<N;i=(i+1)%n){if(got[i]<cnt[i]){order.push([i,got[i]]);got[i]++;k++}}
+  for(let k=0,i=s0;k<ND;i=(i+1)%n){if(got[i]<cnt[i]){order.push([i,got[i]]);got[i]++;k++}}
   const h=Math.floor(N/2),cutAt=Math.round(N*(.4+Math.random()*.2)),myIds=me>=0?myHand():[];
   for(let idx=0;idx<N;idx++){
     // idx: 처음 더미에서의 순서(0이 맨 아래). 리플로 번갈아 섞인 순서 j, 커트 뒤 순서 f
@@ -325,7 +326,8 @@ function dealStart(v,t0,key){
   // 맨 위(f가 큰 카드)부터 나눔
   const byF=[...d.cards].sort((a,b)=>b.f-a.f);
   byF.forEach((c,k)=>{
-    const x=N>1?k/(N-1):0;c.k=k;c.dt=DL.deal[0]+(DL.deal[1]-DL.deal[0])*Math.pow(x,.5);c.dur=260-110*x;   // 처음엔 느리다가 점점 빠르게
+    if(k>=ND){c.pile=k-ND+1;return}   // 남는 카드: 1이 맨 위
+    const x=ND>1?k/(ND-1):0;c.k=k;c.dt=DL.deal[0]+(DL.deal[1]-DL.deal[0])*Math.pow(x,.5);c.dur=260-110*x;   // 처음엔 느리다가 점점 빠르게
     const [i,m]=order[k];c.seat=i;c.m=m;
   });
   if(T.ok){
@@ -333,6 +335,7 @@ function dealStart(v,t0,key){
     for(const arr of T.stacks.values())arr.forEach(killCard);T.stacks.clear();
     for(const c of d.cards){
       c.g=makeCard(new THREE.Vector3(0,-1,0),Math.PI/2,0,.8);c.g.userData.man=true;c.g.visible=false;
+      if(c.pile)continue;
       if(c.seat===me)c.g.renderOrder=2;
       // 받는 자리
       if(c.seat===me){const p=seatPos(me,3.85);c.dx=p.x;c.dz=p.z;c.dy=.03+c.m*.006;c.dry=seatAngle(me);if(c.m===0&&myIds.length)c.id=myIds[myIds.length-1]}   // 다른 사람과 같은 거리(나무 위). 맨 아래 카드 앞면 = 손패 맨 위 카드
@@ -386,6 +389,7 @@ function dealPose(d,c,a){
     if(a>=DL.slide[0]){const u=smooth((a-DL.slide[0])/(DL.slide[1]-DL.slide[0]));x=cx*(1-u);y=fy}
     setPose(g,x,y,0,Math.PI/2,0,0,S);return;
   }
+  if(c.pile){if(G.dealRest)G.dealRest(c,a,fy);else setPose(g,0,fy,0,Math.PI/2,0,0,S);return}
   // 5) 나누기: 맨 위부터 한 장씩, 점점 빠르게, 살짝 떠올라 휘면서 빙글 돌아 각 자리로
   if(a<c.dt){setPose(g,0,fy,0,Math.PI/2,0,0,S);return}
   const u=clamp01((a-c.dt)/c.dur);
@@ -454,7 +458,7 @@ function dealEnd(d){
   if(T.ok){
     const by=new Map();
     for(const c of d.cards){
-      if(c.seat===d.me||!V||!V.ps||c.m>=14){killCard(c.g);continue}
+      if(c.pile||c.seat===d.me||!V||!V.ps||c.m>=14){killCard(c.g);continue}
       if(!by.has(c.seat))by.set(c.seat,[]);by.get(c.seat).push(c);
     }
     for(const [i,list] of by){
