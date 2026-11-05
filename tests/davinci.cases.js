@@ -78,7 +78,7 @@ for(let g=0;g<DV_GAMES;g++){
   eq(H.players.filter(p=>p.rank===1).length,1,'one winner');
 }
 /* 봇 난이도: 어려움은 남의 숨은 값 없이 추론함 (값을 바꿔도 같은 공개 정보면 판단 범위가 같음), 좁혀지면 정답 확률이 높음 */
-setup(2);board([[T_(ID(0,0),1)],[T_(ID(0,3),3,1),T_(ID(0,4),4),T_(ID(0,5),5,1)]],[]);H.players[0].bot=true;H.players[0].lv=2;
+setup(2,0,{joker:0});board([[T_(ID(0,0),1)],[T_(ID(0,3),3,1),T_(ID(0,4),4),T_(ID(0,5),5,1)]],[]);H.players[0].bot=true;H.players[0].lv=2;
 {const g=TT.hardGuess(0);eq(g.u,4,'hard picks forced tile');eq(g.v,4,'hard reads neighbours');if(g.p<.45)fail('davinci hard p '+g.p)}
 /* 단계별 대전 */
 {const duel=(a,b,N)=>{let w=0,ms=0,mv=0;for(let g=0;g<N;g++){
