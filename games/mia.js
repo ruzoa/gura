@@ -345,7 +345,7 @@ function boardHTML(){
   const out=['<rect x="-.34" y="-.34" width="9.68" height="9.68" rx=".12" fill="#6b3f1f"/>'];
   for(let y=0;y<N;y++)for(let x=0;x<N;x++)out.push(`<rect x="${x}" y="${y}" width="1" height="1" fill="${(x+y)&1?'#e6d6b4':'#f0e4c8'}" stroke="#a98a5b" stroke-width=".02"/>`);
   for(const c of Object.keys(memo))out.push(memoGlyph(memo[c],CX(+c),CY(+c),'rgba(70,50,30,.6)'));
-  for(let i=0;i<CS.cnt;i++)if(flagShown(i)&&!hideEnd(i)){const c=CS.flag[i],x=CX(c),y=CY(c);out.push(`<circle cx="${x+.5}" cy="${y+.5}" r=".4" fill="${SEAT_C[i]}" stroke="#3a2210" stroke-width=".04"/><rect x="${x+.34}" y="${y+.24}" width=".32" height=".52" fill="#2a1a0e" stroke="#fff3d0" stroke-width=".05"/>`)}
+  for(let i=0;i<CS.cnt;i++)if(flagShown(i)&&!hideEnd(i)){const c=CS.flag[i],x=CX(c),y=CY(c);out.push(`<circle cx="${x+.5}" cy="${y+.5}" r=".4" fill="${SEAT_C[i]}" stroke="#3a2210" stroke-width=".04"/><rect x="${x+.58}" y="${y+.22}" width=".22" height=".56" fill="#2a1a0e" stroke="#fff3d0" stroke-width=".04"/><g stroke="#fff3d0" stroke-width=".06" fill="none" stroke-linecap="round"><path d="M${x+.42} ${y+.38}L${x+.36} ${y+.56}M${x+.42} ${y+.4}L${x+.53} ${y+.47}M${x+.42} ${y+.4}L${x+.27} ${y+.46}M${x+.36} ${y+.57}L${x+.49} ${y+.64}L${x+.47} ${y+.77}M${x+.36} ${y+.57}L${x+.3} ${y+.71}L${x+.18} ${y+.72}"/></g><circle cx="${x+.47}" cy="${y+.27}" r=".07" fill="#fff3d0"/>`)}
   if(CS.path)CS.path.forEach((p,i)=>{if(p.length>1)out.push(`<polyline points="${p.map(c=>(CX(c)+.5)+','+(CY(c)+.5)).join(' ')}" fill="none" stroke="${SEAT_C[i]}" stroke-width=".07" opacity=".7"/>`)});
   CS.pos.forEach((c,i)=>{if(c>=0&&(CS.ph!=='place'||true)&&!(CS.ph==='roll'&&false))out.push(`<circle cx="${CX(c)+.5}" cy="${CY(c)+.5}" r=".28" fill="${SEAT_C[i]}" opacity="${V.st==='over'?.9:.5}" stroke="#3a2210" stroke-width=".03"/>`)});
   for(const e of CS.ws){const l=edgeLine(e),last=CS.lm&&CS.lm.e===e;out.push(`<line x1="${l[0]}" y1="${l[1]}" x2="${l[2]}" y2="${l[3]}" stroke="${last?'#c98a12':'#3a2210'}" stroke-width=".13" stroke-linecap="round"/>`)}
@@ -449,13 +449,16 @@ function wallMesh(e,ghost){
 }
 /* 탈출구 코인: 판에 놓인 납작한 자리 색 코인. 윗면에 열린 문과 화살표 */
 function drawExit(c,w,hex){
-  const u=w/64;c.fillStyle=hex;c.fillRect(0,0,w,w);
-  c.strokeStyle='rgba(255,240,205,.85)';c.lineWidth=3*u;c.beginPath();c.arc(32*u,32*u,27*u,0,7);c.stroke();
-  c.fillStyle='#2a1a0e';c.fillRect(25*u,14*u,21*u,36*u);                 // 문틀 안 어둠
-  c.fillStyle='#fff3d0';c.fillRect(22*u,12*u,3*u,40*u);c.fillRect(22*u,12*u,27*u,3*u);c.fillRect(46*u,12*u,3*u,40*u);
-  c.beginPath();c.moveTo(46*u,15*u);c.lineTo(34*u,20*u);c.lineTo(34*u,53*u);c.lineTo(46*u,50*u);c.closePath();c.fill();   // 열린 문짝
-  c.fillStyle=hex;c.beginPath();c.arc(38*u,35*u,1.8*u,0,7);c.fill();
-  c.fillStyle='#fff3d0';c.fillRect(9*u,30*u,10*u,4*u);c.beginPath();c.moveTo(17*u,25*u);c.lineTo(25*u,32*u);c.lineTo(17*u,39*u);c.closePath();c.fill();   // 화살표
+  const u=w/64,L=(pts,lw)=>{c.lineWidth=lw*u;c.beginPath();pts.forEach(([x,y],k)=>k?c.lineTo(x*u,y*u):c.moveTo(x*u,y*u));c.stroke()};
+  c.fillStyle=hex;c.fillRect(0,0,w,w);
+  c.strokeStyle='rgba(255,240,205,.85)';c.lineWidth=3*u;c.beginPath();c.arc(32*u,32*u,28*u,0,7);c.stroke();
+  c.fillStyle='#2a1a0e';c.fillRect(39*u,13*u,15*u,38*u);                 // 문
+  c.strokeStyle='#fff3d0';c.lineCap='round';c.lineJoin='round';
+  L([[39,51],[39,13],[54,13],[54,51]],3);
+  c.fillStyle='#fff3d0';c.beginPath();c.arc(30*u,16*u,4.6*u,0,7);c.fill();   // 달리는 사람: 머리
+  L([[27,24],[23,36]],6.5);                                              // 몸통
+  L([[27,25],[34,30],[39,26]],4);L([[27,25],[19,28],[16,34]],4);         // 팔
+  L([[23,37],[31,41],[30,50]],4.5);L([[23,37],[19,45],[11,47]],4.5);     // 다리
 }
 function flagMesh(i){
   const g=new THREE.Group(),hex=SEAT_C[i],geo_=GEO.coin||(GEO.coin=new THREE.CylinderGeometry(.2,.205,.055,40));
