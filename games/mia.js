@@ -68,13 +68,13 @@ function botAction(bel,w,flag,left,rnd){
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 깃발에 먼저 도착하면 이깁니다. 다만 <b>내 말이 어디 있는지 나만 모릅니다</b></li><li><b>판</b> : 9×9 칸이고 위가 북쪽입니다. 칸마다 A1~I9 이름이 있습니다</li><li><b>시작 칸</b> : 각자 다음 사람의 말을 놓을 칸을 몰래 고릅니다. 내 말은 이전 사람이 고릅니다</li><li><b>깃발</b> : 각자 10면체 주사위 두 개로 깃발 칸을 정합니다. 첫째는 열(1이 A), 둘째는 행입니다. 0이 나오면 다시 굴리고, 시작 칸과 같아도 다시 굴립니다</li><li><b>내 차례</b> : 내 말을 동서남북 중 한 칸 움직이거나 벽을 하나 세웁니다. 벽이나 판 끝으로 움직이면 아무 말 없이 제자리에 있고 차례만 씁니다</li><li><b>벽</b> : 칸과 칸 사이에 한 칸 길이로 세웁니다. 어떤 칸도 판에서 끊어 놓을 수 없습니다. 가지고 있는 수는 탁자 설정으로 정합니다</li><li><b>거리</b> : 모두 한 번씩 하면 라운드가 끝나고, 각자 내 깃발까지의 <b>최단 거리</b>를 받습니다. 벽을 돌아가는 칸 수입니다</li><li><b>승리</b> : 라운드가 끝날 때 내 깃발 칸에 있으면 이깁니다. 같은 라운드에 여럿이 도착하면 함께 승리하고, 모두 도착하면 무승부입니다</li><li><b>메모</b> : 판의 칸을 누르면 ✕, 한 번 더 누르면 지워집니다. 나만 봅니다</li><li><b>제한 시간</b> : 시간이 지나면 무작위 방향으로 움직입니다. 시작 칸은 무작위로 고릅니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다</li><li><b>조작</b> : 화살표를 누른 뒤 <b>[이동]</b>, 또는 벽 버튼을 켜고 칸의 벽 세울 쪽을 누른 뒤 <b>[놓기]</b>입니다. 설정의 <b>두 번 눌러 놓기</b>를 켜면 같은 곳을 한 번 더 눌러 바로 합니다. 키보드는 화살표, 벽은 X입니다</li><li><b>선 플레이어</b> : 첫 판은 탁자 설정으로 정합니다(무작위면 주사위, 선택이면 방장이 대기실에서 고름). 결과 화면에서 바로 시작하면 다음 사람이 먼저 합니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 깃발에 먼저 도착하면 이깁니다. 다만 <b>내 말이 어디 있는지 나만 모릅니다</b></li><li><b>판</b> : 9×9 칸이고 위가 북쪽입니다. 칸마다 A1~I9 이름이 있습니다</li><li><b>시작 칸</b> : 각자 다음 사람의 말을 놓을 칸을 몰래 고릅니다. 내 말은 이전 사람이 고릅니다</li><li><b>깃발</b> : 각자 10면체 주사위 두 개로 깃발 칸을 정합니다. 첫째는 열(1이 A), 둘째는 행입니다. 0이 나오면 다시 굴리고, 시작 칸과 같아도 다시 굴립니다</li><li><b>내 차례</b> : 행동을 <b>두 번</b> 합니다. 행동은 내 말을 동서남북 중 한 칸 움직이기, 또는 벽 하나 세우기입니다(2이동, 1벽 1이동, 2벽 모두 됩니다). 벽이나 판 끝으로 움직이면 아무 말 없이 제자리에 있고 행동만 씁니다</li><li><b>벽</b> : 칸과 칸 사이에 한 칸 길이로 세웁니다. 어떤 칸도 판에서 끊어 놓을 수 없습니다. 벽은 모두 40개이고 똑같이 나눠 각자 앞에 세워 둡니다(탁자 설정으로 바꿀 수 있습니다)</li><li><b>거리</b> : 모두 한 번씩 하면 라운드가 끝나고, 각자 내 깃발까지의 <b>최단 거리</b>를 받습니다. 벽을 돌아가는 칸 수입니다</li><li><b>승리</b> : 라운드가 끝날 때 내 깃발 칸에 있으면 이깁니다. 같은 라운드에 여럿이 도착하면 함께 승리하고, 모두 도착하면 무승부입니다</li><li><b>메모</b> : 판의 칸을 누르면 ✕, 한 번 더 누르면 지워집니다. 나만 봅니다</li><li><b>제한 시간</b> : 시간이 지나면 무작위 방향으로 움직입니다. 시작 칸은 무작위로 고릅니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다</li><li><b>조작</b> : 화살표를 누른 뒤 <b>[이동]</b>, 또는 벽 버튼이나 내 앞의 벽을 눌러 켜고 칸의 벽 세울 쪽을 누른 뒤 <b>[놓기]</b>입니다. 설정의 <b>두 번 눌러 놓기</b>를 켜면 같은 곳을 한 번 더 눌러 바로 합니다. 키보드는 화살표, 벽은 X입니다</li><li><b>선 플레이어</b> : 첫 판은 탁자 설정으로 정합니다(무작위면 주사위, 선택이면 방장이 대기실에서 고름). 결과 화면에서 바로 시작하면 다음 사람이 먼저 합니다</li></ol>';
 G.modeDesc=['깃발에 도착하면 끝','깃발에 도착하면 끝'];
-G.defaults={max:2,turn:30,walls:10,pickfirst:0};
-G.roomSet=[{k:'turn',label:'제한 시간',unit:'초',lo:10,hi:120,step:5,desc:'시간이 지나면 무작위 방향으로 움직입니다. 연결이 끊겨도 시간은 흐르고, 45초가 지나면 탈주로 처리합니다'},{k:'walls',label:'벽',unit:'개',lo:0,hi:20,step:1,desc:'한 사람이 세울 수 있는 벽의 수입니다'}];
+G.defaults={max:2,turn:30,wallT:40,pickfirst:0};
+G.roomSet=[{k:'turn',label:'제한 시간',unit:'초',lo:10,hi:120,step:5,desc:'시간이 지나면 무작위 방향으로 움직입니다. 연결이 끊겨도 시간은 흐르고, 45초가 지나면 탈주로 처리합니다'},{k:'wallT',label:'전체 벽',unit:'개',lo:8,hi:80,step:4,desc:'모든 사람의 벽을 합친 수입니다. 똑같이 나눠 가지고 남는 벽은 쓰지 않습니다'}];
 G.ruleSet=[{k:'pickfirst',pick:1,label:'선 플레이어',desc:'선택: 방장이 이름표 메뉴에서 선 플레이어를 고릅니다. 무작위: 주사위로 정하고, 바로 시작하면 다음 사람이 먼저 합니다'}];
-G.cfgChips=c=>`<span class="chip">제한 시간 <b>${+c.turn}초</b></span><span class="chip">벽 <b>${+c.walls}개</b></span><span class="chip">선 <b>${+c.pickfirst?'선택':'무작위'}</b></span>`;
-G.cfgSum=c=>`제한 시간 ${+c.turn}초 · 벽 ${+c.walls}개 · 선 ${+c.pickfirst?'선택':'무작위'}`;
+G.cfgChips=c=>`<span class="chip">제한 시간 <b>${+c.turn}초</b></span><span class="chip">전체 벽 <b>${+c.wallT}개</b></span><span class="chip">선 <b>${+c.pickfirst?'선택':'무작위'}</b></span>`;
+G.cfgSum=c=>`제한 시간 ${+c.turn}초 · 전체 벽 ${+c.wallT}개 · 선 ${+c.pickfirst?'선택':'무작위'}`;
 G.roomSub=()=>'2~4명 보드게임';
 G.pubExtra=()=>({});
 G.cardInfo=(c,nowN)=>`<p class="cardinfo">내 말이 어디 있는지 나만 모릅니다.${nowN>4?'<br>미아는 최대 4명까지 할 수 있습니다.':''}</p>`;
@@ -86,7 +86,7 @@ G.keyActions=[{a:'miaL',n:'서쪽 고르기',d:'미아: ← 방향을 고릅니�
 G.cardHTML=()=>'';G.drawFace=()=>{};G.cmpCard=()=>0;G.labelOf=()=>'';
 
 /* ---------- 방장 엔진 ---------- */
-const ROLL_EACH=1300,ROLL_TAIL=400;
+const ROLL_EACH=1300,ROLL_TAIL=400,ACTS=2;   // ACTS: 한 차례의 행동 수
 const rollMs=cnt=>cnt*ROLL_EACH+ROLL_TAIL;
 const active=i=>!H.players[i].finished;
 const activeSeats=()=>{const o=[];for(let i=0;i<H.mia.cnt;i++)if(active(i))o.push(i);return o};
@@ -128,7 +128,7 @@ function startTurn(i){
   mark();
 }
 function startRound(){
-  const X_=H.mia;X_.done=[];
+  const X_=H.mia;X_.done=[];X_.acts=0;
   const f=active(X_.A)?X_.A:activeSeats().find(s=>s>X_.A)??activeSeats()[0];
   X_.ph='move';startTurn(f);
 }
@@ -144,7 +144,7 @@ function endRound(){
   const act=activeSeats();
   for(const s of act){
     const dist=distMap(X_.w,X_.flag[s]),d=dist[X_.pos[s]],h=X_.hist[s];
-    if(h.length)h[h.length-1].d=d;
+    if(h.length&&h[h.length-1].d<0)h[h.length-1].d=d;
     X_.bel[s]=beliefFilter(X_.bel[s],dist,d);
   }
   const w=act.filter(s=>X_.pos[s]===X_.flag[s]);
@@ -156,16 +156,20 @@ function endRound(){
   startRound();
 }
 function afterAct(seat){
-  const X_=H.mia;X_.done.push(seat);X_.n++;
+  const X_=H.mia;X_.n++;X_.acts++;
+  if(X_.acts<ACTS){startTurn(seat);return}
+  X_.acts=0;X_.done.push(seat);
   for(let k=1;k<=X_.cnt;k++){const j=(seat+k)%X_.cnt;if(active(j)&&!X_.done.includes(j)){startTurn(j);return}}
   endRound();
 }
 const turnOK=seat=>H.phase==='play'&&H.mia.ph==='move'&&H.turn===seat;
+/* 내 기록: 차례마다 한 줄 {a:[행동…],d:라운드 끝 거리} */
+function histAdd(seat,a){const X_=H.mia,h=X_.hist[seat];if(X_.acts===0||!h.length)h.push({a:[a],d:-1});else h[h.length-1].a.push(a)}
 function doGo(seat,d){
   const X_=H.mia;
   if(!turnOK(seat)||!Number.isInteger(d)||d<0||d>3)return false;
   const from=X_.pos[seat],to=step(X_.w,from,d);
-  X_.pos[seat]=to;X_.path[seat].push(to);X_.hist[seat].push({a:d,d:-1});
+  X_.pos[seat]=to;X_.path[seat].push(to);histAdd(seat,d);
   X_.bel[seat]=beliefMove(X_.bel[seat],X_.w,d);
   X_.lm={n:X_.n+1,s:seat,k:'m',d};
   addLog(`${X_.rn+1}라운드 ${H.players[seat].name} ${DNAME[d]}쪽`);
@@ -174,7 +178,7 @@ function doGo(seat,d){
 function doWall(seat,e){
   const X_=H.mia;
   if(!turnOK(seat)||X_.left[seat]<=0||!wallOK(X_.w,e))return false;
-  X_.w[e]=seat+1;X_.ws.push(e);X_.left[seat]--;X_.hist[seat].push({a:4,d:-1});
+  X_.w[e]=seat+1;X_.ws.push(e);X_.left[seat]--;histAdd(seat,4);
   X_.lm={n:X_.n+1,s:seat,k:'w',e};
   addLog(`${X_.rn+1}라운드 ${H.players[seat].name} 벽 ${edgeName(e)}`);
   afterAct(seat);return true;
@@ -194,6 +198,7 @@ function doSurrender(i){
   }
   if(X_.ph==='roll'){if(H.turn===i)H.turn=act[0];mark();return}
   if(H.turn===i){
+    X_.acts=0;
     for(let k=1;k<=X_.cnt;k++){const j=(i+k)%X_.cnt;if(active(j)&&!X_.done.includes(j)){startTurn(j);return}}
     endRound();
   }else mark();
@@ -203,14 +208,14 @@ function botMove(i){
   const X_=H.mia,a=botAction(X_.bel[i],X_.w,X_.flag[i],X_.left[i]);
   if(!(a.t==='wall'?doWall(i,a.e):doGo(i,a.d)))timeoutMove(i);
 }
-G._test={IX,CX,CY,cellName,diceCell,validEdge,edgeOf,edgeName,blocked,step,distMap,connected,wallOK,legalWalls,edgeAt,beliefMove,beliefFilter,botDir,botAction,doGo,doWall,doPick,doSurrender,pickFirst,rollMs,targetOf};
+G._test={ACTS,IX,CX,CY,cellName,diceCell,validEdge,edgeOf,edgeName,blocked,step,distMap,connected,wallOK,legalWalls,edgeAt,beliefMove,beliefFilter,botDir,botAction,doGo,doWall,doPick,doSurrender,pickFirst,rollMs,targetOf};
 G.engine={
   start(){
     const again=H.phase==='over',cnt=Math.max(2,Math.min(H.players.length,4));
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,rankBottom:cnt,known:{}});
     H.players.forEach((p,i)=>{p.finished=false;p.rank=null;p.surrendered=false;if(i<cnt)p.hand=[0];else{p.hand=[];p.finished=true;p.rank=i+1}});
-    const A=pickFirst(again,cnt),nw=Math.max(0,Math.min(20,+H.cfg.walls||0)),arr=v=>new Array(cnt).fill(v);
-    H.mia={cnt,A,ph:'place',rn:0,n:0,pos:arr(-1),flag:arr(-1),roll:arr(null),w:new Array(EDGES).fill(0),ws:[],left:arr(nw),done:[],hist:Array.from({length:cnt},()=>[]),bel:Array.from({length:cnt},()=>[]),path:Array.from({length:cnt},()=>[]),lm:null,res:null};
+    const A=pickFirst(again,cnt),nw=Math.floor(Math.max(0,Math.min(80,+H.cfg.wallT||0))/cnt),arr=v=>new Array(cnt).fill(v);
+    H.mia={cnt,A,ph:'place',rn:0,n:0,acts:0,wn:nw,pos:arr(-1),flag:arr(-1),roll:arr(null),w:new Array(EDGES).fill(0),ws:[],left:arr(nw),done:[],hist:Array.from({length:cnt},()=>[]),bel:Array.from({length:cnt},()=>[]),path:Array.from({length:cnt},()=>[]),lm:null,res:null};
     addLog(`${H.players[A].name}님이 먼저 시작합니다.`,'sys');
     H.turn=A;setPlaceTurn();H.graceUntil=0;H.deadline=clock()+H.cfg.turn*1000;H.botActAt=clock()+rand(900,1700);mark();
   },
@@ -242,8 +247,8 @@ G.engine={
     if(X_.ph==='place')pos=X_.pos.map((c,i)=>seat&&i===targetOf(you)?c:-1);
     else pos=X_.pos.map((c,i)=>(!end&&i===you)||(!end&&H.players[i].finished)?-1:c);
     const showFlag=X_.ph!=='place';
-    s.mia={cnt:X_.cnt,A:X_.A,ph:X_.ph,rn:X_.rn,n:X_.n,pos,flag:showFlag?X_.flag.slice():X_.flag.map(()=>-1),roll:showFlag?X_.roll.slice():null,
-      ws:X_.ws.slice(),left:X_.left.slice(),hist:seat?X_.hist[you].map(h=>[h.a,h.d]):[],res:X_.res?{...X_.res,w:X_.res.w.slice()}:null,
+    s.mia={cnt:X_.cnt,A:X_.A,ph:X_.ph,rn:X_.rn,n:X_.n,acts:X_.acts,wn:X_.wn,pos,flag:showFlag?X_.flag.slice():X_.flag.map(()=>-1),roll:showFlag?X_.roll.slice():null,
+      ws:X_.ws.slice(),left:X_.left.slice(),hist:seat?X_.hist[you].map(h=>[h.a.slice(),h.d]):[],res:X_.res?{...X_.res,w:X_.res.w.slice()}:null,
       lm:X_.lm&&X_.lm.k==='w'?{...X_.lm}:null,out:Array.from({length:X_.cnt},(_,i)=>H.players[i].surrendered?1:0)};
     if(end)s.mia.path=X_.path.map(p=>p.slice());
     if(X_.ph==='place'){
@@ -328,7 +333,7 @@ function confirmPend(){
   if(!myMove())return;
   pend=null;
   if(p.k==='dir')sendAct({t:'go',d:p.d});
-  else{wallMode=false;sendAct({t:'wall',e:p.e})}
+  else{if(CS.left[myIdx()]<=1)wallMode=false;sendAct({t:'wall',e:p.e})}
   redraw();
 }
 
@@ -375,13 +380,14 @@ function hintText(){
 }
 function histHTML(){
   if(!seatMe()||!CS.hist.length)return '';
-  return CS.hist.map(h=>`<span class="mia-h${h[1]<0?' now':''}"><i>${h[0]===4?'벽':DARROW[h[0]]}</i>${h[1]<0?'·':h[1]}</span>`).join('');
+  return CS.hist.map(h=>`<span class="mia-h${h[1]<0?' now':''}"><i>${h[0].map(a=>a===4?'벽':DARROW[a]).join('')}</i>${h[1]<0?'·':h[1]}</span>`).join('');
 }
 function ctlHTML(){
   const m=myIdx(),mine=myMove(),left=CS.left[m],sel=d=>pend&&pend.k==='dir'&&pend.d===d?' sel':'';
   const dist=(()=>{for(let k=CS.hist.length-1;k>=0;k--)if(CS.hist[k][1]>=0)return CS.hist[k][1];return -1})();
   const btn=(d,cl)=>`<button class="mia-dir ${cl}${sel(d)}" data-d="${d}" ${mine?'':'aria-disabled="true"'} aria-label="${DNAME[d]}쪽"><b>${DARROW[d]}</b><small>${DNAME[d]}</small></button>`;
-  return `<div class="mia-pad${mine?' on':''}">${btn(0,'n')}${btn(3,'w')}<div class="mia-dist" aria-label="내 깃발까지 거리"><b>${dist<0?'?':dist}</b>${dist<0?'':'<small>칸</small>'}</div>${btn(1,'e')}${btn(2,'s')}</div><button class="mia-wbtn${wallMode?' sel':''}${mine&&left>0?'':' off'}" data-w="1" aria-pressed="${wallMode}"><i></i>벽 ${left}</button>`;
+  const lamps=mine?ACTS-CS.acts:0;
+  return `<div class="mia-pad${mine?' on':''}"><div class="mia-acts" aria-label="남은 행동 ${lamps}">${Array.from({length:ACTS},(_,k)=>`<i class="${k<lamps?'on':''}"></i>`).join('')}</div>${btn(0,'n')}${btn(3,'w')}<div class="mia-dist" aria-label="내 깃발까지 거리"><b>${dist<0?'?':dist}</b>${dist<0?'':'<small>칸</small>'}</div>${btn(1,'e')}${btn(2,'s')}</div><button class="mia-wbtn${wallMode?' sel':''}${mine&&left>0?'':' off'}" data-w="1" aria-pressed="${wallMode}"><i></i>벽 ${left}</button>`;
 }
 function drawHint(){if(!elHint)return;const h=hintText();if(h!==lastHint){elHint.textContent=h;lastHint=h}}
 function fit(){
@@ -401,8 +407,8 @@ function drawAll(){
 }
 
 /* ---------- 3D: 공통 테이블 가운데 판, 벽, 깃발, 반투명 말 ---------- */
-const C=.46,HB=4.5*C,LIP=.04,RW=.3,FH=HB+LIP+RW,TOP=.15,PY=TOP+.004,WH=.1,WT=.085;
-const P3={on:false,built:false,fail:false,root:null,cam:null,dirty:true,lastR:0,lay:'',layAt:0,d:12,anim:[],walls:new Map(),pieces:[],flags:[],memo:new Map(),trail:[],dice:null,revealed:false};
+const C=.46,HB=4.5*C,LIP=.04,RW=.3,FH=HB+LIP+RW,TOP=.15,PY=TOP+.004,WH=.1,WT=.085,RK_GAP=.08,RK_D=.42,RK=RK_GAP+RK_D;   // RK: 판 밖 벽 보관대 자리
+const P3={on:false,built:false,fail:false,root:null,cam:null,dirty:true,lastR:0,lay:'',layAt:0,d:12,anim:[],racks:[],rackKey:'',walls:new Map(),pieces:[],flags:[],memo:new Map(),trail:[],dice:null,revealed:false};
 const ease=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 const dropY=(x,h)=>x>=1?0:x<.68?h*(1-(x/.68)*(x/.68)):h*.1*Math.sin(Math.PI*(x-.68)/.32);
 const gW=v=>(v-4)*C;
@@ -429,20 +435,30 @@ function drawBoardTex(g,Sz){
 const GEO={},MAT={};
 const INK=()=>MAT.ink||(MAT.ink=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide}));
 const edgeXZ=e=>{const c=e>>1,x=gW(CX(c)),z=gW(CY(c));return e&1?[x,z+C/2]:[x+C/2,z]};
+const wallMat=()=>MAT.wall||(MAT.wall=toon({map:canvasTex(128,32,(c,w,h)=>woodPaint(c,w,h,'#4a2a14','#1c0d05',24,9)),rim:.15}));
 function wallMesh(e,ghost){
   const along=!(e&1),L=C*.97,g=new THREE.Group();
   const geoB=GEO.wb||(GEO.wb=new THREE.BoxGeometry(L,WH,WT)),geoI=GEO.wi||(GEO.wi=new THREE.BoxGeometry(L+.025,WH+.025,WT+.025));
-  const body=new THREE.Mesh(geoB,ghost||MAT.wall||(MAT.wall=toon({map:canvasTex(128,32,(c,w,h)=>woodPaint(c,w,h,'#4a2a14','#1c0d05',24,9)),rim:.15})));
+  const body=new THREE.Mesh(geoB,ghost||wallMat());
   body.position.y=WH/2;if(along)body.rotation.y=Math.PI/2;body.castShadow=!ghost;g.add(body);
   if(!ghost){const o=new THREE.Mesh(geoI,INK());o.position.y=WH/2;if(along)o.rotation.y=Math.PI/2;g.add(o)}
   const [x,z]=edgeXZ(e);g.position.set(x,PY,z);return g;
 }
+/* 깃발: 바로 위에서도 보이게 북쪽으로 기울여 세움. 깃대·공·물결 천·받침 */
 function flagMesh(i){
-  const g=new THREE.Group(),hex=SEAT_C[i];
-  const tex=canvasTex(96,96,(c,w,h)=>{c.clearRect(0,0,w,h);c.fillStyle='#3a2210';c.fillRect(30,12,7,74);c.fillStyle=hex;c.strokeStyle='#3a2210';c.lineWidth=4;c.beginPath();c.moveTo(36,12);c.lineTo(84,30);c.lineTo(36,50);c.closePath();c.fill();c.stroke();c.fillStyle='#3a2210';c.beginPath();c.ellipse(34,86,18,6,0,0,7);c.fill()});
-  const m=new THREE.Mesh(GEO.pl||(GEO.pl=new THREE.PlaneGeometry(C*.9,C*.9)),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false}));
-  m.rotation.x=-Math.PI/2;m.position.y=.012;m.renderOrder=3;g.add(m);
-  g.userData.ringGeo=1;return g;
+  const g=new THREE.Group(),hex=new THREE.Color(SEAT_C[i]).getHex(),tilt=new THREE.Group();
+  const pm=MAT.pole||(MAT.pole=toon({color:0xe8dcc0,rim:.2})),dark=MAT.fbase||(MAT.fbase=toon({color:0x3a2210,rim:.15}));
+  const base=new THREE.Mesh(GEO.fb||(GEO.fb=new THREE.CylinderGeometry(.07,.085,.03,20)),dark);base.position.y=.015;base.castShadow=true;g.add(base);
+  const pole=new THREE.Mesh(GEO.fp||(GEO.fp=new THREE.CylinderGeometry(.016,.02,.44,10)),pm);pole.position.y=.22;tilt.add(pole);
+  const ball=new THREE.Mesh(GEO.fk||(GEO.fk=new THREE.SphereGeometry(.03,12,10)),pm);ball.position.y=.45;tilt.add(ball);
+  if(!GEO.fc){const c=new THREE.PlaneGeometry(.27,.17,14,5),q=c.attributes.position;
+    for(let k=0;k<q.count;k++){const x=q.getX(k)+.135;q.setX(k,x);q.setZ(k,Math.sin(x*17)*.035*(x/.27+.25))}
+    c.computeVertexNormals();GEO.fc=c}
+  const m=toon({color:hex,rim:.2});m.side=THREE.DoubleSide;
+  const cloth=new THREE.Mesh(GEO.fc,m);cloth.position.set(.012,.345,0);tilt.add(cloth);
+  tilt.rotation.x=-1.05;g.add(tilt);
+  g.children.forEach(o=>{o.position.z+=.12;o.position.x-=.08});
+  return g;
 }
 function pieceMesh(i){
   const g=new THREE.Group(),m=toon({color:new THREE.Color(SEAT_C[i]).getHex(),rim:.2});m.transparent=true;m.opacity=.55;m.depthWrite=false;
@@ -464,18 +480,49 @@ G.holoPiece=mkM=>{
   const p=new THREE.Mesh(new THREE.CylinderGeometry(.07,.12,.2,16),mkM(new THREE.Color(SEAT_C[1]).getHex()));p.position.set(-.26,-.2,0);g.add(p);
   g.rotation.set(-.2,.45,.05);return g;
 };
-function dieMesh(hex){
-  const g=new THREE.Group(),m=toon({color:new THREE.Color(hex).getHex(),rim:.25});
-  const a=new THREE.Mesh(GEO.dc||(GEO.dc=new THREE.ConeGeometry(.26,.24,5)),m);a.position.y=.12;g.add(a);
-  const b=new THREE.Mesh(GEO.dc,m);b.rotation.x=Math.PI;b.position.y=-.12;g.add(b);
-  return g;
+/* 10면체(오각 사다리꼴면체): 위 꼭짓점·아래 꼭짓점과 가운데 고리 10점으로 된 연 모양 면 10개. 면마다 숫자 0~9 */
+const DIE_R=.3,DIE_H=.33,DIE_E=DIE_H*(1-Math.cos(Math.PI/5))/(1+Math.cos(Math.PI/5));
+const DIE_NUM=[0,4,8,2,6,9,5,1,7,3];   // 면 순서: 위 다섯, 아래 다섯
+function dieData(){
+  if(GEO.d10)return GEO.d10;
+  const V=(x,y,z)=>new THREE.Vector3(x,y,z),ring=[];
+  for(let k=0;k<10;k++){const a=k*Math.PI/5;ring.push(V(Math.cos(a)*DIE_R,k&1?-DIE_E:DIE_E,Math.sin(a)*DIE_R))}
+  const T_=V(0,DIE_H,0),B_=V(0,-DIE_H,0),pos=[],nor=[],uv=[],face={};
+  const kite=(apex,a,b,c,num)=>{
+    const ctr=apex.clone().add(a).add(b).add(c).multiplyScalar(.25);
+    let n=b.clone().sub(apex).cross(a.clone().sub(c)).normalize();if(n.dot(ctr)<0)n.negate();
+    const up=apex.clone().sub(b).normalize(),side=up.clone().cross(n).normalize();
+    const col=num%5,row=(num/5)|0;
+    const put=p=>{const d=p.clone().sub(ctr);return [(col+.5)/5+d.dot(side)*.5,1-(row+.5)/2+d.dot(up)*1.1]};
+    const tri=(p,q,r)=>{
+      const f=q.clone().sub(p).cross(r.clone().sub(p)).dot(n)>0?[p,q,r]:[p,r,q];
+      for(const v of f){pos.push(v.x,v.y,v.z);nor.push(n.x,n.y,n.z);uv.push(...put(v))}
+    };
+    tri(apex,a,b);tri(apex,b,c);
+    face[num]={n,up};
+  };
+  for(let k=0;k<5;k++)kite(T_,ring[k*2],ring[k*2+1],ring[(k*2+2)%10],DIE_NUM[k]);
+  for(let k=0;k<5;k++)kite(B_,ring[k*2+1],ring[(k*2+2)%10],ring[(k*2+3)%10],DIE_NUM[k+5]);
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+  /* 그 숫자 면이 위로, 글자 머리가 화면 위쪽으로 오는 자세 */
+  const rest={},Yv=V(0,1,0);
+  for(const k of Object.keys(face)){
+    const q1=new THREE.Quaternion().setFromUnitVectors(face[k].n,Yv),u=face[k].up.clone().applyQuaternion(q1);
+    rest[k]=new THREE.Quaternion().setFromAxisAngle(Yv,Math.atan2(u.x,-u.z)).multiply(q1);
+  }
+  return GEO.d10={g,rest};
 }
-function digitSprite(){
-  const cv=document.createElement('canvas');cv.width=cv.height=96;const tx=new THREE.CanvasTexture(cv);
-  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,transparent:true,depthTest:false}));s.scale.set(.34,.34,1);s.renderOrder=20;
-  s.userData.set=v=>{const c=cv.getContext('2d');c.clearRect(0,0,96,96);c.font='800 74px "IBM Plex Mono",monospace';c.textAlign='center';c.textBaseline='middle';c.lineWidth=11;c.strokeStyle='#2a1a0e';c.fillStyle='#fff6d8';c.strokeText(v,48,52);c.fillText(v,48,52);tx.needsUpdate=true};
-  return s;
+function dieMat(i){
+  const k='d'+i;if(MAT[k])return MAT[k];
+  return MAT[k]=toon({rim:.2,map:canvasTex(640,256,(c,w,h)=>{
+    c.fillStyle=SEAT_C[i];c.fillRect(0,0,w,h);
+    c.textAlign='center';c.textBaseline='middle';c.font='800 92px "IBM Plex Mono",monospace';
+    for(let n=0;n<10;n++){const x=(n%5+.5)*w/5,y=(((n/5)|0)+.5)*h/2;c.lineWidth=9;c.strokeStyle='rgba(30,16,8,.75)';c.strokeText(n,x,y+4);c.fillStyle='#fff6d8';c.fillText(n,x,y+4);
+      if(n===6||n===9){c.fillRect(x-22,y+42,44,7)}}
+  })});
 }
+function dieMesh(){const m=new THREE.Mesh(dieData().g,dieMat(0));return m}
 function d3Build(){
   if(P3.built||P3.fail)return P3.built;
   if(!T.ok||typeof THREE==='undefined'){P3.fail=true;return false}
@@ -497,6 +544,42 @@ function d3Build(){
   }catch(e){P3.fail=true;try{console.warn('미아 3D 준비 실패',e)}catch(_){}}
   return P3.built;
 }
+/* 벽 보관대: 각자 앞(나는 아래, 나머지는 시계 방향으로 왼쪽·위·오른쪽)에 벽을 세워 둠 */
+const rackSlot=(i,cnt,base)=>{const r=(i-base+cnt)%cnt;return cnt===2?[0,2][r]:cnt===3?[0,1,3][r]:r};   // 0 아래 1 왼쪽 2 위 3 오른쪽
+function rackBuild(cnt,wn,base){
+  const key=[cnt,wn,base].join();if(P3.rackKey===key)return;P3.rackKey=key;
+  for(const r of P3.racks)P3.boardG.remove(r.g);P3.racks=[];
+  const L=2*FH,sp=wn?Math.min(.3,(L-.16)/wn):.2,th=Math.min(.085,sp*.62),len=RK_D*.78,h=.13;
+  const wood=MAT.rack||(MAT.rack=toon({map:canvasTex(256,64,(c,w,hh)=>woodPaint(c,w,hh,'#b98a55','#6a4524',40,4)),rim:.1}));
+  const geoB=new THREE.BoxGeometry(th,h,len);
+  for(let i=0;i<cnt;i++){
+    const slot=rackSlot(i,cnt,base),g=new THREE.Group();
+    const b=new THREE.Mesh(new THREE.BoxGeometry(L,TOP-.02,RK_D),wood);b.position.y=.02+(TOP-.02)/2;b.castShadow=b.receiveShadow=true;g.add(b);
+    const ink=new THREE.Mesh(new THREE.BoxGeometry(L+.04,TOP,RK_D+.04),INK());ink.position.y=b.position.y;g.add(ink);
+    const st=new THREE.Mesh(new THREE.PlaneGeometry(L-.02,.04),new THREE.MeshBasicMaterial({color:SEAT_C[i]}));st.rotation.x=-Math.PI/2;st.position.set(0,TOP+.003,RK_D/2-.03);g.add(st);
+    const walls=[];
+    for(let k=0;k<wn;k++){
+      const m=new THREE.Mesh(geoB,MAT.wall||wallMat());m.position.set(-sp*(wn-1)/2+sp*k,TOP+h/2-.01,-.02);m.castShadow=true;g.add(m);walls.push(m);
+    }
+    const d=FH+RK_GAP+RK_D/2;
+    if(slot===0)g.position.z=d;else if(slot===2){g.position.z=-d;g.rotation.y=Math.PI}else if(slot===1){g.position.x=-d;g.rotation.y=-Math.PI/2}else{g.position.x=d;g.rotation.y=Math.PI/2}
+    P3.boardG.add(g);P3.racks[i]={g,walls,h};
+  }
+}
+function rackSync(){
+  if(!CS||CS.wn==null)return;
+  const m=myIdx(),s=seatMe();
+  rackBuild(CS.cnt,CS.wn,s?m:0);
+  P3.racks.forEach((r,i)=>{
+    const left=CS.left[i],out=isOut(i);
+    r.walls.forEach((w,k)=>{w.visible=!out&&k<left;w.position.y=TOP+r.h/2-.01+(wallMode&&i===m&&k===left-1?.1:0)});
+  });
+}
+/* 보관대에서 벽이 날아가는 출발점 */
+function rackFrom(i){
+  const r=P3.racks[i];if(!r||!r.walls.length)return null;
+  const w=r.walls[Math.min(r.walls.length-1,CS.left[i])],v=w.getWorldPosition(new THREE.Vector3());return [v.x,v.z];
+}
 function clearBoard(){
   for(const m of P3.walls.values())P3.wg.remove(m);P3.walls.clear();
   P3.pieces.forEach(p=>{p.visible=false;p.userData.c=-1;p.userData.mat.opacity=.55});
@@ -516,9 +599,10 @@ function d3Sync(){
   if(CS.n===0&&CS.ph==='place'&&(P3.walls.size||P3.revealed||P3.gameKey!==V.di))clearBoard();
   P3.gameKey=V.di;
   /* 벽 */
+  rackSync();
   const has=new Set(CS.ws);
   for(const [e,m] of P3.walls)if(!has.has(e)){P3.wg.remove(m);P3.walls.delete(e)}
-  for(const e of CS.ws){if(P3.walls.has(e))continue;const m=wallMesh(e);P3.wg.add(m);P3.walls.set(e,m);if(CS.lm&&CS.lm.e===e)P3.anim.push({obj:m,t0:now,dur:300,drop:.8})}
+  for(const e of CS.ws){if(P3.walls.has(e))continue;const m=wallMesh(e);P3.wg.add(m);P3.walls.set(e,m);if(CS.lm&&CS.lm.e===e){const f=rackFrom(CS.lm.s),[tx,tz]=edgeXZ(e);if(f){m.position.set(f[0],PY,f[1]);P3.anim.push({obj:m,t0:now,dur:420,from:f,to:[tx,tz],h:.55})}else P3.anim.push({obj:m,t0:now,dur:300,drop:.8})}}
   /* 말: 받은 자리만 그림 (내 말은 끝날 때까지 안 옴) */
   CS.pos.forEach((c,i)=>{
     const g=P3.pieces[i],seen=c>=0&&!(CS.ph==='place');
@@ -545,6 +629,7 @@ function d3Marks(){
   /* 메모 */
   for(const [c,m] of P3.memo){if(!memo[c]||m.userData.k!==memo[c]){P3.mg.remove(m);P3.memo.delete(c)}}
   for(const c of Object.keys(memo)){const i=+c;if(P3.memo.has(c))continue;const m=new THREE.Mesh(GEO.pl||(GEO.pl=new THREE.PlaneGeometry(C*.9,C*.9)),memoTex(memo[c]));m.rotation.x=-Math.PI/2;m.position.set(gW(CX(i)),PY+.006,gW(CY(i)));m.renderOrder=2;m.userData.k=memo[c];P3.mg.add(m);P3.memo.set(c,m)}
+  rackSync();
   const cell=pend&&pend.k==='cell'?pend.c:-1;
   P3.pick.visible=cell>=0;if(cell>=0){P3.pick.position.x=gW(CX(cell));P3.pick.position.z=gW(CY(cell));P3.pick.material.color.set(SEAT_C[(myIdx()+1)%CS.cnt])}
   const show=(a,b,e)=>{a.visible=b.visible=false;if(e==null||e<0||!validEdge(e))return;const m=e&1?b:a,[x,z]=edgeXZ(e);m.position.set(x,PY,z);m.visible=true};
@@ -559,7 +644,7 @@ function tvBox(r){
   const R=Math.max(bar.offsetTop+bar.offsetHeight+gap,low+(mb.offsetHeight||26)+gap),m=narrow?8:16;
   return {fw:Wd-2*m,fh:Hh-2*R,cy:Hh/2,R};
 }
-const PAD_H=136;   // 휴대폰 세로: 판 아래에 방향 단추 자리
+const PAD_H=146;   // 휴대폰 세로: 판 아래에 방향 단추 자리
 const CHIP_GAP=10;
 function chipsAt(topY,botY){
   const r=elRoot,bar=r.querySelector('.mia-bar'),mb=r.querySelector('.mia-mebar');if(!bar||!mb)return;
@@ -575,9 +660,9 @@ function d3Layout(t){
   const B=tvBox(elRoot),key=[Wd,Hh,B.R].join(',');
   if(key===P3.lay)return false;
   P3.lay=key;
-  const s=Math.min(B.fw,B.fh)/(2*(FH+.03)),cam=P3.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(s*f);
+  const s=Math.min(B.fw/(2*(FH+.03)),B.fh/(2*(FH+RK+.03))),cam=P3.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(s*f);
   cam.aspect=Wd/Hh;cam.clearViewOffset();cam.position.set(0,PY+d,0);cam.lookAt(0,PY,0);cam.updateProjectionMatrix();cam.updateMatrixWorld();
-  chipsAt(B.cy-FH*s,B.cy+FH*s);
+  chipsAt(B.cy-(FH+RK)*s,B.cy+(FH+RK)*s);
   P3.d=d;P3.dirty=true;
   return true;
 }
@@ -589,7 +674,7 @@ function d3Step(now){
     if(a.show)o.visible=true;
     if(a.seg)return false;
     if(a.drop!=null)o.position.y=PY+dropY(e,a.drop);
-    else if(a.from){const q=ease(e);o.position.x=a.from[0]+(a.to[0]-a.from[0])*q;o.position.z=a.from[1]+(a.to[1]-a.from[1])*q;o.position.y=PY+Math.sin(Math.PI*e)*.12}
+    else if(a.from){const q=ease(e);o.position.x=a.from[0]+(a.to[0]-a.from[0])*q;o.position.z=a.from[1]+(a.to[1]-a.from[1])*q;o.position.y=PY+Math.sin(Math.PI*e)*(a.h||.12)}
     if(k>=1){if(a.drop!=null||a.from)o.position.y=PY;return false}
     return true;
   });
@@ -603,22 +688,20 @@ function rollStep(now){
     return false;
   }
   if(!P3.dice){
-    const g=new THREE.Group(),a=dieMesh('#fff'),b=dieMesh('#fff');P3.root.add(g);g.add(a);g.add(b);
-    const sa=digitSprite(),sb=digitSprite();g.add(sa);g.add(sb);P3.dice={g,a,b,sa,sb,seat:-1};
+    const g=new THREE.Group(),a=dieMesh(),b=dieMesh();P3.root.add(g);g.add(a);g.add(b);P3.dice={g,a,b,seat:-1,q:new THREE.Quaternion(),ax:new THREE.Vector3(.6,.5,.62).normalize(),bx:new THREE.Vector3(-.5,.7,.5).normalize()};
   }
-  const Dc=P3.dice,e=now-rollT0,i=Math.min(CS.cnt-1,Math.floor(e/ROLL_EACH)),l=e-i*ROLL_EACH;
+  const Dc=P3.dice,e=now-rollT0,i=Math.min(CS.cnt-1,Math.floor(e/ROLL_EACH)),l=e-i*ROLL_EACH,D10=dieData();
   if(Dc.seat!==i){
-    Dc.seat=i;const hex=new THREE.Color(SEAT_C[i]);
-    for(const d of [Dc.a,Dc.b])d.traverse(o=>{if(o.isMesh)o.material.color=hex});
-    Dc.sa.visible=Dc.sb.visible=false;Dc.said=false;
-    if(CS.roll[i]){Dc.sa.userData.set(String(CS.roll[i][0]));Dc.sb.userData.set(String(CS.roll[i][1]))}
+    Dc.seat=i;Dc.a.material=Dc.b.material=dieMat(i);
     if(!isOut(i))for(let k=0;k<4;k++)sndDice(k*.13);
   }
   const has=!!CS.roll[i]&&!isOut(i);Dc.g.visible=has&&e<CS.cnt*ROLL_EACH;
-  const tm=650,q=Math.min(1,l/tm),y=TOP+.34+Math.abs(Math.sin(q*Math.PI*2.5))*(1-q)*.8,spin=(1-q)*(1-q)*16;
-  Dc.a.position.set(-.34-(1-q)*.5,y,-(1-q)*.4);Dc.b.position.set(.34+(1-q)*.5,y,(1-q)*.3);
-  Dc.a.rotation.set(spin+1.1,spin*.7,spin*.4+.3);Dc.b.rotation.set(-spin+.9,spin*.5+2,-spin*.6);
-  if(l>tm&&!Dc.sa.visible){Dc.sa.position.set(-.34,y+.3,0);Dc.sb.position.set(.34,y+.3,0);Dc.sa.visible=Dc.sb.visible=has}
+  const tm=700,q=Math.min(1,l/tm),y=TOP+.29+Math.abs(Math.sin(q*Math.PI*2.5))*(1-q)*.8,spin=(1-q)*(1-q)*15;
+  Dc.a.position.set(-.38-(1-q)*.5,y,-(1-q)*.4);Dc.b.position.set(.38+(1-q)*.5,y,(1-q)*.3);
+  if(has){
+    Dc.a.quaternion.setFromAxisAngle(Dc.ax,spin).multiply(D10.rest[CS.roll[i][0]]);
+    Dc.b.quaternion.setFromAxisAngle(Dc.bx,-spin).multiply(D10.rest[CS.roll[i][1]]);
+  }
   P3.flags.forEach((f,k)=>{
     const c=CS.flag[k];if(c<0||isOut(k)){f.visible=false;return}
     const t0=rollT0+(k+1)*ROLL_EACH-420,x=(now-t0)/320;
@@ -712,7 +795,9 @@ function gridAt(e){
 }
 function d3Click(e){
   if(!P3.on||G!==GAMES.mia||V.cfg.game!=='mia')return;
-  const g=gridAt(e);if(g)tapAt(g.x,g.y);
+  const g=gridAt(e);if(!g)return;
+  if(seatMe()&&Math.abs(g.x-4.5)<FH/C&&g.y>4.5+(FH+RK_GAP-.04)/C&&g.y<4.5+(FH+RK+.04)/C){toggleWall();return}
+  tapAt(g.x,g.y);
 }
 /* 새 상태를 받았을 때 */
 G.preView=()=>{
@@ -847,6 +932,9 @@ G.init=()=>{
 #mia .mia-dir b{font-size:17px}
 #mia .mia-dir small{font-size:10px;opacity:.85;margin-top:1px}
 #mia .mia-dir.sel{background:linear-gradient(#5fae4e,#3f8a32);box-shadow:0 0 0 2px #f2c94c}
+#mia .mia-acts{grid-area:1/3;display:flex;gap:5px;align-items:flex-start;justify-content:flex-end;padding:3px}
+#mia .mia-acts i{width:12px;height:12px;border-radius:50%;background:#5a4632;box-shadow:inset 0 0 0 1.5px #2a1a0e}
+#mia .mia-acts i.on{background:#ffcf4a;box-shadow:inset 0 0 0 1.5px #8a5a10,0 0 6px #ffcf4a}
 #mia .mia-dir.n{grid-area:1/2}#mia .mia-dir.w{grid-area:2/1}#mia .mia-dir.e{grid-area:2/3}#mia .mia-dir.s{grid-area:3/2}
 #mia .mia-dist{grid-area:2/2;display:flex;align-items:baseline;justify-content:center;gap:1px;line-height:48px;border-radius:50%;background:#2a1a0e;color:#ffd97a;box-shadow:inset 0 0 0 2px #6b3f1f}
 #mia .mia-dist b{font:700 24px/1 "IBM Plex Mono",monospace;align-self:center}

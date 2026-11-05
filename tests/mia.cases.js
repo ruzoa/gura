@@ -31,6 +31,8 @@ const setup=(n,bots,turn)=>{
   hostStart();for(let k=0;k<80;k++){NOW+=250;engineTick()}
 };
 const fin=()=>{for(let k=0;k<40&&H.mia.ph==='roll';k++){NOW+=250;engineTick()}};
+/* 한 차례 = 행동 둘 */
+const go2=(s,d,e)=>{T.doGo(s,d);return T.doGo(s,e==null?d:e)};
 const place=()=>{const X_=H.mia;for(let i=0;i<X_.cnt;i++)if(X_.pos[T.targetOf(i)]<0)T.doPick(i,40);fin()};
 /* 시작 칸 단계: 다음 사람의 칸을 정함, 깃발은 그 뒤, 한 사람이 두 번 못 고름 */
 setup(2);{const X_=H.mia;eq(X_.ph,'place','starts in place');eq(snapFor(0).mia.flag[0],-1,'flag hidden');
@@ -42,31 +44,31 @@ setup(2);{const X_=H.mia;eq(X_.ph,'place','starts in place');eq(snapFor(0).mia.f
 /* 비밀: 끝나기 전까지 내 자리는 어떤 값으로도 오지 않음, 부딪혀도 같은 상태 */
 setup(2);place();{const X_=H.mia,a=X_.A,o=1-a;X_.pos[a]=I(0,0);X_.flag[a]=I(8,8);X_.flag[o]=I(0,8);X_.pos[o]=I(4,4);
  eq(snapFor(a).mia.pos[a],-1,'own hidden');eq(snapFor(o).mia.pos[a],I(0,0),'others see');eq(snapFor(-1).mia.pos[a],I(0,0),'spectator sees');
- const before=snapFor(a);eq(T.doGo(a,0),true,'bump allowed');eq(X_.pos[a],I(0,0),'bumped stays');eq(H.turn,o,'turn used');
- const s=snapFor(a);eq(s.mia.pos[a],-1,'still hidden');eq(s.mia.lm,null,'no move detail');eq(JSON.stringify(s.mia.hist),'[[0,-1]]','no result yet');
+ const before=snapFor(a);eq(T.doGo(a,0),true,'bump allowed');eq(X_.pos[a],I(0,0),'bumped stays');eq(H.turn,a,'second action');eq(snapFor(a).mia.acts,1,'one used');eq(T.doGo(a,3),true,'bump 2');eq(H.turn,o,'turn used');
+ const s=snapFor(a);eq(s.mia.pos[a],-1,'still hidden');eq(s.mia.lm,null,'no move detail');eq(JSON.stringify(s.mia.hist),'[[[0,3],-1]]','no result yet');
  if(JSON.stringify(s).includes('"path"'))fail('mia path leaked');eq(before.mia.pos[a],-1,'before hidden');
  for(const l of H.log)if(/제자리|부딪/.test(String(l[0])))fail('mia log leaks bump');
- eq(T.doGo(o,0),true,'other move');eq(snapFor(a).mia.hist[0][1],16,'distance after round');eq(snapFor(o).mia.hist[0][1],9,'own distance');eq(X_.rn,1,'round')}
+ eq(T.doGo(o,0),true,'other move');eq(snapFor(a).mia.hist[0][1],-1,'no distance mid round');T.doGo(o,0);eq(snapFor(a).mia.hist[0][1],16,'distance after round');eq(snapFor(o).mia.hist[0][1],10,'own distance');eq(X_.rn,1,'round')}
 /* 거리는 라운드 끝 벽까지 반영, 벽 수 제한, 격리 벽 거부 */
 setup(2);place();{const X_=H.mia,a=X_.A,o=1-a;X_.pos[a]=I(3,4);X_.flag[a]=I(4,4);X_.pos[o]=I(8,8);X_.flag[o]=I(0,0);
- eq(T.doGo(a,3),true,'away');eq(T.doWall(o,T.edgeOf(I(3,4),1)),true,'wall');eq(X_.left[o],9,'wall count');eq(snapFor(a).mia.hist[0][1],4,'wall counted at round end');
- eq(T.doWall(o,T.edgeOf(I(3,4),1)),false,'not your turn');X_.left[a]=0;eq(T.doWall(a,T.edgeOf(I(1,1),1)),false,'no walls left')}
+ eq(X_.left[a],20,'40 split by 2');go2(a,3,1);eq(T.doWall(o,T.edgeOf(I(3,4),1)),true,'wall');eq(X_.left[o],19,'wall count');eq(T.doWall(o,T.edgeOf(I(7,7),1)),true,'two walls');eq(X_.left[o],18,'wall count 2');eq(snapFor(a).mia.hist[0][1],3,'wall counted at round end');
+ eq(T.doWall(o,T.edgeOf(I(2,2),1)),false,'not your turn');X_.left[a]=0;eq(T.doWall(a,T.edgeOf(I(1,1),1)),false,'no walls left');eq(T.doGo(a,0),true,'move instead')}
 setup(2);place();{const X_=H.mia,a=X_.A;H.turn=a;X_.w[T.edgeOf(I(0,0),1)]=1;const n=X_.n;eq(T.doWall(a,T.edgeOf(I(0,0),2)),false,'isolation rejected');eq(X_.n,n,'turn kept')}
 /* 라운드 끝 승리: 동시 도착 무승부, 나중 사람이 도착해도 함께 판정 */
 setup(2);place();{const X_=H.mia,a=X_.A,o=1-a;X_.pos[a]=I(3,4);X_.flag[a]=I(4,4);X_.pos[o]=I(5,5);X_.flag[o]=I(5,4);
- T.doGo(a,1);eq(H.phase,'play','arrival waits round end');T.doGo(o,0);eq(H.phase,'over','over');eq(X_.res.w.length,0,'draw');eq(H.players[0].rank,1,'draw rank 0');eq(H.players[1].rank,1,'draw rank 1');eq(Array.isArray(snapFor(0).mia.path),true,'path at end');eq(snapFor(a).mia.pos[a],I(4,4),'revealed at end')}
+ T.doWall(a,10);T.doGo(a,1);eq(H.phase,'play','arrival waits round end');T.doWall(o,20);T.doGo(o,0);eq(H.phase,'over','over');eq(X_.res.w.length,0,'draw');eq(H.players[0].rank,1,'draw rank 0');eq(H.players[1].rank,1,'draw rank 1');eq(Array.isArray(snapFor(0).mia.path),true,'path at end');eq(snapFor(a).mia.pos[a],I(4,4),'revealed at end')}
 setup(2);place();{const X_=H.mia,a=X_.A,o=1-a;X_.pos[a]=I(3,4);X_.flag[a]=I(4,4);X_.pos[o]=I(0,0);X_.flag[o]=I(8,8);
- T.doGo(a,1);T.doGo(o,1);eq(X_.res.w[0],a,'winner');eq(H.players[a].rank,1,'rank win');eq(H.players[o].rank,2,'rank lose')}
+ T.doWall(a,10);T.doGo(a,1);go2(o,1);eq(X_.res.w[0],a,'winner');eq(H.players[a].rank,1,'rank win');eq(H.players[o].rank,2,'rank lose')}
 /* 3명: 도착 둘은 함께 승리 */
 setup(3);place();{const X_=H.mia,a=X_.A,b=(a+1)%3,c=(a+2)%3;X_.pos[a]=I(3,4);X_.flag[a]=I(4,4);X_.pos[b]=I(5,5);X_.flag[b]=I(5,4);X_.pos[c]=I(0,0);X_.flag[c]=I(8,8);
- T.doGo(a,1);T.doGo(b,0);eq(H.phase,'play','third pending');T.doGo(c,1);eq(X_.res.w.length,2,'two winners');eq(H.players[c].rank,2,'third')}
+ T.doWall(a,10);T.doGo(a,1);T.doWall(b,20);T.doGo(b,0);eq(H.phase,'play','third pending');go2(c,1);eq(X_.res.w.length,2,'two winners');eq(H.players[c].rank,2,'third')}
 /* 제한 시간: 무작위 방향, 패배 아님 */
 setup(2);place();{const X_=H.mia,i=H.turn,n=X_.n;NOW+=31000;engineTick();eq(X_.n,n+1,'timeout acted');eq(X_.hist[i].length,1,'timeout history');eq(H.phase,'play','not loss')}
 /* 시작 칸 제한 시간: 모두 무작위 */
 setup(2);{const X_=H.mia;NOW+=31000;engineTick();eq(X_.ph,'roll','place timeout');if(X_.pos[0]<0||X_.pos[1]<0)fail('mia place timeout pos')}
 /* 3명 항복: 시작 칸, 라운드 중간 */
 setup(3);{const X_=H.mia;T.doSurrender(1);eq(H.phase,'play','3p continues');if(X_.pos[2]<0)fail('mia seat 2 start missing');T.doPick(0,3);T.doPick(2,4);fin();eq(X_.ph,'move','move with surrender');const S=snapFor(0);eq(S.mia.pos[1]<0,true,'out piece hidden');eq(S.mia.out[1],1,'out mark')}
-setup(3);place();{const X_=H.mia,a=X_.A,b=(a+1)%3,c=(a+2)%3;X_.pos[a]=X_.pos[b]=X_.pos[c]=I(4,4);X_.flag[a]=X_.flag[b]=X_.flag[c]=I(0,0);T.doGo(a,0);T.doSurrender(b);eq(H.turn,c,'skip surrendered');T.doGo(c,0);eq(X_.rn,1,'round ends');eq(H.turn,a,'back to first');T.doSurrender(a);T.doSurrender(c);eq(H.phase,'over','all gone')}
+setup(3);place();{const X_=H.mia,a=X_.A,b=(a+1)%3,c=(a+2)%3;X_.pos[a]=X_.pos[b]=X_.pos[c]=I(4,4);X_.flag[a]=X_.flag[b]=X_.flag[c]=I(0,0);go2(a,0);T.doGo(b,0);T.doSurrender(b);eq(H.turn,c,'skip surrendered');eq(X_.acts,0,'actions reset');go2(c,0);eq(X_.rn,1,'round ends');eq(H.turn,a,'back to first');T.doSurrender(a);T.doSurrender(c);eq(H.phase,'over','all gone')}
 /* 2명 항복: 남은 사람 승리 */
 setup(2);{T.doSurrender(1);eq(H.phase,'over','over 2p');eq(H.players[0].rank,1,'left wins')}
 /* 바로 시작 선 */
