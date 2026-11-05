@@ -514,7 +514,7 @@ G.init=()=>{
   css.textContent=`
 .oc-box{position:absolute;inset:0;pointer-events:none;z-index:6}
 .oc-box[hidden]{display:none}
-.stage.ocg .card.oc-a .big{font-family:"IBM Plex Mono","Jua",monospace;font-weight:700;font-size:30px;color:var(--rc)}
+.stage.ocg .card.oc-a .big{top:42px;font-family:"IBM Plex Mono","Jua",monospace;font-weight:700;font-size:26px;color:var(--rc)}
 .stage.ocg .card.joker.oc-a .big{color:${JOKER_C}}
 .oc-act{display:none}
 .stage.ocg .oc-act{display:flex}
@@ -526,11 +526,12 @@ G.init=()=>{
 .oc-suits{position:absolute;left:50%;bottom:calc(var(--ocB,120px) + 70px);transform:translateX(-50%);display:flex;gap:8px;padding:8px;border-radius:16px;background:rgba(59,42,31,.92);pointer-events:auto}
 .oc-suits[hidden]{display:none}
 .oc-suits button{width:60px;height:60px;border:0;border-radius:12px;background:#fffcf5;font-size:36px;line-height:1;cursor:pointer;touch-action:manipulation}
-.oc-rv{position:absolute;left:50%;top:24%;transform:translateX(-50%);max-width:calc(100% - 24px);padding:8px 12px 12px;border-radius:14px;background:rgba(59,42,31,.92);color:#fffaf0;text-align:center;font-family:"Jua",sans-serif}
+.oc-rv{position:absolute;left:0;right:0;top:15%;width:fit-content;max-width:calc(100% - 24px);margin:0 auto;box-sizing:border-box;padding:8px 12px 12px;border-radius:14px;background:rgba(59,42,31,.92);color:#fffaf0;text-align:center;font-family:"Jua",sans-serif}
 .oc-rv[hidden]{display:none}
 .oc-rv p{margin:0 0 6px}
+@media (max-width:600px){.oc-rvh .card{zoom:.72}}
 .oc-rvh{display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
-.oc-rvh .card,.oc-2d .card{position:static;transform:none;margin:0;pointer-events:none;flex:none}
+.oc-rvh .card,.oc-2d .card{position:relative;left:auto;top:auto;bottom:auto;transform:none;margin:0;pointer-events:none;flex:none}
 .oc-2d{position:absolute;left:0;right:0;top:112px;text-align:center;color:#3b2a1f}
 .oc-2d p{margin:2px 0}.oc-top{display:flex;justify-content:center}.oc-big{font:700 34px "IBM Plex Mono",sans-serif;color:#b5521e;min-height:42px}.oc-dir{font:400 18px "Jua",sans-serif}
 `;
