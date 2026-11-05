@@ -11,6 +11,14 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;
 const JOKER_BASE=100;
 const isJ=id=>id>=JOKER_BASE;
 const JOKER_C='#efbc4e';
+/* 트럼프 왼쪽 위 글자: 숫자와 무늬를 가로 한 줄로. suitFirst면 무늬가 앞(원카드: 겹쳐도 무늬가 남음). su가 없으면 숫자만(별 카드·조커). 2D와 3D가 같은 모양 */
+const trumpCorner=(lab,su,suitFirst)=>{const i=su?`<i>${su}</i>`:'';return `<span class="cn tr${lab.length>1?' w':''}">${suitFirst?i:''}${lab}${suitFirst?'':i}</span>`};
+function drawTrumpCorner(g,k,lab,su,suitFirst){
+  const w=lab.length>1,F=`600 ${(w?15:18)*k}px "IBM Plex Mono", "Jua", monospace`,S=`${(w?12:14)*k}px sans-serif`;
+  g.textAlign='left';g.textBaseline='top';
+  let x=5*k;
+  for(const [t,f,y] of suitFirst?[[su,S,8],[lab,F,6]]:[[lab,F,6],[su,S,8]]){if(!t)continue;g.font=f;g.fillText(t,x,y*k);x+=g.measureText(t).width+.5*k}
+}
 /* ===== 게임 목록 =====
    G = 지금 화면에 보이는 게임, EG() = 방장 엔진이 돌리는 게임 (방장 화면에서는 둘이 같음) */
 const GAME_IDS=['gura','president','quoridor','yahtzee','omok','chess','janggi','blackjack','poker','alkkagi','blackwhite','animal','baseball','pixel','abalone','mind','bohnanza','robo77','davinci','onecard'];

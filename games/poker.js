@@ -23,16 +23,14 @@ G.drawFace=function(g,w,h,id){
   g.clearRect(0,0,w,h);
   g.save();rr(g,0,0,w,h,8*k);g.clip();g.fillStyle='#fffcf5';g.fillRect(0,0,w,h);g.fillStyle=RC;g.fillRect(0,0,w,3*k);g.restore();
   g.strokeStyle='#e3d4bb';g.lineWidth=k;rr(g,k/2,k/2,w-k,h-k,8*k);g.stroke();
-  g.fillStyle=RC;g.textAlign='left';g.textBaseline='top';
-  g.font=`600 ${(lab.length>1?16:19)*k}px "IBM Plex Mono", "Jua", monospace`;g.fillText(lab,5*k,6*k);
-  g.font=`${14*k}px sans-serif`;g.fillText(su,6*k,26*k);
+  g.fillStyle=RC;drawTrumpCorner(g,k,lab,su);
   g.textAlign='center';g.textBaseline='middle';
   if(rkOf(id)>=10){g.font=`${34*k}px "Jua", "Black Han Sans", sans-serif`;g.fillText(lab,w/2,52*k)}   // J·Q·K는 글자로 크게
   else{g.font=`${40*k}px sans-serif`;g.fillText(su,w/2,52*k)}
   g.save();g.translate(w-6*k,h-3*k);g.rotate(Math.PI);g.font=`600 ${13*k}px "IBM Plex Mono", "Jua", monospace`;g.textAlign='left';g.textBaseline='top';g.fillText(lab,0,0);g.restore();
 };
 /* 2D 카드 (WebGL이 없을 때) */
-const cardEl=id=>id>=0?`<span class="card pkc" style="--rc:${SUIT_COL[suitOf(id)]}"><span class="cn">${RK[rkOf(id)]}<i>${SUITS[suitOf(id)]}</i></span><span class="big">${rkOf(id)>=10?RK[rkOf(id)]:SUITS[suitOf(id)]}</span></span>`:'<span class="card back"></span>';
+const cardEl=id=>id>=0?`<span class="card pkc" style="--rc:${SUIT_COL[suitOf(id)]}">${trumpCorner(RK[rkOf(id)],SUITS[suitOf(id)])}<span class="big">${rkOf(id)>=10?RK[rkOf(id)]:SUITS[suitOf(id)]}</span></span>`:'<span class="card back"></span>';
 
 /* ---------- 족보 ----------
    5장 점수: 족보 등급 × 15^5 + 비교할 숫자들(높은 것부터). 같은 족보끼리도 숫자 하나로 비교됨

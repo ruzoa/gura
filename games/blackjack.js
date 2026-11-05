@@ -25,16 +25,14 @@ G.drawFace=function(g,w,h,id){
   g.clearRect(0,0,w,h);
   g.save();rr(g,0,0,w,h,8*k);g.clip();g.fillStyle='#fffcf5';g.fillRect(0,0,w,h);g.fillStyle=RC;g.fillRect(0,0,w,3*k);g.restore();
   g.strokeStyle='#e3d4bb';g.lineWidth=k;rr(g,k/2,k/2,w-k,h-k,8*k);g.stroke();
-  g.fillStyle=RC;g.textAlign='left';g.textBaseline='top';
-  g.font=`600 ${(lab.length>1?16:19)*k}px "IBM Plex Mono", "Jua", monospace`;g.fillText(lab,5*k,6*k);
-  g.font=`${14*k}px sans-serif`;g.fillText(su,6*k,26*k);
+  g.fillStyle=RC;drawTrumpCorner(g,k,lab,su);
   g.textAlign='center';g.textBaseline='middle';
   if(rkOf(id)>=10){g.font=`${34*k}px "Jua", "Black Han Sans", sans-serif`;g.fillText(lab,w/2,50*k)}   // J·Q·K는 글자로 크게
   else{g.font=`${40*k}px sans-serif`;g.fillText(su,w/2,50*k)}
   g.save();g.translate(w-6*k,h-3*k);g.rotate(Math.PI);g.font=`600 ${13*k}px "IBM Plex Mono", "Jua", monospace`;g.textAlign='left';g.textBaseline='top';g.fillText(lab,0,0);g.restore();
 };
 /* 2D 카드 (WebGL이 없을 때) */
-const cardEl=id=>id>=0?`<span class="card bjc" style="--rc:${SUIT_COL[suitOf(id)]}"><span class="cn">${RK[rkOf(id)]}<i>${SUITS[suitOf(id)]}</i></span><span class="big">${rkOf(id)>=10?RK[rkOf(id)]:SUITS[suitOf(id)]}</span><span class="cn2" aria-hidden="true">${RK[rkOf(id)]}</span></span>`:'<span class="card bjc back" aria-label="엎은 카드"></span>';
+const cardEl=id=>id>=0?`<span class="card bjc" style="--rc:${SUIT_COL[suitOf(id)]}">${trumpCorner(RK[rkOf(id)],SUITS[suitOf(id)])}<span class="big">${rkOf(id)>=10?RK[rkOf(id)]:SUITS[suitOf(id)]}</span><span class="cn2" aria-hidden="true">${RK[rkOf(id)]}</span></span>`:'<span class="card bjc back" aria-label="엎은 카드"></span>';
 
 /* ---------- 규칙 설명·방 설정 ---------- */
 G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 같은 수의 칩으로 시작해서, 정한 판 수를 마쳤을 때 칩이 가장 많은 사람이 이깁니다</li><li><b>베팅</b> : 판마다 먼저 칩을 겁니다 (최소 10개). 내 앞의 칩 더미를 누르면 그 칩이 베팅할 칩 공간으로 가고(그 공간을 누르면 돌아옴), 더미를 앞으로 끌면 가진 칩이 모두 올라가며, 올려 둔 칩을 앞으로 밀면 베팅합니다. [베팅]으로도 확정합니다</li><li><b>카드</b> : 모두 두 장씩 앞면으로 받고, 딜러는 한 장을 엎어 둡니다. A는 1이나 11, J·Q·K는 10입니다. 카드는 정한 벌 수만큼 한 통에 섞어 판이 바뀌어도 이어 쓰고, 다음 판을 나눌 만큼 남지 않으면 다시 섞습니다</li><li><b>차례</b> : <b>히트</b>는 한 장 더, <b>스탠드</b>는 멈춤, <b>더블</b>은 처음 두 장일 때 건 칩을 두 배로 하고 딱 한 장만 더 받습니다. 21을 넘으면 <b>버스트</b>로 집니다</li><li><b>손짓</b> : 내 앞 탁자를 두 번 두드리면 <b>히트</b>, 내 카드를 옆으로 쓸면 <b>스탠드</b>, 처음 두 장일 때 건 칩과 같은 칩을 베팅할 칩 공간에 올려 앞으로 밀면 <b>더블</b>입니다. 버튼과 키로도 할 수 있습니다</li><li><b>딜러</b> : 엎은 카드를 펼치고 16 이하면 반드시 더 받습니다. 봇 딜러는 17 이상이면 멈추고, 사람 딜러는 17 이상에서 더 받을지 고릅니다</li><li><b>정산</b> : 딜러보다 21에 가까우면 건 만큼 받고, 처음 두 장이 21(<b>블랙잭</b>)이면 1.5배를 받습니다. 같으면 무승부입니다. 딜러가 A나 10을 보이고 블랙잭이면 바로 정산합니다</li><li><b>사람 딜러</b> : 탁자 설정에서 켜면 참가자가 돌아가며 딜러를 맡아, 진 사람의 칩을 받고 이긴 사람에게 칩을 줍니다 (칩이 모자라면 가진 만큼 나눠 줌). 판 수를 인원의 배수로 하면 모두 같은 횟수만큼 딜러를 맡습니다</li><li><b>탈락</b> : 칩이 10개보다 적어지면 탈락합니다</li><li><b>시간 초과</b> : 베팅은 최소 칩(10개), 차례는 스탠드입니다</li><li>스플릿·인슈어런스는 없습니다</li></ol>';

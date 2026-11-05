@@ -125,6 +125,9 @@ body.nofs .fsbtn.cfg{right:58px}
 .field2d .card{transform:none!important;cursor:default}
 .field2d .f2-n{font-size:12px;font-weight:600;background:rgba(255,250,240,.92);border:1px solid var(--line-strong);border-radius:99px;padding:1px 10px}
 .card .cn i{display:block;font-style:normal;font-size:13px;line-height:1;margin-top:1px}
+.card .cn.tr{display:flex;align-items:center;gap:1px;left:5px;white-space:nowrap;font-size:16px}
+.card .cn.tr.w{font-size:14px}
+.card .cn.tr i{margin:0;font-size:12px}
 .rulebadges{position:absolute;left:12px;top:10px;z-index:7;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100% - 220px);pointer-events:none}
 .rulebadges:empty{display:none}
 .specbar:not([hidden])~.rulebadges{top:42px}

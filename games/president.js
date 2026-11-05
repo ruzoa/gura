@@ -109,7 +109,7 @@ function rankTitle(r,n){
 
 const cardHTML=(id,extra)=>{
   const j=isJ(id),lab=j?'★':RK_LABEL[rkOf(id)],su=j?'':SUITS[suitOf(id)];
-  return `<button type="button" class="card ${j?'joker ':''}${extra||''}" data-id="${id}"${j?'':` style="--rc:${SUIT_COL[suitOf(id)]}"`} aria-label="${j?'조커':su+lab}"><span class="cn">${lab}${su?`<i>${su}</i>`:''}</span><span class="big">${j?'★':su}</span><span class="cn2" aria-hidden="true">${lab}</span></button>`;
+  return `<button type="button" class="card ${j?'joker ':''}${extra||''}" data-id="${id}"${j?'':` style="--rc:${SUIT_COL[suitOf(id)]}"`} aria-label="${j?'조커':su+lab}">${trumpCorner(lab,su)}<span class="big">${j?'★':su}</span><span class="cn2" aria-hidden="true">${lab}</span></button>`;
 };
 Object.assign(G,{labelOf,cmpCard,cardHTML,rankTitle,parseCombo,playError,legalPlays});
 /* 3D 카드 앞면 (60×88 카드를 256×372로 확대) */
@@ -121,9 +121,7 @@ G.drawFace=function(g,w,h,id){
   if(!j){g.fillStyle=RC;g.fillRect(0,0,w,3*k)}
   g.restore();
   g.strokeStyle=j?RC:'#e3d4bb';g.lineWidth=j?2*k:1*k;rr(g,g.lineWidth/2,g.lineWidth/2,w-g.lineWidth,h-g.lineWidth,8*k);g.stroke();
-  g.fillStyle=RC;g.textAlign='left';g.textBaseline='top';
-  g.font=`600 ${19*k}px "IBM Plex Mono", "Jua", monospace`;g.fillText(labelOf(id),6*k,(j?4:6)*k);
-  if(!j){g.font=`${14*k}px sans-serif`;g.fillText(SUITS[suitOf(id)],6*k,26*k)}
+  g.fillStyle=RC;drawTrumpCorner(g,k,labelOf(id),j?'':SUITS[suitOf(id)]);
   g.textAlign='center';g.textBaseline='middle';g.font=`${40*k}px sans-serif`;g.fillText(j?'★':SUITS[suitOf(id)],w/2,50*k);
   g.save();g.translate(w-6*k,h-3*k);g.rotate(Math.PI);g.font=`600 ${13*k}px "IBM Plex Mono", "Jua", monospace`;g.textAlign='left';g.textBaseline='top';g.fillText(labelOf(id),0,0);g.restore();
 };

@@ -37,16 +37,14 @@ function fits(id,S){
 Object.assign(G,{labelOf,cmpCard});
 G.cardHTML=(id,extra)=>{
   const s=isStar(id),t=labelOf(id),su=s?'':SUITS[suitOf(id)],n=kindOf(id)==='n';
-  return `<button type="button" class="card ${s?'joker ':''}${n?'':'oc-a '}${extra||''}" data-id="${id}"${s?'':` style="--rc:${SUIT_COL[suitOf(id)]}"`} aria-label="${cardStr(id)}"><span class="cn">${t}${su?`<i>${su}</i>`:''}</span><span class="big">${n?su:t}</span><span class="cn2" aria-hidden="true">${t}</span></button>`;
+  return `<button type="button" class="card ${s?'joker ':''}${n?'':'oc-a '}${extra||''}" data-id="${id}"${s?'':` style="--rc:${SUIT_COL[suitOf(id)]}"`} aria-label="${cardStr(id)}">${trumpCorner(t,su,true)}<span class="big">${n?su:t}</span><span class="cn2" aria-hidden="true">${t}</span></button>`;
 };
 G.drawFace=function(g,w,h,id){
   const s=isStar(id),n=kindOf(id)==='n',RC=s?JOKER_C:SUIT_COL[suitOf(id)],k=w/60,t=labelOf(id);
   g.clearRect(0,0,w,h);
   g.save();rr(g,0,0,w,h,8*k);g.clip();g.fillStyle=s?'#3b2a1f':'#fffcf5';g.fillRect(0,0,w,h);if(!s){g.fillStyle=RC;g.fillRect(0,0,w,3*k)}g.restore();
   g.strokeStyle=s?RC:'#e3d4bb';g.lineWidth=s?2*k:k;rr(g,g.lineWidth/2,g.lineWidth/2,w-g.lineWidth,h-g.lineWidth,8*k);g.stroke();
-  g.fillStyle=RC;g.textAlign='left';g.textBaseline='top';
-  g.font=`600 ${(t.length>1?15:19)*k}px "IBM Plex Mono", "Jua", monospace`;g.fillText(t,6*k,6*k);
-  if(!s){g.font=`${14*k}px sans-serif`;g.fillText(SUITS[suitOf(id)],6*k,26*k)}
+  g.fillStyle=RC;drawTrumpCorner(g,k,t,s?'':SUITS[suitOf(id)],true);
   g.textAlign='center';g.textBaseline='middle';
   if(n||kindOf(id)==='wild'){g.font=`${40*k}px sans-serif`;g.fillText(n?SUITS[suitOf(id)]:'★',w/2,50*k)}
   else{g.font=`700 ${(t.length>1?29:36)*k}px "IBM Plex Mono", "Jua", sans-serif`;g.fillText(t,w/2,50*k)}
@@ -514,7 +512,7 @@ G.init=()=>{
   css.textContent=`
 .oc-box{position:absolute;inset:0;pointer-events:none;z-index:6}
 .oc-box[hidden]{display:none}
-.stage.ocg .card.oc-a .big{top:42px;font-family:"IBM Plex Mono","Jua",monospace;font-weight:700;font-size:26px;color:var(--rc)}
+.stage.ocg .card.oc-a .big{top:30px;font-family:"IBM Plex Mono","Jua",monospace;font-weight:700;font-size:26px;color:var(--rc)}
 .stage.ocg .card.joker.oc-a .big{color:${JOKER_C}}
 .oc-act{display:none}
 .stage.ocg .oc-act{display:flex}
