@@ -31,7 +31,7 @@
 | `games/abalone.js` | 아발론 (2명·61칸 육각판·구슬 1~3개 밀기·6개 승리·시작 배치 3가지·체스 시계·3단계 봇(Web Worker)) | `docs/abalone.md` |
 | `games/mind.js` | 더 마인드 (2~4명 협력·1~100 카드·차례 없음·탁자 위 시작 버튼을 모두 함께 누름·뒤집어 올린 뒤 내기·표창 버튼·블라인드·쉬움 봇) | `docs/mind.md` |
 | `games/bohnanza.js` | 보난자 (3~5명 콩 심기·거래·수확·양쪽 수락 제안·임시 구역·새싹 보호법·쉬움 봇) | `docs/bohnanza.md` |
-| `games/robo77.js` | 로보77 (2~8명·합계 부르기·더블릿/77 이상 칩 잃기·이름표 불 3개·공중 합계 홀로그램·쉬움 봇) | `docs/robo77.md` |
+| `games/robo77.js` | 로보77 (2~8명·합계 부르기·더블릿/77 이상 칩 잃기·이름표 불 3개·공중 합계 홀로그램·3단계 봇) | `docs/robo77.md` |
 | `tests/`, `dicepick.js`, `lab*.html`, `manifest.webmanifest`, `sw.js`, 아이콘 | 테스트(`node tests/engine.test.js`, `node tests/dicepick.test.js`), 첫 차례 주사위 계산·주사위 만들기, 연출·아이콘 테스트룸, 홈 화면 앱 | `docs/tools.md` |
 
 - 공통 코드는 `G`(지금 화면의 게임)와 `EG()`(방장 엔진이 돌리는 게임)를 통해 게임 모듈의 함수를 부릅니다. 기준 모듈은 `games/gura.js`입니다.

@@ -5,7 +5,7 @@
    판 ph: turn → (77 이상) end → 다음 판을 나눔. x2를 받은 사람은 need=2로 두 장을 내고 그 뒤 두 장을 뽑음.
    화면은 상태를 바로 그리지 않고 낸 카드 기록(o.ev)을 재생해, 카드가 내려앉을 때 합계와 불이 바뀜 */
 (function(){
-const G={id:'robo77',name:'로보77',short:'로보',lead:'합계 77을 피하는 암산 카드 게임',dealAnim:true,maxHi:8,minN:2,noFast:true,oneBotLv:true};
+const G={id:'robo77',name:'로보77',short:'로보',lead:'합계 77을 피하는 암산 카드 게임',dealAnim:true,maxHi:8,minN:2,noFast:true};
 
 /* ---------- 규칙 값 ---------- */
 const CHIPS=3,HAND=5,LIMIT=77,END_MS=2600;
@@ -63,14 +63,14 @@ function setTurn(i){
 function startRound(st){
   const O=H.rb,deck=shuffle([...DECK.keys()]);
   H.players.forEach(p=>{if(!p.finished)p.hand=deck.splice(0,HAND).sort((a,b)=>a-b)});
-  Object.assign(O,{deck,disc:[],tot:0,dir:1,need:1,played:0,two:false,ph:'turn',ev:[],sq:0,start:st,rn:O.rn+1});
+  Object.assign(O,{deck,disc:[],seen:[],tot:0,dir:1,need:1,played:0,two:false,ph:'turn',ev:[],sq:0,start:st,rn:O.rn+1});
   H.seatNote={};setTurn(st);
 }
 function draw(p,k){
   const O=H.rb;
   for(let j=0;j<k;j++){
     if(!O.deck.length){
-      const top=O.disc.pop();O.deck=shuffle(O.disc);O.disc=top==null?[]:[top];addLog('버린 카드를 섞습니다.','sys');
+      const top=O.disc.pop();O.deck=shuffle(O.disc);O.disc=top==null?[]:[top];O.seen=O.disc.slice();addLog('버린 카드를 섞습니다.','sys');
       if(!O.deck.length)break;
     }
     p.hand.push(O.deck.pop());
@@ -97,7 +97,7 @@ function passOn(seat){
 }
 function doPlay(seat,id){
   const O=H.rb,p=H.players[seat],c=DECK[id];
-  p.hand.splice(p.hand.indexOf(id),1);O.disc.push(id);
+  p.hand.splice(p.hand.indexOf(id),1);O.disc.push(id);O.seen.push(id);
   O.tot=afterCard(O.tot,id);O.need--;O.played++;H.seatNote={};
   if(c.k==='rev')O.dir=-O.dir;
   if(c.k==='x2')O.two=true;
@@ -112,10 +112,87 @@ function doPlay(seat,id){
   passOn(seat);
 }
 const legal=(seat,id)=>{const O=H.rb,p=H.players[seat];return p.hand.includes(id)&&!(O.need===2&&DECK[id].k==='x2')};
-/* 봇(쉬움): 칩을 잃지 않는 카드 중 무작위. 그런 카드가 없으면 아무거나 */
+/* 봇. 쉬움: 칩을 잃지 않는 카드 중 무작위, 없으면 아무거나
+   보통: 카드마다 점수를 매김. 칩을 잃으면 크게 깎고, 다음 사람이 낼 카드가 없을 확률만큼 더하고, 위기에 쓸 카드(0·-10·⇄·×2)는 아끼고, 큰 카드는 일찍 냄
+   어려움: 나온 카드를 뺀 나머지를 남의 손패와 더미에 무작위로 나눠 보고(남의 실제 손패는 보지 않음), 판 끝까지 굴려 보아 내가 잃는 칩이 가장 적고 남이 잃는 칩이 가장 많은 카드를 고름 */
+const noCard=(tot,need,pool)=>{
+  const safe=pool.filter(id=>!(need===2&&DECK[id].k==='x2')&&!costs(afterCard(tot,id))).length/Math.max(1,pool.length);
+  const has=1-Math.pow(1-safe,HAND);return need===2?1-has*has:1-has;
+};
+function cardScore(seat,id,tot,dir,hand,pool,left){
+  const c=DECK[id],t=afterCard(tot,id),d=c.k==='rev'?-dir:dir,p=H.players[seat],esc=c.k!=='n'||c.v===0||!!c.neg;
+  let v=0;
+  if(costs(t))v-=p.chips>0?100:260;
+  else if(esc)v-=(c.neg?9:7)*(1+Math.max(0,tot)/LIMIT);
+  if(c.k==='n'&&c.v>0)v+=c.v*(c.v>=11?.35:.12)*(t<60?1:.3);
+  if(t>=LIMIT)return v;
+  if(left>0){
+    const rest=hand.filter(x=>x!==id);let best=-1e9;
+    for(const x of rest)best=Math.max(best,cardScore(seat,x,t,d,rest,pool,left-1));
+    return v+(best>-1e9?best:0);
+  }
+  const nx=nextAlive(seat,d);
+  if(nx>=0)v+=28*(H.players[nx].chips>0?1:1.6)*noCard(t,c.k==='x2'?2:1,pool);
+  return v;
+}
+const ROLLS=70;
+/* 어려움: 한 판 굴리기. 손패에서 ×2 금지만 지키고, 칩을 안 잃는 카드 중 숫자 카드를 먼저 내는 사람들로 가정 */
+function rollout(S,me,first,left){
+  const n=S.hands.length,lost=new Array(n).fill(0);
+  let seat=me,tot=S.tot,dir=S.dir,need=left+1,two=false,forced=first,steps=0,played=0;
+  while(steps++<70){
+    const hand=S.hands[seat];
+    let id=forced;forced=null;
+    if(id==null){
+      let pick=-1,rank=-1;
+      for(let k=0;k<hand.length;k++){
+        const x=hand[k],c=DECK[x];if(need===2&&played===0&&two&&c.k==='x2')continue;
+        const r=(costs(afterCard(tot,x))?0:c.k==='n'&&c.v>0?3:1)+Math.random();
+        if(r>rank){rank=r;pick=x}
+      }
+      if(pick<0)break;id=pick;
+    }
+    hand.splice(hand.indexOf(id),1);
+    const c=DECK[id];tot=afterCard(tot,id);if(c.k==='rev')dir=-dir;
+    const x2=c.k==='x2';played++;need--;
+    if(costs(tot))lost[seat]++;
+    if(tot>=LIMIT)break;
+    if(need>0)continue;
+    for(let k=0;k<played&&S.deck.length;k++)hand.push(S.deck.pop());
+    played=0;two=x2;need=x2?2:1;
+    let nx=seat;for(let k=1;k<=n;k++){nx=((seat+dir*k)%n+n)%n;if(S.hands[nx])break}
+    seat=nx;
+  }
+  return lost;
+}
+function hardPick(seat,L){
+  const O=H.rb,p=H.players[seat];
+  const out=new Set([...p.hand,...O.seen]),pool=[...DECK.keys()].filter(id=>!out.has(id));
+  let best=L[0],top=-1e9;
+  for(const id of L){
+    let sum=0;
+    for(let r=0;r<ROLLS;r++){
+      const deck=shuffle(pool.slice());
+      const hands=H.players.map((q,i)=>q.finished?null:i===seat?p.hand.slice():deck.splice(0,q.hand.length));
+      const lost=rollout({hands,deck,tot:O.tot,dir:O.dir},seat,id,O.need-1);
+      H.players.forEach((q,i)=>{
+        if(q.finished||!lost[i])return;
+        if(i===seat)sum-=lost[i]*(q.chips>0?1.5:4);
+        else sum+=lost[i]*(q.chips>0?.5:1.2);
+      });
+    }
+    if(sum>top){top=sum;best=id}
+  }
+  return best;
+}
 function botPick(seat){
-  const O=H.rb,L=H.players[seat].hand.filter(id=>legal(seat,id)),ok=L.filter(id=>!costs(afterCard(O.tot,id)));
-  const from=ok.length?ok:L;return from[Math.random()*from.length|0];
+  const O=H.rb,p=H.players[seat],L=p.hand.filter(id=>legal(seat,id)),lv=botLv(p);
+  if(lv<=0){const ok=L.filter(id=>!costs(afterCard(O.tot,id))),from=ok.length?ok:L;return from[Math.random()*from.length|0]}
+  if(lv>=2)return hardPick(seat,L);
+  const pool=[...DECK.keys()];
+  let best=L[0],top=-1e9;
+  for(const id of L){const v=cardScore(seat,id,O.tot,O.dir,p.hand,pool,O.need-1)+Math.random()*30;if(v>top){top=v;best=id}}
+  return best;
 }
 function timeout(){
   const i=H.turn,L=H.players[i].hand.filter(id=>legal(i,id));
@@ -136,13 +213,13 @@ function doSurrender(seat){
 function nextRound(){
   const O=H.rb;startRound(nextAlive(O.start,1));beginDeal(DEAL_MS);
 }
-G._test={DECK,CHIPS,HAND,END_MS,isDouble,costs,afterCard,labelOf};
+G._test={botPick,DECK,CHIPS,HAND,END_MS,isDouble,costs,afterCard,labelOf};
 G.engine={
   start(){
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,known:{},turn:0,botActAt:0,deadline:0});
     const n=H.players.length;
     H.players.forEach(p=>{p.finished=false;p.rank=null;p.surrendered=false;p.hand=[];p.chips=CHIPS});
-    H.rb={gn:((H.rb&&H.rb.gn)||0)+1,rn:0,rank:n,deck:[],disc:[],ev:[],sq:0};
+    H.rb={gn:((H.rb&&H.rb.gn)||0)+1,rn:0,rank:n,deck:[],disc:[],seen:[],ev:[],sq:0};
     const first=Math.random()*n|0;
     startRound(first);addLog(`${n}명 시작. ${H.players[first].name}부터 냅니다.`,'sys');
   },

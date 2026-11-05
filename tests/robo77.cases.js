@@ -1,5 +1,5 @@
 /* 로보77 테스트 (tests/engine.test.js가 이 파일을 불러서 { } 블록 안에서 돌림) */
-const TT=RB._test,D=TT.DECK;
+const TT=RB._test,D=TT.DECK,RB_GAMES=60;
 const eq=(a,b,m)=>{if(a!==b)fail('robo77 '+m+': '+a+' != '+b)};
 const pass=ms=>{for(let k=0;k<ms/50;k++){NOW+=50;engineTick()}};
 const idOf=(f,skip=0)=>{const L=D.map((c,i)=>f(c)?i:-1).filter(i=>i>=0);return L[skip]};
@@ -84,3 +84,15 @@ for(let rep=0;rep<30;rep++){
   eq(H.players.filter(p=>p.rank===1).length,1,'one winner');
   eq(new Set(H.players.map(p=>p.rank)).size,n,'ranks');
 }
+/* 난이도: 칩을 안 잃는 카드가 있으면 어느 단계든 그것을 고름, 남의 손패로 고르지 않음 */
+for(const lv of [0,1,2]){setup(3,1);H.players[1].lv=lv;H.players[1].bot=true;at(19,[null,[num(3),num(5),num(2),num(4),num(6)]]);H.turn=1;for(let k=0;k<40;k++){const id=TT.botPick(1);if(D[id].v===3)fail('robo77 bot walks into doublet lv'+lv)}}
+/* 난이도 대전: 자리를 돌려 가며 우승 수를 셈 */
+{const duel=(a,b,games)=>{let w=0;for(let g=0;g<games;g++){
+    hostNew(false,'t','t');H.cfg={...cfgFor('robo77'),game:'robo77'};
+    H.members=[0,1,2,3].map(i=>({name:'b'+i,bot:true,conn:null,host:i===0,lv:(i+g)%2?a:b}));
+    hostStart();for(let k=0;k<400000&&H.phase==='play';k++){NOW+=300;engineTick()}
+    eq(H.phase,'over','duel ends');if(H.players.find(p=>p.rank===1).lv===a)w++}
+  return w};
+ const n=RB_GAMES,hm=duel(2,1,n*2),me=duel(1,0,n),he=duel(2,0,n);
+ console.log('robo77 hard/normal',hm,'of',n*2,'normal/easy',me,'hard/easy',he,'of',n);
+ if(me<n*.65)fail('robo77 normal not above easy');if(he<n*.75)fail('robo77 hard not above easy');if(hm<n*2*.47)fail('robo77 hard below normal');}
