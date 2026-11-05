@@ -24,7 +24,7 @@ function legalSlots(rack,id){
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>타일</b> : 흑·백 0~11 타일과 조커 2개입니다. 2~3명은 4개, 4명은 3개로 시작합니다. 시작 타일에는 조커가 없습니다</li><li><b>줄 세우기</b> : 타일은 작은 숫자부터 왼쪽으로 저절로 놓입니다. 같은 숫자는 흑이 왼쪽입니다. 조커는 내가 고른 자리에 놓고, 조커 때문에 놓을 자리가 여러 곳이면 숫자 타일도 직접 고릅니다</li><li><b>뽑기</b> : 내 차례에는 탁자에 흩어진 패에서 원하는 타일을 하나 집습니다. 색은 보고 고를 수 있습니다</li><li><b>추리</b> : 상대 패를 누르면 그쪽으로 다가갑니다. 타일을 누르고 숫자를 고른 뒤 <b>[추리]</b>를 누릅니다. 빈 곳을 누르면 돌아옵니다</li><li><b>맞히면</b> : 그 타일이 쓰러져 공개됩니다. 계속 추리하거나 멈출 수 있고, 멈추면 집은 타일을 숨긴 채 놓습니다</li><li><b>틀리면</b> : 집은 타일을 공개해서 놓습니다. 틀린 숫자는 그 타일 앞에 작게 남습니다. 남은 패가 없으면 내 타일 하나를 골라 공개합니다</li><li><b>탈락·승리</b> : 타일이 모두 공개되면 탈락하고, 마지막까지 남은 사람이 승리합니다</li><li><b>제한 시간</b> : 시간이 지나면 뽑기·추리는 무작위로 하고, 계속할지 고를 때는 멈춥니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>타일</b> : 흑·백 0~11 타일과 조커 2개입니다. 2~3명은 4개, 4명은 3개로 시작합니다. 시작 타일에는 조커가 없습니다</li><li><b>줄 세우기</b> : 타일은 작은 숫자부터 왼쪽으로 저절로 놓입니다. 같은 숫자는 흑이 왼쪽입니다. 조커는 내가 고른 자리에 놓고, 조커 때문에 놓을 자리가 여러 곳이면 숫자 타일도 직접 고릅니다</li><li><b>뽑기</b> : 내 차례에는 탁자에 흩어진 패에서 원하는 타일을 하나 집습니다. 색은 보고 고를 수 있습니다</li><li><b>추리</b> : 상대 패를 누르면 그쪽으로 다가갑니다. 타일을 누르고 숫자를 고른 뒤 <b>[추리]</b>를 누릅니다. 빈 곳을 누르면 돌아옵니다</li><li><b>맞히면</b> : 그 타일이 쓰러져 공개됩니다. 계속 추리하거나 멈출 수 있고, 멈추면 집은 타일을 숨긴 채 놓습니다</li><li><b>틀리면</b> : 집은 타일을 공개해서 놓습니다. 남은 패가 없으면 내 타일 하나를 골라 공개합니다</li><li><b>탈락·승리</b> : 타일이 모두 공개되면 탈락하고, 마지막까지 남은 사람이 승리합니다</li><li><b>제한 시간</b> : 시간이 지나면 뽑기·추리는 무작위로 하고, 계속할지 고를 때는 멈춥니다</li></ol>';
 G.modeDesc=['상대 타일 맞히기','상대 타일 맞히기'];
 G.defaults={max:4,turn:30,joker:1,help:1};
 G.roomSet=[{k:'turn',label:'제한 시간',unit:'초',lo:10,hi:120,step:10,desc:'시간이 지나면 뽑기·추리는 무작위로 하고, 계속할지 고를 때는 멈춥니다'}];
@@ -294,7 +294,7 @@ function hintText(){
 function draw2d(){
   if(!el2d)return;
   const o=V.o,me=meI(),can=myTurn()&&phIs('guess');
-  const row=i=>`<div class="dv-row${o.cur===i?' on':''}"><b>${esc(nm(i))}</b>${o.rk[i].map(t=>{const p=can&&!t.o&&!V.ps[i].f;return `<${p?'button type="button"':'span'} class="dvt ${t.c?'w':'b'}${t.o?' open':''}${t.u===selU?' sel':''}"${p?` data-s="${i}" data-u="${t.u}"`:''}>${t.v==null?'':t.v===JOKER?'★':t.v}${t.w.length?`<i>${t.w.join(' ')}</i>`:''}</${p?'button':'span'}>`}).join('')}</div>`;
+  const row=i=>`<div class="dv-row${o.cur===i?' on':''}"><b>${esc(nm(i))}</b>${o.rk[i].map(t=>{const p=can&&!t.o&&!V.ps[i].f;return `<${p?'button type="button"':'span'} class="dvt ${t.c?'w':'b'}${t.o?' open':''}${t.u===selU?' sel':''}"${p?` data-s="${i}" data-u="${t.u}"`:''}>${t.v==null?'':t.v===JOKER?'★':t.v}</${p?'button':'span'}>`}).join('')}</div>`;
   const n=c=>o.pool.filter(t=>t.c===c).length,dr=myTurn()&&phIs('draw');
   const pool=[0,1].map(c=>`<button type="button" class="dvt ${c?'w':'b'} wide"${dr&&n(c)?` data-pc="${c}"`:' disabled'}>${CN[c]} ${n(c)}</button>`).join('');
   const h=`<div class="dv-row">${pool}</div>${V.ps.map((_,i)=>i).filter(i=>i!==me).map(row).join('')}`;
@@ -302,10 +302,10 @@ function draw2d(){
 }
 
 /* ---------- 3D: 공통 앉은 카메라 + 상대 쪽으로 다가가는 카메라 ----------
-   타일 o={g,c,v,u,p:{x,y,z,ry,rx,s},tw}. 남은 패는 눕혀서 흩어 두고, 줄 타일은 자리마다 호를 따라 세움.
+   타일 o={g,c,v,u,p:{x,y,z,ry,rx,s},tw}. 남은 패는 눕혀서 흩어 두고, 줄 타일은 자리마다 곧게 세움.
    세운 타일의 앞면은 주인 쪽. 공개하면 탁자 가운데 쪽으로 쓰러져 앞면이 위로 옴 */
 const TW=.4,TH=.58,TD=.13,GAP=.46,RACK=3.08,TILT=-.46,FOC_MS=360;
-const Dv={on:false,built:false,fail:false,root:null,tiles:new Map(),gn:-1,lastFoc:-1,cam:null,ray:null,rid:0,marks:new Map(),gid:0};
+const Dv={on:false,built:false,fail:false,root:null,tiles:new Map(),gn:-1,lastFoc:-1,cam:null,ray:null,rid:0,gid:0};
 const BODY=[0x2a2a2e,0xf1ebde],ez=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 const MAT={};
 function faceMat(c,v){
@@ -345,13 +345,13 @@ function build(){
 }
 function setV(o,v){if(o.v===v)return;o.v=v;o.m.material[4]=v==null?sideMat(o.c):faceMat(o.c,v)}
 function rackK(i,n){   // 줄이 길면 타일을 줄임. 내 줄은 화면 폭 안에 들어오게
-  let w=RACK*1.75;
+  let w=V.ps.length>=4?5:6.2;   // 4명은 옆 줄과 모서리에서 만나지 않게
   if(i===meI()&&T.cam){const q=new THREE.Vector3(1,0,RACK).project(T.cam),z=new THREE.Vector3(0,0,RACK).project(T.cam),per=Math.abs(q.x-z.x);if(per>0)w=Math.min(w,1.9/per)}
   return Math.max(.5,Math.min(1,w/Math.max(1,n*GAP)));
 }
 function rackPose(i,k,n,open,lift){
-  const K=rackK(i,n),a=seatAngle(i)+(k-(n-1)/2)*GAP*K/RACK,R=RACK-(open?.3:0)-(lift?.14:0);
-  return {x:Math.sin(a)*R,z:Math.cos(a)*R,y:open?TD*K/2+.012:TH*K/2+.01+(lift?.12:0),ry:a,rx:open?-Math.PI/2:TILT,s:K};
+  const K=rackK(i,n),a=seatAngle(i),d=(k-(n-1)/2)*GAP*K,R=RACK-(open?.3:0)-(lift?.14:0);   // 자리 앞에 곧은 줄
+  return {x:Math.sin(a)*R+Math.cos(a)*d,z:Math.cos(a)*R-Math.sin(a)*d,y:open?TD*K/2+.012:TH*K/2+.01+(lift?.12:0),ry:a,rx:open?-Math.PI/2:TILT,s:K};
 }
 function moveT(t,to,dur,arc,delay,now){
   const q=t.tw?t.tw.to:t.p;
@@ -364,7 +364,7 @@ function shake(t){t.shk=clock()}
 function sync(){
   if(!Dv.on||!V||!V.o)return;
   const o=V.o,now=clock(),fresh=Dv.gn!==o.gn;
-  if(fresh){for(const t of Dv.tiles.values())Dv.root.remove(t.g);Dv.tiles.clear();for(const m of Dv.marks.values())Dv.root.remove(m.mesh);Dv.marks.clear();Dv.gn=o.gn;Dv.rid=0;Dv.gid=0}
+  if(fresh){for(const t of Dv.tiles.values())Dv.root.remove(t.g);Dv.tiles.clear();Dv.gn=o.gn;Dv.rid=0;Dv.gid=0}
   const live=new Set(),intro=IN.on,sw=fresh;
   const tile=(u,c)=>{live.add(u);let t=Dv.tiles.get(u);if(!t){t=mkTile(u,c);Dv.tiles.set(u,t);t.spot=(u*2.399)%6.283;t.isNew=true}return t};
   o.pool.forEach((q,k)=>{
@@ -383,7 +383,6 @@ function sync(){
     }else{moveT(t,to,t.isNew||sw?0:(t.where==='pool'||t.where==='held'?460:300),t.where==='pool'||t.where==='held'?.7:0,0,now);t.isNew=false}
     if(t.where!=='rack'&&t.where!==''&&!sw)sndPut(.42);
     t.where='rack';t.seat=i;t.open=open;
-    mark3(t,x);
   }));
   if(o.held){
     const t=tile(o.held.u,o.held.c),n=o.rk[o.cur].length,to=rackPose(o.cur,n+.35,n+1,false,false);
@@ -397,18 +396,6 @@ function sync(){
   if(o.res&&o.res.u!==Dv.rid){Dv.rid=o.res.u;const t=Dv.tiles.get(o.res.u);if(o.res.hit)sndHit();else{sndMiss();if(t)shake(t)}}
   if(!o.res)Dv.rid=0;
   bubble();
-}
-function mark3(t,x){   // 틀린 숫자: 타일 앞 펠트에 작게 (글자는 내 쪽으로 바로)
-  const show=!x.o&&x.w.length&&V.st==='play',key=x.w.join(' ');
-  let m=Dv.marks.get(x.u);
-  if(!show){if(m)m.mesh.visible=false;return}
-  if(!m){
-    const c=document.createElement('canvas');c.width=256;c.height=96;const tx=new THREE.CanvasTexture(c);
-    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(.45,.17),new THREE.MeshBasicMaterial({map:tx,transparent:true,depthWrite:false}));mesh.rotation.x=-Math.PI/2;mesh.renderOrder=3;Dv.root.add(mesh);
-    m={mesh,c,tx,key:''};Dv.marks.set(x.u,m);
-  }
-  if(m.key!==key){m.key=key;const g=m.c.getContext('2d');g.clearRect(0,0,256,96);g.fillStyle='rgba(40,16,10,.72)';rr(g,4,8,248,80,26);g.fill();g.fillStyle='#ffd9c9';g.font='700 58px "IBM Plex Mono", monospace';g.textAlign='center';g.textBaseline='middle';g.fillText(x.w.map(vName2).join(' '),128,50,228);m.tx.needsUpdate=true}
-  m.mesh.visible=true;m.tg=t;
 }
 const vName2=v=>v===JOKER?'★':v;
 function bubble(){
@@ -433,7 +420,6 @@ function frame(now){
       t.g.position.set(t.p.x+sh,t.p.y,t.p.z);t.g.rotation.y=t.p.ry;t.g.rotation.x=t.p.rx;t.g.scale.setScalar(t.p.s);
     }
   }
-  for(const m of Dv.marks.values())if(m.mesh.visible&&m.tg&&m.tg.p){const P=m.tg.p,R=Math.hypot(P.x,P.z),k=(R-.5)/R;m.mesh.position.set(P.x*k,.03,P.z*k);m.mesh.rotation.z=m.tg.seat===meI()?0:P.ry+Math.PI}
   if(IN.die&&IN.fp)IN.die.apply(IN.fp.pose(now),.5,0,.16,0);
 }
 const _f=window.THREE?new THREE.Vector3():null,_u=window.THREE?new THREE.Vector3():null,_q=window.THREE?new THREE.Quaternion():null,_a=window.THREE?new THREE.Vector3(0,1,0):null,_c=window.THREE?new THREE.Vector3():null;
@@ -597,7 +583,6 @@ G.init=()=>{
 .dvt.can{cursor:pointer;outline:2px dashed #ffc83a}
 .dvt.sel{outline:3px solid #ffc83a}
 .dvt.wide{width:auto;padding:0 12px}
-.dvt i{position:absolute;left:0;right:0;bottom:-15px;font:600 11px "IBM Plex Mono",monospace;color:#b5321e;white-space:nowrap}
 .dvgap{width:22px;height:43px;border:2px dashed #ffc83a;border-radius:5px;background:rgba(255,200,58,.2);color:#ffc83a;font:700 16px monospace;padding:0;cursor:pointer}
 .dv-keys{display:grid;grid-template-columns:repeat(7,minmax(0,50px));gap:5px;padding:8px;border-radius:12px;background:linear-gradient(#845028,#5f361a);box-shadow:0 4px 0 #3a2010,0 8px 16px rgba(0,0,0,.4);transform:rotateX(12deg);transform-origin:50% 100%}
 .dvk{height:48px;min-width:0;border:0;border-radius:6px;padding:0;font:700 19px "IBM Plex Mono",monospace;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.45);transition:transform .08s}
