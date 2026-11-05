@@ -739,7 +739,7 @@ function drawPan(){
     const who=act?(C.to<0?'아무나':P[C.to].n):P[o.act].n;
     const box=(k,name,L,nameBtn)=>`<div class="bn-cell${C.box===k?' on':''}" data-b="${k}">${nameBtn}<span class="bn-sw">${rmChips(k,L)}</span></div>`;
     const grid=C.box?`<div class="bn-g">${BEANS.map((b,t)=>{const no=C.box==='me'&&!canGive(t);return `<button type="button" class="bn-bean${no?' no':''}" data-w="${t}" aria-label="${b.n}">${beanImg(t)}<span>${b.n}</span></button>`}).join('')}</div>`:'';
-    comp=`<div class="bn-tr"><div class="bn-r bn-line">${box('me','나',[...H2.map(typ),...C.gf.map(typ)],'<b class="bn-w">나</b>')}<span class="bn-ar">⇄</span>${box('you',who,[...C.want,...C.wf.map(typ)],act?`<button type="button" class="bn-who" data-k="who">${esc(who)}</button>`:`<b class="bn-w">${esc(who)}</b>`)}<button type="button" class="bn-x" data-k="close" aria-label="닫기">✕</button></div>${grid}<div class="bn-r bn-e"><button type="button" class="bn-ok" data-k="send">제안</button></div></div>`;
+    comp=`<div class="bn-tr"><div class="bn-r bn-line">${box('me','나',[...H2.map(typ),...C.gf.map(typ)],'<b class="bn-w">나</b>')}<span class="bn-ar">⇄</span>${box('you',who,[...C.want,...C.wf.map(typ)],act?`<button type="button" class="bn-who" data-k="who">${esc(who)}</button>`:`<b class="bn-w">${esc(who)}</b>`)}<button type="button" class="bn-ok bn-send" data-k="send">제안</button></div>${grid}</div>`;
   }
   const h=ofHTML+comp;
   if(h!==lastPan){elPan.innerHTML=h;lastPan=h;lockTick()}
@@ -828,11 +828,10 @@ G.init=()=>{
 .bn-cell{display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:8px;border:2px solid transparent;cursor:pointer;min-height:26px}
 .bn-cell.on{border-color:#e0a020;background:rgba(224,160,32,.14)}
 .bn-box button.bn-who{padding:1px 7px;font-weight:700;background:rgba(59,42,31,.1);border-color:transparent}
-.bn-e{justify-content:flex-end}
 .bn-bean{position:relative}
 .bn-box button.bn-bean.no .bn-bi,.bn-box button.bn-bean.no span{opacity:.3}
 .bn-box button.bn-bean.no::after{content:'✕';position:absolute;left:0;right:0;top:0;text-align:center;color:#c0392b;font:700 19px sans-serif}
-.bn-box button.bn-x{border:none;background:none;padding:2px 6px;color:#7a6650}
+.bn-box button.bn-send{margin-left:auto}
 .bn-box button.bn-bean{display:flex;flex-direction:column;align-items:center;gap:0;padding:3px 0 2px;border:none;background:none;min-width:0}
 .bn-box button.bn-bean:active{background:rgba(59,42,31,.1)}
 .bn-bean .bn-bi{width:34px}
@@ -862,7 +861,7 @@ G.init=()=>{
 .bn-zc li b{display:flex;gap:2px;font-size:15px}
 .bn-zc p{margin:4px 0 8px;font-size:12px;color:#7a6650}
 .stage.bng .card.bn-c.bn-f1{outline:3px solid #2e9d5f;outline-offset:-1px}
-.stage.bng .card.bn-c.bn-f1::before{content:'다음 심기';position:absolute;left:50%;top:-21px;transform:translateX(-50%);padding:1px 6px;border-radius:7px;background:#2e9d5f;color:#fff;font:600 11px "Jua",sans-serif;white-space:nowrap;pointer-events:none}
+.stage.bng .card.bn-c.bn-f1::before{content:'다음 심기';position:absolute;left:50%;top:-21px;transform:translateX(-50%);color:#1f8a4c;font:700 12px "Jua",sans-serif;white-space:nowrap;pointer-events:none;text-shadow:0 0 3px #fff8e8,0 0 3px #fff8e8}
 .stage.bng .card.bn-c .bn-nm{position:absolute;left:0;right:0;top:0;padding:2px 0;background:var(--rc);color:var(--tc,#fffcf5);font:600 11px "Jua",sans-serif;text-align:center;white-space:nowrap;border-radius:6px 6px 0 0}
 .stage.bng .card.bn-c .bn-be{position:absolute;left:7px;right:7px;top:27px;pointer-events:none}
 .bn-bi{display:block;width:100%;pointer-events:none;-webkit-user-drag:none}
@@ -900,7 +899,6 @@ G.init=()=>{
     else if(d.rm!=null){const [q,t]=d.rm.split(':');rmChip(q,+t)}
     else if(d.w!=null)tapBean(+d.w);
     else if(k==='who')nextWho();
-    else if(k==='close'){C.open=false;drawPan()}
     else if(k==='send')sendOffer();
     else if(k==='accept')acceptOf(id);
     else if(k==='reject')sendAct({t:'reject',id});
