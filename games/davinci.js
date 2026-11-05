@@ -7,7 +7,7 @@
    타일 값은 방장 엔진에만 있고 snap에는 자기 타일·공개된 타일만 담음. 화면에서 타일을 가리키는 번호 u는 값과 상관없는 무작위 번호.
    손패(hand)는 표시용 [0] (공통 코드가 hand가 비면 끝난 사람으로 봄) */
 (function(){
-const G={id:'davinci',name:'다빈치코드',short:'다빈치',lead:'상대 타일의 숫자를 맞히는 추리 게임',maxHi:4,minN:2,noFast:true,firstPick:true,oneBotLv:true,noView:true};
+const G={id:'davinci',name:'다빈치코드',short:'다빈치',lead:'상대 타일의 숫자를 맞히는 추리 게임',maxHi:4,minN:2,noFast:true,firstPick:true,noView:true};
 
 /* ---------- 규칙 값 ---------- */
 const JOKER=12,SHOW_MS=1100,RES_MS=1200;
@@ -142,23 +142,119 @@ function doSurrender(s){
   if(winCheck())return;
   if(wasTurn)beginTurn(nextActive(s));else mark();
 }
-/* 쉬움 봇: 공개된 정보만 씀. 이미 공개된 숫자와 그 타일에서 틀린 숫자만 피하고, 앞뒤 타일로 좁히지는 않음 */
+/* 봇 3단계. 모두 공개된 정보와 자기 타일만 씀(남의 숨은 타일 값은 보지 않음).
+   쉬움: 공개된 숫자와 그 타일의 최근 틀린 숫자 2개만 피함. 보통: 공개된 양옆 타일로 범위를 좁히고 내 타일도 뺌.
+   어려움: 타일 배치를 표본으로 굴려 모든 타일의 확률을 함께 계산. 시간 초과 추리는 쉬움과 같은 함수 */
 function pickGuess(s){
   const O=H.dv,T0=alive().filter(i=>i!==s).flatMap(i=>hidden(i).map(x=>({i,x}))),c=pick(T0),col=colOf(c.x.id);
   const seen=new Set(O.rk.flat().filter(t=>t.o&&colOf(t.id)===col).map(t=>valOf(t.id)));
-  const L=[...Array(12).keys()].filter(v=>!seen.has(v)&&!c.x.w.includes(v));
+  const L=[...Array(12).keys()].filter(v=>!seen.has(v)&&!c.x.w.slice(-2).includes(v));
   return {t:c.i,u:c.x.u,v:L.length?pick(L):(Math.random()*12|0)};
+}
+/* 이 봇이 아는 타일(내 타일·집은 타일·공개된 타일) */
+function knownIds(s){
+  const O=H.dv,K=new Set(O.rk[s].map(t=>t.id));
+  if(O.held&&H.turn===s)K.add(O.held.id);
+  O.rk.flat().forEach(t=>{if(t.o)K.add(t.id)});
+  return K;
+}
+const keyId=k=>(k&1)*13+(k>>1);
+/* 보통: 줄에서 공개된 양옆 숫자 타일 사이의 후보 */
+function rangeOf(s,rack,k0,K){
+  let lo=-1,hi=24;
+  for(let i=k0-1;i>=0;i--){const t=rack[i];if(t.o&&valOf(t.id)!==JOKER){lo=sortKey(t.id);break}}
+  for(let i=k0+1;i<rack.length;i++){const t=rack[i];if(t.o&&valOf(t.id)!==JOKER){hi=sortKey(t.id);break}}
+  const x=rack[k0],c=colOf(x.id),L=[];
+  for(let k=lo+1;k<hi;k++)if((k&1)===c&&!K.has(keyId(k))&&!x.w.includes(k>>1))L.push(k>>1);
+  return L;
+}
+function normalGuess(s){
+  const K=knownIds(s),Q=alive().filter(i=>i!==s).flatMap(i=>H.dv.rk[i].map((x,k)=>({i,x,k})).filter(q=>!q.x.o)),c=pick(Q);
+  const L=rangeOf(s,H.dv.rk[c.i],c.k,K);
+  return {t:c.i,u:c.x.u,v:L.length?pick(L):(Math.random()*12|0),n:L.length||12};
+}
+/* 어려움: 줄 하나의 가능한 배치를 경우의 수에 비례해 뽑음. ways[i][m] = i번째 타일부터, 다음 숫자 키가 m 이상일 때의 경우의 수 */
+const SAMPLES=260;
+function sampleRack(rack,free){
+  const n=rack.length,ways=Array.from({length:n+1},()=>new Float64Array(26));
+  ways[n].fill(1);
+  const opts=(t,m,fn)=>{
+    if(t.o){const v=valOf(t.id);if(v===JOKER)fn(-1,m);else{const k=sortKey(t.id);if(k>=m)fn(t.id,k+1)}return}
+    const c=colOf(t.id);
+    for(let k=m+((m&1)!==c?1:0);k<24;k+=2){const id=keyId(k);if(free[id]&&!t.w.includes(k>>1))fn(id,k+1)}
+    const j=c*13+JOKER;if(free[j]&&!t.w.includes(JOKER))fn(j,m);
+  };
+  for(let i=n-1;i>=0;i--)for(let m=0;m<=24;m++){let w=0;opts(rack[i],m,(id,nx)=>{w+=ways[i+1][nx]});ways[i][m]=w}
+  if(!ways[0][0])return null;
+  const out=[];let m=0;
+  for(let i=0;i<n;i++){
+    let r=Math.random()*ways[i][m],got=null,nm=m;
+    opts(rack[i],m,(id,nx)=>{if(got!==null)return;r-=ways[i+1][nx];if(r<=0){got=id;nm=nx}});
+    if(got===null)return null;
+    if(!rack[i].o){if(!free[got])return null;free[got]=0;out.push([rack[i].u,valOf(got)])}
+    m=nm;
+  }
+  return out;
+}
+function hardTable(s){
+  const O=H.dv,K=knownIds(s),L=alive().filter(i=>i!==s),T0=new Map(),max=H.cfg.joker?26:0;
+  let got=0;
+  for(let q=0;q<SAMPLES;q++){
+    const free=new Uint8Array(26);for(let id=0;id<26;id++)free[id]=(valOf(id)!==JOKER||max)&&!K.has(id)?1:0;
+    const res=[];let ok=true;
+    for(const i of shuffle(L.slice())){const r=sampleRack(O.rk[i],free);if(!r){ok=false;break}res.push(...r)}
+    if(!ok)continue;
+    got++;for(const [u,v] of res){let c=T0.get(u);if(!c){c=new Array(13).fill(0);T0.set(u,c)}c[v]++}
+  }
+  return got?{T0,got}:null;
+}
+function hardGuess(s){
+  const O=H.dv,tb=hardTable(s);if(!tb)return {...normalGuess(s),p:0};
+  let best=[],bp=-1;
+  for(const i of alive())if(i!==s)for(const x of O.rk[i]){
+    if(x.o)continue;const c=tb.T0.get(x.u);if(!c)continue;
+    c.forEach((w,v)=>{if(!w)return;const p=w/tb.got;if(p>bp+1e-9){bp=p;best=[{t:i,u:x.u,v}]}else if(Math.abs(p-bp)<=1e-9)best.push({t:i,u:x.u,v})});
+  }
+  return best.length?{...pick(best),p:bp}:{...normalGuess(s),p:0};
+}
+function botGuess(i){const l=botLv(H.players[i]);return l>=2?hardGuess(i):l===1?normalGuess(i):pickGuess(i)}
+function botGoOn(i){
+  const l=botLv(H.players[i]);
+  if(l<=0)return Math.random()<.3;
+  if(l===1)return normalGuess(i).n<=2;
+  const g=hardGuess(i),lastOne=hidden(g.t).length===1;
+  return g.p>=(lastOne?.34:HARD_GO);
+}
+let HARD_GO=.55;
+/* 어려움 뽑기: 상대의 숨은 타일이 많은 색 (내가 그 색을 알수록 후보가 줄어듦) */
+function botDraw(i){
+  const O=H.dv;
+  if(botLv(H.players[i])<2)return pick(O.pool).u;
+  const n=[0,0];alive().filter(q=>q!==i).forEach(q=>hidden(q).forEach(t=>n[colOf(t.id)]++));
+  const c=n[0]===n[1]?(Math.random()*2|0):n[1]>n[0]?1:0,L=O.pool.filter(t=>colOf(t.id)===c);
+  return pick(L.length?L:O.pool).u;
+}
+function botPlace(i){
+  const O=H.dv;
+  return botLv(H.players[i])>=2?O.at[(O.at.length-1)>>1]:pick(O.at);   // 어려움: 가운데에 놓아 정렬을 흐림
+}
+/* 어려움 공개: 이미 범위가 좁아 잃을 것이 적은 타일 */
+function botReveal(i){
+  const O=H.dv,R0=O.rk[i],Q=R0.map((x,k)=>({x,k})).filter(q=>!q.x.o);
+  if(botLv(H.players[i])<2)return pick(Q).x.u;
+  const K=new Set(O.rk.flat().filter(t=>t.o).map(t=>t.id));
+  return Q.map(q=>({u:q.x.u,n:rangeOf(i,R0,q.k,K).length})).sort((a,b)=>a.n-b.n)[0].u;
 }
 function autoStep(i,auto){
   const O=H.dv;
-  if(O.ph==='draw')doDraw(i,pick(O.pool).u,auto);
-  else if(O.ph==='guess'){const g=pickGuess(i);doGuess(i,g.t,g.u,g.v,auto)}
-  else if(O.ph==='cont'){if(!auto&&Math.random()<.3){O.ph='guess';setDl()}else stop(i)}
-  else if(O.ph==='place')putHeld(pick(O.at));
-  else if(O.ph==='reveal')doReveal(i,pick(hidden(i)).u);
+  if(O.ph==='draw')doDraw(i,auto?pick(O.pool).u:botDraw(i),auto);
+  else if(O.ph==='guess'){const g=auto?pickGuess(i):botGuess(i);doGuess(i,g.t,g.u,g.v,auto)}
+  else if(O.ph==='cont'){if(!auto&&botGoOn(i)){O.ph='guess';setDl()}else stop(i)}
+  else if(O.ph==='place')putHeld(auto?pick(O.at):botPlace(i));
+  else if(O.ph==='reveal')doReveal(i,auto?pick(hidden(i)).u:botReveal(i));
 }
 function stop(i){const O=H.dv;if(O.held)settle(0);else endTurn()}
-G._test={JOKER,SHOW_MS,RES_MS,legalSlots,colOf,valOf,sortKey};
+G._test={JOKER,SHOW_MS,RES_MS,legalSlots,colOf,valOf,sortKey,hardGuess,normalGuess,setGo:v=>{HARD_GO=v}};
 G.engine={
   start(){
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,known:{},turn:0,botActAt:0,deadline:0});
