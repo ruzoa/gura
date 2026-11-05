@@ -30,7 +30,7 @@ G.defaults={max:4,turn:30,joker:1,help:1};
 G.roomSet=[{k:'turn',label:'제한 시간',unit:'초',lo:10,hi:120,step:10,desc:'시간이 지나면 뽑기·추리는 무작위로 하고, 계속할지 고를 때는 멈춥니다'}];
 G.ruleSet=[
   {k:'joker',label:'조커',desc:'조커 타일 2개를 넣습니다'},
-  {k:'help',label:'숫자 흐리게',desc:'숫자를 고를 때 내 타일·공개된 타일·이미 틀린 숫자를 흐리게 보여 줍니다'},
+  {k:'help',label:'숫자 흐리게',desc:'숫자를 고를 때 내 타일·공개된 타일의 숫자를 흐리게 보여 줍니다'},
   {k:'pickfirst',pick:1,label:'선 플레이어',desc:'선택이면 방장이 대기실 이름표에서 고르고, 무작위면 주사위로 정합니다'}
 ];
 G.cfgChips=c=>`<span class="chip">제한 시간 <b>${+c.turn||30}초</b></span><span class="chip">조커 <b>${c.joker?'있음':'없음'}</b></span>`;
@@ -193,7 +193,7 @@ G.engine={
     const O=H.dv,over=H.phase==='over',me=you>=0&&you<H.players.length?you:-1;
     s.o={gn:O.gn,first:O.first,ph:O.ph,cur:H.turn,
       pool:O.pool.map(q=>({u:q.u,c:colOf(q.id),x:q.x,z:q.z,r:q.r})),
-      rk:O.rk.map((r,i)=>r.map(x=>({u:x.u,c:colOf(x.id),o:x.o,w:x.w.slice(),v:over||x.o||i===me?valOf(x.id):null}))),
+      rk:O.rk.map((r,i)=>r.map(x=>({u:x.u,c:colOf(x.id),o:x.o,v:over||x.o||i===me?valOf(x.id):null}))),
       held:O.held?{u:O.held.u,c:colOf(O.held.id),v:H.turn===me||over?valOf(O.held.id):null}:null,
       g:O.g?{...O.g}:null,res:O.res?{...O.res}:null,at:O.at&&H.turn===me?O.at.slice():null,fin:O.fin?{...O.fin}:null};
     s.gr=0;
@@ -256,16 +256,16 @@ function myStrip(){
   if(o.held&&o.held.v!=null)h+=`<span class="dvt held ${o.held.c?'w':'b'}">${o.held.v===JOKER?'★':o.held.v}</span>`;
   return `<div class="dv-my">${h}</div>`;
 }
-function dimSet(c,t){
+function dimSet(c){
   if(!V.cfg.help)return new Set();
-  const S=new Set(t?t.w:[]);
+  const S=new Set();
   V.o.rk.forEach(r=>r.forEach(x=>{if(x.c===c&&x.v!=null)S.add(x.v)}));
   if(V.o.held&&V.o.held.c===c&&V.o.held.v!=null)S.add(V.o.held.v);
   return S;
 }
 function keysHTML(){
   const t=foc>=0&&selU>=0?tileOf(foc,selU):null;if(!t)return '';
-  const dim=dimSet(t.c,t),max=V.cfg.joker?JOKER:11;let h='';
+  const dim=dimSet(t.c),max=V.cfg.joker?JOKER:11;let h='';
   for(let v=0;v<=max;v++)h+=`<button type="button" class="dvk ${t.c?'w':'b'}${selV===v?' on':''}${dim.has(v)?' dm':''}" data-k="${v}">${v===JOKER?'조커':v}</button>`;
   h+=`<button type="button" class="dvk go${selV>=0?' ready':''}" data-go="1"${selV>=0?'':' disabled'}>추리</button>`;
   return `<div class="dv-keys">${h}</div>`;
