@@ -7,7 +7,7 @@
    비밀: 내 말의 자리는 절대 나에게 보내지 않음(엔진 snap). 벽에 부딪혀도 알리지 않음. 소리도 똑같음
    손패(hand)는 표시용 값 [0] (공통 코드가 hand가 비면 끝난 사람으로 봄) */
 (function(){
-const G={id:'mia',name:'미아',short:'미아',lead:'내가 어디 있는지 모른 채 탈출구 찾아가기',maxHi:4,minN:2,noFast:true,firstPick:true,botLvs:['쉬움'],oneBotLv:true};
+const G={id:'mia',name:'미아',short:'미아',lead:'내가 어디 있는지 모른 채 탈출구 찾아가기',maxHi:4,minN:2,noFast:true,firstPick:true};
 
 /* ---------- 규칙 (방장 엔진·화면·봇·테스트가 같은 함수를 씀) ---------- */
 const N=9,CELLS=81,EDGES=162;
@@ -61,6 +61,47 @@ function botDir(bel,w,flag,rnd){
   }
   return best[rnd()*best.length|0];
 }
+/* 어려움: 후보 평균 거리 + 라운드 끝에 후보가 얼마나 갈리는지를 함께 보고, 남은 행동을 묶어 고름. 앞선 상대는 벽으로 막음
+   rivals: [{pos,flag}] 상대 말은 공개 정보. 자기 자리는 읽지 않음 */
+const meanDist=(bel,dist)=>{let s=0;for(const c of bel)s+=dist[c];return bel.length?s/bel.length:0};
+function spread(bel,dist){   // 거리를 받은 뒤 남을 후보 수의 기댓값
+  const n={};for(const c of bel)n[dist[c]]=(n[dist[c]]||0)+1;
+  let s=0;for(const k in n)s+=n[k]*n[k];return bel.length?s/bel.length:0;
+}
+function hardWall(bel,w,flag,left,rivals){
+  if(left<=0||!rivals.length||!bel.length)return -1;
+  const mine0=distMap(w,flag),my=meanDist(bel,mine0);
+  let r=null,rd=1e9;for(const q of rivals){const d=distMap(w,q.flag)[q.pos];if(d<rd){rd=d;r=q}}
+  if(rd>my+1)return -1;
+  let best=-1,bg=rd<=2?.9:1.4;
+  for(const e of legalWalls(w)){
+    w[e]=1;const g=distMap(w,r.flag)[r.pos]-rd-(meanDist(bel,distMap(w,flag))-my);w[e]=0;
+    if(g>bg){bg=g;best=e}
+  }
+  return best;
+}
+function hardDir(bel,w,flag,acts,rnd){
+  rnd=rnd||Math.random;
+  const dist=distMap(w,flag);let best=[],bs=1e9;
+  for(let a=0;a<4;a++){
+    const A=beliefMove(bel,w,a),B2=acts>1?[0,1,2,3]:[-1];
+    for(const b of B2){
+      const E=b<0?A:beliefMove(A,w,b),v=meanDist(E,dist)+.6*Math.log2(Math.max(1,spread(E,dist)));
+      if(v<bs-1e-9){bs=v;best=[a]}else if(Math.abs(v-bs)<=1e-9&&!best.includes(a))best.push(a);
+    }
+  }
+  return best[rnd()*best.length|0];
+}
+function hardAction(bel,w,flag,left,rivals,acts,rnd){
+  const e=hardWall(bel,w,flag,left,rivals);
+  return e>=0?{t:'wall',e}:{t:'go',d:hardDir(bel,w,flag,acts,rnd)};
+}
+/* 쉬움: 최근 거리 둘만 기억하고(bel1), 자주 헛걸음 */
+function easyAction(bel,w,flag,left,rnd){
+  rnd=rnd||Math.random;
+  if(left>0&&rnd()<.1){const L=legalWalls(w);if(L.length)return {t:'wall',e:L[rnd()*L.length|0]}}
+  return {t:'go',d:rnd()<.35?rnd()*4|0:botDir(bel,w,flag,rnd)};
+}
 function botAction(bel,w,flag,left,rnd){
   rnd=rnd||Math.random;
   if(left>0&&rnd()<.2){const L=legalWalls(w);if(L.length)return {t:'wall',e:L[rnd()*L.length|0]}}
@@ -101,6 +142,9 @@ function pickFirst(again,cnt){
 const pendSeats=()=>{const X_=H.mia,o=[];for(const i of activeSeats()){const t=targetOf(i);if(active(t)&&X_.pos[t]<0)o.push(i)}return o};
 function setPlaceTurn(){const p=pendSeats(),X_=H.mia;H.turn=p.length?p[0]:X_.A}
 function randomCell(){return Math.random()*CELLS|0}
+/* 어려움 봇의 시작 칸: 탈출구까지 평균이 가장 먼 구석 언저리 */
+function cornerCell(){const x=[0,1,7,8][Math.random()*4|0],y=[0,1,7,8][Math.random()*4|0];return IX(x,y)}
+const pickFor=i=>H.players[i].bot&&botLv(H.players[i])>=2?cornerCell():randomCell();
 function doPick(seat,c){
   const X_=H.mia;
   if(H.phase!=='play'||X_.ph!=='place'||!active(seat)||!Number.isInteger(c)||c<0||c>=CELLS)return false;
@@ -116,7 +160,7 @@ function beginRoll(){
   for(const i of activeSeats())if(X_.pos[i]<0){X_.pos[i]=randomCell();X_.path[i]=[X_.pos[i]]}
   for(const i of activeSeats()){
     let a,b,c;do{a=1+(Math.random()*9|0);b=1+(Math.random()*9|0);c=diceCell(a,b)}while(c===X_.pos[i]);
-    X_.roll[i]=[a,b];X_.flag[i]=c;X_.bel[i]=Array.from({length:CELLS},(_,k)=>k).filter(k=>k!==c);
+    X_.roll[i]=[a,b];X_.flag[i]=c;X_.bel[i]=Array.from({length:CELLS},(_,k)=>k).filter(k=>k!==c);X_.bel1[i]=X_.bel[i].slice();X_.mem[i]=X_.bel[i].slice();
     addLog(`${H.players[i].name} 탈출구 ${cellName(c)}`);
   }
   X_.ph='roll';H.turn=active(X_.A)?X_.A:activeSeats()[0];
@@ -146,6 +190,9 @@ function endRound(){
     const dist=distMap(X_.w,X_.flag[s]),d=dist[X_.pos[s]],h=X_.hist[s];
     if(h.length&&h[h.length-1].d<0)h[h.length-1].d=d;
     X_.bel[s]=beliefFilter(X_.bel[s],dist,d);
+    /* 쉬움 봇의 짧은 기억: 지난 라운드 거리로 고른 칸(이동 반영)과 이번 거리만 겹쳐 봄 */
+    const cur=Array.from({length:CELLS},(_,k)=>k).filter(c=>dist[c]===d),both=cur.filter(c=>X_.mem[s].includes(c));
+    X_.bel1[s]=both.length?both:cur;X_.mem[s]=cur;
   }
   const w=act.filter(s=>X_.pos[s]===X_.flag[s]);
   if(w.length){
@@ -170,7 +217,7 @@ function doGo(seat,d){
   if(!turnOK(seat)||!Number.isInteger(d)||d<0||d>3)return false;
   const from=X_.pos[seat],to=step(X_.w,from,d);
   X_.pos[seat]=to;X_.path[seat].push(to);histAdd(seat,d);
-  X_.bel[seat]=beliefMove(X_.bel[seat],X_.w,d);
+  X_.bel[seat]=beliefMove(X_.bel[seat],X_.w,d);X_.bel1[seat]=beliefMove(X_.bel1[seat],X_.w,d);X_.mem[seat]=beliefMove(X_.mem[seat],X_.w,d);
   X_.lm={n:X_.n+1,s:seat,k:'m',d};
   addLog(`${X_.rn+1}라운드 ${H.players[seat].name} ${DNAME[d]}쪽`);
   afterAct(seat);return true;
@@ -205,17 +252,21 @@ function doSurrender(i){
 }
 function timeoutMove(i){doGo(i,Math.random()*4|0)}
 function botMove(i){
-  const X_=H.mia,a=botAction(X_.bel[i],X_.w,X_.flag[i],X_.left[i]);
+  const X_=H.mia,lv=botLv(H.players[i]);
+  let a;
+  if(lv<=0)a=easyAction(X_.bel1[i],X_.w,X_.flag[i],X_.left[i]);
+  else if(lv===1)a=botAction(X_.bel[i],X_.w,X_.flag[i],X_.left[i]);
+  else a=hardAction(X_.bel[i],X_.w,X_.flag[i],X_.left[i],activeSeats().filter(k=>k!==i).map(k=>({pos:X_.pos[k],flag:X_.flag[k]})),ACTS-X_.acts);
   if(!(a.t==='wall'?doWall(i,a.e):doGo(i,a.d)))timeoutMove(i);
 }
-G._test={ACTS,IX,CX,CY,cellName,diceCell,validEdge,edgeOf,edgeName,blocked,step,distMap,connected,wallOK,legalWalls,edgeAt,beliefMove,beliefFilter,botDir,botAction,doGo,doWall,doPick,doSurrender,pickFirst,rollMs,targetOf};
+G._test={ACTS,IX,CX,CY,cellName,diceCell,validEdge,edgeOf,edgeName,blocked,step,distMap,connected,wallOK,legalWalls,edgeAt,beliefMove,beliefFilter,botDir,botAction,hardAction,hardDir,hardWall,easyAction,doGo,doWall,doPick,doSurrender,pickFirst,rollMs,targetOf};
 G.engine={
   start(){
     const again=H.phase==='over',cnt=Math.max(2,Math.min(H.players.length,4));
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,rankBottom:cnt,known:{}});
     H.players.forEach((p,i)=>{p.finished=false;p.rank=null;p.surrendered=false;if(i<cnt)p.hand=[0];else{p.hand=[];p.finished=true;p.rank=i+1}});
     const A=pickFirst(again,cnt),nw=Math.floor(Math.max(0,Math.min(80,+H.cfg.wallT||0))/cnt),arr=v=>new Array(cnt).fill(v);
-    H.mia={cnt,A,ph:'place',rn:0,n:0,acts:0,wn:nw,pos:arr(-1),flag:arr(-1),roll:arr(null),w:new Array(EDGES).fill(0),ws:[],left:arr(nw),done:[],hist:Array.from({length:cnt},()=>[]),bel:Array.from({length:cnt},()=>[]),path:Array.from({length:cnt},()=>[]),lm:null,res:null};
+    H.mia={cnt,A,ph:'place',rn:0,n:0,acts:0,wn:nw,pos:arr(-1),flag:arr(-1),roll:arr(null),w:new Array(EDGES).fill(0),ws:[],left:arr(nw),done:[],hist:Array.from({length:cnt},()=>[]),bel:Array.from({length:cnt},()=>[]),bel1:Array.from({length:cnt},()=>[]),mem:Array.from({length:cnt},()=>[]),path:Array.from({length:cnt},()=>[]),lm:null,res:null};
     addLog(`${H.players[A].name}님이 먼저 시작합니다.`,'sys');
     H.turn=A;setPlaceTurn();H.graceUntil=0;H.deadline=clock()+H.cfg.turn*1000;H.botActAt=clock()+rand(900,1700);mark();
   },
@@ -231,7 +282,7 @@ G.engine={
     if(X_.ph==='place'){
       if(t>=H.deadline){for(const i of pendSeats())doPick(i,randomCell());return}
       if(H.botActAt&&t>=H.botActAt){
-        for(const i of pendSeats()){const p=H.players[i];if(p.bot&&!(p.away&&t<p.awayAt+AWAY_WAIT))doPick(i,randomCell());if(H.phase!=='play'||X_.ph!=='place')return}
+        for(const i of pendSeats()){const p=H.players[i];if(p.bot&&!(p.away&&t<p.awayAt+AWAY_WAIT))doPick(i,pickFor(i));if(H.phase!=='play'||X_.ph!=='place')return}
       }
       return;
     }

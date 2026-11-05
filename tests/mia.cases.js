@@ -78,4 +78,19 @@ for(const n of [2,3,4]){let rs=0;for(let g=0;g<30;g++){setup(n,true);let k=0;
   while(H.phase==='play'&&k++<40000){NOW+=250;engineTick();const X_=H.mia;if(X_.ph==='move'&&!X_.done.length)for(let i=0;i<n;i++){if(H.players[i].finished)continue;if(!X_.bel[i].includes(X_.pos[i]))fail('mia bot belief lost');if(!T.connected(X_.w))fail('mia disconnected')}}
   if(H.phase!=='over')fail('mia bots stuck '+n);rs+=H.mia.rn}
  if(typeof console!=='undefined')console.log('mia bots',n,'avg rounds',(rs/30).toFixed(1))}
+/* 어려움: 끝난 뒤 아는 칸에 있으면 나가지 않고, 앞선 상대를 벽으로 막음, 자기 자리를 몰라도 후보로만 움직임 */
+{const w=E();eq(T.hardDir([I(4,1)],w,I(4,0),1,()=>.5),0,'hard goes to exit');
+ const a=T.hardDir([I(4,0)],w,I(4,0),1,()=>.5);eq(T.step(w,I(4,0),a),I(4,0),'hard stays on exit by bumping');
+ eq(T.hardWall([I(8,8)],E(),I(0,0),5,[{pos:I(4,4),flag:I(4,1)}])>=0,true,'hard blocks leader');
+ eq(T.hardWall([I(1,0)],E(),I(0,0),5,[{pos:I(8,8),flag:I(0,8)}]),-1,'hard no wall when ahead');
+ eq(T.hardWall([I(8,8)],E(),I(0,0),0,[{pos:I(4,4),flag:I(4,1)}]),-1,'no walls left')}
+/* 봇 단계 대전 (2명): 사람 자리 대신 난이도만 다르게 */
+const duel=(a,b,N)=>{let wa=0,wb=0,rs=0;for(let g=0;g<N;g++){hostNew(false,'t','t');H.cfg={...cfgFor('mia'),game:'mia',turn:30,max:2};
+  const sw=g%2;H.members=[{name:'x',bot:true,conn:null,host:true,lv:sw?b:a},{name:'y',bot:true,conn:null,host:false,lv:sw?a:b}];hostStart();let k=0;
+  while(H.phase!=='over'&&k++<60000){NOW+=250;engineTick()}
+  if(H.phase!=='over'){fail('mia duel stuck');continue}
+  rs+=H.mia.rn;const w=H.mia.res.w;if(w.length===1){if((w[0]===0)!==!!sw)wa++;else wb++}}
+ return [wa,wb,(rs/N).toFixed(1)]};
+const NM=+(globalThis.MIA_N||40);
+for(const [a,b] of [[1,0],[2,1],[2,0]]){const r=duel(a,b,NM);console.log('mia duel lv'+a,'vs lv'+b,r[0],':',r[1],'avg rounds',r[2]);if(r[0]<r[1])fail('mia level order '+a+'/'+b)}
 console.log('mia ok');
