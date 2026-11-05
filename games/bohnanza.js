@@ -10,8 +10,8 @@ const G={id:'bohnanza',name:'보난자',short:'보난자',lead:'콩을 심고 �
 /* ---------- 규칙 값 ---------- */
 /* m: 1·2·3·4코인에 필요한 장수 (0이면 그 코인 칸 없음) */
 const BEANS=[
-  {n:'파랑콩',c:20,m:[4,6,8,10],col:'#3f7fc4'},{n:'고추콩',c:18,m:[3,6,8,9],col:'#d0502e'},{n:'구린콩',c:16,m:[3,5,7,8],col:'#8a7a2f'},{n:'초록콩',c:14,m:[3,5,6,7],col:'#4f9a4a'},
-  {n:'메주콩',c:12,m:[2,4,6,7],col:'#c79a3a'},{n:'눈콩',c:10,m:[2,4,5,6],col:'#6f6a7c'},{n:'붉은콩',c:8,m:[2,3,4,5],col:'#b0304a'},{n:'강낭콩',c:6,m:[0,2,3,0],col:'#9a5a8e'}];
+  {n:'완두콩',c:20,m:[4,6,8,10],col:'#4f9a4a'},{n:'메주콩',c:18,m:[3,6,8,9],col:'#c9a227'},{n:'검은콩',c:16,m:[3,5,7,8],col:'#33333b'},{n:'강낭콩',c:14,m:[3,5,6,7],col:'#8a3a78'},
+  {n:'렌즈콩',c:12,m:[2,4,6,7],col:'#d9782a'},{n:'병아리콩',c:10,m:[2,4,5,6],col:'#d99a5f'},{n:'팥',c:8,m:[2,3,4,5],col:'#8e1f2e'},{n:'작두콩',c:6,m:[0,2,3,0],col:'#eab8bc',tx:'#5a2f2f'}];
 const TYPE=[];BEANS.forEach((b,t)=>{for(let k=0;k<b.c;k++)TYPE.push(t)});
 const typ=id=>TYPE[id];
 const coinsFor=(t,n)=>{let c=0;BEANS[t].m.forEach((x,k)=>{if(x&&n>=x)c=k+1});return c};
@@ -22,20 +22,68 @@ const HAND0=5,DRAW=3,TURN_UP=2,LAST_RUN=3,LOCK_MS=1000,MAX_WANT=8;
 const FIELD3=3;   // 세 번째 밭 값 (예전 판 규칙, 설정으로 켬)
 
 /* ---------- 카드 ---------- */
-const beanSvg=c=>`<svg viewBox="0 0 60 44" aria-hidden="true"><path d="M8 26C4 12 18 3 32 6c9 2 12 8 17 8 7 0 9 9 3 16-8 10-38 13-44-4z" fill="${c}" stroke="#3b2a1f" stroke-width="2"/><ellipse cx="22" cy="15" rx="7" ry="3" fill="#fff" opacity=".4" transform="rotate(-18 22 15)"/><circle cx="24" cy="25" r="2.2" fill="#3b2a1f"/><circle cx="37" cy="23" r="2.2" fill="#3b2a1f"/><path d="M27 31c3 2 6 2 8-.5" fill="none" stroke="#3b2a1f" stroke-width="2" stroke-linecap="round"/></svg>`;
+const INK='#3b2a1f';
+/* 콩 그림은 여기 하나: 120×88 칸에 그림. 모양 하나 + 특징 하나, 웃는 얼굴은 공통. 손패·칩은 이 그림을 이미지로(beanImg), 탁자 카드는 그대로 씀 */
+function drawBean(g,t){
+  const paint=(fill,w)=>{g.fillStyle=fill;g.fill();g.strokeStyle=INK;g.lineWidth=w||2.4;g.stroke()};
+  const ell=(x,y,a,b,r)=>{g.beginPath();g.ellipse(x,y,a,b,r||0,0,7)};
+  const face=(x,y,k,c)=>{const q=k||1,col=c||INK;g.fillStyle=col;for(const d of [-8,8]){g.beginPath();g.arc(x+d*q,y,2.6*q,0,7);g.fill()}g.strokeStyle=col;g.lineWidth=2.2*q;g.lineCap='round';g.beginPath();g.moveTo(x-4*q,y+6*q);g.quadraticCurveTo(x,y+10*q,x+4*q,y+6*q);g.stroke()};
+  const shine=(x,y,a,b,r)=>{g.fillStyle='rgba(255,255,255,.45)';ell(x,y,a,b,r);g.fill()};
+  g.save();g.lineJoin='round';
+  if(t===0){   // 완두콩: 열린 꼬투리에 세 알
+    g.beginPath();g.moveTo(5,50);g.bezierCurveTo(30,14,90,8,115,36);g.bezierCurveTo(95,72,30,78,5,50);g.closePath();paint('#3f8a3a');
+    g.beginPath();g.moveTo(16,49);g.bezierCurveTo(38,26,84,22,104,38);g.bezierCurveTo(86,60,36,66,16,49);g.closePath();paint('#2f6d2d',1.6);
+    for(const [x,y,r] of [[36,48,11],[60,43,13.5],[84,38,11]]){ell(x,y,r,r);paint('#9bd872',2)}
+    face(60,42,.72);
+  }else if(t===1){   // 메주콩: 둥글고 통통, 볼
+    ell(60,45,38,34);paint('#ecc94f');shine(46,26,12,6,-.4);
+    g.fillStyle='rgba(232,120,110,.55)';for(const x of [37,83]){ell(x,52,7,4.5);g.fill()}
+    face(60,45,1.15);
+  }else if(t===2){   // 검은콩: 작고 윤기
+    ell(60,46,30,29);paint('#25252c');shine(47,31,10,5.5,-.5);g.fillStyle='rgba(255,255,255,.8)';ell(76,30,2.6,2.6);g.fill();
+    face(60,48,1,'#f5efe0');
+  }else if(t===3){   // 강낭콩: 콩팥 모양, 얼룩
+    g.beginPath();g.moveTo(14,50);g.bezierCurveTo(6,18,34,6,58,18);g.bezierCurveTo(68,23,76,22,86,14);g.bezierCurveTo(108,6,120,38,104,58);g.bezierCurveTo(84,84,24,84,14,50);g.closePath();paint('#a14a8e');
+    g.fillStyle='#dfa9d4';for(const [x,y,a,b,r] of [[30,30,8,4,.5],[92,28,7,4,-.6],[24,56,5,3,.2],[100,50,5,3,-.3],[62,70,8,3,0],[42,18,4,2.5,-.3]]){ell(x,y,a,b,r);g.fill()}
+    face(61,44,1);
+  }else if(t===4){   // 렌즈콩: 납작한 볼록렌즈, 안경
+    ell(60,46,52,26);paint('#ea8c3a');g.strokeStyle='rgba(255,255,255,.4)';g.lineWidth=3;ell(60,46,41,17);g.stroke();
+    g.fillStyle=INK;for(const x of [46,74]){g.beginPath();g.arc(x,44,2.8,0,7);g.fill()}
+    g.strokeStyle=INK;g.lineWidth=2.6;for(const x of [46,74]){ell(x,44,11,11);g.stroke()}
+    g.beginPath();g.moveTo(57,44);g.lineTo(63,44);g.moveTo(35,43);g.lineTo(24,40);g.moveTo(85,43);g.lineTo(96,40);g.stroke();
+    g.lineCap='round';g.beginPath();g.moveTo(55,59);g.quadraticCurveTo(60,63,65,59);g.stroke();
+  }else if(t===5){   // 병아리콩: 끝이 뾰족, 부리와 깃
+    g.strokeStyle=INK;g.lineWidth=2.6;g.lineCap='round';g.beginPath();g.moveTo(60,14);g.lineTo(52,3);g.moveTo(60,14);g.lineTo(60,1);g.moveTo(60,14);g.lineTo(68,3);g.stroke();
+    g.beginPath();g.moveTo(60,8);g.bezierCurveTo(72,18,96,24,94,52);g.bezierCurveTo(92,78,28,78,26,52);g.bezierCurveTo(24,24,48,18,60,8);g.closePath();paint('#f2c49a');shine(44,34,8,5,-.5);
+    g.fillStyle=INK;for(const x of [50,70]){g.beginPath();g.arc(x,44,2.8,0,7);g.fill()}
+    g.beginPath();g.moveTo(53,51);g.lineTo(67,51);g.lineTo(60,60);g.closePath();paint('#f08a2a',2);
+  }else if(t===6){   // 팥: 작고 길쭉, 흰 줄
+    ell(60,46,36,23,-.18);paint('#9a2233');shine(44,34,9,4,-.4);
+    g.strokeStyle='#f5e9da';g.lineWidth=4;g.lineCap='round';g.beginPath();g.moveTo(62,63);g.quadraticCurveTo(82,60,91,44);g.stroke();
+    face(55,45,.95,'#f5e9da');
+  }else{   // 작두콩: 칼처럼 휜 긴 꼬투리, 왕관
+    g.beginPath();g.moveTo(4,70);g.bezierCurveTo(30,74,84,58,116,18);g.bezierCurveTo(112,50,70,86,16,84);g.quadraticCurveTo(6,80,4,70);g.closePath();paint('#f5ccce');
+    g.strokeStyle='rgba(120,70,70,.5)';g.lineWidth=2;g.beginPath();g.moveTo(14,77);g.bezierCurveTo(50,78,88,62,110,30);g.stroke();
+    face(60,69,.72);
+    g.beginPath();g.moveTo(44,46);g.lineTo(42,18);g.lineTo(53,30);g.lineTo(60,12);g.lineTo(67,30);g.lineTo(78,18);g.lineTo(76,42);g.closePath();paint('#f0c24a',2.2);
+    g.fillStyle='#c0392b';g.beginPath();g.arc(60,35,3,0,7);g.fill();
+  }
+  g.restore();
+}
+const beanUrl={};
+function beanImg(t){
+  if(!beanUrl[t]){const c=document.createElement('canvas');c.width=240;c.height=176;const g=c.getContext('2d');g.scale(2,2);drawBean(g,t);beanUrl[t]=c.toDataURL('image/png')}
+  return `<img class="bn-bi" src="${beanUrl[t]}" alt="" draggable="false">`;
+}
 const meterTxt=t=>BEANS[t].m.map(x=>x||'-').join(' ');
 Object.assign(G,{labelOf:id=>BEANS[typ(id)].n,cmpCard:(a,b)=>typ(a)-typ(b)||a-b});
-G.cardHTML=(id,extra)=>{const t=typ(id),b=BEANS[t];return `<button type="button" class="card bn-c ${extra||''}" data-id="${id}" style="--rc:${b.col}" aria-label="${b.n}"><span class="bn-nm">${b.n}</span><span class="bn-be">${beanSvg(b.col)}</span><span class="bn-mt">${meterTxt(t)}</span></button>`};
+G.cardHTML=(id,extra)=>{const t=typ(id),b=BEANS[t];return `<button type="button" class="card bn-c ${extra||''}" data-id="${id}" style="--rc:${b.col};--tc:${b.tx||'#fffcf5'}" aria-label="${b.n}"><span class="bn-nm">${b.n}</span><span class="bn-be">${beanImg(t)}</span><span class="bn-mt">${meterTxt(t)}</span></button>`};
 G.drawFace=function(g,w,h,id){
   const t=typ(id),b=BEANS[t],k=w/60;
   g.clearRect(0,0,w,h);g.save();rr(g,0,0,w,h,8*k);g.clip();g.fillStyle='#fffcf5';g.fillRect(0,0,w,h);g.fillStyle=b.col;g.fillRect(0,0,w,20*k);g.restore();
   g.strokeStyle='#e3d4bb';g.lineWidth=k;rr(g,k/2,k/2,w-k,h-k,8*k);g.stroke();
-  g.fillStyle='#fffcf5';g.textAlign='center';g.textBaseline='middle';g.font=`700 ${11.5*k}px "Jua",sans-serif`;g.fillText(b.n,w/2,10.5*k);
-  /* 콩 얼굴 */
-  g.save();g.translate(w/2,47*k);g.fillStyle=b.col;g.strokeStyle='#3b2a1f';g.lineWidth=1.6*k;g.beginPath();
-  g.moveTo(-21*k,5*k);g.bezierCurveTo(-25*k,-10*k,-11*k,-18*k,3*k,-15*k);g.bezierCurveTo(12*k,-13*k,15*k,-7*k,20*k,-7*k);g.bezierCurveTo(27*k,-7*k,29*k,2*k,23*k,9*k);g.bezierCurveTo(15*k,19*k,-15*k,22*k,-21*k,5*k);g.closePath();g.fill();g.stroke();
-  g.fillStyle='#3b2a1f';for(const x of [-6,8]){g.beginPath();g.arc(x*k,3*k,2.2*k,0,7);g.fill()}
-  g.lineCap='round';g.beginPath();g.moveTo(-2*k,10*k);g.quadraticCurveTo(2*k,13*k,5*k,9.5*k);g.stroke();g.restore();
+  g.fillStyle=b.tx||'#fffcf5';g.textAlign='center';g.textBaseline='middle';g.font=`700 ${11.5*k}px "Jua",sans-serif`;g.fillText(b.n,w/2,10.5*k);
+  g.save();g.translate(3*k,26*k);g.scale(k*54/120,k*54/120);drawBean(g,t);g.restore();
   g.fillStyle='#3b2a1f';g.font=`700 ${9.5*k}px "IBM Plex Mono",monospace`;g.fillText(meterTxt(t),w/2,76*k);
 };
 
@@ -437,7 +485,7 @@ G.buttons=()=>{
 const LP={timer:0,x:0,y:0,fired:false};
 function zoomOpen(id){
   const t=typ(id),b=BEANS[t],rows=b.m.map((n,k)=>n?`<li><span>${n}장</span><b>${'<i class="bn-co"></i>'.repeat(k+1)}</b></li>`:'').join('');
-  elZoom.innerHTML=`<div class="bn-zc" style="--rc:${b.col}"><div class="bn-zn">${b.n}</div><div class="bn-zb">${beanSvg(b.col)}</div><ul>${rows}</ul><p>${b.c}장</p></div>`;
+  elZoom.innerHTML=`<div class="bn-zc" style="--rc:${b.col};--tc:${b.tx||'#fffcf5'}"><div class="bn-zn">${b.n}</div><div class="bn-zb">${beanImg(t)}</div><ul>${rows}</ul><p>${b.c}장</p></div>`;
   elZoom.hidden=false;sfx('tick');
 }
 function zoomClose(){if(elZoom&&!elZoom.hidden){elZoom.hidden=true;elZoom.innerHTML=''}}
@@ -631,7 +679,7 @@ function tableClick(e){
 }
 
 /* ---------- 2D 칸: 단계·거래 (3D 위) + WebGL이 없을 때의 밭 ---------- */
-const chip=(t,n)=>`<span class="bn-chip" style="--c:${BEANS[t].col}">${BEANS[t].n}${n>1?'×'+n:''}</span>`;
+const chip=(t,n)=>`<span class="bn-chip" style="--c:${BEANS[t].col};--tc:${BEANS[t].tx||'#fff'}">${BEANS[t].n}${n>1?'×'+n:''}</span>`;
 function chips(L){const m=new Map();for(const t of L)m.set(t,(m.get(t)||0)+1);return m.size?[...m].map(([t,n])=>chip(t,n)).join(''):'<span class="bn-none"></span>'}
 /* 이름 옆의 콩 = 그 사람이 내놓는 콩. 왼쪽은 언제나 나 */
 const swapLine=(other,give,get)=>`<span class="bn-sw"><b class="bn-w">나</b>${chips(give)}</span><span class="bn-ar">⇄</span><span class="bn-sw"><b class="bn-w">${esc(other)}</b>${chips(get)}</span>`;
@@ -653,7 +701,7 @@ function drawPan(){
   let comp='';
   if(C.open){
     const pick=act?P.map((p,i)=>i===me||p.f?'':`<button type="button" class="bn-to${C.to===i?' on':''}" data-to="${i}">${esc(p.n)}</button>`).join(''):`<b class="bn-who">${esc(P[o.act].n)}</b>`;
-    const grid=BEANS.map((b,t)=>`<button type="button" class="bn-bean" data-w="${t}" aria-label="${b.n}">${beanSvg(b.col)}<span>${b.n}</span></button>`).join('');
+    const grid=BEANS.map((b,t)=>`<button type="button" class="bn-bean" data-w="${t}" aria-label="${b.n}">${beanImg(t)}<span>${b.n}</span></button>`).join('');
     const giveL=[...H2.map(typ),...C.gf.map(typ)],getL=[...C.want,...C.wf.map(typ)];
     comp=`<div class="bn-tr"><div class="bn-r bn-tabs">${pick}<span class="bn-sp"></span><button type="button" class="bn-x" data-k="close" aria-label="닫기">✕</button></div><div class="bn-r bn-line">${swapLine((act?(P[C.to]&&P[C.to].n):P[o.act].n)||'상대',giveL,getL)}</div><div class="bn-g">${grid}</div><div class="bn-r bn-e"><button type="button" data-k="clear">비우기</button>${C.want.length?'<button type="button" data-k="unwant">하나 빼기</button>':''}<span class="bn-sp"></span><button type="button" class="bn-ok" data-k="send">제안</button></div></div>`;
   }
@@ -736,14 +784,14 @@ G.init=()=>{
 .bn-box button.bn-x{border:none;background:none;padding:2px 6px;color:#7a6650}
 .bn-box button.bn-bean{display:flex;flex-direction:column;align-items:center;gap:0;padding:3px 0 2px;border:none;background:none;min-width:0}
 .bn-box button.bn-bean:active{background:rgba(59,42,31,.1)}
-.bn-bean svg{width:30px;height:22px;display:block}
+.bn-bean .bn-bi{width:34px}
 .bn-bean span{font-size:10px;line-height:1.2;color:#3b2a1f;white-space:nowrap}
 .bn-r{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-height:24px}
 .bn-g{display:grid;grid-template-columns:repeat(8,1fr);gap:1px}
 .bn-sp{flex:1}
 .bn-l{font-size:11.5px;color:#7a6650}
 .bn-none{display:inline-block;width:46px;height:19px;border:1.5px dashed #b6a58f;border-radius:7px;box-sizing:border-box}
-.bn-chip{display:inline-block;padding:1px 6px;border-radius:8px;background:var(--c);color:#fff;font-size:12px;font-weight:600;white-space:nowrap}
+.bn-chip{display:inline-block;padding:1px 6px;border-radius:8px;background:var(--c);color:var(--tc,#fff);font-size:12px;font-weight:600;white-space:nowrap}
 .bn-box button{font:inherit;font-size:12.5px;padding:3px 8px;border-radius:8px;border:1px solid var(--line-strong);background:#fff;color:#3b2a1f;cursor:pointer}
 .bn-box button:disabled{opacity:.45}
 .bn-box button.lk{opacity:.5}
@@ -756,16 +804,16 @@ G.init=()=>{
 .bn-zoom{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(28,18,10,.35);pointer-events:auto}
 .bn-zoom[hidden]{display:none}
 .bn-zc{width:min(230px,62vw);border-radius:16px;overflow:hidden;background:#fffcf5;border:2px solid #3b2a1f;color:#3b2a1f;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.4)}
-.bn-zn{padding:8px 0;background:var(--rc);color:#fffcf5;font:600 22px "Jua",sans-serif}
-.bn-zb{padding:12px 34px 4px}.bn-zb svg{display:block;width:100%}
+.bn-zn{padding:8px 0;background:var(--rc);color:var(--tc,#fffcf5);font:600 22px "Jua",sans-serif}
+.bn-zb{padding:12px 30px 4px}
 .bn-zc ul{list-style:none;margin:6px 16px;padding:0}
 .bn-zc li{display:flex;justify-content:space-between;align-items:center;padding:3px 4px;border-bottom:1px solid #e3d4bb;font:600 15px "IBM Plex Mono",monospace}
 .bn-zc li b{display:flex;gap:2px;font-size:15px}
 .bn-zc p{margin:4px 0 8px;font-size:12px;color:#7a6650}
 .stage.bng .card.bn-c{overflow:hidden}
-.stage.bng .card.bn-c .bn-nm{position:absolute;left:0;right:0;top:0;padding:2px 0;background:var(--rc);color:#fffcf5;font:600 11px "Jua",sans-serif;text-align:left;padding-left:5px;white-space:nowrap}
+.stage.bng .card.bn-c .bn-nm{position:absolute;left:0;right:0;top:0;padding:2px 0;background:var(--rc);color:var(--tc,#fffcf5);font:600 11px "Jua",sans-serif;text-align:left;padding-left:5px;white-space:nowrap}
 .stage.bng .card.bn-c .bn-be{position:absolute;left:7px;right:7px;top:27px;pointer-events:none}
-.stage.bng .card.bn-c .bn-be svg{display:block;width:100%}
+.bn-bi{display:block;width:100%;pointer-events:none;-webkit-user-drag:none}
 .stage.bng .card.bn-c .bn-mt{position:absolute;left:0;right:0;bottom:4px;text-align:center;font:600 10px "IBM Plex Mono",monospace;color:#3b2a1f}
 .stage.bng .card.bn-c.bn-f1{outline:3px solid #2e9d5f;outline-offset:-1px}
 .bn-2d{position:absolute;left:8px;right:8px;top:66px;display:flex;flex-direction:column;gap:4px;max-height:calc(100% - 300px);overflow:auto;pointer-events:auto}
