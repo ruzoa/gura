@@ -47,6 +47,8 @@ function frontHoloPiece(id){
     const k=GAMES.robo77.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else if(id==='onecard'&&GAMES.onecard&&GAMES.onecard.holoPiece){   // 엎은 카드와 A 카드 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.onecard.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
+  else if(id==='mia'&&GAMES.mia&&GAMES.mia.holoPiece){   // 깃발과 벽, 흐린 말 (게임이 모양을 정하고 재질은 여기서)
+    const k=GAMES.mia.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else if(id==='davinci'&&GAMES.davinci&&GAMES.davinci.holoPiece){   // 세운 타일 둘 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.davinci.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else if(id==='bohnanza'&&GAMES.bohnanza&&GAMES.bohnanza.holoPiece){   // 콩 (게임이 모양을 정하고 재질은 여기서)
