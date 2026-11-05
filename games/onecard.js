@@ -7,7 +7,7 @@
    원카드 버튼은 언제나 눌림: 1장 남은 본인이 먼저 누르면 안전, 남이 먼저 누르면 그 사람이 2장, 잡을 사람이 없으면 누른 사람이 1장.
    판 ph: turn → (도전) reveal → turn … → done. 화면은 기록(o.ev)을 재생해 카드가 내려앉을 때 무늬·누적 장수가 바뀜 */
 (function(){
-const G={id:'onecard',name:'원카드',short:'원카드',lead:'손패를 먼저 비우는 카드 게임',dealAnim:true,maxHi:6,minN:2,oneBotLv:true};
+const G={id:'onecard',name:'원카드',short:'원카드',lead:'손패를 먼저 비우는 카드 게임',dealAnim:true,maxHi:6,minN:2};
 
 /* ---------- 규칙 값 ---------- */
 const WRONG=2,FALSE=1,CH_FAIL=2,RV_MS=2300,GRACE_MS=1200;
@@ -88,17 +88,24 @@ function draw(seat,n){
     got.push(O.deck.pop());
   }
   p.hand.push(...got);p.hand.sort(cmpCard);
+  if(got.length)O.miss[seat]=O.miss[seat].map(x=>x*.6);   // 새로 뽑았으니 '그 무늬가 없다'는 기억은 흐려짐
   if(got.length)pushEv({k:'d',s:seat,n:got.length});
   if(O.uno===seat&&p.hand.length!==1)closeWindow();
   return got;
 }
 function closeWindow(){const O=H.oc;O.uno=-1;O.botCall=null}
-/* 1장이 된 순간: 쉬움 봇은 1~2초 늦게 반응 */
+/* 1장이 된 순간의 봇 반응. 단계별 [확률, 최소 ms, 최대 ms]. 가장 빠른 한 명만 누름. 헛누름은 하지 않음 */
+const SELF_CALL=[[.8,1000,2000],[.95,700,1200],[1,400,700]],CATCH_CALL=[[.6,1000,2000],[.8,800,1500],[.95,500,900]];
 function openWindow(seat){
-  const O=H.oc,me=H.players[seat],bots=H.players.map((p,i)=>i).filter(i=>i!==seat&&!H.players[i].finished&&H.players[i].bot&&!H.players[i].away);
+  const O=H.oc;let best=null;
   O.uno=seat;O.botCall=null;
-  if(me.bot&&!me.away&&Math.random()<.8)O.botCall={s:seat,at:clock()+rand(1000,2000)};
-  else if(bots.length&&Math.random()<.6)O.botCall={s:bots[Math.random()*bots.length|0],at:clock()+rand(1000,2000)};
+  H.players.forEach((p,i)=>{
+    if(p.finished||!p.bot||p.away)return;
+    const [pr,lo,hi]=(i===seat?SELF_CALL:CATCH_CALL)[Math.min(2,botLv(p))];
+    if(Math.random()>=pr)return;
+    const at=clock()+rand(lo,hi);if(!best||at<best.at)best={s:i,at};
+  });
+  O.botCall=best;
 }
 function endGame(){
   const O=H.oc;H.phase='over';H.botActAt=0;H.deadline=0;O.ph='done';O.rv=null;closeWindow();mark();
@@ -128,6 +135,7 @@ function takeHit(seat){
 function doPlay(seat,id,suit){
   const O=H.oc,p=H.players[seat],k=kindOf(id),prev=O.suit;
   p.hand.splice(p.hand.indexOf(id),1);O.disc.push(id);O.drawn=-1;closeWindow();H.seatNote={};
+  if(suitOf(id)>=0)O.miss[seat][suitOf(id)]=0;
   O.suit=isStar(id)?suit:suitOf(id);
   if(k==='two'){O.atk+=2;O.ch=null}
   if(k==='four'){O.atk+=4;O.ch={by:seat,suit:prev,had:p.hand.some(x=>suitOf(x)===prev)}}
@@ -145,8 +153,9 @@ function doPlay(seat,id,suit){
   passOn(seat);
 }
 function doDraw(seat){
-  const O=H.oc;closeWindow();
+  const O=H.oc,su=O.suit;closeWindow();
   const got=draw(seat,1);
+  O.miss[seat][su]=1;   // 낼 수 있는데 뽑는 사람도 있지만 대개 그 무늬가 없음 (모두가 보는 정보)
   if(got.length&&fits(got[0],stateOf())){O.drawn=got[0];setTurn(seat);return}
   passOn(seat);
 }
@@ -160,6 +169,7 @@ function endReveal(){
   const O=H.oc,R=O.rv,n=O.atk,to=H.players[R.to],by=H.players[R.by];
   O.rv=null;O.ph='turn';O.atk=0;O.ch=null;
   pushEv({k:'x',ok:R.ok});
+  O.bl[R.by].c++;if(R.ok)O.bl[R.by].y++;
   addLog(`도전 ${R.ok?'성공':'실패'}`,R.ok?'fin':'lie');
   if(R.ok){
     if(!by.finished)draw(R.by,n);
@@ -178,20 +188,56 @@ function doOne(seat){
   if(t<O.grace)return;   // 간발의 차로 늦은 누름은 벌칙 없음
   addLog(`${p.name} 헛누름 ${FALSE}장`,'lie');pushEv({k:'f',s:seat});draw(seat,FALSE);mark();
 }
-const bestSuit=hand=>{const c=[0,0,0,0];for(const id of hand)if(!isStar(id))c[suitOf(id)]++;let b=Math.random()*4|0;for(let i=0;i<4;i++)if(c[i]>c[b])b=i;return b};
-/* 쉬움 봇: 낼 수 있는 카드 중 무작위(별 카드는 아낌), 공격은 70% 겹치고 도전은 25% */
+const suitCounts=hand=>{const c=[0,0,0,0];for(const id of hand)if(!isStar(id))c[suitOf(id)]++;return c};
+const bestSuit=hand=>{const c=suitCounts(hand);let b=Math.random()*4|0;for(let i=0;i<4;i++)if(c[i]>c[b])b=i;return b};
+/* 어려움의 무늬 지정: 내가 많이 가졌고 다음 사람이 없어 보이는 무늬 */
+function hardSuit(seat,hand){
+  const O=H.oc,c=suitCounts(hand),nx=nextAlive(seat,O.dir),m=nx>=0?O.miss[nx]:[0,0,0,0];let b=0,top=-1e9;
+  for(let i=0;i<4;i++){const v=c[i]*2+m[i]*3+Math.random()*.5;if(v>top){top=v;b=i}}
+  return b;
+}
+const pickSuit=(seat,lv,hand)=>lv>=2?hardSuit(seat,hand):bestSuit(hand);
+/* 낼 카드 점수 (보통·어려움). 남의 손패는 보지 않고 장수·낸 카드·뽑은 무늬만 씀 */
+function playScore(seat,id,lv){
+  const O=H.oc,p=H.players[seat],rest=p.hand.filter(x=>x!==id),c=suitCounts(rest),k=kindOf(id),su=suitOf(id);
+  let v=k==='wild'?(rest.length<=1?30:-18):k==='four'?(rest.length<=1?30:-18):(k==='n'?10:12)+c[su]*2;   // 별 카드는 언제든 낼 수 있어 끝까지 아낌 (일찍 쓰면 승률이 떨어짐: 대전으로 확인)
+  if(rest.length===1&&(isStar(rest[0])||suitOf(rest[0])===su))v+=8;   // 다음 차례에 나갈 수 있게
+  if(lv>=2){
+    const nx=nextAlive(seat,O.dir),nn=nx>=0?H.players[nx].hand.length:99,atk=k==='two'||k==='four';
+    if(nn<=2){if(atk)v+=k==='four'?48:32;else if(k==='skip')v+=26;else if(k==='rev')v+=14}
+    if(su>=0&&nx>=0)v+=O.miss[nx][su]*8;
+  }
+  return v+Math.random()*(lv>=2?1:3);
+}
+/* 도전: 나온 카드로 '그 무늬가 있었을 확률'을 어림잡고, 보통은 그 값만, 어려움은 뽑은 기억과 그 사람이 허세를 부린 기록까지 씀 */
+function wantChallenge(seat,lv){
+  const O=H.oc,c=O.ch,mine=H.players[seat].hand,by=H.players[c.by];
+  const seen=O.disc.concat(mine),left=(60-seen.length)||1,suitLeft=Math.max(0,13-seen.filter(x=>suitOf(x)===c.suit).length);
+  let has=1-Math.pow(1-suitLeft/left,by.hand.length);
+  if(lv<=1)return has>.8&&Math.random()<.3;
+  has*=1-O.miss[c.by][c.suit]*.9;
+  const b=O.bl[c.by],bluff=(b.y+1)/(b.c+3);
+  return has*bluff>.2;
+}
+/* 쉬움: 낼 수 있는 카드 중 무작위(별 카드는 아낌), 공격은 70% 겹치고 도전은 25%
+   보통: 점수로 고름, 숫자·많이 가진 무늬부터 내고 별 카드는 아낌. 어려움: 다음 사람의 장수·없어 보이는 무늬까지 봄 */
 function botAct(i){
-  const O=H.oc,p=H.players[i],S=stateOf();
+  const O=H.oc,p=H.players[i],S=stateOf(),lv=Math.min(2,botLv(p));
+  const L=p.hand.filter(id=>fits(id,S));
   if(O.atk){
-    if(O.ch&&Math.random()<.25){doChallenge(i);return}
-    const L=p.hand.filter(id=>fits(id,S));
-    if(L.length&&Math.random()<.7){const id=L[Math.random()*L.length|0];doPlay(i,id,bestSuit(p.hand));return}
+    if(O.ch&&(lv?wantChallenge(i,lv):Math.random()<.25)){doChallenge(i);return}
+    if(L.length&&Math.random()<(lv===0?.7:lv===1?.9:1)){
+      const id=lv?L.slice().sort((a,b)=>kindOf(a).length-kindOf(b).length||a-b).find(x=>kindOf(x)==='two')??L[0]:L[Math.random()*L.length|0];
+      doPlay(i,id,pickSuit(i,lv,p.hand.filter(x=>x!==id)));return;
+    }
     takeHit(i);passOn(i);return;
   }
-  if(O.drawn>=0){doPlay(i,O.drawn,bestSuit(p.hand));return}
-  const L=p.hand.filter(id=>fits(id,S)),plain=L.filter(id=>!isStar(id)),from=plain.length?plain:L;
-  if(!from.length){doDraw(i);return}
-  const id=from[Math.random()*from.length|0];doPlay(i,id,bestSuit(p.hand.filter(x=>x!==id)));
+  if(O.drawn>=0){doPlay(i,O.drawn,pickSuit(i,lv,p.hand.filter(x=>x!==O.drawn)));return}
+  if(!L.length){doDraw(i);return}
+  let id;
+  if(lv){let top=-1e9;for(const x of L){const v=playScore(i,x,lv);if(v>top){top=v;id=x}}}
+  else{const plain=L.filter(x=>!isStar(x)),from=plain.length?plain:L;id=from[Math.random()*from.length|0]}
+  doPlay(i,id,pickSuit(i,lv,p.hand.filter(x=>x!==id)));
 }
 function timeout(){
   const O=H.oc,i=H.turn,p=H.players[i];
@@ -219,7 +265,7 @@ G.engine={
     const n=H.players.length,hand=+H.cfg.hand||7,deck=shuffle([...Array(CN).keys()]);
     H.players.forEach(p=>{p.finished=false;p.rank=null;p.surrendered=false;p.hand=deck.splice(0,hand).sort(cmpCard)});
     const at=deck.findIndex(id=>kindOf(id)==='n'),top=deck.splice(at,1)[0];   // 시작 카드는 숫자 카드만
-    H.oc={gn:((H.oc&&H.oc.gn)||0)+1,deck,disc:[top],suit:suitOf(top),dir:1,atk:0,ch:null,drawn:-1,uno:-1,grace:0,botCall:null,ph:'turn',rv:null,ev:[],sq:0,rankLo:1,rankHi:n};
+    H.oc={gn:((H.oc&&H.oc.gn)||0)+1,deck,disc:[top],suit:suitOf(top),dir:1,atk:0,ch:null,drawn:-1,uno:-1,grace:0,botCall:null,ph:'turn',rv:null,ev:[],sq:0,rankLo:1,rankHi:n,miss:H.players.map(()=>[0,0,0,0]),bl:H.players.map(()=>({c:0,y:0}))};
     const first=Math.random()*n|0;
     setTurn(first);addLog(`${n}명 시작. ${H.players[first].name}부터 냅니다.`,'sys');
   },

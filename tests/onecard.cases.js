@@ -116,3 +116,23 @@ for(let rep=0;rep<48;rep++){
   eq(H.players.filter(p=>p.rank===1).length,1,'one winner');
   eq(new Set(H.players.map(p=>p.rank)).size,n,'ranks');
 }
+/* 난이도 */
+if(OC.oneBotLv)fail('onecard bot levels hidden');
+/* 다음 사람이 1장이면 어려움은 공격을 고름 */
+for(let r=0;r<20;r++){setup(3,{},1);H.players[1].bot=true;H.players[1].lv=2;at(num(5,1),[null,[num(3,1),TWO(1),num(7,2)],[num(1,0)]]);H.turn=1;TT.botAct(1);eq(H.oc.disc[H.oc.disc.length-1],TWO(1),'hard attacks near finish')}
+/* 보통·어려움은 숫자 카드가 있으면 별 카드를 아낌 */
+for(const lv of [1,2])for(let r=0;r<20;r++){setup(3,{},1);H.players[1].bot=true;H.players[1].lv=lv;at(num(5,1),[null,[num(3,1),WILD(0),num(7,2),num(8,2)],[num(1,0),num(2,0),num(3,0),num(4,0)]]);H.turn=1;TT.botAct(1);if(K(H.oc.disc[H.oc.disc.length-1])==='wild')fail('onecard star wasted lv'+lv)}
+/* 뽑은 무늬는 공개 기억에 남음 */
+setup(3);at(num(5,1),[[num(4,2),num(6,0)]]);act(0,{t:'draw'});eq(H.oc.miss[0][1],1,'miss remembered');
+/* 봇 반응 속도: 단계별 범위 안 */
+for(const [lv,lo,hi] of [[0,1000,2000],[1,700,1200],[2,400,700]])for(let r=0;r<20;r++){setup(2,{},1);H.players[1].lv=lv;H.oc.uno=-1;at(num(5,1),[[num(1,0),num(2,0)],[num(3,1),num(7,2)]]);H.turn=1;put(1,num(3,1));const c=H.oc.botCall;if(c&&(c.at-NOW<lo||c.at-NOW>hi))fail('onecard self call lv'+lv)}
+/* 난이도 대전: 자리를 돌려 가며 우승 수를 셈 */
+{const duel=(a,b,games,stack)=>{let w=0;for(let g=0;g<games;g++){
+    hostNew(false,'t','t');H.cfg={...cfgFor('onecard'),game:'onecard',stack,fast:1,turn:20,hand:7};
+    H.members=[0,1,2,3].map(i=>({name:'b'+i,bot:true,conn:null,host:i===0,lv:(i+g)%2?a:b}));
+    hostStart();for(let k=0;k<400000&&H.phase==='play';k++){NOW+=300;engineTick()}
+    eq(H.phase,'over','duel ends');if(H.players.find(p=>p.rank===1).lv===a)w++}
+  return w};
+ const n=300,me=duel(1,0,n,0),he=duel(2,0,n,0),hm=duel(2,1,n,0),hms=duel(2,1,n,1);
+ console.log('onecard normal/easy',me,'hard/easy',he,'hard/normal',hm,'hard/normal stack',hms,'of',n);
+ if(me<n*.55)fail('onecard normal not above easy');if(he<n*.58)fail('onecard hard not above easy');if(hm<n*.5)fail('onecard hard below normal');}

@@ -32,7 +32,7 @@
 | `games/mind.js` | 더 마인드 (2~4명 협력·1~100 카드·차례 없음·탁자 위 시작 버튼을 모두 함께 누름·뒤집어 올린 뒤 내기·표창 버튼·블라인드·쉬움 봇) | `docs/mind.md` |
 | `games/bohnanza.js` | 보난자 (3~5명 콩 심기·거래·수확·양쪽 수락 제안·임시 구역·새싹 보호법·쉬움 봇) | `docs/bohnanza.md` |
 | `games/robo77.js` | 로보77 (2~8명·합계 부르기·더블릿/77 이상 칩 잃기·이름표 불 3개·공중 합계 홀로그램·3단계 봇) | `docs/robo77.md` |
-| `games/onecard.js` | 원카드 (2~6명·트럼프 60장·+2/+4/리버스/금지/색 바꾸기·겹치기 설정·+4 도전·패 위 원카드 버튼·클래식/빠른 모드·쉬움 봇) | `docs/onecard.md` |
+| `games/onecard.js` | 원카드 (2~6명·트럼프 60장·+2/+4/리버스/금지/색 바꾸기·겹치기 설정·+4 도전·패 위 원카드 버튼·클래식/빠른 모드·3단계 봇) | `docs/onecard.md` |
 | `games/davinci.js` | 다빈치코드 (2~4명·흑백 0~11과 조커·흩어진 패에서 뽑기·상대 쪽으로 다가가는 카메라·타일이 쓰러져 공개·3단계 봇) | `docs/davinci.md` |
 | `tests/`, `dicepick.js`, `lab*.html`, `manifest.webmanifest`, `sw.js`, 아이콘 | 테스트(`node tests/engine.test.js`, `node tests/dicepick.test.js`), 첫 차례 주사위 계산·주사위 만들기, 연출·아이콘 테스트룸, 홈 화면 앱 | `docs/tools.md` |
 
