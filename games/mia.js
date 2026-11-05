@@ -7,7 +7,7 @@
    비밀: 내 말의 자리는 절대 나에게 보내지 않음(엔진 snap). 벽에 부딪혀도 알리지 않음. 소리도 똑같음
    손패(hand)는 표시용 값 [0] (공통 코드가 hand가 비면 끝난 사람으로 봄) */
 (function(){
-const G={id:'mia',name:'미아',short:'미아',lead:'내가 어디 있는지 모른 채 깃발 찾아가기',maxHi:4,minN:2,noFast:true,firstPick:true,botLvs:['쉬움'],oneBotLv:true};
+const G={id:'mia',name:'미아',short:'미아',lead:'내가 어디 있는지 모른 채 탈출구 찾아가기',maxHi:4,minN:2,noFast:true,firstPick:true,botLvs:['쉬움'],oneBotLv:true};
 
 /* ---------- 규칙 (방장 엔진·화면·봇·테스트가 같은 함수를 씀) ---------- */
 const N=9,CELLS=81,EDGES=162;
@@ -68,8 +68,8 @@ function botAction(bel,w,flag,left,rnd){
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 깃발에 먼저 도착하면 이깁니다. 다만 <b>내 말이 어디 있는지 나만 모릅니다</b></li><li><b>판</b> : 9×9 칸이고 위가 북쪽입니다. 칸마다 A1~I9 이름이 있습니다</li><li><b>시작 칸</b> : 각자 다음 사람의 말을 놓을 칸을 몰래 고릅니다. 내 말은 이전 사람이 고릅니다</li><li><b>깃발</b> : 각자 10면체 주사위 두 개로 깃발 칸을 정합니다. 첫째는 열(1이 A), 둘째는 행입니다. 0이 나오면 다시 굴리고, 시작 칸과 같아도 다시 굴립니다</li><li><b>내 차례</b> : 행동을 <b>두 번</b> 합니다. 행동은 내 말을 동서남북 중 한 칸 움직이기, 또는 벽 하나 세우기입니다(2이동, 1벽 1이동, 2벽 모두 됩니다). 벽이나 판 끝으로 움직이면 아무 말 없이 제자리에 있고 행동만 씁니다</li><li><b>벽</b> : 칸과 칸 사이에 한 칸 길이로 세웁니다. 어떤 칸도 판에서 끊어 놓을 수 없습니다. 벽은 모두 40개이고 똑같이 나눠 각자 앞에 세워 둡니다(탁자 설정으로 바꿀 수 있습니다)</li><li><b>거리</b> : 모두 한 번씩 하면 라운드가 끝나고, 각자 내 깃발까지의 <b>최단 거리</b>를 받습니다. 벽을 돌아가는 칸 수입니다</li><li><b>승리</b> : 라운드가 끝날 때 내 깃발 칸에 있으면 이깁니다. 같은 라운드에 여럿이 도착하면 함께 승리하고, 모두 도착하면 무승부입니다</li><li><b>메모</b> : 판의 칸을 누르면 ✕, 한 번 더 누르면 지워집니다. 나만 봅니다</li><li><b>제한 시간</b> : 시간이 지나면 무작위 방향으로 움직입니다. 시작 칸은 무작위로 고릅니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다</li><li><b>조작</b> : 화살표를 누른 뒤 <b>[이동]</b>, 또는 벽 버튼이나 내 앞의 벽을 눌러 켜고 칸의 벽 세울 쪽을 누른 뒤 <b>[놓기]</b>입니다. 설정의 <b>두 번 눌러 놓기</b>를 켜면 같은 곳을 한 번 더 눌러 바로 합니다. 키보드는 화살표, 벽은 X입니다</li><li><b>선 플레이어</b> : 첫 판은 탁자 설정으로 정합니다(무작위면 주사위, 선택이면 방장이 대기실에서 고름). 결과 화면에서 바로 시작하면 다음 사람이 먼저 합니다</li></ol>';
-G.modeDesc=['깃발에 도착하면 끝','깃발에 도착하면 끝'];
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 탈출구에 먼저 도착하면 이깁니다. 다만 <b>내 말이 어디 있는지 나만 모릅니다</b></li><li><b>판</b> : 9×9 칸이고 위가 북쪽입니다. 칸마다 A1~I9 이름이 있습니다</li><li><b>시작 칸</b> : 각자 다음 사람의 말을 놓을 칸을 몰래 고릅니다. 내 말은 이전 사람이 고릅니다</li><li><b>탈출구</b> : 각자 10면체 주사위 두 개로 탈출구 칸을 정합니다. 첫째는 열(1이 A), 둘째는 행입니다. 0이 나오면 다시 굴리고, 시작 칸과 같아도 다시 굴립니다</li><li><b>내 차례</b> : 행동을 <b>두 번</b> 합니다. 행동은 내 말을 동서남북 중 한 칸 움직이기, 또는 벽 하나 세우기입니다(2이동, 1벽 1이동, 2벽 모두 됩니다). 벽이나 판 끝으로 움직이면 아무 말 없이 제자리에 있고 행동만 씁니다</li><li><b>벽</b> : 칸과 칸 사이에 한 칸 길이로 세웁니다. 어떤 칸도 판에서 끊어 놓을 수 없습니다. 벽은 모두 40개이고 똑같이 나눠 각자 앞에 세워 둡니다(탁자 설정으로 바꿀 수 있습니다)</li><li><b>거리</b> : 모두 한 번씩 하면 라운드가 끝나고, 각자 내 탈출구까지의 <b>최단 거리</b>를 받습니다. 벽을 돌아가는 칸 수입니다</li><li><b>승리</b> : 라운드가 끝날 때 내 탈출구 칸에 있으면 이깁니다. 같은 라운드에 여럿이 도착하면 함께 승리하고, 모두 도착하면 무승부입니다</li><li><b>메모</b> : 판의 칸을 누르면 ✕, 한 번 더 누르면 지워집니다. 나만 봅니다</li><li><b>제한 시간</b> : 시간이 지나면 무작위 방향으로 움직입니다. 시작 칸은 무작위로 고릅니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다</li><li><b>조작</b> : 내 차례가 되면 남은 칸 수 둘레에 방향 버튼이 생기고, 누르면 바로 움직입니다. 벽은 내 앞의 보관대를 누른 뒤 칸의 벽 세울 쪽을 누르고 <b>[놓기]</b>입니다. 설정의 <b>두 번 눌러 놓기</b>를 켜면 같은 곳을 한 번 더 눌러 바로 세웁니다. 키보드는 화살표, 벽은 X입니다</li><li><b>선 플레이어</b> : 첫 판은 탁자 설정으로 정합니다(무작위면 주사위, 선택이면 방장이 대기실에서 고름). 결과 화면에서 바로 시작하면 다음 사람이 먼저 합니다</li></ol>';
+G.modeDesc=['탈출구에 도착하면 끝','탈출구에 도착하면 끝'];
 G.defaults={max:2,turn:30,wallT:40,pickfirst:0};
 G.roomSet=[{k:'turn',label:'제한 시간',unit:'초',lo:10,hi:120,step:5,desc:'시간이 지나면 무작위 방향으로 움직입니다. 연결이 끊겨도 시간은 흐르고, 45초가 지나면 탈주로 처리합니다'},{k:'wallT',label:'전체 벽',unit:'개',lo:8,hi:80,step:4,desc:'모든 사람의 벽을 합친 수입니다. 똑같이 나눠 가지고 남는 벽은 쓰지 않습니다'}];
 G.ruleSet=[{k:'pickfirst',pick:1,label:'선 플레이어',desc:'선택: 방장이 이름표 메뉴에서 선 플레이어를 고릅니다. 무작위: 주사위로 정하고, 바로 시작하면 다음 사람이 먼저 합니다'}];
@@ -117,7 +117,7 @@ function beginRoll(){
   for(const i of activeSeats()){
     let a,b,c;do{a=1+(Math.random()*9|0);b=1+(Math.random()*9|0);c=diceCell(a,b)}while(c===X_.pos[i]);
     X_.roll[i]=[a,b];X_.flag[i]=c;X_.bel[i]=Array.from({length:CELLS},(_,k)=>k).filter(k=>k!==c);
-    addLog(`${H.players[i].name} 깃발 ${cellName(c)}`);
+    addLog(`${H.players[i].name} 탈출구 ${cellName(c)}`);
   }
   X_.ph='roll';H.turn=active(X_.A)?X_.A:activeSeats()[0];
   H.deadline=clock()+rollMs(X_.cnt);H.botActAt=0;mark();
@@ -316,11 +316,12 @@ function tapAt(fx,fy){
 }
 function saveMemo(){try{store('gura-mia-memo',JSON.stringify({k:memoKey,m:memo}))}catch(e){}}
 function loadMemo(){try{const o=JSON.parse(store('gura-mia-memo')||'null');memo=o&&o.k===memoKey&&o.m?o.m:{}}catch(e){memo={}}}
+/* 방향 버튼: 누르면 바로 이동. 답이 오기 전에 또 눌러 두 행동이 나가지 않게 잠깐 막음 */
+let goLock=-1,goAt=0;
 function tapDir(d){
-  if(!myMove()){sndNo();return}
-  wallMode=false;
-  if(pend&&pend.k==='dir'&&pend.d===d){if(dblOn())confirmPend();else{pend=null;sndLift(.08);redraw()}return}
-  pend={k:'dir',d};sndLift(.12);redraw();
+  if(!myMove()||(goLock===CS.n&&clock()-goAt<1500)){sndNo();return}
+  wallMode=false;pend=null;goLock=CS.n;goAt=clock();sndLift(.12);
+  sendAct({t:'go',d});redraw();
 }
 function toggleWall(){
   if(!myMove()||CS.left[myIdx()]<=0){sndNo();return}
@@ -332,8 +333,8 @@ function confirmPend(){
   if(p.k==='cell'){if(!pickingNow())return;pend=null;sendAct({t:'pick',c:p.c});redraw();return}
   if(!myMove())return;
   pend=null;
-  if(p.k==='dir')sendAct({t:'go',d:p.d});
-  else{if(CS.left[myIdx()]<=1)wallMode=false;sendAct({t:'wall',e:p.e})}
+  if(CS.left[myIdx()]<=1)wallMode=false;
+  sendAct({t:'wall',e:p.e});
   redraw();
 }
 
@@ -344,7 +345,7 @@ function boardHTML(){
   const out=['<rect x="-.34" y="-.34" width="9.68" height="9.68" rx=".12" fill="#6b3f1f"/>'];
   for(let y=0;y<N;y++)for(let x=0;x<N;x++)out.push(`<rect x="${x}" y="${y}" width="1" height="1" fill="${(x+y)&1?'#e6d6b4':'#f0e4c8'}" stroke="#a98a5b" stroke-width=".02"/>`);
   for(const c of Object.keys(memo))out.push(memoGlyph(memo[c],CX(+c),CY(+c),'rgba(70,50,30,.6)'));
-  for(let i=0;i<CS.cnt;i++)if(flagShown(i)&&!hideEnd(i)){const c=CS.flag[i],x=CX(c),y=CY(c);out.push(`<path d="M${x+.34} ${y+.84}V${y+.16}L${x+.8} ${y+.34}L${x+.34} ${y+.52}Z" fill="${SEAT_C[i]}" stroke="#3a2210" stroke-width=".04"/>`)}
+  for(let i=0;i<CS.cnt;i++)if(flagShown(i)&&!hideEnd(i)){const c=CS.flag[i],x=CX(c),y=CY(c);out.push(`<circle cx="${x+.5}" cy="${y+.5}" r=".4" fill="${SEAT_C[i]}" stroke="#3a2210" stroke-width=".04"/><rect x="${x+.34}" y="${y+.24}" width=".32" height=".52" fill="#2a1a0e" stroke="#fff3d0" stroke-width=".05"/>`)}
   if(CS.path)CS.path.forEach((p,i)=>{if(p.length>1)out.push(`<polyline points="${p.map(c=>(CX(c)+.5)+','+(CY(c)+.5)).join(' ')}" fill="none" stroke="${SEAT_C[i]}" stroke-width=".07" opacity=".7"/>`)});
   CS.pos.forEach((c,i)=>{if(c>=0&&(CS.ph!=='place'||true)&&!(CS.ph==='roll'&&false))out.push(`<circle cx="${CX(c)+.5}" cy="${CY(c)+.5}" r=".28" fill="${SEAT_C[i]}" opacity="${V.st==='over'?.9:.5}" stroke="#3a2210" stroke-width=".03"/>`)});
   for(const e of CS.ws){const l=edgeLine(e),last=CS.lm&&CS.lm.e===e;out.push(`<line x1="${l[0]}" y1="${l[1]}" x2="${l[2]}" y2="${l[3]}" stroke="${last?'#c98a12':'#3a2210'}" stroke-width=".13" stroke-linecap="round"/>`)}
@@ -383,11 +384,13 @@ function histHTML(){
   return CS.hist.map(h=>`<span class="mia-h${h[1]<0?' now':''}"><i>${h[0].map(a=>a===4?'벽':DARROW[a]).join('')}</i>${h[1]<0?'·':h[1]}</span>`).join('');
 }
 function ctlHTML(){
-  const m=myIdx(),mine=myMove(),left=CS.left[m],sel=d=>pend&&pend.k==='dir'&&pend.d===d?' sel':'';
+  const m=myIdx(),mine=myMove(),left=CS.left[m];
   const dist=(()=>{for(let k=CS.hist.length-1;k>=0;k--)if(CS.hist[k][1]>=0)return CS.hist[k][1];return -1})();
-  const btn=(d,cl)=>`<button class="mia-dir ${cl}${sel(d)}" data-d="${d}" ${mine?'':'aria-disabled="true"'} aria-label="${DNAME[d]}쪽"><b>${DARROW[d]}</b><small>${DNAME[d]}</small></button>`;
-  const lamps=mine?ACTS-CS.acts:0;
-  return `<div class="mia-pad${mine?' on':''}"><div class="mia-acts" aria-label="남은 행동 ${lamps}">${Array.from({length:ACTS},(_,k)=>`<i class="${k<lamps?'on':''}"></i>`).join('')}</div>${btn(0,'n')}${btn(3,'w')}<div class="mia-dist" aria-label="내 깃발까지 거리"><b>${dist<0?'?':dist}</b>${dist<0?'':'<small>칸</small>'}</div>${btn(1,'e')}${btn(2,'s')}</div><button class="mia-wbtn${wallMode?' sel':''}${mine&&left>0?'':' off'}" data-w="1" aria-pressed="${wallMode}"><i></i>벽 ${left}</button>`;
+  const btn=d=>`<button class="mia-dir d${d}" data-d="${d}" aria-label="${DNAME[d]}쪽"><i></i></button>`;
+  const lamps=mine?ACTS-CS.acts:0,lp=mine?`<span class="mia-acts" aria-label="남은 행동 ${lamps}">${Array.from({length:ACTS},(_,k)=>`<i class="${k<lamps?'on':''}"></i>`).join('')}</span>`:'';
+  /* 3D는 보관대를 눌러 벽을 고름. 보관대가 없는 2D만 버튼 */
+  const wb=P3.on?'':`<button class="mia-wbtn${wallMode?' sel':''}${mine&&left>0?'':' off'}" data-w="1" aria-pressed="${wallMode}">벽 ${left}</button>`;
+  return `<div class="mia-pad${mine?' on':''}">${mine?[0,1,2,3].map(btn).join(''):''}<div class="mia-dist" aria-label="내 탈출구까지 남은 칸"><span><b>${dist<0?'?':dist}</b>${dist<0?'':'<small>칸</small>'}</span>${lp}</div></div>${wb}`;
 }
 function drawHint(){if(!elHint)return;const h=hintText();if(h!==lastHint){elHint.textContent=h;lastHint=h}}
 function fit(){
@@ -444,20 +447,21 @@ function wallMesh(e,ghost){
   if(!ghost){const o=new THREE.Mesh(geoI,INK());o.position.y=WH/2;if(along)o.rotation.y=Math.PI/2;g.add(o)}
   const [x,z]=edgeXZ(e);g.position.set(x,PY,z);return g;
 }
-/* 깃발: 바로 위에서도 보이게 북쪽으로 기울여 세움. 깃대·공·물결 천·받침 */
+/* 탈출구 코인: 판에 놓인 납작한 자리 색 코인. 윗면에 열린 문과 화살표 */
+function drawExit(c,w,hex){
+  const u=w/64;c.fillStyle=hex;c.fillRect(0,0,w,w);
+  c.strokeStyle='rgba(255,240,205,.85)';c.lineWidth=3*u;c.beginPath();c.arc(32*u,32*u,27*u,0,7);c.stroke();
+  c.fillStyle='#2a1a0e';c.fillRect(25*u,14*u,21*u,36*u);                 // 문틀 안 어둠
+  c.fillStyle='#fff3d0';c.fillRect(22*u,12*u,3*u,40*u);c.fillRect(22*u,12*u,27*u,3*u);c.fillRect(46*u,12*u,3*u,40*u);
+  c.beginPath();c.moveTo(46*u,15*u);c.lineTo(34*u,20*u);c.lineTo(34*u,53*u);c.lineTo(46*u,50*u);c.closePath();c.fill();   // 열린 문짝
+  c.fillStyle=hex;c.beginPath();c.arc(38*u,35*u,1.8*u,0,7);c.fill();
+  c.fillStyle='#fff3d0';c.fillRect(9*u,30*u,10*u,4*u);c.beginPath();c.moveTo(17*u,25*u);c.lineTo(25*u,32*u);c.lineTo(17*u,39*u);c.closePath();c.fill();   // 화살표
+}
 function flagMesh(i){
-  const g=new THREE.Group(),hex=new THREE.Color(SEAT_C[i]).getHex(),tilt=new THREE.Group();
-  const pm=MAT.pole||(MAT.pole=toon({color:0xe8dcc0,rim:.2})),dark=MAT.fbase||(MAT.fbase=toon({color:0x3a2210,rim:.15}));
-  const base=new THREE.Mesh(GEO.fb||(GEO.fb=new THREE.CylinderGeometry(.07,.085,.03,20)),dark);base.position.y=.015;base.castShadow=true;g.add(base);
-  const pole=new THREE.Mesh(GEO.fp||(GEO.fp=new THREE.CylinderGeometry(.016,.02,.44,10)),pm);pole.position.y=.22;tilt.add(pole);
-  const ball=new THREE.Mesh(GEO.fk||(GEO.fk=new THREE.SphereGeometry(.03,12,10)),pm);ball.position.y=.45;tilt.add(ball);
-  if(!GEO.fc){const c=new THREE.PlaneGeometry(.27,.17,14,5),q=c.attributes.position;
-    for(let k=0;k<q.count;k++){const x=q.getX(k)+.135;q.setX(k,x);q.setZ(k,Math.sin(x*17)*.035*(x/.27+.25))}
-    c.computeVertexNormals();GEO.fc=c}
-  const m=toon({color:hex,rim:.2});m.side=THREE.DoubleSide;
-  const cloth=new THREE.Mesh(GEO.fc,m);cloth.position.set(.012,.345,0);tilt.add(cloth);
-  tilt.rotation.x=-1.05;g.add(tilt);
-  g.children.forEach(o=>{o.position.z+=.12;o.position.x-=.08});
+  const g=new THREE.Group(),hex=SEAT_C[i],geo_=GEO.coin||(GEO.coin=new THREE.CylinderGeometry(.2,.205,.055,40));
+  const side=toon({color:new THREE.Color(hex).getHex(),rim:.2}),top=toon({map:canvasTex(128,128,(c,w)=>drawExit(c,w,hex)),rim:.05});
+  const m=new THREE.Mesh(geo_,[side,top,side]);m.position.y=.0275;m.rotation.y=Math.PI/2;m.castShadow=true;g.add(m);
+  const ink=new THREE.Mesh(GEO.coinI||(GEO.coinI=new THREE.CylinderGeometry(.215,.22,.06,40)),INK());ink.position.y=.03;g.add(ink);
   return g;
 }
 function pieceMesh(i){
@@ -469,12 +473,11 @@ function pieceMesh(i){
 function memoTex(k){
   return MAT['m'+k]||(MAT['m'+k]=new THREE.MeshBasicMaterial({transparent:true,depthWrite:false,map:canvasTex(64,64,(c,w,h)=>{c.clearRect(0,0,w,h);c.strokeStyle=c.fillStyle='#46321e';c.lineWidth=7;c.lineCap='round';if(k===1){c.beginPath();c.moveTo(20,20);c.lineTo(44,44);c.moveTo(44,20);c.lineTo(20,44);c.stroke()}else{c.beginPath();c.arc(32,32,11,0,7);c.fill()}})}));
 }
-/* 대기실 홀로그램의 대표 말: 깃발과 물음표 대신 흐린 말, 그 사이 벽 하나 */
+/* 대기실 홀로그램의 대표 말: 탈출구 코인과 흐린 말, 그 사이 벽 하나 */
 G.holoPiece=mkM=>{
   const g=new THREE.Group();
-  const pole=new THREE.Mesh(new THREE.BoxGeometry(.03,.62,.03),mkM(0xf2e6c4));pole.position.set(.2,0,0);g.add(pole);
-  const sh=new THREE.Shape();sh.moveTo(0,0);sh.lineTo(.3,-.09);sh.lineTo(0,-.2);sh.closePath();
-  const fl=new THREE.Mesh(new THREE.ShapeGeometry(sh),mkM(new THREE.Color(SEAT_C[0]).getHex()));fl.position.set(.21,.3,0);fl.material.side=THREE.DoubleSide;g.add(fl);
+  const cn=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.05,28),mkM(new THREE.Color(SEAT_C[0]).getHex()));cn.rotation.x=Math.PI/2;cn.position.set(.24,.02,0);g.add(cn);
+  const dr=new THREE.Mesh(new THREE.BoxGeometry(.13,.24,.02),mkM(0xf2e6c4));dr.position.set(.24,.02,.04);g.add(dr);
   const w=new THREE.Mesh(new THREE.BoxGeometry(.05,.34,.3),mkM(0x9a6a3a));w.position.set(-.04,-.14,0);g.add(w);
   const b=new THREE.Mesh(new THREE.SphereGeometry(.09,16,12),mkM(new THREE.Color(SEAT_C[1]).getHex()));b.position.set(-.26,-.02,0);g.add(b);
   const p=new THREE.Mesh(new THREE.CylinderGeometry(.07,.12,.2,16),mkM(new THREE.Color(SEAT_C[1]).getHex()));p.position.set(-.26,-.2,0);g.add(p);
@@ -572,7 +575,7 @@ function rackSync(){
   rackBuild(CS.cnt,CS.wn,s?m:0);
   P3.racks.forEach((r,i)=>{
     const left=CS.left[i],out=isOut(i);
-    r.walls.forEach((w,k)=>{w.visible=!out&&k<left;w.position.y=TOP+r.h/2-.01+(wallMode&&i===m&&k===left-1?.1:0)});
+    r.walls.forEach((w,k)=>{w.visible=!out&&k<left;w.position.y=TOP+r.h/2-.01+(i===m&&k===left-1?(wallMode?.12:myMove()?.04:0):0)});
   });
 }
 /* 보관대에서 벽이 날아가는 출발점 */
@@ -612,7 +615,10 @@ function d3Sync(){
     P3.anim.push({obj:g,t0:now,dur:MOVE_MS,from:[g.position.x,g.position.z],to:[x,z]});g.userData.c=c;
   });
   /* 깃발 */
-  CS.flag.forEach((c,i)=>{const f=P3.flags[i];if(c<0||isOut(i)){f.visible=false;return}f.position.set(gW(CX(c)),PY,gW(CY(c)))});
+  CS.flag.forEach((c,i)=>{const f=P3.flags[i];if(c<0||isOut(i)){f.visible=false;return}
+    const same=[];CS.flag.forEach((v,k)=>{if(v===c&&!isOut(k))same.push(k)});
+    const a=same.length>1?same.indexOf(i)/same.length*Math.PI*2+.8:0,r=same.length>1?.1:0;f.scale.setScalar(same.length>1?.72:1);
+    f.position.set(gW(CX(c))+Math.cos(a)*r,PY,gW(CY(c))+Math.sin(a)*r)});
   /* 끝: 내 말 공개, 지나온 길 */
   if(V.st==='over'&&CS.path&&!P3.revealed){
     P3.revealed=true;
@@ -628,7 +634,7 @@ function d3Marks(){
   if(!P3.on||!V||!V.mia||!CS)return;
   /* 메모 */
   for(const [c,m] of P3.memo){if(!memo[c]||m.userData.k!==memo[c]){P3.mg.remove(m);P3.memo.delete(c)}}
-  for(const c of Object.keys(memo)){const i=+c;if(P3.memo.has(c))continue;const m=new THREE.Mesh(GEO.pl||(GEO.pl=new THREE.PlaneGeometry(C*.9,C*.9)),memoTex(memo[c]));m.rotation.x=-Math.PI/2;m.position.set(gW(CX(i)),PY+.006,gW(CY(i)));m.renderOrder=2;m.userData.k=memo[c];P3.mg.add(m);P3.memo.set(c,m)}
+  for(const c of Object.keys(memo)){const i=+c;if(P3.memo.has(c))continue;const m=new THREE.Mesh(GEO.pl||(GEO.pl=new THREE.PlaneGeometry(C*.9,C*.9)),memoTex(memo[c]));m.rotation.x=-Math.PI/2;m.position.set(gW(CX(i)),PY+.064,gW(CY(i)));m.renderOrder=7;m.userData.k=memo[c];P3.mg.add(m);P3.memo.set(c,m)}
   rackSync();
   const cell=pend&&pend.k==='cell'?pend.c:-1;
   P3.pick.visible=cell>=0;if(cell>=0){P3.pick.position.x=gW(CX(cell));P3.pick.position.z=gW(CY(cell));P3.pick.material.color.set(SEAT_C[(myIdx()+1)%CS.cnt])}
@@ -842,7 +848,8 @@ G.overRank=p=>{const t=p.sr===3?'탈주':p.sr?'항복':'';return t?`<span class=
 G.usesDbl=true;
 G.no3D=true;
 G.buttons=()=>{
-  const play=$('#btnPlay'),can=!!pend&&(pend.k==='cell'?pickingNow():myMove()),lb=pend&&pend.k==='dir'?'이동':'놓기';
+  const play=$('#btnPlay'),can=!!pend&&(pend.k==='cell'?pickingNow():myMove()),lb='놓기';
+  play.hidden=!(pickingNow()||(wallMode&&myMove()));
   $('#btnPass').hidden=true;$('#btnGura').hidden=true;
   play.disabled=!can;play.classList.toggle('ready',can);
   if($('#playMain').textContent!==lb)$('#playMain').textContent=lb;
@@ -880,7 +887,7 @@ G.leave=()=>{
   if(P3.built)clearBoard();
   if(P3.root)P3.root.visible=false;P3.on=false;
   for(const m of P3.memo.values())if(P3.mg)P3.mg.remove(m);P3.memo.clear();
-  $('#btnPass').hidden=false;
+  $('#btnPass').hidden=false;$('#btnPlay').hidden=false;
   if(elRoot){elRoot.hidden=true;lastBoard='';lastBar='';lastHint='';lastHist='';lastCtl=''}
 };
 G.init=()=>{
@@ -923,26 +930,24 @@ G.init=()=>{
 #mia .mia-h.now{opacity:.65}
 #mia .mia-bd{position:relative;flex:1;min-height:0;width:100%}
 #mia svg.mia-board{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none;filter:drop-shadow(0 6px 8px rgba(59,42,31,.35))}
-#mia .mia-ctl{position:absolute;right:20px;bottom:92px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
-#mia .mia-pad,#mia .mia-wbtn{pointer-events:auto}
+#mia .mia-ctl{position:absolute;right:20px;bottom:100px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
 #mia .mia-ctl[hidden]{display:none}
-#mia .mia-pad{display:grid;grid-template:repeat(3,48px)/repeat(3,48px);gap:3px;opacity:.72;transition:opacity .2s}
-#mia .mia-pad.on{opacity:1}
-#mia .mia-dir{all:unset;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:10px;background:linear-gradient(#8a5a30,#6b3f1f);color:#ffefcf;box-shadow:0 2px 0 #3a2210,0 3px 6px -2px rgba(0,0,0,.4);cursor:pointer;line-height:1;touch-action:manipulation}
-#mia .mia-dir b{font-size:17px}
-#mia .mia-dir small{font-size:10px;opacity:.85;margin-top:1px}
-#mia .mia-dir.sel{background:linear-gradient(#5fae4e,#3f8a32);box-shadow:0 0 0 2px #f2c94c}
-#mia .mia-acts{grid-area:1/3;display:flex;gap:5px;align-items:flex-start;justify-content:flex-end;padding:3px}
-#mia .mia-acts i{width:12px;height:12px;border-radius:50%;background:#5a4632;box-shadow:inset 0 0 0 1.5px #2a1a0e}
-#mia .mia-acts i.on{background:#ffcf4a;box-shadow:inset 0 0 0 1.5px #8a5a10,0 0 6px #ffcf4a}
-#mia .mia-dir.n{grid-area:1/2}#mia .mia-dir.w{grid-area:2/1}#mia .mia-dir.e{grid-area:2/3}#mia .mia-dir.s{grid-area:3/2}
-#mia .mia-dist{grid-area:2/2;display:flex;align-items:baseline;justify-content:center;gap:1px;line-height:48px;border-radius:50%;background:#2a1a0e;color:#ffd97a;box-shadow:inset 0 0 0 2px #6b3f1f}
-#mia .mia-dist b{font:700 24px/1 "IBM Plex Mono",monospace;align-self:center}
-#mia .mia-dist small{font-size:10px;align-self:center;margin-top:7px;opacity:.85}
+#mia .mia-pad{--pz:168px;position:relative;width:var(--pz);height:var(--pz);pointer-events:none}
+#mia .mia-dir{all:unset;position:absolute;inset:0;pointer-events:auto;cursor:pointer;touch-action:manipulation;clip-path:polygon(1% 0,99% 0,66% 32%,34% 32%);background:linear-gradient(#a06c3c,#6b3f1f 32%);animation:miaIn .18s ease-out}
+#mia .mia-dir:active{background:linear-gradient(#5fae4e,#3f8a32 32%)}
+#mia .mia-dir i{position:absolute;left:50%;top:9%;width:0;height:0;margin-left:-11px;border:11px solid transparent;border-top:0;border-bottom:15px solid #ffefcf}
+#mia .mia-dir.d1{transform:rotate(90deg)}#mia .mia-dir.d2{transform:rotate(180deg)}#mia .mia-dir.d3{transform:rotate(270deg)}
+@keyframes miaIn{from{opacity:0}to{opacity:1}}
+#mia .mia-dist{position:absolute;left:50%;top:50%;width:62px;height:62px;margin:-31px 0 0 -31px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:50%;background:#2a1a0e;color:#ffd97a;box-shadow:inset 0 0 0 2px #6b3f1f,0 2px 5px rgba(0,0,0,.35);pointer-events:none}
+#mia .mia-dist span{display:flex;align-items:baseline;gap:1px}
+#mia .mia-dist b{font:700 24px/1 "IBM Plex Mono",monospace}
+#mia .mia-dist small{font-size:10px;opacity:.85}
 #mia .mia-dist.pop{animation:miaPop .45s}
 @keyframes miaPop{0%{transform:scale(1)}35%{transform:scale(1.28);background:#7a4a14}100%{transform:scale(1)}}
-#mia .mia-wbtn{all:unset;pointer-events:auto;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:6px;width:150px;height:38px;border-radius:10px;background:rgba(255,250,240,.95);border:1.5px solid var(--line-strong,#cdb391);font-size:14px;font-weight:600;color:#3a2a1f;cursor:pointer;touch-action:manipulation}
-#mia .mia-wbtn i{width:18px;height:6px;border-radius:2px;background:#4a2a14}
+#mia .mia-dist .mia-acts{gap:3px}
+#mia .mia-acts i{width:8px;height:8px;border-radius:50%;background:#5a4632}
+#mia .mia-acts i.on{background:#ffcf4a;box-shadow:0 0 5px #ffcf4a}
+#mia .mia-wbtn{all:unset;pointer-events:auto;box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:150px;height:38px;border-radius:10px;background:rgba(255,250,240,.95);border:1.5px solid var(--line-strong,#cdb391);font-size:14px;font-weight:600;color:#3a2a1f;cursor:pointer;touch-action:manipulation}
 #mia .mia-wbtn.sel{background:#4f9d3f;color:#fff;border-color:#f2c94c;box-shadow:0 0 0 2px #f2c94c}
 #mia .mia-wbtn.off{opacity:.6}
 @media (max-width:520px){#mia .mia-p{font-size:12px;padding:3px 8px 5px;gap:5px}#mia .mia-bar{max-width:calc(100% - 150px)}}
@@ -957,14 +962,16 @@ G.init=()=>{
 @media (max-width:699px) and (orientation:portrait){#mia{padding-bottom:112px}
 .stage.mia3d #mia .mia-row{width:calc(100% - 110px);align-self:flex-start;justify-content:flex-start}
 #mia .mia-h{font-size:13px;padding:2px 5px}#mia .mia-mebar{bottom:70px;max-width:calc(100% - 24px)}
-#mia .mia-ctl{left:0;right:0;bottom:16px;flex-direction:row;justify-content:center}
-#mia .mia-pad{grid-template:repeat(3,40px)/repeat(3,44px)}
-#mia .mia-dir small{display:none}
-#mia .mia-dist b{font-size:20px}
-#mia .mia-dist{line-height:40px}
-#mia .mia-wbtn{position:absolute;right:10px;bottom:62px;width:68px;height:44px;gap:4px;font-size:13px}
-#mia .mia-wbtn i{display:none}}
-@media (max-height:520px) and (orientation:landscape){#mia .mia-ctl{bottom:72px;right:12px;flex-direction:row-reverse;align-items:flex-end}#mia .mia-pad{grid-template:repeat(3,38px)/repeat(3,44px)}#mia .mia-dir small{display:none}#mia .mia-wbtn{width:62px;height:44px}#mia .mia-wbtn i{display:none}#mia .mia-dist b{font-size:18px}}
+#mia .mia-mebar{bottom:70px;max-width:calc(100% - 24px)}
+#mia .mia-ctl{left:0;right:0;bottom:6px;flex-direction:row;justify-content:center}
+#mia .mia-pad{--pz:134px}
+#mia .mia-dir i{margin-left:-9px;border-width:0 9px 12px}
+#mia .mia-dist{width:48px;height:48px;margin:-24px 0 0 -24px}
+#mia .mia-dist b{font-size:18px}
+#mia .mia-dist small{font-size:9px}
+#mia .mia-acts i{width:6px;height:6px}
+#mia .mia-wbtn{position:absolute;left:10px;bottom:62px;width:68px;height:44px}}
+@media (max-height:520px) and (orientation:landscape){#mia .mia-ctl{bottom:8px;right:112px;flex-direction:row-reverse;align-items:flex-end}#mia .mia-pad{--pz:132px}#mia .mia-dist{width:48px;height:48px;margin:-24px 0 0 -24px}#mia .mia-dist b{font-size:18px}#mia .mia-wbtn{width:62px;height:44px}}
 `;
   document.head.appendChild(css);
   elRoot=document.createElement('div');elRoot.id='mia';elRoot.hidden=true;
