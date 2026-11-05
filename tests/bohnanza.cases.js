@@ -38,9 +38,7 @@ setup(4);{const s=toTrade(),b=(s+1)%4,c=(s+2)%4,P=H.players;
   act(b,{t:'accept',id,pick:[idOf(1,1)]});eq(O().of.length,1,'locked first second');
   NOW+=TT.LOCK_MS+1;
   act(b,{t:'accept',id,pick:[idOf(3)]});eq(O().of.length,1,'wrong type refused');
-  act(s,{t:'offer',to:b,hand:[idOf(2)],want:[3]});const id2=O().of[0].id;eq(O().of.length,1,'replaced');NOW+=TT.LOCK_MS+1;
-  act(b,{t:'accept',id,pick:[idOf(3)]});eq(O().of.length,1,'old offer dead');eq(P[b].hand.length,3,'old no trade');
-  act(s,{t:'offer',to:b,hand:[idOf(2)],want:[1]});const id3=O().of[0].id;NOW+=TT.LOCK_MS+1;
+  act(s,{t:'offer',to:b,hand:[idOf(2)],want:[3]});eq(O().of.length,2,'many offers');act(s,{t:'cancel',id:O().of[1].id});eq(O().of.length,1,'cancel');const id3=id;NOW+=TT.LOCK_MS+1;
   act(b,{t:'accept',id:id3,pick:[idOf(1,2)]});eq(O().tmp[b].join(),String(idOf(2)),'to temp');eq(O().tmp[s].join(),String(idOf(1,2)),'to temp 2');eq(P[b].hand.join(),[idOf(1,1),idOf(3)].join(),'chosen copy leaves');eq(P[s].hand.length,1,'gave');
   act(b,{t:'offer',to:s,hand:[idOf(2)]});eq(O().of.length,0,'temp cannot retrade');
   /* 기증과 거절 */
@@ -80,3 +78,13 @@ if(!trades)fail('bohnanza bots never traded');
 /* 첫 차례: 주사위 시간만큼 기다리고, 선택이면 방장이 고른 사람 */
 setup(3,0,{pickfirst:1});eq(O().rolls,-1,'picked no dice');eq(O().act,H.players.findIndex(p=>p.host),'picked host');
 H.firstName='p2';H.phase='over';hostStart();eq(O().act,2,'picked seat');
+/* 아무나: 차례인 사람만, 숨김 그대로, 먼저 수락한 사람과 교환, 거절은 그 사람만 */
+setup(4);{const s=toTrade(),b=(s+1)%4,c=(s+2)%4,e=(s+3)%4,P=H.players;
+  act(b,{t:'offer',to:-1,want:[0]});eq(O().of.length,0,'open only active');
+  P[s].hand=[idOf(2)];P[b].hand=[idOf(3)];P[c].hand=[idOf(3,1)];P[e].hand=[idOf(4)];
+  act(s,{t:'offer',to:-1,hand:[idOf(2)],want:[3]});eq(snapFor(b).o.of.length,1,'open seen');eq(snapFor(b).o.of[0].mh,undefined,'open no ids');
+  const id=O().of[0].id;NOW+=TT.LOCK_MS+1;act(e,{t:'reject',id});eq(snapFor(e).o.of.length,0,'reject hides');eq(snapFor(b).o.of.length,1,'others keep');
+  act(b,{t:'accept',id,pick:[idOf(3)]});eq(O().of.length,0,'first wins');eq(O().tmp[b].join(),String(idOf(2)),'open trade');
+  act(c,{t:'accept',id,pick:[idOf(3,1)]});eq(P[c].hand.length,1,'late no trade');
+  P[s].hand=[idOf(2,1)];act(s,{t:'offer',to:-1,hand:[idOf(2,1)]});const q=O().of[0].id;for(const k of [b,c,e])act(k,{t:'reject',id:q});eq(O().of.length,0,'all rejected');
+  for(let k=0;k<9;k++)act(s,{t:'offer',to:-1,want:[1]});eq(O().of.length,6,'offer cap')}

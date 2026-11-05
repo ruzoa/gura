@@ -18,7 +18,7 @@ const coinsFor=(t,n)=>{let c=0;BEANS[t].m.forEach((x,k)=>{if(x&&n>=x)c=k+1});ret
 /* 다음 코인까지: {at:필요 장수, c:그때 코인} / 더 없으면 null */
 const nextStep=(t,n)=>{const m=BEANS[t].m;for(let k=0;k<4;k++)if(m[k]&&n<m[k])return {at:m[k],c:k+1};return null};
 const DICE_LEAD=300,DICE_REST=800;   // 카드를 나눈 뒤 첫 차례 주사위
-const HAND0=5,DRAW=3,TURN_UP=2,LAST_RUN=3,LOCK_MS=1000,MAX_WANT=8;
+const HAND0=5,DRAW=3,TURN_UP=2,LAST_RUN=3,LOCK_MS=1000,MAX_WANT=8,MAX_OFFERS=6;
 const FIELD3=3;   // 세 번째 밭 값 (예전 판 규칙, 설정으로 켬)
 
 /* ---------- 카드 ---------- */
@@ -88,7 +88,7 @@ G.drawFace=function(g,w,h,id){
 };
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 콩을 심고 수확해 코인을 가장 많이 모읍니다. 3명은 밭 3개, 4~5명은 밭 2개로 시작합니다</li><li><b>첫 차례</b> : 카드를 나눈 뒤 주사위로 정합니다. 방장이 대기실에서 고르도록 설정할 수 있습니다</li><li><b>손패</b> : 처음 5장을 받습니다. 손패 순서는 바꿀 수 없습니다. 왼쪽 맨 앞 카드가 다음에 심을 카드이고 새 카드는 맨 뒤로 들어갑니다. 손패를 꾹 누르면 카드를 크게 볼 수 있습니다</li><li><b>1. 손패 심기</b> : 맨 앞 카드를 꼭 심고, 다음 카드도 심을 수 있습니다. 밭을 눌러 심습니다. 한 밭에는 한 종류만 심습니다</li><li><b>2. 공개와 거래</b> : 더미에서 2장을 공개합니다. 차례인 사람은 공개 카드와 손패로, 다른 사람은 손패로 차례인 사람과 거래합니다. 다른 사람끼리는 거래할 수 없고 밭의 카드는 거래할 수 없습니다. 주기만 하는 기증도 됩니다</li><li><b>제안과 수락</b> : 제안을 보내고 상대가 수락하면 바로 교환합니다. 상대는 콩 종류만 볼 수 있고 손패 몇 번째 카드인지는 알 수 없습니다. 제안을 바꾸면 수락은 처음부터 다시 받습니다. 같은 콩이 여러 장이면 손패에서 줄 카드를 먼저 누르고 수락합니다(누르지 않으면 맨 뒤 카드부터 줍니다)</li><li><b>임시 구역</b> : 거래로 받은 카드와 남은 공개 카드는 밭 앞 임시 구역에 놓입니다. 손패로 가져올 수 없고 다시 거래할 수 없습니다</li><li><b>3. 임시 구역 심기</b> : 거래가 끝나면 모두 임시 구역의 카드를 원하는 순서로 전부 심습니다. 카드를 누른 뒤 밭을 누릅니다</li><li><b>4. 뽑기</b> : 차례인 사람이 3장을 뽑아 손패 맨 뒤에 넣습니다</li><li><b>수확</b> : 언제든 내 밭을 두 번 눌러 수확합니다. 밭 전체를 수확하고 장수에 맞는 코인을 얻습니다. 밭 아래 표시는 지금 장수/다음 코인까지 필요한 장수입니다</li><li><b>새싹 보호법</b> : 2장 이상인 밭이 있으면 1장뿐인 밭은 수확할 수 없습니다</li><li><b>끝</b> : 더미가 세 번째로 떨어지면 끝납니다. 뽑기 중이면 바로, 공개 중이면 심기까지 마치고 끝납니다. 남은 밭을 모두 수확하고 코인이 많은 사람이 이깁니다. 같으면 첫 차례 사람에게서 시계 방향으로 가장 먼 사람이 이깁니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 콩을 심고 수확해 코인을 가장 많이 모읍니다. 3명은 밭 3개, 4~5명은 밭 2개로 시작합니다</li><li><b>첫 차례</b> : 카드를 나눈 뒤 주사위로 정합니다. 방장이 대기실에서 고르도록 설정할 수 있습니다</li><li><b>손패</b> : 처음 5장을 받습니다. 손패 순서는 바꿀 수 없습니다. 왼쪽 맨 앞 카드가 다음에 심을 카드이고 새 카드는 맨 뒤로 들어갑니다. 손패를 꾹 누르면 카드를 크게 볼 수 있습니다</li><li><b>1. 손패 심기</b> : 맨 앞 카드를 꼭 심고, 다음 카드도 심을 수 있습니다. 밭을 눌러 심습니다. 한 밭에는 한 종류만 심습니다</li><li><b>2. 공개와 거래</b> : 더미에서 2장을 공개합니다. 차례인 사람은 공개 카드와 손패로, 다른 사람은 손패로 차례인 사람과 거래합니다. 다른 사람끼리는 거래할 수 없고 밭의 카드는 거래할 수 없습니다. 주기만 하는 기증도 됩니다</li><li><b>제안과 수락</b> : 제안을 보내고 상대가 수락하면 바로 교환합니다. 차례인 사람은 아무나에게 제안할 수 있고 먼저 수락한 사람과 교환합니다. 제안은 여러 개 보낼 수 있습니다. 거래 창의 내 박스나 상대 박스를 누른 뒤 콩을 고르고, 넣은 콩을 누르면 빠집니다. 상대는 콩 종류만 볼 수 있고 손패 몇 번째 카드인지는 알 수 없습니다. 제안을 바꾸면 수락은 처음부터 다시 받습니다. 같은 콩이 여러 장이면 손패에서 줄 카드를 먼저 누르고 수락합니다(누르지 않으면 맨 뒤 카드부터 줍니다)</li><li><b>임시 구역</b> : 거래로 받은 카드와 남은 공개 카드는 밭 앞 임시 구역에 놓입니다. 손패로 가져올 수 없고 다시 거래할 수 없습니다</li><li><b>3. 임시 구역 심기</b> : 거래가 끝나면 모두 임시 구역의 카드를 원하는 순서로 전부 심습니다. 카드를 누른 뒤 밭을 누릅니다</li><li><b>4. 뽑기</b> : 차례인 사람이 3장을 뽑아 손패 맨 뒤에 넣습니다</li><li><b>수확</b> : 언제든 내 밭을 두 번 눌러 수확합니다. 밭 전체를 수확하고 장수에 맞는 코인을 얻습니다. 밭 아래 표시는 지금 장수/다음 코인까지 필요한 장수입니다</li><li><b>새싹 보호법</b> : 2장 이상인 밭이 있으면 1장뿐인 밭은 수확할 수 없습니다</li><li><b>끝</b> : 더미가 세 번째로 떨어지면 끝납니다. 뽑기 중이면 바로, 공개 중이면 심기까지 마치고 끝납니다. 남은 밭을 모두 수확하고 코인이 많은 사람이 이깁니다. 같으면 첫 차례 사람에게서 시계 방향으로 가장 먼 사람이 이깁니다</li></ol>';
 G.modeDesc=['콩을 심고 거래하기','콩을 심고 거래하기'];
 G.defaults={max:5,turn:20,tt:45,buy3:0,pickfirst:0};
 G.roomSet=[
@@ -207,18 +207,26 @@ const isInt=x=>Number.isInteger(x);
 const uniq=a=>new Set(a).size===a.length;
 function offer(s,a){
   const O=H.bn,to=a.to,P=H.players;
-  if(O.ph!=='trade'||!isInt(to)||to===s||!P[to]||P[to].finished)return;
-  if(s!==O.act&&to!==O.act)return;   // 차례인 사람과만
+  const open=to===-1;   // 아무나: 차례인 사람만 보낼 수 있고 먼저 수락한 사람과 거래
+  if(O.ph!=='trade'||!isInt(to)||to===s||(open?s!==O.act:(!P[to]||P[to].finished)))return;
+  if(!open&&s!==O.act&&to!==O.act)return;   // 차례인 사람과만
+  if(O.of.filter(x=>x.from===s).length>=MAX_OFFERS)return;
   const hand=Array.isArray(a.hand)?a.hand:[],gf=Array.isArray(a.gf)?a.gf:[],want=Array.isArray(a.want)?a.want:[],wf=Array.isArray(a.wf)?a.wf:[];
   if(!hand.length&&!gf.length&&!want.length&&!wf.length)return;
   if(![hand,gf,want,wf].every(L=>L.every(isInt))||want.length>MAX_WANT||!uniq(hand)||!uniq(gf)||!uniq(wf))return;
   if(!hand.every(id=>P[s].hand.includes(id))||!want.every(t=>t>=0&&t<BEANS.length))return;
   if(gf.length&&(s!==O.act||!gf.every(id=>O.up.includes(id))))return;
   if(wf.length&&(to!==O.act||!wf.every(id=>O.up.includes(id))))return;
-  O.of=O.of.filter(x=>!(x.from===s&&x.to===to));   // 같은 상대에게 다시 보내면 새 제안 (앞의 수락은 없던 일)
-  O.oid++;O.of.push({id:O.oid,from:s,to,hand:hand.slice(),gf:gf.slice(),want:want.slice(),wf:wf.slice(),at:clock()});
-  if(realBot(P[to])&&clock()+500>O.bt[to])wake(to,800,1500);
+  O.oid++;O.of.push({id:O.oid,from:s,to,hand:hand.slice(),gf:gf.slice(),want:want.slice(),wf:wf.slice(),at:clock(),rej:[]});   // 제안은 바뀌지 않음: 고치면 새 제안
+  P.forEach((q,i)=>{if(i!==s&&(open||i===to)&&realBot(q)&&clock()+500>O.bt[i])wake(i,800,1500)});
   mark();
+}
+const forMe=(x,s)=>x.from!==s&&(x.to===s||(x.to===-1&&!x.rej.includes(s)));
+/* 거절: 아무나 제안은 거절한 사람에게서만 사라지고 모두 거절하면 없어짐 */
+function refuse(x,s){
+  const O=H.bn;
+  if(x.to===-1){x.rej.push(s);if(H.players.some((p,i)=>!p.finished&&forMe(x,i)))return}
+  O.of=O.of.filter(q=>q!==x);
 }
 function valid(x){
   const O=H.bn,P=H.players;
@@ -226,7 +234,7 @@ function valid(x){
 }
 function accept(s,a){
   const O=H.bn,x=O.of.find(q=>q.id===a.id);
-  if(O.ph!=='trade'||!x||x.to!==s||clock()<x.at+LOCK_MS)return false;
+  if(O.ph!=='trade'||!x||!forMe(x,s)||clock()<x.at+LOCK_MS)return false;
   if(!valid(x)){O.of=O.of.filter(q=>q!==x);mark();return false}
   const pick=Array.isArray(a.pick)?a.pick:[],me=H.players[s],he=H.players[x.from];
   if(pick.length!==x.want.length||!pick.every(isInt)||!uniq(pick)||!pick.every(id=>me.hand.includes(id)))return false;
@@ -252,17 +260,17 @@ function rearPick(s,want){
 }
 function botAnswer(s,x){
   const O=H.bn,pick=rearPick(s,x.want);
-  if(!pick||!valid(x)){O.of=O.of.filter(q=>q!==x);mark();return}
+  if(!pick||!valid(x)){refuse(x,s);mark();return}
   const front=H.players[s].hand.slice(0,2),gain=[...x.hand,...x.gf].reduce((v,id)=>v+fit(s,typ(id)),0);
   const loss=pick.reduce((v,id)=>v+(fit(s,typ(id))>=3?3:front.includes(id)?-1:0),0)+x.wf.length;
   if(gain-loss>=0&&accept(s,{id:x.id,pick}))return;
-  O.of=O.of.filter(q=>q!==x);mark();
+  refuse(x,s);mark();
 }
 function botTrade(t){
   const O=H.bn,P=H.players;
   P.forEach((p,i)=>{
     if(O.ph!=='trade'||!realBot(p)||p.finished||t<O.bt[i])return;
-    const inc=O.of.find(x=>x.to===i&&t>=x.at+LOCK_MS);
+    const inc=O.of.find(x=>forMe(x,i)&&t>=x.at+LOCK_MS);
     if(inc){botAnswer(i,inc);wake(i,700,1300);return}
     wake(i,900,1600);
     O.of=O.of.filter(x=>!(x.from===i&&t>=x.at+7000));
@@ -272,7 +280,7 @@ function botTrade(t){
         const j=P.findIndex((q,k)=>k!==i&&!q.finished&&!O.tried[id+':'+k]&&fit(k,typ(id))>=1);
         if(j>=0){O.tried[id+':'+j]=1;offer(i,{to:j,gf:[id]});return}
       }
-      if(t>=O.botEnd&&!O.of.some(x=>x.to===i))endTrade();
+      if(t>=O.botEnd&&!O.of.some(x=>forMe(x,i)))endTrade();
       return;
     }
     if(O.asked[i])return;O.asked[i]=1;
@@ -329,7 +337,7 @@ G.engine={
     if(O.ph!=='trade')return;
     if(a.t==='offer'){offer(s,a);return}
     if(a.t==='accept'){accept(s,a);return}
-    if(a.t==='reject'){const n=O.of.length;O.of=O.of.filter(x=>!(x.id===a.id&&x.to===s));if(O.of.length!==n)mark();return}
+    if(a.t==='reject'){const x=O.of.find(q=>q.id===a.id);if(x&&forMe(x,s)){refuse(x,s);mark()}return}
     if(a.t==='cancel'){const n=O.of.length;O.of=O.of.filter(x=>!(x.id===a.id&&x.from===s));if(O.of.length!==n)mark();return}
     if(a.t==='end'&&s===O.act)endTrade();
   },
@@ -354,7 +362,7 @@ G.engine={
   snap(s,you,t){
     const O=H.bn,seat=you>=0&&you<H.players.length;
     /* 제안은 당사자에게만. 받는 쪽에는 콩 종류만: 손패 카드 id·위치는 제안자에게만 */
-    const of=O.of.filter(x=>x.from===you||x.to===you).map(x=>{
+    const of=O.of.filter(x=>x.from===you||(seat&&forMe(x,you))).map(x=>{
       const o={id:x.id,f:x.from,to:x.to,g:[...x.hand,...x.gf].map(typ).sort(),gf:x.gf.slice(),w:x.want.slice().sort(),wf:x.wf.slice(),lk:Math.max(0,x.at+LOCK_MS-t)};
       if(x.from===you)o.mh=x.hand.slice();return o});
     s.o={gn:O.gn,ph:O.ph,act:O.act,first:O.first,pl:O.pl,fd:O.fd.map(a=>a.map(L=>L.slice())),tmp:O.tmp.map(L=>L.slice()),cn:O.coin.map(L=>L.length),up:O.up.slice(),
@@ -375,14 +383,14 @@ G.engine={
 
 /* ---------- 화면: 조작 ---------- */
 let elBox=null,elZoom=null,elSt=null,elPan=null,el2d=null,lastPan='',last2d='',tmpSel=-1,arm=-1,armAt=0;
-const C={open:false,to:-1,gf:[],want:[],wf:[]};   // 쓰고 있는 제안 (줄 손패는 공통 sel)
+const C={open:false,to:-1,box:'',gf:[],want:[],wf:[]};   // 쓰고 있는 제안 (줄 손패는 공통 sel)
 const lockAt=new Map();   // 제안 id → 수락할 수 있는 시각
 const currentG=()=>typeof GAMES!=='undefined'&&V&&V.cfg&&GAMES[V.cfg.game]?GAMES[V.cfg.game]:null;
 const iSeat=()=>{const i=myIdx();return i>=0&&V&&V.ps&&i<V.ps.length&&!V.ps[i].f};
 const inPlay=()=>!!(V&&V.o&&V.st==='play'&&iSeat()&&!dealingV());
 const inTrade=()=>inPlay()&&V.o.ph==='trade';
 const isAct=()=>inPlay()&&V.o.act===myIdx();
-const clearC=()=>{C.to=-1;C.gf=[];C.want=[];C.wf=[]};
+const clearC=()=>{C.to=-1;C.box='';C.gf=[];C.want=[];C.wf=[]};
 const canH=(i,f)=>{const a=V.o.fd[i],L=a[f];return !!L&&L.length>0&&!(L.length===1&&a.some((x,k)=>k!==f&&x.length>1))};
 function plantTarget(){
   if(!inPlay())return -1;
@@ -414,7 +422,7 @@ function tapUp(id){
 function sendOffer(){
   if(!inTrade()){sfx('no');return}
   const o=V.o,to=isAct()?C.to:o.act,hand=[...sel].filter(id=>myHand().includes(id));
-  if(to<0||to===myIdx()||(!hand.length&&!C.gf.length&&!C.want.length&&!C.wf.length)){sfx('no');return}
+  if(to===myIdx()||(!hand.length&&!C.gf.length&&!C.want.length&&!C.wf.length)){sfx('no');return}
   sendAct({t:'offer',to,hand,gf:C.gf.slice(),want:C.want.slice(),wf:C.wf.slice()});
   sel.clear();clearC();C.open=false;renderMe();refresh();
 }
@@ -444,8 +452,7 @@ function counterOf(id){
 }
 G.handMarks=(i,h,hand)=>{
   if(!inTrade()&&sel.size)sel.clear();
-  const o=V&&V.o,on=!!(o&&o.ph==='p1'&&isAct());
-  [...hand.children].forEach((el,k)=>{el.classList.toggle('sel',sel.has(+el.dataset.id));el.classList.toggle('bn-f1',k===0&&on&&o.pl<2)});
+  [...hand.children].forEach((el,k)=>{el.classList.toggle('sel',sel.has(+el.dataset.id));el.classList.toggle('bn-f1',k===0)});
   drawPan();
 };
 G.me=()=>{$('#numpick').hidden=true};
@@ -479,6 +486,7 @@ G.buttons=()=>{
   if(tr){if($('#playMain').textContent!=='거래')$('#playMain').textContent='거래';const sub=keyLabel(KEYS.play);if($('#playSub').textContent!==sub)$('#playSub').textContent=sub}
   const showP=p1||(tr&&isAct());ps.hidden=!showP;ps.disabled=!(tr||(p1&&o.pl>=1));
   const t=tr?'거래 끝':'넘기기';if(ps.firstChild.nodeValue!==t)ps.firstChild.nodeValue=t;
+  setBottom();
   if(was!==pb.hidden+':'+ps.hidden)requestAnimationFrame(layoutFan);   // 버튼 수가 바뀌면 손패 자리를 다시 맞춤
 };
 /* 손패를 꾹 누르면 큰 2D 카드 (바깥을 누르면 닫힘) */
@@ -689,21 +697,49 @@ const phText=o=>{
   if(o.act<0)return '';
   return o.ph==='p1'?`${whoTurn(o)} · 심기 ${Math.min(2,o.pl+1)}/2`:o.ph==='trade'?`${whoTurn(o)} · 거래`:'';
 };
+/* 박스 안 칩: 누르면 한 장씩 빠짐 */
+function rmChips(k,L){
+  const m=new Map();for(const t of L)m.set(t,(m.get(t)||0)+1);
+  return m.size?[...m].map(([t,n])=>`<button type="button" class="bn-pick" data-rm="${k}:${t}">${chip(t,n)}</button>`).join(''):'<span class="bn-none"></span>';
+}
+const freeUp=t=>isAct()?V.o.up.find(id=>typ(id)===t&&!C.gf.includes(id)):undefined;
+function freeHand(t){const h=myHand();for(let j=h.length-1;j>=0;j--)if(typ(h[j])===t&&!sel.has(h[j]))return h[j]}
+const canGive=t=>freeUp(t)!=null||freeHand(t)!=null;
+function tapBean(t){
+  if(C.box==='you'){if(C.want.length<MAX_WANT){C.want.push(t);sfx('pick');drawPan()}else sfx('no');return}
+  const u=freeUp(t);   // 공개 카드는 안 가져가면 내가 심어야 하므로 먼저
+  if(u!=null){C.gf.push(u);sfx('pick');refresh();return}
+  const c=freeHand(t);if(c==null){sfx('no');return}
+  sel.add(c);sfx('pick');renderMe();
+}
+function rmChip(k,t){
+  if(k==='me'){
+    const h=[...sel].filter(id=>typ(id)===t);
+    if(h.length)sel.delete(h[h.length-1]);else{const j=C.gf.findIndex(id=>typ(id)===t);if(j>=0)C.gf.splice(j,1)}
+  }else{
+    const j=C.want.lastIndexOf(t);if(j>=0)C.want.splice(j,1);else{const q=C.wf.findIndex(id=>typ(id)===t);if(q>=0)C.wf.splice(q,1)}
+  }
+  sfx('pick');C.box=k;renderMe();refresh();
+}
+function nextWho(){
+  const P=V.ps,me=myIdx(),L=[-1,...P.map((p,i)=>i).filter(i=>i!==me&&!P[i].f)];
+  C.to=L[(L.indexOf(C.to)+1)%L.length];sfx('pick');drawPan();
+}
 function drawPan(){
   if(!elPan||!V||!V.o)return;
   const o=V.o,me=myIdx(),tr=inTrade();
   if(!tr){if(lastPan){elPan.innerHTML='';lastPan=''}return}
   const P=V.ps,H2=[...sel].filter(id=>myHand().includes(id)),act=isAct();
   const ofHTML=o.of.map(x=>{
-    const mine=x.f===me,other=mine?x.to:x.f,wants=[...x.w,...x.wf.map(typ)],get=mine?wants:x.g,give=mine?x.g:wants;
+    const mine=x.f===me,other=mine?x.to:x.f,oname=other<0?'아무나':P[other].n,wants=[...x.w,...x.wf.map(typ)],get=mine?wants:x.g,give=mine?x.g:wants;
     const can=mine||!!pickFor(x);
-    return `<div class="bn-of" data-o="${x.id}"><div class="bn-line">${swapLine(P[other].n,give,get)}</div><span class="bn-sp"></span>${mine?`<button type="button" data-k="cancel" data-o="${x.id}">취소</button>`:`<button type="button" class="bn-ok" data-k="accept" data-o="${x.id}"${can?'':' disabled'}>수락</button><button type="button" data-k="counter" data-o="${x.id}">역제안</button><button type="button" data-k="reject" data-o="${x.id}">거절</button>`}</div>`}).join('');
+    return `<div class="bn-of" data-o="${x.id}"><div class="bn-line">${swapLine(oname,give,get)}</div><span class="bn-sp"></span>${mine?`<button type="button" data-k="cancel" data-o="${x.id}">취소</button>`:`<button type="button" class="bn-ok" data-k="accept" data-o="${x.id}"${can?'':' disabled'}>수락</button><button type="button" data-k="counter" data-o="${x.id}">역제안</button><button type="button" data-k="reject" data-o="${x.id}">거절</button>`}</div>`}).join('');
   let comp='';
   if(C.open){
-    const pick=act?P.map((p,i)=>i===me||p.f?'':`<button type="button" class="bn-to${C.to===i?' on':''}" data-to="${i}">${esc(p.n)}</button>`).join(''):`<b class="bn-who">${esc(P[o.act].n)}</b>`;
-    const grid=BEANS.map((b,t)=>`<button type="button" class="bn-bean" data-w="${t}" aria-label="${b.n}">${beanImg(t)}<span>${b.n}</span></button>`).join('');
-    const giveL=[...H2.map(typ),...C.gf.map(typ)],getL=[...C.want,...C.wf.map(typ)];
-    comp=`<div class="bn-tr"><div class="bn-r bn-tabs">${pick}<span class="bn-sp"></span><button type="button" class="bn-x" data-k="close" aria-label="닫기">✕</button></div><div class="bn-r bn-line">${swapLine((act?(P[C.to]&&P[C.to].n):P[o.act].n)||'상대',giveL,getL)}</div><div class="bn-g">${grid}</div><div class="bn-r bn-e"><button type="button" data-k="clear">비우기</button>${C.want.length?'<button type="button" data-k="unwant">하나 빼기</button>':''}<span class="bn-sp"></span><button type="button" class="bn-ok" data-k="send">제안</button></div></div>`;
+    const who=act?(C.to<0?'아무나':P[C.to].n):P[o.act].n;
+    const box=(k,name,L,nameBtn)=>`<div class="bn-cell${C.box===k?' on':''}" data-b="${k}">${nameBtn}<span class="bn-sw">${rmChips(k,L)}</span></div>`;
+    const grid=C.box?`<div class="bn-g">${BEANS.map((b,t)=>{const no=C.box==='me'&&!canGive(t);return `<button type="button" class="bn-bean${no?' no':''}" data-w="${t}" aria-label="${b.n}">${beanImg(t)}<span>${b.n}</span></button>`}).join('')}</div>`:'';
+    comp=`<div class="bn-tr"><div class="bn-r bn-line">${box('me','나',[...H2.map(typ),...C.gf.map(typ)],'<b class="bn-w">나</b>')}<span class="bn-ar">⇄</span>${box('you',who,[...C.want,...C.wf.map(typ)],act?`<button type="button" class="bn-who" data-k="who">${esc(who)}</button>`:`<b class="bn-w">${esc(who)}</b>`)}<button type="button" class="bn-x" data-k="close" aria-label="닫기">✕</button></div>${grid}<div class="bn-r bn-e"><button type="button" class="bn-ok" data-k="send">제안</button></div></div>`;
   }
   const h=ofHTML+comp;
   if(h!==lastPan){elPan.innerHTML=h;lastPan=h;lockTick()}
@@ -722,6 +758,15 @@ function draw2d(){
   const h=`<div class="bn-p"><span class="bn-l">더미 ${o.dk} · ${o.runs}/3회</span></div>${up}${rows}`;
   if(h!==last2d){el2d.innerHTML=h;last2d=h}
 }
+function setBottom(){
+  if(!elPan)return;
+  const st=$('#stage').getBoundingClientRect(),H1=[...$('#hand').children];
+  let y=H1.length?Math.min(...H1.map(x=>x.getBoundingClientRect().top))-20:st.bottom-96;   // 20: 다음 심기 표시
+  if(st.width<700)for(const b of [$('#btnPlay'),$('#btnPass')])if(!b.hidden)y=Math.min(y,b.getBoundingClientRect().top);
+  elPan.style.setProperty('--bnb',Math.max(96,Math.round(st.bottom-y+6))+'px');
+}
+/* 왼쪽(맨 앞) 카드가 위로 */
+G.afterFan=()=>{const L=[...$('#hand').children];L.forEach((c,i)=>{c.style.zIndex=L.length-i});setBottom()};
 G.hud=inGame=>{
   if(!elBox)return;
   const on=!!(inGame&&V&&V.o);
@@ -732,7 +777,7 @@ G.hud=inGame=>{
   $('#stage').classList.toggle('bng',on);
   $('#stage').classList.toggle('bn2d',on&&!d3);
   if(!on)return;
-  drawPan();draw2d();
+  drawPan();draw2d();setBottom();
 };
 G.live=()=>{
   if(!elSt||!V||!V.o)return;
@@ -764,7 +809,7 @@ G.init=()=>{
 .bn-box[hidden]{display:none}
 .bn-st{position:absolute;top:8px;left:50%;transform:translateX(-50%);padding:3px 12px;border-radius:999px;background:rgba(47,32,22,.78);color:#fff6e4;font:600 13px "Jua","IBM Plex Mono",sans-serif;white-space:nowrap}
 .bn-st:empty{visibility:hidden}
-.bn-pan{position:absolute;left:50%;transform:translateX(-50%);top:56px;width:min(440px,calc(100% - 16px));display:flex;flex-direction:column;gap:4px}
+.bn-pan{position:absolute;left:50%;transform:translateX(-50%);bottom:var(--bnb,150px);width:min(460px,calc(100% - 16px));max-height:calc(100% - var(--bnb,150px) - 44px);overflow:auto;display:flex;flex-direction:column;gap:4px}
 .bn-lbs{position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden}
 .bn-lbs[hidden]{display:none}
 .bn-lb{position:absolute;left:0;top:0;display:flex;align-items:center;justify-content:center;gap:2px;padding:1px 7px;border-radius:999px;background:rgba(47,32,22,.84);color:#fff6e4;font:600 12px "IBM Plex Mono","Jua",monospace;white-space:nowrap;text-align:center}
@@ -780,7 +825,13 @@ G.init=()=>{
 .bn-w{max-width:5.5em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bn-ar{font-weight:700;color:#7a6650}
 .bn-line{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;min-height:30px;padding:3px;border-radius:8px;background:rgba(59,42,31,.07)}
-.bn-tabs .bn-who{padding:2px 4px}
+.bn-cell{display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:8px;border:2px solid transparent;cursor:pointer;min-height:26px}
+.bn-cell.on{border-color:#e0a020;background:rgba(224,160,32,.14)}
+.bn-box button.bn-who{padding:1px 7px;font-weight:700;background:rgba(59,42,31,.1);border-color:transparent}
+.bn-e{justify-content:flex-end}
+.bn-bean{position:relative}
+.bn-box button.bn-bean.no .bn-bi,.bn-box button.bn-bean.no span{opacity:.3}
+.bn-box button.bn-bean.no::after{content:'✕';position:absolute;left:0;right:0;top:0;text-align:center;color:#c0392b;font:700 19px sans-serif}
 .bn-box button.bn-x{border:none;background:none;padding:2px 6px;color:#7a6650}
 .bn-box button.bn-bean{display:flex;flex-direction:column;align-items:center;gap:0;padding:3px 0 2px;border:none;background:none;min-width:0}
 .bn-box button.bn-bean:active{background:rgba(59,42,31,.1)}
@@ -798,7 +849,7 @@ G.init=()=>{
 .bn-box .bn-ok{background:#2e7d4f;border-color:#2e7d4f;color:#fff}
 .bn-box .bn-to.on,.bn-box .bn-pick.on{outline:2px solid #e0a020}
 .bn-box .bn-pick{padding:1px;background:none;border:none;line-height:1.3}
-@media(max-width:699px){.stage.bng #actions{transform:translateY(64px)}.stage.bng #actions{justify-content:space-between}.stage.bng #actions button{flex:0 0 37%;min-width:0;min-height:0;height:36px;padding:0 6px;font-size:15px}.stage.bng #actions button small{display:none}}
+@media(max-width:699px){.stage.bng #actions{transform:translateY(40px)}.stage.bng #actions{justify-content:space-between}.stage.bng #actions button{flex:0 0 37%;min-width:0;min-height:0;height:36px;padding:0 6px;font-size:15px}.stage.bng #actions button small{display:none}}
 .stage.bng #dim{display:none}
 .bn-st.my{background:#e8ad24;color:#3b2a1f}
 .bn-zoom{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(28,18,10,.35);pointer-events:auto}
@@ -810,12 +861,12 @@ G.init=()=>{
 .bn-zc li{display:flex;justify-content:space-between;align-items:center;padding:3px 4px;border-bottom:1px solid #e3d4bb;font:600 15px "IBM Plex Mono",monospace}
 .bn-zc li b{display:flex;gap:2px;font-size:15px}
 .bn-zc p{margin:4px 0 8px;font-size:12px;color:#7a6650}
-.stage.bng .card.bn-c{overflow:hidden}
-.stage.bng .card.bn-c .bn-nm{position:absolute;left:0;right:0;top:0;padding:2px 0;background:var(--rc);color:var(--tc,#fffcf5);font:600 11px "Jua",sans-serif;text-align:left;padding-left:5px;white-space:nowrap}
+.stage.bng .card.bn-c.bn-f1{outline:3px solid #2e9d5f;outline-offset:-1px}
+.stage.bng .card.bn-c.bn-f1::before{content:'다음 심기';position:absolute;left:50%;top:-21px;transform:translateX(-50%);padding:1px 6px;border-radius:7px;background:#2e9d5f;color:#fff;font:600 11px "Jua",sans-serif;white-space:nowrap;pointer-events:none}
+.stage.bng .card.bn-c .bn-nm{position:absolute;left:0;right:0;top:0;padding:2px 0;background:var(--rc);color:var(--tc,#fffcf5);font:600 11px "Jua",sans-serif;text-align:center;white-space:nowrap;border-radius:6px 6px 0 0}
 .stage.bng .card.bn-c .bn-be{position:absolute;left:7px;right:7px;top:27px;pointer-events:none}
 .bn-bi{display:block;width:100%;pointer-events:none;-webkit-user-drag:none}
 .stage.bng .card.bn-c .bn-mt{position:absolute;left:0;right:0;bottom:4px;text-align:center;font:600 10px "IBM Plex Mono",monospace;color:#3b2a1f}
-.stage.bng .card.bn-c.bn-f1{outline:3px solid #2e9d5f;outline-offset:-1px}
 .bn-2d{position:absolute;left:8px;right:8px;top:66px;display:flex;flex-direction:column;gap:4px;max-height:calc(100% - 300px);overflow:auto;pointer-events:auto}
 .bn-p{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
 .bn-p.on{border-color:#c98a1e;box-shadow:0 0 0 1px #c98a1e}
@@ -839,17 +890,18 @@ G.init=()=>{
   for(const k of ['pointerup','pointercancel','lostpointercapture'])hd.addEventListener(k,lpStop);
   hd.addEventListener('click',e=>{if(currentG()===G&&LP.fired){LP.fired=false;e.stopPropagation();e.preventDefault()}},true);   // 크게 본 뒤 손을 뗀 것은 고르기가 아님
   elBox.addEventListener('click',e=>{
-    const b=e.target.closest('button');if(!b||!V||!V.o)return;
+    if(!V||!V.o)return;
+    const b=e.target.closest('button');
+    if(!b){const c=e.target.closest('[data-b]');if(c){C.box=C.box===c.dataset.b?'':c.dataset.b;sfx('pick');drawPan()}return}
     const d=b.dataset,k=d.k,id=+d.o;
     if(d.f!=null)tapField(+d.f);
     else if(d.t!=null)tapTemp(+d.t);
     else if(d.u!=null)tapUp(+d.u);
-    else if(d.to!=null){C.to=+d.to;sfx('pick');drawPan()}
-    else if(d.w!=null){if(C.want.length<MAX_WANT){C.want.push(+d.w);sfx('pick');drawPan()}else sfx('no')}
+    else if(d.rm!=null){const [q,t]=d.rm.split(':');rmChip(q,+t)}
+    else if(d.w!=null)tapBean(+d.w);
+    else if(k==='who')nextWho();
     else if(k==='close'){C.open=false;drawPan()}
     else if(k==='send')sendOffer();
-    else if(k==='clear'){clearC();sel.clear();renderMe();refresh()}
-    else if(k==='unwant'){C.want.pop();drawPan()}
     else if(k==='accept')acceptOf(id);
     else if(k==='reject')sendAct({t:'reject',id});
     else if(k==='cancel')sendAct({t:'cancel',id});
