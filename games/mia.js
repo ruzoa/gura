@@ -68,7 +68,7 @@ function botAction(bel,w,flag,left,rnd){
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 깃발에 먼저 도착하면 이깁니다. 다만 <b>내 말이 어디 있는지 나만 모릅니다</b></li><li><b>판</b> : 9×9 칸이고 위가 북쪽입니다. 칸마다 A1~I9 이름이 있습니다</li><li><b>시작 칸</b> : 각자 다음 사람의 말을 놓을 칸을 몰래 고릅니다. 내 말은 이전 사람이 고릅니다</li><li><b>깃발</b> : 각자 10면체 주사위 두 개로 깃발 칸을 정합니다. 첫째는 열(1이 A), 둘째는 행입니다. 0이 나오면 다시 굴리고, 시작 칸과 같아도 다시 굴립니다</li><li><b>내 차례</b> : 내 말을 동서남북 중 한 칸 움직이거나 벽을 하나 세웁니다. 벽이나 판 끝으로 움직이면 아무 말 없이 제자리에 있고 차례만 씁니다</li><li><b>벽</b> : 칸과 칸 사이에 한 칸 길이로 세웁니다. 어떤 칸도 판에서 끊어 놓을 수 없습니다. 가지고 있는 수는 탁자 설정으로 정합니다</li><li><b>거리</b> : 모두 한 번씩 하면 라운드가 끝나고, 각자 내 깃발까지의 <b>최단 거리</b>를 받습니다. 벽을 돌아가는 칸 수입니다</li><li><b>승리</b> : 라운드가 끝날 때 내 깃발 칸에 있으면 이깁니다. 같은 라운드에 여럿이 도착하면 함께 승리하고, 모두 도착하면 무승부입니다</li><li><b>메모</b> : 판의 칸을 누르면 ✕, 한 번 더 누르면 ●, 또 누르면 지워집니다. 나만 봅니다</li><li><b>제한 시간</b> : 시간이 지나면 무작위 방향으로 움직입니다. 시작 칸은 무작위로 고릅니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다</li><li><b>조작</b> : 화살표를 누른 뒤 <b>[이동]</b>, 또는 벽 버튼을 켜고 칸의 벽 세울 쪽을 누른 뒤 <b>[놓기]</b>입니다. 설정의 <b>두 번 눌러 놓기</b>를 켜면 같은 곳을 한 번 더 눌러 바로 합니다. 키보드는 화살표, 벽은 X입니다</li><li><b>선 플레이어</b> : 첫 판은 탁자 설정으로 정합니다(무작위면 주사위, 선택이면 방장이 대기실에서 고름). 결과 화면에서 바로 시작하면 다음 사람이 먼저 합니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 깃발에 먼저 도착하면 이깁니다. 다만 <b>내 말이 어디 있는지 나만 모릅니다</b></li><li><b>판</b> : 9×9 칸이고 위가 북쪽입니다. 칸마다 A1~I9 이름이 있습니다</li><li><b>시작 칸</b> : 각자 다음 사람의 말을 놓을 칸을 몰래 고릅니다. 내 말은 이전 사람이 고릅니다</li><li><b>깃발</b> : 각자 10면체 주사위 두 개로 깃발 칸을 정합니다. 첫째는 열(1이 A), 둘째는 행입니다. 0이 나오면 다시 굴리고, 시작 칸과 같아도 다시 굴립니다</li><li><b>내 차례</b> : 내 말을 동서남북 중 한 칸 움직이거나 벽을 하나 세웁니다. 벽이나 판 끝으로 움직이면 아무 말 없이 제자리에 있고 차례만 씁니다</li><li><b>벽</b> : 칸과 칸 사이에 한 칸 길이로 세웁니다. 어떤 칸도 판에서 끊어 놓을 수 없습니다. 가지고 있는 수는 탁자 설정으로 정합니다</li><li><b>거리</b> : 모두 한 번씩 하면 라운드가 끝나고, 각자 내 깃발까지의 <b>최단 거리</b>를 받습니다. 벽을 돌아가는 칸 수입니다</li><li><b>승리</b> : 라운드가 끝날 때 내 깃발 칸에 있으면 이깁니다. 같은 라운드에 여럿이 도착하면 함께 승리하고, 모두 도착하면 무승부입니다</li><li><b>메모</b> : 판의 칸을 누르면 ✕, 한 번 더 누르면 지워집니다. 나만 봅니다</li><li><b>제한 시간</b> : 시간이 지나면 무작위 방향으로 움직입니다. 시작 칸은 무작위로 고릅니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다</li><li><b>조작</b> : 화살표를 누른 뒤 <b>[이동]</b>, 또는 벽 버튼을 켜고 칸의 벽 세울 쪽을 누른 뒤 <b>[놓기]</b>입니다. 설정의 <b>두 번 눌러 놓기</b>를 켜면 같은 곳을 한 번 더 눌러 바로 합니다. 키보드는 화살표, 벽은 X입니다</li><li><b>선 플레이어</b> : 첫 판은 탁자 설정으로 정합니다(무작위면 주사위, 선택이면 방장이 대기실에서 고름). 결과 화면에서 바로 시작하면 다음 사람이 먼저 합니다</li></ol>';
 G.modeDesc=['깃발에 도착하면 끝','깃발에 도착하면 끝'];
 G.defaults={max:2,turn:30,walls:10,pickfirst:0};
 G.roomSet=[{k:'turn',label:'제한 시간',unit:'초',lo:10,hi:120,step:5,desc:'시간이 지나면 무작위 방향으로 움직입니다. 연결이 끊겨도 시간은 흐르고, 45초가 지나면 탈주로 처리합니다'},{k:'walls',label:'벽',unit:'개',lo:0,hi:20,step:1,desc:'한 사람이 세울 수 있는 벽의 수입니다'}];
@@ -305,7 +305,7 @@ function tapAt(fx,fy){
   }
   if(CS.ph==='place'&&!pickingNow()&&seatMe()&&V.st==='play')return;
   if(V.st==='play'||V.st==='over'){
-    const k=memo[c]||0,nx=(k+1)%3;if(nx)memo[c]=nx;else delete memo[c];
+    if(memo[c])delete memo[c];else memo[c]=1;
     saveMemo();sndLift(.07);redraw();
   }
 }
@@ -381,7 +381,7 @@ function ctlHTML(){
   const m=myIdx(),mine=myMove(),left=CS.left[m],sel=d=>pend&&pend.k==='dir'&&pend.d===d?' sel':'';
   const dist=(()=>{for(let k=CS.hist.length-1;k>=0;k--)if(CS.hist[k][1]>=0)return CS.hist[k][1];return -1})();
   const btn=(d,cl)=>`<button class="mia-dir ${cl}${sel(d)}" data-d="${d}" ${mine?'':'aria-disabled="true"'} aria-label="${DNAME[d]}쪽"><b>${DARROW[d]}</b><small>${DNAME[d]}</small></button>`;
-  return `<div class="mia-pad${mine?' on':''}">${btn(0,'n')}${btn(3,'w')}<div class="mia-dist" aria-label="내 깃발까지 거리"><b>${dist<0?'?':dist}</b></div>${btn(1,'e')}${btn(2,'s')}</div><button class="mia-wbtn${wallMode?' sel':''}${mine&&left>0?'':' off'}" data-w="1" aria-pressed="${wallMode}"><i></i>벽 ${left}</button>`;
+  return `<div class="mia-pad${mine?' on':''}">${btn(0,'n')}${btn(3,'w')}<div class="mia-dist" aria-label="내 깃발까지 거리"><b>${dist<0?'?':dist}</b>${dist<0?'':'<small>칸</small>'}</div>${btn(1,'e')}${btn(2,'s')}</div><button class="mia-wbtn${wallMode?' sel':''}${mine&&left>0?'':' off'}" data-w="1" aria-pressed="${wallMode}"><i></i>벽 ${left}</button>`;
 }
 function drawHint(){if(!elHint)return;const h=hintText();if(h!==lastHint){elHint.textContent=h;lastHint=h}}
 function fit(){
@@ -396,12 +396,12 @@ function drawAll(){
   const hs=histHTML();if(hs!==lastHist){elHist.innerHTML=hs;lastHist=hs}
   const showCtl=V.st==='play'&&CS.ph==='move'&&seatMe()&&!isOut(myIdx())&&!introWait();
   elCtl.hidden=!showCtl;
-  if(showCtl){const c=ctlHTML();if(c!==lastCtl){elCtl.innerHTML=c;lastCtl=c;if(popAt&&clock()-popAt<300){const d=elCtl.querySelector('.mia-dist');if(d)d.classList.add('pop')}}}else lastCtl='';
+  if(showCtl){const c=ctlHTML();if(c!==lastCtl){elCtl.innerHTML=c;lastCtl=c}if(popAt){popAt=0;const d=elCtl.querySelector('.mia-dist');if(d){d.classList.remove('pop');void d.offsetWidth;d.classList.add('pop')}}}else lastCtl='';
   drawHint();fit();
 }
 
 /* ---------- 3D: 공통 테이블 가운데 판, 벽, 깃발, 반투명 말 ---------- */
-const C=.46,HB=4.5*C,LIP=.04,RW=.3,FH=HB+LIP+RW,TOP=.15,PY=TOP+.004,WH=.2,WT=.075;
+const C=.46,HB=4.5*C,LIP=.04,RW=.3,FH=HB+LIP+RW,TOP=.15,PY=TOP+.004,WH=.1,WT=.085;
 const P3={on:false,built:false,fail:false,root:null,cam:null,dirty:true,lastR:0,lay:'',layAt:0,d:12,anim:[],walls:new Map(),pieces:[],flags:[],memo:new Map(),trail:[],dice:null,revealed:false};
 const ease=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 const dropY=(x,h)=>x>=1?0:x<.68?h*(1-(x/.68)*(x/.68)):h*.1*Math.sin(Math.PI*(x-.68)/.32);
@@ -417,13 +417,13 @@ function woodPaint(g,w,h,base,dark,n,seed){
 function drawBoardTex(g,Sz){
   const s=Sz/(2*FH),p=v=>(v+FH)*s;
   woodPaint(g,Sz,Sz,'#7a4a22','#2e170a',150,3);
-  for(let y=0;y<N;y++)for(let x=0;x<N;x++){g.fillStyle=(x+y)&1?'#e6d6b4':'#f0e4c8';g.fillRect(p(gW(x)-C/2),p(gW(y)-C/2),C*s,C*s)}
-  g.strokeStyle='#a98a5b';g.lineWidth=Math.max(1.5,Sz/640);
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){g.fillStyle=(x+y)&1?'#c9ae80':'#dcc69c';g.fillRect(p(gW(x)-C/2),p(gW(y)-C/2),C*s,C*s)}
+  g.strokeStyle='#7d6240';g.lineWidth=Math.max(2,Sz/420);
   for(let y=0;y<N;y++)for(let x=0;x<N;x++)g.strokeRect(p(gW(x)-C/2),p(gW(y)-C/2),C*s,C*s);
-  g.fillStyle='rgba(248,226,178,.62)';g.textAlign='center';g.textBaseline='middle';g.font=`600 ${Math.round(.1*s)}px "IBM Plex Mono",monospace`;
-  const lab=HB+LIP+.075,far=HB+LIP+.215;
+  g.fillStyle='rgba(255,236,196,.9)';g.textAlign='center';g.textBaseline='middle';g.font=`700 ${Math.round(.125*s)}px "IBM Plex Mono",monospace`;
+  const lab=HB+LIP+.08,far=HB+LIP+.225;
   for(let k=0;k<N;k++){g.fillText('ABCDEFGHI'[k],p(gW(k)),p(lab));g.fillText(String(N-k),p(-lab),p(gW(k)))}
-  g.fillStyle='rgba(255,236,190,.9)';g.font=`700 ${Math.round(.13*s)}px "Noto Sans KR",sans-serif`;
+  g.fillStyle='#ffe9b8';g.font=`800 ${Math.round(.135*s)}px "Noto Sans KR",sans-serif`;
   g.fillText('북',p(0),p(-far));g.fillText('남',p(0),p(far));g.fillText('서',p(-far),p(0));g.fillText('동',p(far),p(0));
 }
 const GEO={},MAT={};
@@ -466,13 +466,13 @@ G.holoPiece=mkM=>{
 };
 function dieMesh(hex){
   const g=new THREE.Group(),m=toon({color:new THREE.Color(hex).getHex(),rim:.25});
-  const a=new THREE.Mesh(GEO.dc||(GEO.dc=new THREE.ConeGeometry(.15,.15,5)),m);a.position.y=.075;a.castShadow=true;g.add(a);
-  const b=new THREE.Mesh(GEO.dc,m);b.rotation.x=Math.PI;b.position.y=-.075;b.castShadow=true;g.add(b);
+  const a=new THREE.Mesh(GEO.dc||(GEO.dc=new THREE.ConeGeometry(.26,.24,5)),m);a.position.y=.12;g.add(a);
+  const b=new THREE.Mesh(GEO.dc,m);b.rotation.x=Math.PI;b.position.y=-.12;g.add(b);
   return g;
 }
 function digitSprite(){
   const cv=document.createElement('canvas');cv.width=cv.height=96;const tx=new THREE.CanvasTexture(cv);
-  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,transparent:true,depthTest:false}));s.scale.set(.3,.3,1);s.renderOrder=20;
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,transparent:true,depthTest:false}));s.scale.set(.34,.34,1);s.renderOrder=20;
   s.userData.set=v=>{const c=cv.getContext('2d');c.clearRect(0,0,96,96);c.font='800 74px "IBM Plex Mono",monospace';c.textAlign='center';c.textBaseline='middle';c.lineWidth=11;c.strokeStyle='#2a1a0e';c.fillStyle='#fff6d8';c.strokeText(v,48,52);c.fillText(v,48,52);tx.needsUpdate=true};
   return s;
 }
@@ -616,9 +616,9 @@ function rollStep(now){
   }
   const has=!!CS.roll[i]&&!isOut(i);Dc.g.visible=has&&e<CS.cnt*ROLL_EACH;
   const tm=650,q=Math.min(1,l/tm),y=TOP+.34+Math.abs(Math.sin(q*Math.PI*2.5))*(1-q)*.8,spin=(1-q)*(1-q)*16;
-  Dc.a.position.set(-.26-(1-q)*.5,y,-(1-q)*.4);Dc.b.position.set(.26+(1-q)*.5,y,(1-q)*.3);
+  Dc.a.position.set(-.34-(1-q)*.5,y,-(1-q)*.4);Dc.b.position.set(.34+(1-q)*.5,y,(1-q)*.3);
   Dc.a.rotation.set(spin+1.1,spin*.7,spin*.4+.3);Dc.b.rotation.set(-spin+.9,spin*.5+2,-spin*.6);
-  if(l>tm&&!Dc.sa.visible){Dc.sa.position.set(-.26,y+.05,0);Dc.sb.position.set(.26,y+.05,0);Dc.sa.visible=Dc.sb.visible=has}
+  if(l>tm&&!Dc.sa.visible){Dc.sa.position.set(-.34,y+.3,0);Dc.sb.position.set(.34,y+.3,0);Dc.sa.visible=Dc.sb.visible=has}
   P3.flags.forEach((f,k)=>{
     const c=CS.flag[k];if(c<0||isOut(k)){f.visible=false;return}
     const t0=rollT0+(k+1)*ROLL_EACH-420,x=(now-t0)/320;
@@ -833,8 +833,8 @@ G.init=()=>{
 #mia .mia-hint{flex:0 0 auto;font-size:13px;line-height:1.3;color:#5b4129;background:rgba(255,250,240,.9);border:1px solid var(--line-strong,#cdb391);border-radius:99px;padding:4px 12px}
 #mia .mia-hist{display:flex;justify-content:flex-end;gap:4px;min-width:0;overflow:hidden;flex:0 1 auto}
 #mia .mia-hist:empty{display:none}
-#mia .mia-h{flex:none;display:inline-flex;align-items:baseline;gap:3px;font:600 13px "IBM Plex Mono",monospace;background:rgba(255,250,240,.9);border:1px solid var(--line-strong,#cdb391);border-radius:7px;padding:2px 6px;color:#3a2a1f}
-#mia .mia-h i{font-style:normal;color:#8a6a48;font-size:11px}
+#mia .mia-h{flex:none;display:inline-flex;align-items:baseline;gap:3px;font:700 15px "IBM Plex Mono",monospace;background:rgba(255,250,240,.9);border:1px solid var(--line-strong,#cdb391);border-radius:7px;padding:2px 6px;color:#3a2a1f}
+#mia .mia-h i{font-style:normal;color:#8a6a48;font-size:12px}
 #mia .mia-h.now{opacity:.65}
 #mia .mia-bd{position:relative;flex:1;min-height:0;width:100%}
 #mia svg.mia-board{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none;filter:drop-shadow(0 6px 8px rgba(59,42,31,.35))}
@@ -848,8 +848,9 @@ G.init=()=>{
 #mia .mia-dir small{font-size:10px;opacity:.85;margin-top:1px}
 #mia .mia-dir.sel{background:linear-gradient(#5fae4e,#3f8a32);box-shadow:0 0 0 2px #f2c94c}
 #mia .mia-dir.n{grid-area:1/2}#mia .mia-dir.w{grid-area:2/1}#mia .mia-dir.e{grid-area:2/3}#mia .mia-dir.s{grid-area:3/2}
-#mia .mia-dist{grid-area:2/2;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#2a1a0e;color:#ffd97a;box-shadow:inset 0 0 0 2px #6b3f1f}
-#mia .mia-dist b{font:700 24px "IBM Plex Mono",monospace}
+#mia .mia-dist{grid-area:2/2;display:flex;align-items:baseline;justify-content:center;gap:1px;line-height:48px;border-radius:50%;background:#2a1a0e;color:#ffd97a;box-shadow:inset 0 0 0 2px #6b3f1f}
+#mia .mia-dist b{font:700 24px/1 "IBM Plex Mono",monospace;align-self:center}
+#mia .mia-dist small{font-size:10px;align-self:center;margin-top:7px;opacity:.85}
 #mia .mia-dist.pop{animation:miaPop .45s}
 @keyframes miaPop{0%{transform:scale(1)}35%{transform:scale(1.28);background:#7a4a14}100%{transform:scale(1)}}
 #mia .mia-wbtn{all:unset;pointer-events:auto;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:6px;width:150px;height:38px;border-radius:10px;background:rgba(255,250,240,.95);border:1.5px solid var(--line-strong,#cdb391);font-size:14px;font-weight:600;color:#3a2a1f;cursor:pointer;touch-action:manipulation}
@@ -865,11 +866,14 @@ G.init=()=>{
 .stage.mia3d #mia.wide .mia-hist{flex-wrap:wrap;justify-content:flex-start}
 .stage.mia3d #mia.wide .mia-bar{min-height:0}
 .stage.mia3d .specbar:not([hidden])~#mia.wide .mia-bar{margin-top:30px}
-@media (max-width:699px) and (orientation:portrait){#mia{padding-bottom:112px}#mia .mia-mebar{bottom:70px;max-width:calc(100% - 24px)}
-#mia .mia-ctl{left:0;right:0;bottom:8px;flex-direction:row;justify-content:center}
+@media (max-width:699px) and (orientation:portrait){#mia{padding-bottom:112px}
+.stage.mia3d #mia .mia-row{width:calc(100% - 110px);align-self:flex-start;justify-content:flex-start}
+#mia .mia-h{font-size:13px;padding:2px 5px}#mia .mia-mebar{bottom:70px;max-width:calc(100% - 24px)}
+#mia .mia-ctl{left:0;right:0;bottom:16px;flex-direction:row;justify-content:center}
 #mia .mia-pad{grid-template:repeat(3,40px)/repeat(3,44px)}
 #mia .mia-dir small{display:none}
 #mia .mia-dist b{font-size:20px}
+#mia .mia-dist{line-height:40px}
 #mia .mia-wbtn{position:absolute;right:10px;bottom:62px;width:68px;height:44px;gap:4px;font-size:13px}
 #mia .mia-wbtn i{display:none}}
 @media (max-height:520px) and (orientation:landscape){#mia .mia-ctl{bottom:72px;right:12px;flex-direction:row-reverse;align-items:flex-end}#mia .mia-pad{grid-template:repeat(3,38px)/repeat(3,44px)}#mia .mia-dir small{display:none}#mia .mia-wbtn{width:62px;height:44px}#mia .mia-wbtn i{display:none}#mia .mia-dist b{font-size:18px}}
