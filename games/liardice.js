@@ -304,7 +304,7 @@ function doBidV(){if(!pickLegal()){sfx('no');return}send({t:'bid',q:pkQ,f:pkF})}
 function doGuraV(){if(!canGura()){sfx('no');return}send({t:'gura'})}
 function doExactV(){if(!canExact()){sfx('no');return}send({t:'exact'})}
 G.handMarks=()=>{};
-G.me=()=>{$('#numpick').hidden=true;mineLives()};
+G.me=()=>{$('#numpick').hidden=true};
 G.play=()=>doBidV();
 G.pass=()=>{};
 G.keyPhase=st=>st==='play';
@@ -339,16 +339,17 @@ function lifeHTML(i){
   if(o.cf.dl)return `<span class="ld-life" data-s="${i}">${dieSVG(5,'ld-mini')}<b>${o.dc[i]}</b></span>`;
   return `<span class="ld-life" data-s="${i}">${Array.from({length:o.cf.L},(_,k)=>`<i class="${k<o.lv[i]?'on':''}">${HEART}</i>`).join('')}</span>`;
 }
-G.nameTag=(p,i)=>V&&V.st!=='wait'&&O_()?lifeHTML(i):'';
-function mineLives(){
-  const me=$('#me'),i=myIdx();if(!me)return;
-  let el=me.querySelector('.ld-mine');
-  const on=i>=0&&V&&O_()&&V.st!=='wait'&&!O_().out[i];
-  if(!on){if(el)el.remove();return}
-  if(!el){el=document.createElement('span');el.className='ld-mine';me.appendChild(el)}
-  const h=lifeHTML(i);if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}
+G.nameTag=(p,i)=>V&&V.st!=='wait'&&O_()&&i!==myIdx()?lifeHTML(i):'';
+/* 내 생명은 내 이름 칸이 아니라 내 주사위 줄 바로 앞 탁자 위에 (공통 원칙: 내 이름 칸에는 이모티콘·닉네임만) */
+function removeMine(){}
+function drawMineLife(L,o,i){
+  const g=L.c.getContext('2d'),w=L.c.width,h=L.c.height;g.clearRect(0,0,w,h);
+  const heart=(x,y,r,on)=>{g.beginPath();g.moveTo(x,y+r*.9);g.bezierCurveTo(x-r*1.6,y-r*.1,x-r*.7,y-r*1.3,x,y-r*.45);g.bezierCurveTo(x+r*.7,y-r*1.3,x+r*1.6,y-r*.1,x,y+r*.9);g.fillStyle=on?'#d8352a':'rgba(59,42,31,.28)';g.fill()};
+  if(o.cf.dl){g.fillStyle='rgba(255,250,240,.9)';rr(g,w/2-118,h/2-46,92,92,18);g.fill();g.strokeStyle='#4a3020';g.lineWidth=6;g.stroke();g.fillStyle='#2a2118';for(const [a,b] of [[.25,.25],[.75,.25],[.5,.5],[.25,.75],[.75,.75]]){g.beginPath();g.arc(w/2-118+a*92,h/2-46+b*92,8,0,7);g.fill()}
+    g.fillStyle='#fff6e2';g.font='700 92px "IBM Plex Mono", monospace';g.textAlign='left';g.textBaseline='middle';g.shadowColor='rgba(0,0,0,.4)';g.shadowBlur=6;g.fillText('×'+o.dc[i],w/2-14,h/2+4);g.shadowBlur=0}
+  else{const n=o.cf.L,gap=72,x0=w/2-(n-1)*gap/2;for(let k=0;k<n;k++)heart(x0+k*gap,h/2,30,k<o.lv[i])}
+  L.t.needsUpdate=true;
 }
-function removeMine(){const el=$('#me')&&$('#me').querySelector('.ld-mine');if(el)el.remove()}
 
 /* ---------- 3D: 컵·주사위·가운데 선언 홀로그램 ----------
    남의 컵은 그 사람 앞(R_CUP)에 엎어 둠. 내 컵은 굴린 뒤 뒤로 눕혀 열고, 내 주사위는 내 앞에 한 줄로 세움(크게).
@@ -415,6 +416,8 @@ function build(){
     const c=document.createElement('canvas');c.width=NW;c.height=NH;const t=new THREE.CanvasTexture(c);t.anisotropy=4;
     const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,depthWrite:false}));sp.position.set(0,HY,.3);sp.scale.set(1.9,1.25,1);sp.renderOrder=55;root.add(sp);
     M.num={c,t,sp};
+    {const c2=document.createElement('canvas');c2.width=384;c2.height=128;const t2=new THREE.CanvasTexture(c2);t2.anisotropy=4;
+     const m=new THREE.Mesh(new THREE.PlaneGeometry(1.2,.4),new THREE.MeshBasicMaterial({map:t2,transparent:true,depthWrite:false}));m.rotation.order='YXZ';m.rotation.x=-Math.PI/2;m.renderOrder=2;m.visible=false;root.add(m);M.life={c:c2,t:t2,m,key:''}}
     if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{M.key=''});
     M.built=true;
   }catch(e){M.fail=true;try{console.warn('구라! 다이스 3D 준비 실패',e)}catch(_){}}
@@ -523,6 +526,10 @@ function step(){
       if(lit.has(key)){rg.visible=true;rg.position.set(p.x,.022,p.z);rg.rotation.y=yaw;rg.scale.setScalar(s*1.6);rg.material.opacity=.8+.2*Math.sin(now/160)}
     }
   }
+  /* 내 생명: 주사위 줄 바로 앞(내 쪽) 나무 위. 좁은 화면에서도 잘리지 않게 가운데 */
+  {const L=M.life,ok=show&&me>=0&&!o.out[me];L.m.visible=ok;
+   if(ok){const a=seatAngle(me),off=0,r=R_MINE+.5;L.m.position.set(Math.sin(a)*r+Math.cos(a)*off,.02,Math.cos(a)*r-Math.sin(a)*off);L.m.rotation.y=a;
+     const k=[o.cf.dl,o.cf.L,o.lv[me],o.dc[me]].join();if(k!==L.key){L.key=k;drawMineLife(L,o,me)}}}
   /* 가운데 홀로그램 */
   const sp=M.num.sp;sp.visible=show&&(!!o.bid||inShow||o.pal>=0);
   if(sp.visible){
@@ -543,6 +550,7 @@ function clearAll(){
   for(const a of M.dice)for(const d of a||[])if(d)d.visible=false;
   for(const a of M.rings)for(const d of a||[])if(d)d.visible=false;
   if(M.num)M.num.sp.visible=false;
+  if(M.life)M.life.m.visible=false;
 }
 
 /* ---------- 시작 연출: 컵이 자리에 내려앉고 가운데에서 첫 차례 주사위 ---------- */
@@ -607,12 +615,12 @@ function draw2d(){
     const r={wild:o.cf.wild,pal:o.pal>=0},R=RES[o.sh.res]||['',''];
     h+=`<p class="ld-now">${o.sh.bid.q} ${dieSVG(o.sh.bid.f)} → <b>${o.sh.n}개</b> <span style="color:${R[1]}">${R[0]}</span></p>`;
     h+='<div class="ld-rows">'+(o.all||[]).map((d,i)=>d.length?`<div class="ld-row"><b>${esc(nameOf(i))}</b>${d.map(v=>dieSVG(v,matches(v,o.sh.bid.f,r)?'hit':'')).join('')}</div>`:'').join('')+'</div>';
-  }else if(o.my&&me>=0&&o.ph!=='roll')h+=`<div class="ld-rows"><div class="ld-row me">${o.my.map(v=>dieSVG(v)).join('')}</div></div>`;
+  }else if(o.my&&me>=0&&o.ph!=='roll')h+=`<div class="ld-rows"><div class="ld-row me">${lifeHTML(me)}${o.my.map(v=>dieSVG(v)).join('')}</div></div>`;
   if(h!==last2d){el2d.innerHTML=h;last2d=h}
 }
 G.live=()=>{
   if(!elBox||!O_())return;
-  drawPick();drawCalls();keyTags();draw2d();mineLives();introTick2d();
+  drawPick();drawCalls();keyTags();draw2d();introTick2d();
 };
 G.hud=inGame=>{
   if(!elBox)return;
