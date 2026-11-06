@@ -5,9 +5,10 @@ const pass=ms=>{for(let k=0;k<ms/50;k++){NOW+=50;engineTick()}};
 const setup=(n,bots,over)=>{
   hostNew(false,'t','t');H.cfg={...cfgFor('liardice'),game:'liardice',...(over||{})};
   H.members=[];for(let i=0;i<n;i++)H.members.push(bots&&i>=bots?{name:'b'+i,bot:true,conn:null,host:false,lv:0}:{name:'p'+i,bot:false,conn:i?{}:null,host:i===0,cid:i?'c'+i:''});
-  hostStart();pass(9000);
+  hostStart();pass(4000);rollAll();
 };
 const act=(s,a)=>LD.engine.act(s,a);
+function rollAll(){H.players.forEach((p,i)=>{if(!p.finished)LD.engine.act(i,{t:'roll'})});pass(TT.SETTLE_MS+100)}
 /* 0번 차례, 주사위를 정해 둠 */
 const at0=dice=>{const O=H.ld;O.ph='bid';O.bid=null;O.sh=null;H.turn=0;H.deadline=NOW+60000;H.botActAt=0;if(dice)O.dice=dice.map(d=>d.slice())};
 const R0={wild:0,pal:false,free:false},RW={wild:1,pal:false,free:false};
@@ -35,7 +36,7 @@ act(2,{t:'bid',q:4,f:2});eq(H.ld.bid.q,4,'more count lower face');
 /* 구라!: 선언이 맞음(2가 4개) → 외친 사람 -1, 그 사람부터 */
 act(2,{t:'gura'});eq(H.ld.ph,'bid','bidder cannot call');
 act(1,{t:'gura'});eq(H.ld.ph,'show','called by anyone');eq(H.ld.sh.n,4,'count 2s');eq(H.ld.sh.res,'true','true');eq(snapFor(0).ld.all.length,3,'shown to all');eq(snapFor(0).t,undefined,'no turn while showing');
-eq(H.players[1].lv,3,'not yet (after show)');pass(H.ld.sh.ms+100);eq(H.players[1].lv,2,'caller lost');eq(H.ld.ph,'roll','new roll');eq(H.ld.start,1,'loser starts');pass(TT.ROLL_MS+100);eq(H.turn,1,'loser turn')
+eq(H.players[1].lv,3,'not yet (after show)');pass(H.ld.sh.ms+100);eq(H.players[1].lv,2,'caller lost');eq(H.ld.ph,'roll','new roll');eq(H.ld.start,1,'loser starts');rollAll();eq(H.turn,1,'loser turn')
 /* 구라!: 선언이 틀림 → 선언한 사람 -1 */
 setup(3);at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:5,f:2});act(2,{t:'gura'});eq(H.ld.sh.res,'lie','lie');pass(H.ld.sh.ms+100);eq(H.players[0].lv,2,'bidder lost');eq(H.ld.start,0,'bidder starts');
 /* 1 와일드 */
@@ -60,7 +61,7 @@ setup(3,0,{calza:1});at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q
 {const old=H.cfg;H.cfg={...old,spot:1,calza:0};const c=LD.fixCfg({...H.cfg,calza:1},3,true);eq(c.spot+c.calza,1,'exclusive');eq(c.calza,1,'newest wins');H.cfg=old}
 /* 팔리피코: 1개 남은 사람부터, 1 와일드 아님, 눈 고정 */
 setup(3,0,{wild:1,dl:1,pal:1});at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);H.players[0].dc=2;H.ld.dice[0]=[2,2];act(0,{t:'bid',q:9,f:2});act(1,{t:'gura'});pass(H.ld.sh.ms+100);
-  eq(H.ld.pal,0,'palifico round');eq(H.ld.start,0,'pal player starts');pass(TT.ROLL_MS+100);
+  eq(H.ld.pal,0,'palifico round');eq(H.ld.start,0,'pal player starts');rollAll();
   H.ld.dice=[[3],[1,1,4,4,6],[2,5,5,6,6]];act(0,{t:'bid',q:1,f:1});eq(H.ld.bid&&H.ld.bid.f,1,'open ones in palifico');act(1,{t:'bid',q:2,f:4});eq(H.ld.bid.f,1,'face locked');act(1,{t:'bid',q:2,f:1});act(2,{t:'gura'});eq(H.ld.sh.n,2,'ones count');
   pass(H.ld.sh.ms+100);eq(H.ld.pal,-1,'one palifico only');
 /* 시간 초과: 선언 없으면 가장 낮은 선언, 있으면 구라! */
@@ -77,3 +78,14 @@ for(const over of [{},{wild:1,dl:1,calza:1,pal:1},{spot:1,lives:2}]){
   }
 }
 console.log('liardice ok');
+
+/* 굴리기: 흔들기·엎기, 다 엎어야 선언 시작, 10초면 저절로, 봇은 알아서 */
+setup(3);at0();{const O=H.ld;act(0,{t:'bid',q:1,f:2});act(1,{t:'gura'});pass(O.sh.ms+100);eq(H.ld.ph,'roll','roll phase');
+  act(2,{t:'shake',on:1});eq(H.ld.shk[2],1,'shaking');eq(snapFor(0).ld.sk[2],1,'shake shown');act(2,{t:'roll'});eq(H.ld.rolled[2],1,'rolled');eq(H.ld.shk[2],0,'stop shaking');
+  pass(2000);eq(H.ld.ph,'roll','waits for all');eq(snapFor(0).t,undefined,'no turn while rolling');act(0,{t:'roll'});act(1,{t:'roll'});pass(TT.SETTLE_MS+100);eq(H.ld.ph,'bid','all rolled')}
+setup(3);at0();{act(0,{t:'bid',q:1,f:2});act(1,{t:'gura'});pass(H.ld.sh.ms+100);pass(TT.ROLL_WAIT+TT.SETTLE_MS+200);eq(H.ld.ph,'bid','auto roll after 10s')}
+setup(3,1);{act(0,{t:'bid',q:1,f:2});}
+setup(3,1);at0();{act(0,{t:'bid',q:1,f:2});act(1,{t:'gura'});pass(H.ld.sh.ms+100);act(0,{t:'roll'});pass(3500);eq(H.ld.rolled.every(Boolean),true,'bots roll themselves');eq(H.ld.ph,'bid','bid after bots')}
+/* 들춰 보기: 선언 단계에만, 모두에게 들린 것만 */
+setup(3);at0();act(2,{t:'peek',on:1});eq(snapFor(0).ld.pk[2],1,'peek shown');eq(snapFor(0).ld.all,undefined,'dice still hidden');act(2,{t:'peek',on:0});eq(H.ld.pk[2],0,'peek off');
+console.log('liardice roll ok');

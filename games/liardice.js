@@ -10,7 +10,7 @@
 const G={id:'liardice',name:'구라! 다이스',short:'다이스',lead:'컵 속 주사위로 허세를 부리는 게임',maxHi:4,minN:2,noFast:true,oneBotLv:true,botLvs:['쉬움'],firstPick:true};
 
 /* ---------- 규칙 값 ---------- */
-const ROLL_MS=1300,OPEN_MS=450;
+const ROLL_WAIT=10000,SETTLE_MS=450;   // 굴리기: 각자 컵을 흔들어 엎음. 10초 안에 안 엎으면 저절로, 모두 엎으면 잠깐 뒤 선언 시작
 /* 공개 연출 (ms, 공개 시작 기준): 말풍선 → 컵이 들림 → 맞는 주사위를 하나씩 셈 → 판정 → 끝 */
 const SH={lift:450,liftDur:550,count0:1150,per:190,verdictGap:300,hold:1900};
 const showLen=n=>SH.count0+n*SH.per+SH.verdictGap+SH.hold;
@@ -40,7 +40,7 @@ const matches=(d,f,r)=>d===f||(r.wild&&!r.pal&&f!==1&&d===1);
 G.cardHTML=()=>'';G.drawFace=()=>{};G.cmpCard=()=>0;G.labelOf=()=>'';   // 카드 없음 (hand는 표시용 값 하나)
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>준비</b> : 각자 주사위 5개를 컵으로 덮어 굴립니다. 내 주사위는 나만 봅니다. 생명은 3개입니다</li><li><b>선언</b> : 차례대로 "이 눈이 모두의 주사위를 합쳐 <b>최소 몇 개</b>"라고 선언합니다. 오른쪽 아래에서 눈과 개수를 고르고 [선언]을 누릅니다</li><li><b>올리기</b> : 다음 사람은 개수를 올리거나(눈은 아무거나), 개수는 그대로 두고 더 큰 눈으로 올립니다</li><li><b>구라!</b> : 선언이 아닌 것 같으면 선언한 사람 말고 누구든 <b>구라!</b>를 외칩니다. 모두 공개해서 그 눈이 선언한 개수 이상이면 구라!를 외친 사람이, 모자라면 선언한 사람이 생명 1개를 잃습니다</li><li><b>다음 판</b> : 생명을 잃은 사람부터 다시 굴립니다. 생명이 모두 없어지면 탈락하고, 마지막까지 남은 사람이 <b>승리</b>합니다</li><li><b>제한 시간</b> : 시간이 지나면 선언이 있으면 구라!, 없으면 가장 낮은 선언을 합니다</li><li><b>규칙 묶음</b> : 탁자 설정에서 구라! 다이스(위 규칙)·페루도·커스텀을 고릅니다<ul><li><b>1 와일드</b> : 1은 모든 눈으로 셉니다. 첫 선언은 1로 할 수 없습니다. 다른 눈에서 1로 바꿀 때는 개수를 절반(올림)까지 내릴 수 있고, 1에서 다른 눈으로 바꿀 때는 두 배 + 1 이상이어야 합니다</li><li><b>주사위 잃기</b> : 생명 대신 주사위를 하나씩 잃습니다. 주사위가 모두 없어지면 탈락합니다</li><li><b>spot on</b> : 내 차례에 직전 선언에 <b>도전</b>할 수 있습니다. 개수가 정확하면 나를 뺀 모두가, 아니면 내가 1개를 잃습니다. 구라!를 외쳤는데 개수가 정확하면(spot on!) 선언한 사람을 뺀 모두가 1개를 잃습니다</li><li><b>칼사</b> : 내 차례에 직전 선언이 정확하다고 <b>칼사</b>를 외칩니다. 맞으면 내가 1개를 되찾고(처음 개수까지), 틀리면 1개를 잃습니다</li><li><b>팔리피코</b> : 처음으로 1개만 남은 사람이 생기면 그 사람부터 한 판 동안 1이 와일드가 아니고, 처음 선언한 눈을 바꿀 수 없습니다(1개만 남은 사람은 바꿀 수 있음). 사람마다 한 번만 열립니다</li></ul></li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>굴리기</b> : 판마다 모두 함께 굴립니다. 내 컵을 누르고 있으면 흔들리고, 떼면 엎어집니다(10초가 지나면 저절로). 생명은 3개, 주사위는 5개입니다</li><li><b>확인</b> : 엎은 컵을 누르고 있는 동안 내 쪽이 들려 내 주사위를 봅니다. 떼면 닫힙니다. 다른 사람에게는 컵이 들린 것만 보이고 눈은 보이지 않습니다</li><li><b>선언</b> : 차례대로 "이 눈이 모두의 주사위를 합쳐 <b>최소 몇 개</b>"라고 선언합니다. 오른쪽 아래에서 눈과 개수를 고르고 [선언]을 누릅니다</li><li><b>올리기</b> : 다음 사람은 개수를 올리거나(눈은 아무거나), 개수는 그대로 두고 더 큰 눈으로 올립니다</li><li><b>구라!</b> : 선언이 아닌 것 같으면 선언한 사람 말고 누구든 <b>구라!</b>를 외칩니다. 모두 공개해서 그 눈이 선언한 개수 이상이면 구라!를 외친 사람이, 모자라면 선언한 사람이 생명 1개를 잃습니다</li><li><b>다음 판</b> : 생명을 잃은 사람부터 다시 굴립니다. 생명이 모두 없어지면 탈락하고, 마지막까지 남은 사람이 <b>승리</b>합니다</li><li><b>제한 시간</b> : 시간이 지나면 선언이 있으면 구라!, 없으면 가장 낮은 선언을 합니다</li><li><b>규칙 묶음</b> : 탁자 설정에서 구라! 다이스(위 규칙)·페루도·커스텀을 고릅니다<ul><li><b>1 와일드</b> : 1은 모든 눈으로 셉니다. 첫 선언은 1로 할 수 없습니다. 다른 눈에서 1로 바꿀 때는 개수를 절반(올림)까지 내릴 수 있고, 1에서 다른 눈으로 바꿀 때는 두 배 + 1 이상이어야 합니다</li><li><b>주사위 잃기</b> : 생명 대신 주사위를 하나씩 잃습니다. 주사위가 모두 없어지면 탈락합니다</li><li><b>spot on</b> : 내 차례에 직전 선언에 <b>도전</b>할 수 있습니다. 개수가 정확하면 나를 뺀 모두가, 아니면 내가 1개를 잃습니다. 구라!를 외쳤는데 개수가 정확하면(spot on!) 선언한 사람을 뺀 모두가 1개를 잃습니다</li><li><b>칼사</b> : 내 차례에 직전 선언이 정확하다고 <b>칼사</b>를 외칩니다. 맞으면 내가 1개를 되찾고(처음 개수까지), 틀리면 1개를 잃습니다</li><li><b>팔리피코</b> : 처음으로 1개만 남은 사람이 생기면 그 사람부터 한 판 동안 1이 와일드가 아니고, 처음 선언한 눈을 바꿀 수 없습니다(1개만 남은 사람은 바꿀 수 있음). 사람마다 한 번만 열립니다</li></ul></li></ol>';
 G.modeDesc=['마지막 한 사람이 남을 때까지','마지막 한 사람이 남을 때까지'];
 G.defaults={max:4,turn:30,lives:3,dice:5,wild:0,dl:0,spot:0,calza:0,pal:0,pickfirst:0};
 G.roomSet=[
@@ -92,7 +92,7 @@ G.rankTitle=()=>'';
 G.finLabel=f=>f===1?'승리':'탈락';
 G.noEmotes=[];
 G.keys={ldExact:'KeyG'};   // 구라!는 구라! 키(gura), 선언은 내기 키(play), 개수는 ↑↓(bjUp·bjDown)·선언 휠 키(numUp·numDown), 눈은 ←→(miaL·miaR)
-G.keyActions=[{a:'ldExact',n:'도전 / 칼사',d:'구라! 다이스: 직전 선언이 정확하다고 외칩니다(spot on·칼사를 켰을 때). 구라!는 구라! 키, 선언은 내기 키, 개수는 ↑↓, 눈은 ←→를 같이 씁니다'}];
+G.keyActions=[{a:'ldExact',n:'도전 / 칼사',d:'구라! 다이스: 직전 선언이 정확하다고 외칩니다(spot on·칼사를 켰을 때). 구라!는 구라! 키, 선언은 내기 키, 개수는 ↑↓, 눈은 ←→, 컵(누르고 있으면 흔들기·들춰 보기)은 야추다이스 굴리기 키를 같이 씁니다'}];
 
 /* ---------- 방장 엔진 ---------- */
 const C=()=>{const c=H.cfg;return {wild:+c.wild?1:0,dl:+c.dl?1:0,spot:+c.spot?1:0,calza:+c.calza&&!+c.spot?1:0,pal:+c.pal?1:0,L:Math.max(1,Math.min(5,+c.lives||3)),D:Math.max(2,Math.min(6,+c.dice||5))}};
@@ -108,8 +108,18 @@ function startRound(st){
   const O=H.ld;
   O.pal=O.palNext;O.palNext=-1;
   O.dice=H.players.map((p,i)=>p.finished?[]:Array.from({length:O.cf.dl?p.dc:O.cf.D},()=>1+(Math.random()*6|0)).sort((a,b)=>a-b));
-  Object.assign(O,{bid:null,hist:[],ph:'roll',rollAt:clock()+ROLL_MS,rn:O.rn+1,start:st,sh:null});
+  const now=clock();
+  Object.assign(O,{bid:null,hist:[],ph:'roll',rollDl:now+ROLL_WAIT,rollAt:0,rn:O.rn+1,start:st,sh:null,
+    rolled:H.players.map(p=>p.finished?1:0),shk:H.players.map(()=>0),pk:H.players.map(()=>0),
+    bt:H.players.map(p=>p.bot?{s:now+rand(500,1400),r:0}:null)});
+  O.bt.forEach(b=>{if(b)b.r=b.s+rand(700,1300)});
   H.turn=st;H.deadline=clock()+864e5;H.botActAt=0;H.seatNote={};mark();
+}
+function doRoll(seat){
+  const O=H.ld;if(O.rolled[seat])return;
+  O.rolled[seat]=1;O.shk[seat]=0;pushEv({k:'r',s:seat});
+  if(O.rolled.every(Boolean))O.rollAt=clock()+SETTLE_MS;
+  mark();
 }
 function doBid(seat,q,f){
   const O=H.ld;O.bid={q,f,s:seat};O.hist.push({q,f,s:seat});if(O.hist.length>16)O.hist.shift();H.seatNote={};
@@ -209,10 +219,10 @@ function doSurrender(seat){
   if(checkOver())return;
   if(O.ph==='show'){if(O.sh.st===seat)O.sh.st=nextAlive(seat);mark();return}
   if(O.ph==='bid'&&(H.turn===seat||(O.bid&&O.bid.s===seat))){startRound(nextAlive(seat));return}   // 그 사람의 차례·선언이 걸려 있으면 다시 굴림
-  if(O.ph==='bid'||O.ph==='roll'){O.dice[seat]=[];if(O.start===seat)O.start=nextAlive(seat);if(O.ph==='roll'&&H.turn===seat)H.turn=O.start}
+  if(O.ph==='bid'||O.ph==='roll'){O.dice[seat]=[];if(O.start===seat)O.start=nextAlive(seat);if(O.ph==='roll'){H.turn=O.start;doRoll(seat)}}
   mark();
 }
-G._test={minQ,countOf,SH,showLen,ROLL_MS,PRESET,presetOf,botAct};
+G._test={minQ,countOf,SH,showLen,ROLL_WAIT,SETTLE_MS,PRESET,presetOf,botAct};
 G.engine={
   start(){
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,known:{},turn:0,botActAt:0,deadline:0});
@@ -227,7 +237,14 @@ G.engine={
     const O=H.ld;
     if(!O||H.phase!=='play'||seat<0||seat>=H.players.length)return;
     if(a.t==='surrender'){doSurrender(seat);return}
-    if(dealing()||O.ph!=='bid'||H.players[seat].finished)return;
+    if(dealing()||H.players[seat].finished)return;
+    if(O.ph==='roll'){
+      if(a.t==='shake'&&!O.rolled[seat]){const v=a.on?1:0;if(O.shk[seat]!==v){O.shk[seat]=v;mark()}}
+      else if(a.t==='roll')doRoll(seat);
+      return;
+    }
+    if(O.ph!=='bid')return;
+    if(a.t==='peek'){const v=a.on?1:0;if(O.pk[seat]!==v){O.pk[seat]=v;mark()}return}
     if(a.t==='gura'){if(O.bid&&O.bid.s!==seat)doCall(seat,'g');return}
     if(H.turn!==seat)return;
     if(a.t==='bid'){
@@ -238,10 +255,17 @@ G.engine={
   },
   tick(t){
     const O=H.ld;if(!O||H.phase!=='play')return;
-    if(O.ph==='roll'){if(t>=O.rollAt){O.ph='bid';setTurn(aliveOr(O.start))}return}
+    if(O.ph==='roll'){
+      if(O.rollAt){if(t>=O.rollAt){O.ph='bid';O.pk=H.players.map(()=>0);setTurn(aliveOr(O.start))}return}
+      H.players.forEach((p,i)=>{const b=O.bt[i];if(!b||O.rolled[i]||p.finished)return;   // 봇: 잠깐 흔들고 엎음
+        if(t>=b.r)doRoll(i);else if(t>=b.s&&!O.shk[i]){O.shk[i]=1;mark()}});
+      if(t>=O.rollDl&&!O.rolled.every(Boolean))H.players.forEach((p,i)=>{if(!O.rolled[i])doRoll(i)});   // 10초가 지나면 저절로
+      return;
+    }
     if(O.ph==='show'){if(t>=O.sh.t0+O.sh.ms)endShow();return}
     if(O.ph!=='bid')return;
     const cur=H.players[H.turn];
+    if(cur.bot&&H.botActAt){const v=t>=H.botActAt-1700&&t<H.botActAt-550?1:0;if(O.pk[H.turn]!==v){O.pk[H.turn]=v;mark()}}   // 봇도 선언 전에 한 번 들춰 봄
     if(t>=H.deadline)timeout();
     else if(cur.bot&&H.botActAt&&t>=H.botActAt&&!(cur.away&&t<cur.awayAt+AWAY_WAIT))botAct(H.turn);
   },
@@ -251,12 +275,13 @@ G.engine={
       dn:O.dice.map(d=>d.length),lv:H.players.map(p=>p.lv),dc:H.players.map(p=>p.dc),out:H.players.map(p=>p.finished?1:0),T:totalDice(),sq:O.sq,ev:O.ev.map(e=>({...e}))};
     if(you>=0&&O.dice[you])s.ld.my=O.dice[you].slice();
     if(open&&O.sh)s.ld.all=O.dice.map(d=>d.slice());
-    if(O.ph==='roll')s.ld.ra=Math.max(0,Math.round(O.rollAt-t));
+    if(O.ph==='roll'){s.ld.rd=O.rolled.slice();s.ld.sk=O.shk.slice();s.ld.ra=Math.max(0,Math.round(O.rollDl-t))}
+    if(O.ph==='bid')s.ld.pk=O.pk.slice();
     if(O.sh)s.ld.sh={k:O.sh.k,by:O.sh.by,bid:{...O.sh.bid},n:O.sh.n,res:O.sh.res,d:{...O.sh.d},m:O.sh.m,ms:O.sh.ms,el:Math.max(0,Math.round(t-O.sh.t0))};
     s.gr=0;s.dl=O.ph==='bid'&&H.phase==='play'?Math.max(0,Math.round(H.deadline-t)):0;
     if(O.ph!=='bid')delete s.t;
   },
-  restore(ms){const O=H.ld;if(!O)return;if(O.rollAt)O.rollAt+=ms;if(O.sh)O.sh.t0+=ms},
+  restore(ms){const O=H.ld;if(!O)return;if(O.rollAt)O.rollAt+=ms;if(O.rollDl)O.rollDl+=ms;if(O.bt)O.bt.forEach(b=>{if(b){b.s+=ms;b.r+=ms}});if(O.sh)O.sh.t0+=ms},
   emoPhase:ph=>ph==='play'||ph==='over'
 };
 
@@ -264,7 +289,7 @@ G.engine={
 const PIPS={1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
 const dieSVG=(v,cls)=>`<svg class="ld-d ${cls||''}" viewBox="0 0 30 30" aria-label="${v}"><rect x="1.5" y="1.5" width="27" height="27" rx="6" fill="#fbf3e0" stroke="#4a3020" stroke-width="2"/>${(PIPS[v]||[]).map(k=>`<circle cx="${[8,15,22][(k-1)%3]}" cy="${[8,15,22][Math.floor((k-1)/3)]}" r="${v===1?4.2:2.8}" fill="${v===1?'#cc3a2e':'#2a2118'}"/>`).join('')}</svg>`;
 const HEART='<svg viewBox="0 0 20 18" class="ld-h"><path d="M10 17 2.4 9.6A4.6 4.6 0 0 1 10 3.4a4.6 4.6 0 0 1 7.6 6.2z"/></svg>';
-let elBox=null,el2d=null,elPick=null,elCalls=null,elG=null,elX=null,elBid=null;
+let elBox=null,el2d=null,elPick=null,elCalls=null,elG=null,elX=null,elBid=null,elCup=null,elPU=null;
 let pkF=2,pkQ=1,pkCtx='',lockAt=-1e9,last2d='',lastPick='';
 const O_=()=>V&&V.ld;
 const iSeat=()=>{const i=myIdx();return i>=0&&V&&V.ps&&i<V.ps.length&&O_()&&!O_().out[i]};
@@ -313,6 +338,7 @@ G.onKey=(act,e)=>{
   if(act==='play'){if(!e.repeat)doBidV();return true}
   if(act==='gura'){if(!e.repeat)doGuraV();return true}
   if(act==='ldExact'){if(!e.repeat)doExactV();return true}
+  if(act==='yroll'){if(!e.repeat)holdStart('key');return true}   // 컵 키(야추다이스 굴리기 키와 같음): 누르는 동안 흔들기·들춰 보기
   if(act==='bjUp'||act==='numUp'){stepQ(1);return true}
   if(act==='bjDown'||act==='numDown'){stepQ(-1);return true}
   if(act==='miaL'){stepF(-1);return true}
@@ -327,10 +353,10 @@ const NM={g:'구라!',x:'도전!',c:'칼사!'};
 G.cues=(v,pv)=>{
   const a=v.ld,b=pv&&pv.ld;if(!a||!b||a.gn!==b.gn)return;
   for(const e of a.ev)if(e.q>b.sq){
-    if(e.k==='b'){sfx('play',1);showBubble(e.s,`<span class="bt sm ld-bb"><b>${e.q}</b>${dieSVG(e.f)}</span>`,1900,'soft')}
+    if(e.k==='r'){if(e.s!==myIdx())sndSlam(.45)}
+    else if(e.k==='b'){sfx('play',1);showBubble(e.s,`<span class="bt sm ld-bb"><b>${e.q}</b>${dieSVG(e.f)}</span>`,1900,'soft')}
     else if(e.k==='c'){if(e.c==='g'){sfx('gura');showBubble(e.s,'<span class="bt">구라!</span>',2100,'real')}else{sfx('gura');showBubble(e.s,`<span class="bt">${NM[e.c]}</span>`,2100,'ldx')}}
   }
-  if(a.rn!==b.rn&&a.ph==='roll')sfx('dice');
 };
 /* 생명·주사위: 이름표 (주사위 잃기면 주사위 아이콘 + 개수, 아니면 하트) */
 const SHOWN={k:'',v:null};   // 공개 연출이 판정에 닿기 전에는 생명이 줄지 않게: 다음 판 상태가 오기 전까지 스냅샷 값 그대로
@@ -352,11 +378,14 @@ function drawMineLife(L,o,i){
 }
 
 /* ---------- 3D: 컵·주사위·가운데 선언 홀로그램 ----------
-   남의 컵은 그 사람 앞(R_CUP)에 엎어 둠. 내 컵은 굴린 뒤 뒤로 눕혀 열고, 내 주사위는 내 앞에 한 줄로 세움(크게).
-   공개: 남의 컵이 들려 바깥쪽에 엎어지고, 주사위가 커지며 퍼짐. 선언한 사람부터 시계 방향으로 맞는 주사위에 빛 고리 + 톡 튐, 가운데 숫자가 하나씩 오름.
-   모든 움직임은 시각(판 시작·공개 시작)으로 계산 (상태 없음) */
-const R_CUP=2.5,R_ASIDE=3.5,R_MINE=3.05,CUP_K=.82,DS=.27,DSM=.36,HY=.9,NW=640,NH=420;
-const M={on:false,built:false,fail:false,root:null,raf:0,cups:[],dice:[],rings:[],num:null,key:'',rn:-1,gn:-1,rollEnd:0,showT0:0,shKey:'',lastTick:-1,introT0:0,introTotal:0,fp:null,die:null,said:true};
+   굴리기(roll): 컵은 똑바로 서 있음. 내 컵을 누르고 있으면 들려서 흔들리고, 떼면 탁 엎어짐(방장에게 굴리기). 남의 컵도 흔드는 중·엎음이 보임.
+   선언(bid): 모든 컵은 그 사람 앞에 엎여 있음. 내 컵을 누르고 있는 동안 내 쪽이 들려 컵 크기에 맞게 뭉친 주사위가 보이고(공중에 2D로 눈도), 떼면 바로 닫힘.
+   남이 들면 그 사람 쪽으로 들리고 아래에는 눈 없는 하얀 주사위가 보임.
+   공개(show): 모든 컵이 들려 바깥쪽에 엎어지고, 주사위가 커지며 퍼짐. 선언한 사람부터 시계 방향으로 맞는 주사위에 빛 고리 + 톡 튐, 가운데 숫자가 하나씩 오름.
+   모든 움직임은 시각(판 시작·엎은 때·든 때·공개 시작)으로 계산 */
+const R_CUP=2.5,R_ME=2.72,R_ASIDE=3.5,CUP_K=.82,K_ME=1.15,DS=.26,DS_ME=.34,HY=.9,NW=640,NH=420;
+const M={on:false,built:false,fail:false,root:null,raf:0,cups:[],dice:[],blank:[],rings:[],num:null,life:null,glow:null,key:'',rn:-1,gn:-1,roundT0:0,prevSh:null,lastSh:null,showT0:0,shKey:'',lastTick:-1,verdictSaid:false,rdAt:[],pkS:[],rattleAt:0,hitKey:'',puKey:''};
+const HOLD={on:false,mode:'',rolledAt:0,src:''};
 const ez=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 const lerp=(a,b,k)=>a+(b-a)*k;
 function roundBox(s,r,seg){
@@ -375,18 +404,15 @@ function pipTex(v){
     g.fillStyle='#fbf3e0';g.fillRect(0,0,w,h);
     const gr=g.createRadialGradient(w/2,h/2,w*.32,w/2,h/2,w*.74);gr.addColorStop(0,'rgba(120,90,50,0)');gr.addColorStop(1,'rgba(120,90,50,.2)');g.fillStyle=gr;g.fillRect(0,0,w,h);
     const P=[.26,.5,.74],R=v===1?w*.135:w*.088;
-    for(const k of PIPS[v]){const x=P[(k-1)%3]*w,y=P[Math.floor((k-1)/3)]*h;g.fillStyle=v===1?'#cc3a2e':'#2a2118';g.beginPath();g.arc(x,y,R,0,7);g.fill()}
+    for(const k of PIPS[v]||[]){const x=P[(k-1)%3]*w,y=P[Math.floor((k-1)/3)]*h;g.fillStyle=v===1?'#cc3a2e':'#2a2118';g.beginPath();g.arc(x,y,R,0,7);g.fill()}
   });
 }
 /* 눈 v가 위로 오는 회전 (면 순서 +x,-x,+y,-y,+z,-z = 3,4,1,6,2,5) */
 const UP={1:[0,0,0],6:[Math.PI,0,0],3:[0,0,Math.PI/2],4:[0,0,-Math.PI/2],2:[-Math.PI/2,0,0],5:[Math.PI/2,0,0]};
-const qUp={};
-const TILT=.62;   // 내 주사위는 윗면이 내 눈 쪽으로 오게 앞으로 기울임 (위에서 비스듬히 보면 옆면과 섞여 읽기 어려움)
-function dieQ(v,yaw,tilt){
-  if(!qUp[v]){const e=UP[v];qUp[v]=new THREE.Quaternion().setFromEuler(new THREE.Euler(e[0],e[1],e[2],'XYZ'))}
-  const q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),yaw);
-  if(tilt)q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),tilt));
-  return q.multiply(qUp[v]);
+const qUp={},Y_AX=()=>new THREE.Vector3(0,1,0);
+function dieQ(v,yaw){
+  if(!qUp[v]){const e=UP[v]||UP[1];qUp[v]=new THREE.Quaternion().setFromEuler(new THREE.Euler(e[0],e[1],e[2],'XYZ'))}
+  return new THREE.Quaternion().setFromAxisAngle(Y_AX(),yaw).multiply(qUp[v]);
 }
 function ringTex(){
   return canvasTex(128,128,(g,w,h)=>{g.clearRect(0,0,w,h);g.shadowColor='#ff8a2a';g.shadowBlur=16;g.strokeStyle='#ffb04a';g.lineWidth=10;rr(g,18,18,w-36,h-36,22);g.stroke()});
@@ -397,8 +423,9 @@ function build(){
   try{
     const root=new THREE.Group();root.visible=false;T.scene.add(root);M.root=root;
     const ink=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide});
-    const dg=roundBox(1,.13,6),mats=[3,4,1,6,2,5].map(v=>toon({map:pipTex(v),rim:.12}));
-    M.mkDie=()=>{const g=new THREE.Group(),m=new THREE.Mesh(dg,mats),o=new THREE.Mesh(dg,ink);o.scale.setScalar(1.07);m.castShadow=true;g.add(m,o);g.visible=false;root.add(g);return g};
+    const dg=roundBox(1,.13,6),mats=[3,4,1,6,2,5].map(v=>toon({map:pipTex(v),rim:.12})),blankM=toon({map:pipTex(0),rim:.12});
+    const mk=m=>{const g=new THREE.Group(),a=new THREE.Mesh(dg,m),o=new THREE.Mesh(dg,ink);o.scale.setScalar(1.07);a.castShadow=true;g.add(a,o);g.visible=false;root.add(g);return g};
+    M.mkDie=()=>mk(mats);M.mkBlank=()=>mk(blankM);   // 남이 들춰 볼 때는 눈 없는 하얀 주사위
     const V2=(x,y)=>new THREE.Vector2(x,y);
     const prof=[V2(0,0),V2(.47,0),V2(.5,.05),V2(.58,.97),V2(.62,1),V2(.6,1.03),V2(.54,1.02),V2(.46,.14),V2(0,.14)];
     const lm=toon({color:0x6e3b22,rim:.22});lm.side=THREE.DoubleSide;
@@ -409,10 +436,13 @@ function build(){
       const body=new THREE.Mesh(bodyG,lm);body.castShadow=true;
       const b1=new THREE.Mesh(b1G,toon({color:new THREE.Color(col).getHex(),rim:.2}));b1.rotation.x=Math.PI/2;b1.position.y=.84;
       const b2=new THREE.Mesh(b2G,b2M);b2.rotation.x=Math.PI/2;b2.position.y=.13;
-      inner.add(body,new THREE.Mesh(hullG,ink),b1,b2);inner.scale.setScalar(CUP_K);g.add(inner);g.visible=false;root.add(g);return g;
+      inner.add(body,new THREE.Mesh(hullG,ink),b1,b2);inner.scale.setScalar(CUP_K);g.add(inner);g.visible=false;root.add(g);g.userData.inner=inner;return g;
     };
     const rt=ringTex(),rg=new THREE.PlaneGeometry(1,1);
     M.mkRing=()=>{const m=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({map:rt,transparent:true,depthWrite:false}));m.rotation.order='YXZ';m.rotation.x=-Math.PI/2;m.renderOrder=2;m.visible=false;root.add(m);return m};
+    /* 아직 안 굴렸을 때 내 컵 밑에서 숨 쉬는 빛 */
+    {const gt=canvasTex(256,256,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,w*.2,w/2,h/2,w*.5);gr.addColorStop(0,'rgba(255,190,90,0)');gr.addColorStop(.62,'rgba(255,176,74,.85)');gr.addColorStop(1,'rgba(255,150,50,0)');g.fillStyle=gr;g.fillRect(0,0,w,h)});
+     const m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:gt,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.renderOrder=1;m.visible=false;root.add(m);M.glow=m}
     const c=document.createElement('canvas');c.width=NW;c.height=NH;const t=new THREE.CanvasTexture(c);t.anisotropy=4;
     const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,depthWrite:false}));sp.position.set(0,HY,.3);sp.scale.set(1.9,1.25,1);sp.renderOrder=55;root.add(sp);
     M.num={c,t,sp};
@@ -425,25 +455,27 @@ function build(){
 }
 const cupOf=i=>M.cups[i]||(M.cups[i]=M.mkCup(SEAT_C[i%SEAT_C.length]));
 const dieOf=(i,k)=>{const a=M.dice[i]||(M.dice[i]=[]);return a[k]||(a[k]=M.mkDie())};
+const blankOf=(i,k)=>{const a=M.blank[i]||(M.blank[i]=[]);return a[k]||(a[k]=M.mkBlank())};
 const ringOf=(i,k)=>{const a=M.rings[i]||(M.rings[i]=[]);return a[k]||(a[k]=M.mkRing())};
-const CUP_H=CUP_K*1.03;
-/* 컵 자세: closed(그 자리에 엎음) · aside(바깥쪽에 엎음) · open(내 컵: 뒤로 눕혀 입구가 나를 봄) */
-function cupPose(i,kind){
-  const a=seatAngle(i),me=i===myIdx();
-  if(kind==='open'){   // 주사위 줄 오른쪽에 옆으로 눕힘, 입구가 주사위 쪽(쏟은 모양)
-    const off=DSM*1.22*2+DSM/2+.2,r=R_MINE+.05;
-    return {p:new THREE.Vector3(Math.sin(a)*r+Math.cos(a)*(off+CUP_K*.95),.5*CUP_K,Math.cos(a)*r-Math.sin(a)*(off+CUP_K*.95)),q:new THREE.Quaternion().setFromEuler(new THREE.Euler(0,a,Math.PI/2+.08,'YXZ'))};
-  }
-  const r=kind==='aside'?R_ASIDE:me?R_MINE-.2:R_CUP;
-  return {p:new THREE.Vector3(Math.sin(a)*r,CUP_H,Math.cos(a)*r),q:new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI,a,0,'YXZ'))};
+const kOf=i=>i===myIdx()?K_ME:CUP_K,dsOf=i=>i===myIdx()?DS_ME:DS,rOf=i=>i===myIdx()?R_ME:R_CUP;
+/* 자리 기준 좌표(+z = 그 사람 쪽) → 세계 */
+function seatPt(i,r,x,y,z){const a=seatAngle(i),cx=Math.sin(a)*r,cz=Math.cos(a)*r,ca=Math.cos(a),sa=Math.sin(a);return new THREE.Vector3(cx+x*ca+z*sa,y,cz-x*sa+z*ca)}
+const qSeat=(i,rx)=>new THREE.Quaternion().setFromAxisAngle(Y_AX(),seatAngle(i)).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),rx));
+/* 컵 자세: up(똑바로) · closed(엎음) · peek(엎은 채 그 사람 쪽을 th만큼 들어 올림: 먼 쪽 입구를 축으로) · aside(공개 때 바깥쪽에 엎음) */
+function cupPose(i,kind,th){
+  const k=kOf(i),H=1.03*k,R=.62*k,r=rOf(i);
+  if(kind==='up')return {p:seatPt(i,r,0,0,0),q:qSeat(i,0)};
+  if(kind==='aside')return {p:seatPt(i,R_ASIDE,0,H,0),q:qSeat(i,Math.PI)};
+  if(kind==='peek'){const y=H*Math.cos(th)+R*Math.sin(th),z=-H*Math.sin(th)+R*Math.cos(th);return {p:seatPt(i,r,0,y,-R+z),q:qSeat(i,-th).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI))}}
+  return {p:seatPt(i,r,0,H,0),q:qSeat(i,Math.PI)};
 }
-/* 주사위 자리: 컵 아래 뭉치(오각형) · 공개 때 퍼진 자리 · 내 줄 */
+/* 컵 아래 뭉친 주사위 (컵 크기 안): 5개까지 고리, 6개는 고리 5 + 가운데 */
 function clusterPos(i,k,n,spread){
-  const a=seatAngle(i),me=i===myIdx(),c=me?R_MINE-.2:R_CUP,rad=n<=1?0:(n===2?.15:n<=5?.19:.22)*spread;
-  const t=n<=1?0:k/n*Math.PI*2+a;
-  return new THREE.Vector3(Math.sin(a)*c+Math.cos(t)*rad,0,Math.cos(a)*c+Math.sin(t)*rad);
+  const ds=dsOf(i),ring=n===6?5:n,rad=n<=1?0:(n===2?.58:n===3?.62:.74)*ds*spread;
+  if(n===6&&k===5)return seatPt(i,rOf(i),0,0,0);
+  const t=ring<=1?0:k/ring*Math.PI*2+.4;
+  return seatPt(i,rOf(i),Math.cos(t)*rad,0,Math.sin(t)*rad);
 }
-function rowPos(i,k,n){const a=seatAngle(i),gap=DSM*1.22,off=(k-(n-1)/2)*gap;return new THREE.Vector3(Math.sin(a)*R_MINE+Math.cos(a)*off,0,Math.cos(a)*R_MINE-Math.sin(a)*off)}
 function lerpPose(A,B,k,arc){const p=A.p.clone().lerp(B.p,k);if(arc)p.y+=Math.sin(Math.PI*k)*arc;return {p,q:A.q.clone().slerp(B.q,k)}}
 function setPose(g,P){g.position.copy(P.p);g.quaternion.copy(P.q)}
 /* 공개 때 세는 순서: 선언한 사람부터 시계 방향, 사람마다 주사위 순서 */
@@ -460,10 +492,8 @@ function drawNum(main,f,tag,col,sub,subCol){
     g.font=`700 ${main.length>3?150:200}px "IBM Plex Mono", "Jua", monospace`;
     const tw=g.measureText(main).width,ds=f?170:0,gap=f?30:0,x0=NW/2-(tw+gap+ds)/2;
     g.textAlign='left';g.fillText(main,x0,150);g.fillText(main,x0,150);
-    if(f){   // 눈: 빛나는 테두리 사각형 + 점
-      const x=x0+tw+gap,y=150-ds/2;g.lineWidth=12;g.strokeStyle=col;rr(g,x,y,ds,ds,30);g.stroke();
-      const P=[.25,.5,.75];for(const k of PIPS[f]){g.beginPath();g.arc(x+P[(k-1)%3]*ds,y+P[Math.floor((k-1)/3)]*ds,f===1?24:16,0,7);g.fill()}
-    }
+    if(f){const x=x0+tw+gap,y=150-ds/2;g.lineWidth=12;g.strokeStyle=col;rr(g,x,y,ds,ds,30);g.stroke();
+      const P=[.25,.5,.75];for(const k of PIPS[f]){g.beginPath();g.arc(x+P[(k-1)%3]*ds,y+P[Math.floor((k-1)/3)]*ds,f===1?24:16,0,7);g.fill()}}
     g.textAlign='center';
   }
   if(sub){g.shadowColor=subCol||col;g.fillStyle=subCol||col;g.shadowBlur=20;g.font='700 92px "Jua", "IBM Plex Mono", sans-serif';g.fillText(sub,NW/2,340)}
@@ -476,81 +506,136 @@ const TRUE_RES=new Set(['true','spot','xok','cok']);
 G.field3D=(v)=>{
   if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=false});   // 손패 표시용 값이 만든 남의 카드 더미는 숨김
   const o=v.ld;if(!o)return;
+  const now=clock();
   if(o.gn!==M.gn||o.rn!==M.rn){
-    const fresh=o.gn!==M.gn;M.gn=o.gn;M.rn=o.rn;
-    M.rollEnd=o.ph==='roll'?clock()+(o.ra||0):fresh?clock()-ROLL_MS-OPEN_MS:clock()-OPEN_MS;
-    M.prevSh=fresh?null:M.lastSh;M.lastTick=-1;
+    const fresh=o.gn!==M.gn;M.gn=o.gn;M.rn=o.rn;M.roundT0=now;
+    M.prevSh=fresh?null:M.lastSh;M.lastTick=-1;M.rdAt=[];M.pkS=[];HOLD.rolledAt=0;
+    if(HOLD.on&&HOLD.mode!=='shake')holdEnd(true);
   }
-  if(o.sh){const k=o.gn+':'+o.rn+':'+o.sh.by;if(k!==M.shKey){M.shKey=k;M.showT0=clock()-(o.sh.el||0);M.lastTick=-1;M.verdictSaid=false}M.lastSh=o.sh}
+  if(o.rd)o.rd.forEach((r,i)=>{if(r&&M.rdAt[i]==null)M.rdAt[i]=i===myIdx()&&HOLD.rolledAt?HOLD.rolledAt:now});
+  if(o.pk)o.pk.forEach((p,i)=>{const s=M.pkS[i];if(!s||s.v!==p)M.pkS[i]={v:p,at:now}});
+  if(o.sh){const k=o.gn+':'+o.rn+':'+o.sh.by;if(k!==M.shKey){M.shKey=k;M.showT0=now-(o.sh.el||0);M.lastTick=-1;M.verdictSaid=false;if(HOLD.on)holdEnd(true)}M.lastSh=o.sh}
 };
+const PK_MS=170;
+function peekK(i,now){
+  if(i===myIdx()){const s=M.pkS.me;if(!s)return 0;const e=ez((now-s.at)/PK_MS);return s.v?e:1-e}
+  const s=M.pkS[i];if(!s)return 0;const e=ez((now-s.at)/PK_MS);return s.v?e:1-e;
+}
+const sndSlam=v=>{tone(105,.09,{type:'triangle',vol:.22*v});hiss(.07,{freq:700,q:.7,vol:.18*v});tone(900,.03,{type:'triangle',vol:.05*v,at:.02})};
 function step(){
   M.raf=0;if(!M.on||!V||!O_())return;
   M.raf=requestAnimationFrame(step);
   const now=clock(),o=O_(),me=myIdx(),n=V.ps.length,show=V.st!=='wait'&&!(IN.on&&now<IN.t0+IN.cupAt);
   const inShow=(o.ph==='show'||o.ph==='done')&&o.sh,e=inShow?now-M.showT0:0;
-  const rollK=o.ph==='roll'?Math.max(0,(now-(M.rollEnd-ROLL_MS))/ROLL_MS):1;
-  const backK=ez((now-(M.rollEnd-ROLL_MS))/380);   // 새 판: 옆에 있던 컵이 제자리로
-  const openK=o.ph==='roll'?0:ez((now-M.rollEnd)/OPEN_MS);
+  const backK=M.prevSh?ez((now-M.roundT0)/450):1;   // 새 판: 옆에 있던 컵이 제자리로 (똑바로 세워서)
   const liftK=inShow?ez((e-SH.lift)/SH.liftDur):0;
   const order=inShow?countOrder(o):[],cnt=inShow?Math.max(0,Math.min(order.length,Math.floor((e-SH.count0)/SH.per)+1)):0;
   if(inShow&&cnt!==M.lastTick&&e>=SH.count0){if(cnt>M.lastTick&&cnt>0)tone(880+cnt*40,.05,{type:'triangle',vol:.08});M.lastTick=cnt}
   const lit=new Set(order.slice(0,cnt).map(([i,k])=>i+':'+k)),hopAt=new Map(order.map(([i,k],j)=>[i+':'+k,SH.count0+j*SH.per]));
+  let rattle=false;
   for(let i=0;i<Math.max(n,M.cups.length);i++){
     const alive=i<n&&show&&!o.out[i]&&(o.dn[i]>0||inShow),cup=alive||M.cups[i]?cupOf(i):null;
     if(!cup)continue;cup.visible=alive;
-    const nd=inShow&&o.all?(o.all[i]||[]).length:o.dn[i]||0,mine=i===me;
+    const mine=i===me;
+    cup.userData.inner.scale.setScalar(kOf(i));
+    let pk=0;
     if(alive){
       let P;
-      if(mine)P=lerpPose(cupPose(i,'closed'),cupPose(i,'open'),openK,.5);
-      else if(inShow)P=lerpPose(cupPose(i,'closed'),cupPose(i,'aside'),liftK,1.1);
-      else P=M.prevSh&&o.ph==='roll'?lerpPose(cupPose(i,'aside'),cupPose(i,'closed'),backK,1.1):cupPose(i,'closed');
-      if(o.ph==='roll'&&rollK>.25&&rollK<.95&&!(mine&&openK>0)){   // 흔들기 (엎은 채로 달그락)
-        const s=now/1000,a=Math.sin(rollK*Math.PI);P.p.y+=Math.abs(Math.sin(s*23+i))*.08*a;P.p.x+=Math.sin(s*31+i*2)*.05*a;P.p.z+=Math.cos(s*27+i)*.05*a;
-        P.q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.sin(s*29+i)*.12*a,0,Math.cos(s*25+i)*.12*a)));
-      }
+      if(o.ph==='roll'){
+        const rolled=mine?(!!HOLD.rolledAt||!!(o.rd&&o.rd[i])):!!(o.rd&&o.rd[i]),at=mine&&HOLD.rolledAt?HOLD.rolledAt:M.rdAt[i];
+        const shaking=!rolled&&(mine?HOLD.on&&HOLD.mode==='shake':!!(o.sk&&o.sk[i]));
+        let U=cupPose(i,'up');
+        if(shaking){const s=now/1000,a=1;rattle=rattle||mine||true;U.p.y+=.45+Math.abs(Math.sin(s*24+i))*.12*a;U.p.add(seatPt(i,0,Math.sin(s*31+i*2)*.07,0,Math.cos(s*27+i)*.06).setY(0));
+          U.q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.sin(s*29+i)*.18,0,Math.cos(s*25+i)*.18)))}
+        if(M.prevSh&&backK<1)U=lerpPose(cupPose(i,'aside'),U,backK,1);
+        P=rolled?lerpPose(U,cupPose(i,'closed'),ez((now-(at||now))/260),.35):U;
+        if(rolled&&at&&now-at<300&&!cup.userData.slam){cup.userData.slam=1}
+      }else if(inShow)P=lerpPose(cupPose(i,'closed'),cupPose(i,'aside'),liftK,1.1);
+      else{pk=peekK(i,now);P=pk>0?cupPose(i,'peek',pk*(mine?.78:.62)):cupPose(i,'closed')}
       setPose(cup,P);
     }
-    const vals=inShow&&o.all?o.all[i]||[]:mine&&o.my?o.my:[];
-    const arr=M.dice[i]||[];
-    for(let k=0;k<Math.max(arr.length,vals.length);k++){
-      const d=dieOf(i,k),rg=ringOf(i,k),has=alive&&k<vals.length&&k<nd;
-      const vis=has&&(mine?openK>0||inShow:inShow&&liftK>.15);
-      d.visible=vis;rg.visible=false;if(!vis)continue;
-      const v=vals[k],a=seatAngle(i);
-      let p,s,yaw,tilt=0;
-      if(mine){p=clusterPos(i,k,vals.length,1).lerp(rowPos(i,k,vals.length),openK);s=lerp(DS,DSM,openK);yaw=a;tilt=TILT*openK}
-      else{p=clusterPos(i,k,vals.length,lerp(1,1.7,liftK));s=lerp(DS,DS*1.35,liftK);yaw=a+k*.7}
-      const key=i+':'+k,h=hopAt.get(key);let hop=0;
+    /* 주사위: 공개면 진짜 눈(모두), 들춰 보면 내 것은 진짜 눈·남의 것은 하얀 주사위 */
+    const real=inShow&&o.all?o.all[i]||[]:mine&&o.my?o.my:[];
+    const nd=inShow&&o.all?(o.all[i]||[]).length:o.dn[i]||0;
+    const peekShow=!inShow&&pk>.15,useBlank=peekShow&&!mine;
+    const cnt2=Math.max((M.dice[i]||[]).length,(M.blank[i]||[]).length,nd);
+    for(let k=0;k<cnt2;k++){
+      const d=dieOf(i,k),b=blankOf(i,k),rg=ringOf(i,k);rg.visible=false;
+      const has=alive&&k<nd,vis=has&&(inShow?liftK>.15:peekShow&&(useBlank||k<real.length));
+      d.visible=vis&&!useBlank;b.visible=vis&&useBlank;if(!vis)continue;
+      const g=useBlank?b:d,v=useBlank?1:real[k],a=seatAngle(i),ds=dsOf(i);
+      const sp=inShow&&!mine?lerp(1,1.7,liftK):inShow?lerp(1,1.35,liftK):1,sz=inShow&&!mine?lerp(ds,ds*1.35,liftK):ds;
+      const p=clusterPos(i,k,nd,sp),yaw=a+k*.55,key=i+':'+k,h=hopAt.get(key);let hop=0;
       if(h!=null&&e>=h){const t=(e-h)/260;if(t<1)hop=Math.sin(Math.PI*t)*.28}
-      d.position.set(p.x,s/2*(Math.cos(tilt)+Math.sin(tilt))+hop,p.z);d.quaternion.copy(dieQ(v,yaw,tilt));d.scale.setScalar(s);
-      if(lit.has(key)){rg.visible=true;rg.position.set(p.x,.022,p.z);rg.rotation.y=yaw;rg.scale.setScalar(s*1.6);rg.material.opacity=.8+.2*Math.sin(now/160)}
+      g.position.set(p.x,sz/2+hop,p.z);g.quaternion.copy(dieQ(v,yaw));g.scale.setScalar(sz);
+      if(inShow&&lit.has(key)){rg.visible=true;rg.position.set(p.x,.022,p.z);rg.rotation.y=yaw;rg.scale.setScalar(sz*1.6);rg.material.opacity=.8+.2*Math.sin(now/160)}
     }
   }
-  /* 내 생명: 주사위 줄 바로 앞(내 쪽) 나무 위. 좁은 화면에서도 잘리지 않게 가운데 */
+  if(rattle&&now>=M.rattleAt){M.rattleAt=now+70+Math.random()*60;const v=HOLD.on&&HOLD.mode==='shake'?1:.35;tone(650+Math.random()*700,.025,{type:'triangle',vol:.05*v});hiss(.02,{freq:2600,q:1.5,vol:.04*v})}
+  /* 아직 안 굴렸으면 내 컵 밑에 숨 쉬는 빛 */
+  {const gl=M.glow,on=show&&o.ph==='roll'&&me>=0&&!o.out[me]&&!HOLD.rolledAt&&!(o.rd&&o.rd[me])&&!(HOLD.on&&HOLD.mode==='shake');gl.visible=on;
+   if(on){const p=seatPt(me,R_ME,0,.021,0);gl.position.copy(p);gl.scale.setScalar(1.9*K_ME);gl.material.opacity=.45+.35*Math.sin(now/260)}}
+  /* 내 생명: 내 컵 바로 앞(내 쪽) 나무 위 */
   {const L=M.life,ok=show&&me>=0&&!o.out[me];L.m.visible=ok;
-   if(ok){const a=seatAngle(me),off=0,r=R_MINE+.5;L.m.position.set(Math.sin(a)*r+Math.cos(a)*off,.02,Math.cos(a)*r-Math.sin(a)*off);L.m.rotation.y=a;
+   if(ok){L.m.position.copy(seatPt(me,R_ME,0,.02,.95));L.m.rotation.y=seatAngle(me);
      const k=[o.cf.dl,o.cf.L,o.lv[me],o.dc[me]].join();if(k!==L.key){L.key=k;drawMineLife(L,o,me)}}}
   /* 가운데 홀로그램 */
   const sp=M.num.sp;sp.visible=show&&(!!o.bid||inShow||o.pal>=0);
   if(sp.visible){
-    let key,args;
+    let args;
     if(inShow){
       const vd=e>=verdictAt(order.length),R=RES[o.sh.res]||['',''];
       if(vd&&!M.verdictSaid){M.verdictSaid=true;sfx(TRUE_RES.has(o.sh.res)?'truth':'lie');if(o.sh.res==='spot'||o.sh.res==='xok')sfx('special')}
       args=[`${cnt}/${o.sh.bid.q}`,o.sh.bid.f,'',vd?R[1]:'#ffb04a',vd?R[0]:'',R[1]];
     }else args=[o.bid?String(o.bid.q):'',o.bid?o.bid.f:0,o.pal>=0?'팔리피코':'','#ffb04a','',''];
-    key=args.join('|');
+    const key=args.join('|');
     if(key!==M.key){M.key=key;drawNum(...args)}
     sp.position.y=HY+Math.sin(now/600)*.03;
   }
+  placeCupUI(now,o,me);
   if(IN.on)introStep(now);
+}
+/* 내 컵 위 투명 누르는 자리, 들었을 때 공중 2D 눈 */
+function scrOf(p){const st=$('#stage'),w=st.clientWidth,h=st.clientHeight,v=p.clone().project(T.cam);return [(v.x+1)/2*w,(1-v.y)/2*h]}
+function placeCupUI(now,o,me){
+  if(!elCup)return;
+  const can=me>=0&&!o.out[me]&&V.st==='play'&&((o.ph==='roll'&&!HOLD.rolledAt&&!(o.rd&&o.rd[me]))||o.ph==='bid');
+  if(!can){if(!elCup.hidden)elCup.hidden=true;M.hitKey=''}
+  else{
+    const c=scrOf(seatPt(me,R_ME,0,.5*K_ME,0)),e2=scrOf(seatPt(me,R_ME,.7*K_ME,.5*K_ME,0)),r=Math.max(34,Math.abs(e2[0]-c[0]));
+    const key=[c[0]|0,c[1]|0,r|0].join();
+    if(key!==M.hitKey){M.hitKey=key;Object.assign(elCup.style,{left:(c[0]-r)+'px',top:(c[1]-r*1.1)+'px',width:r*2+'px',height:r*2.2+'px'})}
+    if(elCup.hidden)elCup.hidden=false;
+  }
+  const pu=HOLD.on&&HOLD.mode==='peek'&&o.ph==='bid'&&o.my&&o.my.length;
+  if(!pu){if(!elPU.hidden)elPU.hidden=true;return}
+  const h=o.my.map(v=>dieSVG(v)).join('');if(elPU.dataset.h!==h){elPU.dataset.h=h;elPU.innerHTML=h}
+  const p=scrOf(seatPt(me,R_ME,0,1.5*K_ME,-.15)),key=(p[0]|0)+','+(p[1]|0);
+  if(key!==M.puKey){M.puKey=key;elPU.style.left=p[0]+'px';elPU.style.top=p[1]+'px'}
+  if(elPU.hidden)elPU.hidden=false;
+}
+/* 컵 누르기: 굴리기 단계면 흔들기(떼면 엎음), 선언 단계면 들춰 보기(떼면 닫음) */
+function holdStart(src){
+  const o=O_(),me=myIdx();if(!o||me<0||o.out[me]||V.st!=='play'||HOLD.on||dealingV())return false;
+  if(o.ph==='roll'&&!HOLD.rolledAt&&!(o.rd&&o.rd[me])){HOLD.on=true;HOLD.mode='shake';HOLD.src=src;sendAct({t:'shake',on:1});return true}
+  if(o.ph==='bid'){HOLD.on=true;HOLD.mode='peek';HOLD.src=src;M.pkS.me={v:1,at:clock()};sendAct({t:'peek',on:1});sfx('lift');return true}
+  sfx('no');return false;
+}
+function holdEnd(cancel){
+  if(!HOLD.on)return;
+  const mode=HOLD.mode,o=O_(),me=myIdx();HOLD.on=false;HOLD.mode='';
+  if(mode==='shake'){
+    if(o&&o.ph==='roll'&&me>=0&&!(o.rd&&o.rd[me])){HOLD.rolledAt=clock();sendAct({t:'roll'});setTimeout(()=>sndSlam(1),230)}
+    else sendAct({t:'shake',on:0});
+  }else if(mode==='peek'){M.pkS.me={v:0,at:clock()};if(!cancel||(o&&o.ph==='bid'))sendAct({t:'peek',on:0})}
 }
 function clearAll(){
   for(const g of M.cups)if(g)g.visible=false;
-  for(const a of M.dice)for(const d of a||[])if(d)d.visible=false;
-  for(const a of M.rings)for(const d of a||[])if(d)d.visible=false;
+  for(const L of [M.dice,M.blank,M.rings])for(const a of L)for(const d of a||[])if(d)d.visible=false;
   if(M.num)M.num.sp.visible=false;
   if(M.life)M.life.m.visible=false;
+  if(M.glow)M.glow.visible=false;
+  if(elCup)elCup.hidden=true;if(elPU)elPU.hidden=true;
 }
 
 /* ---------- 시작 연출: 컵이 자리에 내려앉고 가운데에서 첫 차례 주사위 ---------- */
@@ -621,6 +706,7 @@ function draw2d(){
 G.live=()=>{
   if(!elBox||!O_())return;
   drawPick();drawCalls();keyTags();draw2d();introTick2d();
+  if(!M.on&&elCup){const o=O_(),me=myIdx(),c=me>=0&&!o.out[me]&&V.st==='play'&&o.ph==='roll'&&!HOLD.rolledAt&&!(o.rd&&o.rd[me]);elCup.classList.add('flat');if(elCup.hidden===c)elCup.hidden=!c}
 };
 G.hud=inGame=>{
   if(!elBox)return;
@@ -642,7 +728,7 @@ G.leave=()=>{
   if(M.root)M.root.visible=false;
   if(IN.die){IN.die.dispose();IN.die=null}IN.on=false;
   Object.assign(M,{on:false,gn:-1,rn:-1,key:'',shKey:''});
-  pkCtx='';last2d='';lastPick='';
+  pkCtx='';last2d='';lastPick='';if(HOLD.on)holdEnd(true);HOLD.rolledAt=0;if(elCup){elCup.hidden=true;elCup.classList.remove('flat')}if(elPU)elPU.hidden=true;
   if(elPick)elPick.hidden=true;if(elG)elG.hidden=true;if(elX)elX.hidden=true;
   $('#stage').classList.remove('ldg');
   $('#btnPlay').disabled=false;$('#btnPass').disabled=false;
@@ -692,6 +778,15 @@ G.init=()=>{
 .ld-calls .act{min-width:110px}
 .ld-calls .act[hidden]{display:none}
 .act-ldx{--face:#7d3fa8;--edge:#55287a;--ink-on:#fff}
+.ld-cup{position:absolute;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;z-index:5}
+.ld-cup[hidden]{display:none}
+.ld-cup.flat{left:50%!important;top:auto!important;bottom:calc(var(--plateB,14px) + 70px);width:120px!important;height:120px!important;margin-left:-60px;background:#6e3b22;border:3px solid #4a3020;box-shadow:0 4px 0 #4a3020;color:#fff6e2;font:22px "Jua",sans-serif}
+.ld-cup.flat::after{content:"컵"}
+.ld-cup.flat:active{transform:translateY(3px) rotate(-4deg)}
+.ld-pu{position:absolute;transform:translate(-50%,-100%);display:flex;gap:6px;padding:7px 9px;border-radius:14px;background:rgba(255,250,240,.9);box-shadow:0 3px 12px -3px rgba(59,42,31,.5);pointer-events:none;z-index:9;animation:pop .18s ease-out}
+.ld-pu[hidden]{display:none}
+.ld-pu .ld-d{width:40px;height:40px}
+@media (min-width:900px) and (min-height:600px){.ld-pu .ld-d{width:46px;height:46px}}
 .ld-2d{position:absolute;left:0;right:0;top:104px;text-align:center;color:#3b2a1f;font-family:"Jua",sans-serif}
 .ld-2d p{margin:3px 0}
 .ld-now{font-size:20px}.ld-now b{font-size:26px}
@@ -706,6 +801,7 @@ G.init=()=>{
   elBox=document.createElement('div');elBox.className='ld-box';elBox.hidden=true;
   elBox.innerHTML=`<div class="ld-2d"></div>
 <div class="ld-pick" hidden><div class="ld-col"><button type="button" class="ld-arr" data-f="1" aria-label="큰 눈">▲</button><div class="ld-face"></div><button type="button" class="ld-arr" data-f="-1" aria-label="작은 눈">▼</button></div><div class="ld-col"><button type="button" class="ld-arr" data-q="1" aria-label="개수 늘리기">▲</button><div class="ld-q">1</div><button type="button" class="ld-arr" data-q="-1" aria-label="개수 줄이기">▼</button></div><button type="button" class="act act-play ld-bid">선언<small></small></button></div>
+<button type="button" class="ld-cup" aria-label="내 컵" hidden></button><div class="ld-pu" hidden></div>
 <div class="ld-calls"><button type="button" class="act act-gura ld-g" hidden>구라!<small></small></button><button type="button" class="act act-ldx ld-x" hidden><b>도전</b><small></small></button></div>`;
   $('#stage').appendChild(elBox);
   el2d=elBox.querySelector('.ld-2d');elPick=elBox.querySelector('.ld-pick');elCalls=elBox.querySelector('.ld-calls');elG=elBox.querySelector('.ld-g');elX=elBox.querySelector('.ld-x');elBid=elBox.querySelector('.ld-bid');
@@ -713,6 +809,12 @@ G.init=()=>{
   let acc=0;
   elPick.addEventListener('wheel',e=>{e.preventDefault();acc+=e.deltaY;if(Math.abs(acc)>=40){const onF=!!e.target.closest('.ld-col')&&!!e.target.closest('.ld-col').querySelector('.ld-face');(onF?stepF:stepQ)(acc<0?1:-1);acc=0}},{passive:false});
   elG.addEventListener('click',doGuraV);elX.addEventListener('click',doExactV);
+  elCup=elBox.querySelector('.ld-cup');elPU=elBox.querySelector('.ld-pu');
+  elCup.addEventListener('pointerdown',e=>{if(e.button>0)return;e.preventDefault();if(holdStart('ptr'))try{elCup.setPointerCapture(e.pointerId)}catch(_){}});
+  for(const ev of ['pointerup','pointercancel','lostpointercapture'])elCup.addEventListener(ev,()=>{if(HOLD.src==='ptr')holdEnd(false)});
+  elCup.addEventListener('contextmenu',e=>e.preventDefault());
+  addEventListener('keyup',e=>{if(typeof KEYS!=='undefined'&&e.code===KEYS.yroll&&HOLD.src==='key')holdEnd(false)});
+  addEventListener('blur',()=>{if(HOLD.on)holdEnd(false)});
 };
 (window.GAMES=window.GAMES||{}).liardice=G;
 })();
