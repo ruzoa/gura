@@ -7,7 +7,7 @@
    spot on(설정): 내 차례에 직전 선언에 '도전'(정확하면 나 빼고 모두 -1, 틀리면 나 -1). 구라!에 개수가 정확하면 선언한 사람 빼고 모두 -1(spot on!)
    판 ph: roll(컵 흔들기) → bid(선언) → show(공개) → roll … → done */
 (function(){
-const G={id:'liardice',name:'구라! 다이스',short:'다이스',lead:'컵 속 주사위로 허세를 부리는 게임',maxHi:4,minN:2,noFast:true,oneBotLv:true,botLvs:['쉬움'],firstPick:true};
+const G={id:'liardice',name:'구라! 다이스',short:'다이스',lead:'컵 속 주사위로 허세를 부리는 게임',maxHi:4,minN:2,noFast:true,firstPick:true};   // 봇 난이도: 공통 쉬움·보통·어려움
 
 /* ---------- 규칙 값 ---------- */
 const ROLL_WAIT=10000,SETTLE_MS=450;   // 굴리기: 각자 컵을 흔들어 엎음. 10초 안에 안 엎으면 저절로, 모두 엎으면 잠깐 뒤 선언 시작
@@ -97,7 +97,7 @@ G.keyActions=[{a:'ldExact',n:'도전 / 칼사',d:'구라! 다이스: 직전 선�
 /* ---------- 방장 엔진 ---------- */
 const C=()=>{const c=H.cfg;return {wild:+c.wild?1:0,dl:+c.dl?1:0,spot:+c.spot?1:0,calza:+c.calza&&!+c.spot?1:0,pal:+c.pal?1:0,L:Math.max(1,Math.min(5,+c.lives||3)),D:Math.max(2,Math.min(6,+c.dice||5))}};
 const alive=()=>H.players.map((_,i)=>i).filter(i=>!H.players[i].finished);
-const lifeOf=i=>{const p=H.players[i];return H.ld.cf.dl?p.dc:p.lv};
+const lifeOf=i=>{const p=H.players[i];return H.ld.cf.dl?p.dc:p.lf};   // 생명은 p.lf (p.lv는 공통 코드의 봇 난이도)
 function nextAlive(i){const n=H.players.length;for(let k=1;k<=n;k++){const j=(i+k)%n;if(!H.players[j].finished)return j}return -1}
 const aliveOr=i=>H.players[i]&&!H.players[i].finished?i:nextAlive(i);
 const pushEv=e=>{const O=H.ld;e.q=++O.sq;O.ev.push(e);if(O.ev.length>12)O.ev.shift();return e};
@@ -111,7 +111,7 @@ function startRound(st){
   const now=clock();
   Object.assign(O,{bid:null,hist:[],ph:'roll',rollDl:now+ROLL_WAIT,rollAt:0,rn:O.rn+1,start:st,sh:null,
     rolled:H.players.map(p=>p.finished?1:0),shk:H.players.map(()=>0),pk:H.players.map(()=>0),
-    bt:H.players.map(p=>p.bot?{s:now+rand(500,1400),r:0}:null)});
+    bt:H.players.map(p=>p.bot?{s:now+rand(500,1400),r:0}:null),snipeAt:0});
   O.bt.forEach(b=>{if(b)b.r=b.s+rand(700,1300)});
   H.turn=st;H.deadline=clock()+864e5;H.botActAt=0;H.seatNote={};mark();
 }
@@ -125,6 +125,7 @@ function doBid(seat,q,f){
   const O=H.ld;O.bid={q,f,s:seat};O.hist.push({q,f,s:seat});if(O.hist.length>16)O.hist.shift();H.seatNote={};
   addLog(`${H.players[seat].name} : ${f} ${q}개`);
   pushEv({k:'b',s:seat,q,f});setTurn(nextAlive(seat));
+  O.snipeAt=H.players.some(p=>p.bot&&!p.finished&&botLv(p)>=2)?clock()+rand(1500,3000):0;
 }
 /* 외치기: k = g(구라!) · x(도전, spot on) · c(칼사) */
 function doCall(seat,k){
@@ -162,7 +163,7 @@ function endShow(){
   for(const k in S.d){
     const i=+k,p=H.players[i];if(p.finished)continue;
     const before=lifeOf(i);
-    if(cf.dl)p.dc=Math.max(0,Math.min(cf.D,p.dc+S.d[k]));else p.lv=Math.max(0,Math.min(cf.L,p.lv+S.d[k]));
+    if(cf.dl)p.dc=Math.max(0,Math.min(cf.D,p.dc+S.d[k]));else p.lf=Math.max(0,Math.min(cf.L,p.lf+S.d[k]));
     const now=lifeOf(i);
     if(now<=0){out.push(i);addLog(`${p.name} 탈락`,'lie')}
     else if(now===1&&before>1)one.push(i);
@@ -176,28 +177,93 @@ function endShow(){
   }
   startRound(st);
 }
-/* 쉬움 봇: 내 주사위 + 남의 주사위 기대값으로 판단 (남의 실제 주사위는 보지 않음) */
+/* 봇 (남의 주사위는 보지 않음: 내 주사위 + 선언만 보고 판단)
+   쉬움: 기대값으로 대충. 보통: 남은 주사위로 맞을 확률을 정확히 계산, 가끔 허세.
+   어려움: 이번 판에 그 눈을 선언한 사람은 그 눈을 가졌을 가능성이 높다고 보고 확률을 고침, 생명이 적으면 조심, 계획적 허세,
+   차례가 아니어도 선언이 거의 확실히 틀렸으면 1.5~3초 뒤 구라! */
 function expectOf(seat,f,r){
   const O=H.ld,mine=O.dice[seat].filter(v=>matches(v,f,r)).length,other=totalDice()-O.dice[seat].length;
   return mine+other*(r.wild&&!r.pal&&f!==1?1/3:1/6);
 }
+function binPmf(n,p){const a=[1];for(let k=0;k<n;k++){const b=new Array(a.length+1).fill(0);for(let j=0;j<a.length;j++){b[j]+=a[j]*(1-p);b[j+1]+=a[j]*p}a.splice(0,a.length,...b)}return a}
+function conv(a,b){const c=new Array(a.length+b.length-1).fill(0);for(let i=0;i<a.length;i++)for(let j=0;j<b.length;j++)c[i+j]+=a[i]*b[j];return c}
+/* 남의 주사위에서 눈 f가 나올 개수의 분포 */
+function otherDist(seat,f,r,hard){
+  const O=H.ld,p=r.wild&&!r.pal&&f!==1?1/3:1/6;
+  if(!hard)return binPmf(totalDice()-O.dice[seat].length,p);
+  let d=[1];
+  O.dice.forEach((dd,j)=>{
+    if(j===seat||!dd.length)return;
+    const said=O.hist.some(b=>b.s===j&&b.f===f);   // 이번 판에 그 눈을 선언한 사람
+    let pm=binPmf(dd.length,p);
+    if(said&&dd.length){const sh=[0,...binPmf(dd.length-1,p)];pm=pm.map((x,k)=>.38*x+.62*(sh[k]||0))}
+    d=conv(d,pm);
+  });
+  return d;
+}
+function probOf(seat,q,f,r,hard){   // [최소 q개일 확률, 정확히 q개일 확률]
+  const mine=H.ld.dice[seat].filter(v=>matches(v,f,r)).length,d=otherDist(seat,f,r,hard),need=q-mine;
+  let ge=0;for(let k=Math.max(0,need);k<d.length;k++)ge+=d[k];
+  return [need<=0?1:ge,need<0?0:d[need]||0];
+}
 function botAct(i){
+  const lv=botLv(H.players[i]);
+  if(lv>=1){botSmart(i,lv>=2);return}
   const O=H.ld,r=ruleNow(i),T=totalDice(),B=O.bid,cf=O.cf;
   if(B){
     const e=expectOf(i,B.f,r);
     if((cf.spot||cf.calza)&&Math.abs(e-B.q)<.45&&Math.random()<.2){doCall(i,cf.spot?'x':'c');return}
-    if(B.q>e+.6+Math.random()*1.4){doCall(i,'g');return}
+    if(B.q>e+.8+Math.random()*2){doCall(i,'g');return}   // 쉬움: 늦게 의심함
   }
   let best=null,bv=-1e9;
   for(let f=1;f<=6;f++){
     const lo=minQ(B,f,r);if(lo>T)continue;
-    const e=expectOf(i,f,r),q=Math.max(lo,Math.min(T,Math.round(e-Math.random()*1.2)));
+    const e=expectOf(i,f,r),q=Math.max(lo,Math.min(T,Math.round(e-Math.random()*1.2+(Math.random()<.3?1:0))));   // 쉬움: 가끔 한 개 더 부름
     const v=e-q+Math.random()*.8-(f===1&&r.wild&&!r.pal?.4:0);
     if(v>bv){bv=v;best={q,f}}
   }
   if(!best||(B&&bv<-1.2)){if(B){doCall(i,'g');return}}
   if(!best)best={q:1,f:2};
   doBid(i,best.q,best.f);
+}
+function botSmart(i,hard){
+  const O=H.ld,r=ruleNow(i),T=totalDice(),B=O.bid,cf=O.cf,low=lifeOf(i)===1;
+  const own=f=>O.dice[i].filter(v=>matches(v,f,r)).length;
+  /* 올릴 수 있는 선언 중 가장 맞을 것 같은 것 */
+  let best=null;
+  for(let f=1;f<=6;f++){
+    const lo=minQ(B,f,r);if(lo>T)continue;
+    for(let q=lo;q<=Math.min(T,lo+2);q++){
+      const [pg]=probOf(i,q,f,r,hard),sc=pg+(q-lo)*.02+own(f)*.01;   // 같은 확률이면 높게 불러 다음 사람을 압박
+      if(!best||sc>best.sc)best={q,f,pg,sc};
+    }
+  }
+  if(B){
+    const [pg,pe]=probOf(i,B.q,B.f,r,hard);
+    if((cf.spot||cf.calza)&&pe>=(hard?.3:.34)&&pg<.75&&Math.random()<.7){doCall(i,cf.spot?'x':'c');return}
+    /* 구라!가 이길 확률(1-pg)과 올렸을 때 내 선언이 맞을 확률(best.pg)을 비교. 어려움은 생명이 1개면 더 조심 */
+    if(!best||1-pg>best.pg+(hard&&low?-.05:0)){doCall(i,'g');return}
+  }
+  /* 허세: 보통은 가끔 아무 눈, 어려움은 판 초반에 내가 안 가진 눈으로 */
+  const bl=hard?(O.hist.length<2&&!low?.15:.03):.05;
+  if(Math.random()<bl){
+    const F=[];for(let f=1;f<=6;f++){const lo=minQ(B,f,r);if(lo<=T&&(!hard||own(f)===0)&&probOf(i,lo,f,r,hard)[0]>=.3)F.push([f,lo])}
+    if(F.length){const [f,q]=F[Math.random()*F.length|0];doBid(i,q,f);return}
+  }
+  if(!best){if(B)doCall(i,'g');else doBid(i,1,openBid(i));return}
+  doBid(i,best.q,best.f);
+}
+/* 어려움 봇: 차례가 아니어도 선언이 거의 확실히 틀렸으면 구라! (사람이 먼저 외칠 틈을 1.5~3초 줌) */
+function botSnipe(t){
+  const O=H.ld,B=O.bid;if(!B||!O.snipeAt||t<O.snipeAt)return false;
+  O.snipeAt=0;
+  const r=ruleNow(-1),n=H.players.length;
+  for(let k=1;k<n;k++){
+    const i=(B.s+k)%n,p=H.players[i];
+    if(i===H.turn||p.finished||!p.bot||botLv(p)<2||(p.away&&t<p.awayAt+AWAY_WAIT))continue;
+    if(probOf(i,B.q,B.f,{...r,free:false},true)[0]<.1){doCall(i,'g');return true}
+  }
+  return false;
 }
 function openBid(i){   // 시간 초과로 하는 첫 선언: 내 주사위에 가장 많은 눈 1개
   const O=H.ld,r=ruleNow(i),cnt=[0,0,0,0,0,0,0];for(const v of O.dice[i])cnt[v]++;
@@ -222,12 +288,12 @@ function doSurrender(seat){
   if(O.ph==='bid'||O.ph==='roll'){O.dice[seat]=[];if(O.start===seat)O.start=nextAlive(seat);if(O.ph==='roll'){H.turn=O.start;doRoll(seat)}}
   mark();
 }
-G._test={minQ,countOf,SH,showLen,ROLL_WAIT,SETTLE_MS,PRESET,presetOf,botAct};
+G._test={minQ,countOf,SH,showLen,ROLL_WAIT,SETTLE_MS,PRESET,presetOf,botAct,probOf};
 G.engine={
   start(){
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,known:{},turn:0,botActAt:0,deadline:0});
     const n=H.players.length,cf=C();
-    H.players.forEach(p=>{p.finished=false;p.rank=null;p.surrendered=false;p.hand=[0];p.lv=cf.L;p.dc=cf.D;p.palUsed=false});
+    H.players.forEach(p=>{p.finished=false;p.rank=null;p.surrendered=false;p.hand=[0];p.lf=cf.L;p.dc=cf.D;p.palUsed=false});
     H.ld={gn:((H.ld&&H.ld.gn)||0)+1,rn:0,cf,rank:n,dice:[],bid:null,hist:[],ph:'roll',sh:null,pal:-1,palNext:-1,ev:[],sq:0,start:0};
     const first=firstSeat(n);H.ld.first=first;
     addLog(`${n}명 시작. ${H.players[first].name}부터 선언합니다.`,'sys');
@@ -266,13 +332,14 @@ G.engine={
     if(O.ph!=='bid')return;
     const cur=H.players[H.turn];
     if(cur.bot&&H.botActAt){const v=t>=H.botActAt-1700&&t<H.botActAt-550?1:0;if(O.pk[H.turn]!==v){O.pk[H.turn]=v;mark()}}   // 봇도 선언 전에 한 번 들춰 봄
+    if(botSnipe(t))return;
     if(t>=H.deadline)timeout();
     else if(cur.bot&&H.botActAt&&t>=H.botActAt&&!(cur.away&&t<cur.awayAt+AWAY_WAIT))botAct(H.turn);
   },
   snap(s,you,t){
     const O=H.ld,open=O.ph==='show'||O.ph==='done';
     s.ld={gn:O.gn,rn:O.rn,ph:O.ph,cf:{...O.cf},bid:O.bid?{...O.bid}:null,hist:O.hist.map(b=>({...b})),pal:O.pal,first:O.first,
-      dn:O.dice.map(d=>d.length),lv:H.players.map(p=>p.lv),dc:H.players.map(p=>p.dc),out:H.players.map(p=>p.finished?1:0),T:totalDice(),sq:O.sq,ev:O.ev.map(e=>({...e}))};
+      dn:O.dice.map(d=>d.length),lv:H.players.map(p=>p.lf),dc:H.players.map(p=>p.dc),out:H.players.map(p=>p.finished?1:0),T:totalDice(),sq:O.sq,ev:O.ev.map(e=>({...e}))};
     if(you>=0&&O.dice[you])s.ld.my=O.dice[you].slice();
     if(open&&O.sh)s.ld.all=O.dice.map(d=>d.slice());
     if(O.ph==='roll'){s.ld.rd=O.rolled.slice();s.ld.sk=O.shk.slice();s.ld.ra=Math.max(0,Math.round(O.rollDl-t))}
@@ -281,7 +348,7 @@ G.engine={
     s.gr=0;s.dl=O.ph==='bid'&&H.phase==='play'?Math.max(0,Math.round(H.deadline-t)):0;
     if(O.ph!=='bid')delete s.t;
   },
-  restore(ms){const O=H.ld;if(!O)return;if(O.rollAt)O.rollAt+=ms;if(O.rollDl)O.rollDl+=ms;if(O.bt)O.bt.forEach(b=>{if(b){b.s+=ms;b.r+=ms}});if(O.sh)O.sh.t0+=ms},
+  restore(ms){const O=H.ld;if(!O)return;if(O.snipeAt)O.snipeAt+=ms;if(O.rollAt)O.rollAt+=ms;if(O.rollDl)O.rollDl+=ms;if(O.bt)O.bt.forEach(b=>{if(b){b.s+=ms;b.r+=ms}});if(O.sh)O.sh.t0+=ms},
   emoPhase:ph=>ph==='play'||ph==='over'
 };
 

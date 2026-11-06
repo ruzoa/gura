@@ -2,9 +2,9 @@
 const TT=LD._test,mq=TT.minQ;
 const eq=(a,b,m)=>{if(a!==b)fail('liardice '+m+': '+a+' != '+b)};
 const pass=ms=>{for(let k=0;k<ms/50;k++){NOW+=50;engineTick()}};
-const setup=(n,bots,over)=>{
+const setup=(n,bots,over,blv)=>{
   hostNew(false,'t','t');H.cfg={...cfgFor('liardice'),game:'liardice',...(over||{})};
-  H.members=[];for(let i=0;i<n;i++)H.members.push(bots&&i>=bots?{name:'b'+i,bot:true,conn:null,host:false,lv:0}:{name:'p'+i,bot:false,conn:i?{}:null,host:i===0,cid:i?'c'+i:''});
+  H.members=[];for(let i=0;i<n;i++)H.members.push(bots&&i>=bots?{name:'b'+i,bot:true,conn:null,host:false,lv:blv||0}:{name:'p'+i,bot:false,conn:i?{}:null,host:i===0,cid:i?'c'+i:''});
   hostStart();pass(4000);rollAll();
 };
 const act=(s,a)=>LD.engine.act(s,a);
@@ -24,7 +24,7 @@ eq(TT.countOf([[1,2,4],[4,4,6]],4,R0),3,'count no wild');eq(TT.countOf([[1,2,4],
 eq(TT.countOf([[1,2,4],[4,4,6]],4,{wild:1,pal:true}),3,'palifico ones not wild');
 
 /* 시작: 주사위 5개, 생명 3, 숨김 */
-setup(3);{eq(H.ld.ph,'bid','bidding after intro+roll');eq(H.ld.dice.every(d=>d.length===5),true,'5 dice');eq(H.players.every(p=>p.lv===3),true,'3 lives');
+setup(3);{eq(H.ld.ph,'bid','bidding after intro+roll');eq(H.ld.dice.every(d=>d.length===5),true,'5 dice');eq(H.players.every(p=>p.lf===3),true,'3 lives');
   const s=snapFor(1);eq(JSON.stringify(s.ld.my),JSON.stringify(H.ld.dice[1]),'own dice');eq(s.ld.all,undefined,'others hidden');eq(s.ld.T,15,'total')}
 /* 선언: 차례·올리기 검사 */
 setup(3);at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);
@@ -36,9 +36,9 @@ act(2,{t:'bid',q:4,f:2});eq(H.ld.bid.q,4,'more count lower face');
 /* 구라!: 선언이 맞음(2가 4개) → 외친 사람 -1, 그 사람부터 */
 act(2,{t:'gura'});eq(H.ld.ph,'bid','bidder cannot call');
 act(1,{t:'gura'});eq(H.ld.ph,'show','called by anyone');eq(H.ld.sh.n,4,'count 2s');eq(H.ld.sh.res,'true','true');eq(snapFor(0).ld.all.length,3,'shown to all');eq(snapFor(0).t,undefined,'no turn while showing');
-eq(H.players[1].lv,3,'not yet (after show)');pass(H.ld.sh.ms+100);eq(H.players[1].lv,2,'caller lost');eq(H.ld.ph,'roll','new roll');eq(H.ld.start,1,'loser starts');rollAll();eq(H.turn,1,'loser turn')
+eq(H.players[1].lf,3,'not yet (after show)');pass(H.ld.sh.ms+100);eq(H.players[1].lf,2,'caller lost');eq(H.ld.ph,'roll','new roll');eq(H.ld.start,1,'loser starts');rollAll();eq(H.turn,1,'loser turn')
 /* 구라!: 선언이 틀림 → 선언한 사람 -1 */
-setup(3);at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:5,f:2});act(2,{t:'gura'});eq(H.ld.sh.res,'lie','lie');pass(H.ld.sh.ms+100);eq(H.players[0].lv,2,'bidder lost');eq(H.ld.start,0,'bidder starts');
+setup(3);at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:5,f:2});act(2,{t:'gura'});eq(H.ld.sh.res,'lie','lie');pass(H.ld.sh.ms+100);eq(H.players[0].lf,2,'bidder lost');eq(H.ld.start,0,'bidder starts');
 /* 1 와일드 */
 setup(3,0,{wild:1});at0([[2,2,3,5,6],[1,4,4,4,6],[1,1,3,5,5]]);act(0,{t:'bid',q:1,f:1});eq(H.ld.bid,null,'no open ones');
 act(0,{t:'bid',q:5,f:4});act(1,{t:'bid',q:2,f:1});eq(H.ld.bid.f,4,'ones too low');act(1,{t:'bid',q:3,f:1});eq(H.ld.bid.f,1,'ones half');
@@ -47,16 +47,16 @@ act(0,{t:'gura'});eq(H.ld.sh.n,6,'4s + ones');eq(H.ld.sh.res,'lie','7 > 6');
 /* 탈락·끝: 생명 1 */
 setup(2,0,{lives:1});at0([[2,2,3,5,6],[2,4,4,4,6]]);act(0,{t:'bid',q:9,f:2});act(1,{t:'gura'});pass(H.ld.sh.ms+100);eq(H.phase,'over','over');eq(H.players[1].rank,1,'winner');eq(H.players[0].rank,2,'loser');
 /* 주사위 잃기 */
-setup(3,0,{dl:1});at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:9,f:2});act(1,{t:'gura'});pass(H.ld.sh.ms+100);eq(H.players[0].dc,4,'lost a die');eq(H.ld.dice[0].length,4,'rolls 4');eq(H.players[0].lv,3,'lives untouched');
+setup(3,0,{dl:1});at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:9,f:2});act(1,{t:'gura'});pass(H.ld.sh.ms+100);eq(H.players[0].dc,4,'lost a die');eq(H.ld.dice[0].length,4,'rolls 4');eq(H.players[0].lf,3,'lives untouched');
 /* spot on: 구라!에 정확 → 선언한 사람 빼고 모두 -1 */
 setup(4,0,{spot:1});at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5],[6,6,6,6,6]]);act(0,{t:'bid',q:4,f:2});act(2,{t:'gura'});eq(H.ld.sh.res,'spot','spot on');pass(H.ld.sh.ms+100);
-  eq(H.players.map(p=>p.lv).join(),'3,2,2,2','all but bidder');eq(H.ld.start,2,'caller starts');
+  eq(H.players.map(p=>p.lf).join(),'3,2,2,2','all but bidder');eq(H.ld.start,2,'caller starts');
 /* 도전: 정확 → 나 빼고 모두 -1, 아니면 나 -1, 차례에만 */
-setup(3,0,{spot:1});at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:4,f:2});act(2,{t:'exact'});eq(H.ld.ph,'bid','exact only on turn');act(1,{t:'exact'});eq(H.ld.sh.res,'xok','challenge ok');pass(H.ld.sh.ms+100);eq(H.players.map(p=>p.lv).join(),'2,3,2','challenge hits others');
-setup(3,0,{spot:1});at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:3,f:2});act(1,{t:'exact'});eq(H.ld.sh.res,'xno','challenge fail');pass(H.ld.sh.ms+100);eq(H.players[1].lv,2,'challenger lost');
+setup(3,0,{spot:1});at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:4,f:2});act(2,{t:'exact'});eq(H.ld.ph,'bid','exact only on turn');act(1,{t:'exact'});eq(H.ld.sh.res,'xok','challenge ok');pass(H.ld.sh.ms+100);eq(H.players.map(p=>p.lf).join(),'2,3,2','challenge hits others');
+setup(3,0,{spot:1});at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:3,f:2});act(1,{t:'exact'});eq(H.ld.sh.res,'xno','challenge fail');pass(H.ld.sh.ms+100);eq(H.players[1].lf,2,'challenger lost');
 /* 칼사: 맞으면 +1(처음 개수까지), 틀리면 -1 */
 setup(3,0,{calza:1,dl:1});at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);H.players[1].dc=4;H.ld.dice[1]=[2,4,4,4];act(0,{t:'bid',q:4,f:2});act(1,{t:'exact'});eq(H.ld.sh.res,'cok','calza ok');pass(H.ld.sh.ms+100);eq(H.players[1].dc,5,'calza regains');
-setup(3,0,{calza:1});at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:4,f:2});act(1,{t:'exact'});pass(H.ld.sh.ms+100);eq(H.players[1].lv,3,'calza capped at start');
+setup(3,0,{calza:1});at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:4,f:2});act(1,{t:'exact'});pass(H.ld.sh.ms+100);eq(H.players[1].lf,3,'calza capped at start');
 /* spot·calza 함께 켜지지 않음 */
 {const old=H.cfg;H.cfg={...old,spot:1,calza:0};const c=LD.fixCfg({...H.cfg,calza:1},3,true);eq(c.spot+c.calza,1,'exclusive');eq(c.calza,1,'newest wins');H.cfg=old}
 /* 팔리피코: 1개 남은 사람부터, 1 와일드 아님, 눈 고정 */
@@ -89,3 +89,16 @@ setup(3,1);at0();{act(0,{t:'bid',q:1,f:2});act(1,{t:'gura'});pass(H.ld.sh.ms+100
 /* 들춰 보기: 선언 단계에만, 모두에게 들린 것만 */
 setup(3);at0();act(2,{t:'peek',on:1});eq(snapFor(0).ld.pk[2],1,'peek shown');eq(snapFor(0).ld.all,undefined,'dice still hidden');act(2,{t:'peek',on:0});eq(H.ld.pk[2],0,'peek off');
 console.log('liardice roll ok');
+
+/* 봇 난이도: 확률 계산, 보통·어려움 끝까지, 어려움은 차례가 아니어도 구라! */
+setup(3);at0([[4,4,4,4,4],[2,3,3,5,6],[1,2,2,5,6]]);{const R={wild:0,pal:false,free:false};
+  eq(TT.probOf(0,5,4,R,false)[0],1,'already have 5');eq(Math.abs(TT.probOf(0,6,4,R,false)[0]-(1-Math.pow(5/6,10)))<1e-9,true,'binomial');
+  const pg=TT.probOf(0,11,4,R,false)[0];eq(pg>0&&pg<.01,true,'unlikely');}
+for(const lv of [1,2])for(const over of [{},{wild:1,dl:1,calza:1,pal:1},{spot:1}])for(let g=0;g<5;g++){
+  setup(4,1,over,lv);let k=0;while(H.phase==='play'&&k++<40000){NOW+=100;engineTick();if(H.ld.ph==='roll'&&!H.ld.rolled[0])act(0,{t:'roll'});if(H.ld.ph==='bid'&&H.turn===0)LD._test.botAct(0)}
+  if(H.phase!=='over')fail('liardice lv'+lv+' bots did not finish');
+}
+setup(3,2,{},2);at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:14,f:6});eq(H.turn,1,'turn to human 1');
+  {let k=0;while(H.ld.ph==='bid'&&k++<40){NOW+=100;engineTick()}eq(H.ld.ph,'show','hard bot snipes');eq(H.ld.sh.by,2,'sniper is bot 2');eq(k>=15,true,'waits before sniping')}
+setup(3,2,{},1);at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:14,f:6});{let k=0;while(H.ld.ph==='bid'&&k++<40){NOW+=100;engineTick()}eq(H.ld.ph,'bid','normal bot does not snipe')}
+console.log('liardice bots ok');
