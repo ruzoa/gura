@@ -383,7 +383,7 @@ function drawMineLife(L,o,i){
    남이 들면 그 사람 쪽으로 들리고 아래에는 눈 없는 하얀 주사위가 보임.
    공개(show): 모든 컵이 들려 바깥쪽에 엎어지고, 주사위가 커지며 퍼짐. 선언한 사람부터 시계 방향으로 맞는 주사위에 빛 고리 + 톡 튐, 가운데 숫자가 하나씩 오름.
    모든 움직임은 시각(판 시작·엎은 때·든 때·공개 시작)으로 계산 */
-const R_CUP=2.3,R_ME=2.72,CO_H=.06,CUP_K=.82,K_ME=1.15,DS=.26,DS_ME=.34,HY=.9,NW=640,NH=420;
+const R_CUP=1.5,R_ME=2.75,CO_H=.06,CUP_K=.62,K_ME=.86,DS=.2,DS_ME=.27,HY=.9,NW=640,NH=420;
 const M={on:false,built:false,fail:false,root:null,raf:0,cups:[],dice:[],blank:[],rings:[],num:null,life:null,glow:null,key:'',rn:-1,gn:-1,roundT0:0,prevSh:null,lastSh:null,showT0:0,shKey:'',lastTick:-1,verdictSaid:false,rdAt:[],pkS:[],rattleAt:0,hitKey:'',puKey:''};
 const HOLD={on:false,mode:'',rolledAt:0,src:''};
 const ez=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
@@ -438,15 +438,15 @@ function build(){
       const b2=new THREE.Mesh(b2G,b2M);b2.rotation.x=Math.PI/2;b2.position.y=.13;
       inner.add(body,new THREE.Mesh(hullG,ink),b1,b2);inner.scale.setScalar(CUP_K);g.add(inner);g.visible=false;root.add(g);g.userData.inner=inner;return g;
     };
-    {const cg=new THREE.CylinderGeometry(.74,.78,CO_H,40),cm=toon({color:0x8a5a34,rim:.18}),tg=new THREE.CircleGeometry(.66,40),tm=toon({color:0x2e5e3e,rim:.1});
-     M.mkCo=()=>{const g=new THREE.Group(),b=new THREE.Mesh(cg,cm),t=new THREE.Mesh(tg,tm);b.receiveShadow=true;t.rotation.x=-Math.PI/2;t.position.y=CO_H/2+.002;t.receiveShadow=true;g.add(b,t,new THREE.Mesh(cg,ink));g.children[2].scale.set(1.03,1.15,1.03);g.visible=false;root.add(g);return g}}   // 컵받침: 나무 테 + 안쪽 천
+    {const cg=new THREE.CylinderGeometry(.74,.78,CO_H,40),cm=toon({color:0x8a5a34,rim:.18});
+     M.mkCo=()=>{const g=new THREE.Group(),b=new THREE.Mesh(cg,cm),o=new THREE.Mesh(cg,ink);b.receiveShadow=true;o.scale.set(1.03,1.15,1.03);g.add(b,o);g.visible=false;root.add(g);return g}}   // 컵받침: 나무판(천 없음)
     const rt=ringTex(),rg=new THREE.PlaneGeometry(1,1);
     M.mkRing=()=>{const m=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({map:rt,transparent:true,depthWrite:false}));m.rotation.order='YXZ';m.rotation.x=-Math.PI/2;m.renderOrder=2;m.visible=false;root.add(m);return m};
     /* 아직 안 굴렸을 때 내 컵 밑에서 숨 쉬는 빛 */
     {const gt=canvasTex(256,256,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,w*.2,w/2,h/2,w*.5);gr.addColorStop(0,'rgba(255,190,90,0)');gr.addColorStop(.62,'rgba(255,176,74,.85)');gr.addColorStop(1,'rgba(255,150,50,0)');g.fillStyle=gr;g.fillRect(0,0,w,h)});
      const m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:gt,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.renderOrder=1;m.visible=false;root.add(m);M.glow=m}
     const c=document.createElement('canvas');c.width=NW;c.height=NH;const t=new THREE.CanvasTexture(c);t.anisotropy=4;
-    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,depthWrite:false}));sp.position.set(0,HY,.45);sp.scale.set(1.9,1.25,1);sp.renderOrder=55;root.add(sp);
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,depthWrite:false}));sp.position.set(0,HY,1.05);sp.scale.set(1.9,1.25,1);sp.renderOrder=55;root.add(sp);
     M.num={c,t,sp};
     {const c2=document.createElement('canvas');c2.width=384;c2.height=128;const t2=new THREE.CanvasTexture(c2);t2.anisotropy=4;
      const m=new THREE.Mesh(new THREE.PlaneGeometry(1.2,.4),new THREE.MeshBasicMaterial({map:t2,transparent:true,depthWrite:false}));m.rotation.order='YXZ';m.rotation.x=-Math.PI/2;m.renderOrder=2;m.visible=false;root.add(m);M.life={c:c2,t:t2,m,key:''}}
@@ -460,7 +460,7 @@ const cupOf=i=>M.cups[i]||(M.cups[i]=M.mkCup(SEAT_C[i%SEAT_C.length]));
 const dieOf=(i,k)=>{const a=M.dice[i]||(M.dice[i]=[]);return a[k]||(a[k]=M.mkDie())};
 const blankOf=(i,k)=>{const a=M.blank[i]||(M.blank[i]=[]);return a[k]||(a[k]=M.mkBlank())};
 const ringOf=(i,k)=>{const a=M.rings[i]||(M.rings[i]=[]);return a[k]||(a[k]=M.mkRing())};
-const XO=.95;   // 남의 컵은 자리에서 그 사람 왼쪽으로 비켜 둠: 가운데에 두면 자리 이름표가 컵을 가림
+const XO=0;   // 컵은 자리 앞 가운데 (이름표에 가리지 않게 컵을 작게·안쪽으로)
 const xoOf=i=>i===myIdx()?0:XO;
 const kOf=i=>i===myIdx()?K_ME:CUP_K,dsOf=i=>i===myIdx()?DS_ME:DS,rOf=i=>i===myIdx()?R_ME:R_CUP;
 /* 자리 기준 좌표(+z = 그 사람 쪽) → 세계 */
@@ -543,23 +543,25 @@ function step(){
     if(!cup)continue;cup.visible=alive;
     const mine=i===me;
     cup.userData.inner.scale.setScalar(kOf(i));
-    let pk=0;
+    let pk=0,coT=null;
     if(alive){
       let P;
       if(o.ph==='roll'){
         const rolled=mine?(!!HOLD.rolledAt||!!(o.rd&&o.rd[i])):!!(o.rd&&o.rd[i]),at=mine&&HOLD.rolledAt?HOLD.rolledAt:M.rdAt[i];
         const shaking=!rolled&&(mine?HOLD.on&&HOLD.mode==='shake':!!(o.sk&&o.sk[i]));
-        let U=cupPose(i,'closed');   // 흔들 때도 엎은 채로: 컵받침 위에서 들려 흔들림
-        if(shaking){const s=now/1000,a=1;rattle=true;U.p.y+=.32+Math.abs(Math.sin(s*24+i))*.12*a;U.p.add(seatPt(i,0,Math.sin(s*31+i*2)*.07,0,Math.cos(s*27+i)*.06).setY(0));
-          U.q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.sin(s*29+i)*.18,0,Math.cos(s*25+i)*.18)))}
-        if(M.prevSh&&backK<1)U=lerpPose(cupPose(i,'aside'),U,backK,1);
-        P=U;if(rolled&&at&&now-at<200){const k=ez((now-at)/200),C=cupPose(i,'closed');C.p.y+=.32*(1-k);P=lerpPose(C,C,0)}
-        if(rolled&&at&&now-at<300&&!cup.userData.slam){cup.userData.slam=1}
+        /* 흔들기: 컵받침째 들어 흔듦(엎은 컵 + 컵받침이 한 덩어리), 떼면 함께 탁 내려앉음 */
+        let lift=0,jx=0,jz=0,qj=new THREE.Quaternion();
+        if(shaking){const s=now/1000;rattle=true;lift=.3+Math.abs(Math.sin(s*24+i))*.1;jx=Math.sin(s*31+i*2)*.06;jz=Math.cos(s*27+i)*.05;qj.setFromEuler(new THREE.Euler(Math.sin(s*29+i)*.16,0,Math.cos(s*25+i)*.16))}
+        else if(rolled&&at&&now-at<200)lift=.3*(1-ez((now-at)/200));
+        const base=cPt(i,0,0,0),C=cupPose(i,'closed'),d=seatPt(i,0,jx,0,jz).setY(lift);
+        P={p:base.clone().add(d).add(C.p.clone().sub(base).applyQuaternion(qj)),q:qj.clone().multiply(C.q)};
+        coT={p:base.clone().add(d).add(new THREE.Vector3(0,CO_H/2,0).applyQuaternion(qj)),q:qj};
+        if(M.prevSh&&backK<1)P=lerpPose(cupPose(i,'aside'),P,backK,1);
       }else if(inShow)P=lerpPose(cupPose(i,'closed'),cupPose(i,'aside'),liftK,1.1);
       else{pk=peekK(i,now);P=pk>0?cupPose(i,'peek',pk*(mine?.78:.62)):cupPose(i,'closed')}
       setPose(cup,P);
     }
-    const co=coOf(i);co.visible=alive;if(alive){co.position.copy(cPt(i,0,CO_H/2,0));co.scale.set(kOf(i),1,kOf(i))}
+    const co=coOf(i);co.visible=alive;if(alive){if(coT){co.position.copy(coT.p);co.quaternion.copy(coT.q)}else{co.position.copy(cPt(i,0,CO_H/2,0));co.quaternion.identity()}co.scale.set(kOf(i),1,kOf(i))}
     /* 주사위: 공개면 진짜 눈(모두), 들춰 보면 내 것은 진짜 눈·남의 것은 하얀 주사위 */
     const real=inShow&&o.all?o.all[i]||[]:mine&&o.my?o.my:[];
     const nd=inShow&&o.all?(o.all[i]||[]).length:o.dn[i]||0;
