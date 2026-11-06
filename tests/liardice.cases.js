@@ -104,3 +104,12 @@ setup(3,2,{},1);at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:14,f
 console.log('liardice bots ok');
 /* 선언 기록(ev)의 개수가 순번에 덮이지 않음 (말풍선 숫자 버그) */
 setup(3);at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:2,f:5});{const e=snapFor(1).ld.ev.filter(x=>x.k==='b').pop();eq(e.q,2,'bubble count = bid count');eq(e.f,5,'bubble face');eq(e.sn>0,true,'seq separate')}
+
+/* 굴리기: 만진 사람만 새로, 안 만지면 그대로(시간이 다 되면), 첫 판 바닥 주사위는 모두에게, 나머지가 다 굴리면 5초 */
+setup(3);{eq(H.ld.rn>=1,true,'started');}
+{hostNew(false,'t','t');H.cfg={...cfgFor('liardice'),game:'liardice'};H.members=[0,1,2].map(i=>({name:'p'+i,bot:false,conn:i?{}:null,host:i===0,cid:i?'c'+i:''}));hostStart();pass(4000);
+  eq(H.ld.ph,'roll','first roll');const fl=snapFor(1).ld.fl;eq(JSON.stringify(fl[0]),JSON.stringify(H.ld.dice[0]),'floor dice shown to others');
+  const keep=H.ld.dice[2].join();act(0,{t:'roll'});act(1,{t:'roll'});eq(snapFor(1).ld.fl[0].length,0,'rolled dice hidden');
+  eq(H.ld.rollDl-NOW<=TT.ROLL_LAST,true,'last one gets 5s');pass(TT.ROLL_LAST+TT.SETTLE_MS+200);eq(H.ld.ph,'bid','auto after 5s');eq(H.ld.dice[2].join(),keep,'untouched keeps dice')}
+setup(3,0,{dl:1});at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:9,f:2});act(1,{t:'gura'});pass(H.ld.sh.ms+100);
+  {const d=H.ld.dice[0];eq(d.length,4,'lost one die kept 4');eq(d.every(v=>[2,3,5,6].includes(v)),true,'kept values minus one');eq(H.ld.dice[1].join(),'2,4,4,4,6','others keep until touched')}

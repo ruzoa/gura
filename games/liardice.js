@@ -10,7 +10,7 @@
 const G={id:'liardice',name:'구라! 다이스',short:'다이스',lead:'컵 속 주사위로 허세를 부리는 게임',maxHi:4,minN:2,noFast:true,firstPick:true};   // 봇 난이도: 공통 쉬움·보통·어려움
 
 /* ---------- 규칙 값 ---------- */
-const ROLL_WAIT=10000,SETTLE_MS=450;   // 굴리기: 각자 컵을 흔들어 엎음. 10초 안에 안 엎으면 저절로, 모두 엎으면 잠깐 뒤 선언 시작
+const ROLL_WAIT=10000,ROLL_LAST=5000,SETTLE_MS=450;   // 나머지가 다 굴리면 남은 사람은 5초 안에   // 굴리기: 각자 컵을 흔들어 엎음. 10초 안에 안 엎으면 저절로, 모두 엎으면 잠깐 뒤 선언 시작
 /* 공개 연출 (ms, 공개 시작 기준): 말풍선 → 컵이 들림 → 맞는 주사위를 하나씩 셈 → 판정 → 끝 */
 const SH={lift:450,liftDur:550,count0:1150,per:190,verdictGap:300,hold:1900};
 const showLen=n=>SH.count0+n*SH.per+SH.verdictGap+SH.hold;
@@ -40,7 +40,7 @@ const matches=(d,f,r)=>d===f||(r.wild&&!r.pal&&f!==1&&d===1);
 G.cardHTML=()=>'';G.drawFace=()=>{};G.cmpCard=()=>0;G.labelOf=()=>'';   // 카드 없음 (hand는 표시용 값 하나)
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>굴리기</b> : 판마다 모두 함께 굴립니다. 내 컵을 누르고 있으면 흔들리고, 떼면 엎어집니다(10초가 지나면 저절로). 생명은 3개, 주사위는 5개입니다</li><li><b>확인</b> : 엎은 컵을 누르고 있는 동안 내 쪽이 들려 내 주사위를 봅니다. 떼면 닫힙니다. 다른 사람에게는 컵이 들린 것만 보이고 눈은 보이지 않습니다</li><li><b>선언</b> : 차례대로 "이 눈이 모두의 주사위를 합쳐 <b>최소 몇 개</b>"라고 선언합니다. 오른쪽 아래에서 눈과 개수를 고르고 [선언]을 누릅니다</li><li><b>올리기</b> : 다음 사람은 개수를 올리거나(눈은 아무거나), 개수는 그대로 두고 더 큰 눈으로 올립니다</li><li><b>구라!</b> : 선언이 아닌 것 같으면 선언한 사람 말고 누구든 <b>구라!</b>를 외칩니다. 모두 공개해서 그 눈이 선언한 개수 이상이면 구라!를 외친 사람이, 모자라면 선언한 사람이 생명 1개를 잃습니다</li><li><b>다음 판</b> : 생명을 잃은 사람부터 다시 굴립니다. 생명이 모두 없어지면 탈락하고, 마지막까지 남은 사람이 <b>승리</b>합니다</li><li><b>제한 시간</b> : 시간이 지나면 선언이 있으면 구라!, 없으면 가장 낮은 선언을 합니다</li><li><b>규칙 묶음</b> : 탁자 설정에서 구라! 다이스(위 규칙)·페루도·커스텀을 고릅니다<ul><li><b>1 와일드</b> : 1은 모든 눈으로 셉니다. 첫 선언은 1로 할 수 없습니다. 다른 눈에서 1로 바꿀 때는 개수를 절반(올림)까지 내릴 수 있고, 1에서 다른 눈으로 바꿀 때는 두 배 + 1 이상이어야 합니다</li><li><b>주사위 잃기</b> : 생명 대신 주사위를 하나씩 잃습니다. 주사위가 모두 없어지면 탈락합니다</li><li><b>spot on</b> : 내 차례에 직전 선언에 <b>도전</b>할 수 있습니다. 개수가 정확하면 나를 뺀 모두가, 아니면 내가 1개를 잃습니다. 구라!를 외쳤는데 개수가 정확하면(spot on!) 선언한 사람을 뺀 모두가 1개를 잃습니다</li><li><b>칼사</b> : 내 차례에 직전 선언이 정확하다고 <b>칼사</b>를 외칩니다. 맞으면 내가 1개를 되찾고(처음 개수까지), 틀리면 1개를 잃습니다</li><li><b>팔리피코</b> : 처음으로 1개만 남은 사람이 생기면 그 사람부터 한 판 동안 1이 와일드가 아니고, 처음 선언한 눈을 바꿀 수 없습니다(1개만 남은 사람은 바꿀 수 있음). 사람마다 한 번만 열립니다</li></ul></li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>굴리기</b> : 판마다 모두 함께 굴립니다. 내 컵을 누르고 있으면 흔들리고, 떼면 엎어집니다. 첫 판은 컵을 누르면 바닥의 주사위가 컵에 들어갑니다. 컵을 만지지 않으면 시간이 다 됐을 때 주사위가 섞이지 않고 그대로입니다(모두가 본 눈). 생명은 3개, 주사위는 5개입니다</li><li><b>확인</b> : 엎은 컵을 누르고 있는 동안 내 쪽이 들려 내 주사위를 봅니다. 떼면 닫힙니다. 다른 사람에게는 컵이 들린 것만 보이고 눈은 보이지 않습니다</li><li><b>선언</b> : 차례대로 "이 눈이 모두의 주사위를 합쳐 <b>최소 몇 개</b>"라고 선언합니다. 오른쪽 아래에서 눈과 개수를 고르고 [선언]을 누릅니다</li><li><b>올리기</b> : 다음 사람은 개수를 올리거나(눈은 아무거나), 개수는 그대로 두고 더 큰 눈으로 올립니다</li><li><b>구라!</b> : 선언이 아닌 것 같으면 선언한 사람 말고 누구든 <b>구라!</b>를 외칩니다. 모두 공개해서 그 눈이 선언한 개수 이상이면 구라!를 외친 사람이, 모자라면 선언한 사람이 생명 1개를 잃습니다</li><li><b>다음 판</b> : 생명을 잃은 사람부터 다시 굴립니다. 생명이 모두 없어지면 탈락하고, 마지막까지 남은 사람이 <b>승리</b>합니다</li><li><b>제한 시간</b> : 시간이 지나면 선언이 있으면 구라!, 없으면 가장 낮은 선언을 합니다</li><li><b>규칙 묶음</b> : 탁자 설정에서 구라! 다이스(위 규칙)·페루도·커스텀을 고릅니다<ul><li><b>1 와일드</b> : 1은 모든 눈으로 셉니다. 첫 선언은 1로 할 수 없습니다. 다른 눈에서 1로 바꿀 때는 개수를 절반(올림)까지 내릴 수 있고, 1에서 다른 눈으로 바꿀 때는 두 배 + 1 이상이어야 합니다</li><li><b>주사위 잃기</b> : 생명 대신 주사위를 하나씩 잃습니다. 주사위가 모두 없어지면 탈락합니다</li><li><b>spot on</b> : 내 차례에 직전 선언에 <b>도전</b>할 수 있습니다. 개수가 정확하면 나를 뺀 모두가, 아니면 내가 1개를 잃습니다. 구라!를 외쳤는데 개수가 정확하면(spot on!) 선언한 사람을 뺀 모두가 1개를 잃습니다</li><li><b>칼사</b> : 내 차례에 직전 선언이 정확하다고 <b>칼사</b>를 외칩니다. 맞으면 내가 1개를 되찾고(처음 개수까지), 틀리면 1개를 잃습니다</li><li><b>팔리피코</b> : 처음으로 1개만 남은 사람이 생기면 그 사람부터 한 판 동안 1이 와일드가 아니고, 처음 선언한 눈을 바꿀 수 없습니다(1개만 남은 사람은 바꿀 수 있음). 사람마다 한 번만 열립니다</li></ul></li></ol>';
 G.modeDesc=['마지막 한 사람이 남을 때까지','마지막 한 사람이 남을 때까지'];
 G.defaults={max:4,turn:30,lives:3,dice:5,wild:0,dl:0,spot:0,calza:0,pal:0,pickfirst:0};
 G.roomSet=[
@@ -100,7 +100,7 @@ const alive=()=>H.players.map((_,i)=>i).filter(i=>!H.players[i].finished);
 const lifeOf=i=>{const p=H.players[i];return H.ld.cf.dl?p.dc:p.lf};   // 생명은 p.lf (p.lv는 공통 코드의 봇 난이도)
 function nextAlive(i){const n=H.players.length;for(let k=1;k<=n;k++){const j=(i+k)%n;if(!H.players[j].finished)return j}return -1}
 const aliveOr=i=>H.players[i]&&!H.players[i].finished?i:nextAlive(i);
-const pushEv=e=>{const O=H.ld;e.sn=++O.sq;   // 순번은 sn (q는 선언 개수)
+const pushEv=e=>{const O=H.ld;e.sn=++O.sq;e.rn=O.rn;   // 순번은 sn (q는 선언 개수)
 O.ev.push(e);if(O.ev.length>12)O.ev.shift();return e};
 const ruleNow=seat=>{const O=H.ld;return {wild:O.cf.wild,pal:O.pal>=0,free:O.pal>=0&&seat>=0&&lifeOf(seat)===1}};
 const totalDice=()=>H.ld.dice.reduce((a,d)=>a+d.length,0);
@@ -108,7 +108,16 @@ function setTurn(i){H.turn=i;H.deadline=clock()+(+H.cfg.turn||30)*1000;H.botActA
 function startRound(st){
   const O=H.ld;
   O.pal=O.palNext;O.palNext=-1;
-  O.dice=H.players.map((p,i)=>p.finished?[]:Array.from({length:O.cf.dl?p.dc:O.cf.D},()=>1+(Math.random()*6|0)).sort((a,b)=>a-b));
+  /* 굴리기 전 주사위: 첫 판은 바닥에 무작위(모두에게 보임), 다음 판부터는 직전 공개 때 모두가 본 그대로.
+     컵을 만진 사람만 새로 굴림(안 만지면 그대로: 안 만진 사람의 손해). 개수가 줄면 무작위로 빼고, 늘면 무작위로 더함 */
+  const die=()=>1+(Math.random()*6|0);
+  O.dice=H.players.map((p,i)=>{
+    if(p.finished)return [];
+    const n=O.cf.dl?p.dc:O.cf.D,d=(O.dice[i]||[]).slice();
+    while(d.length>n)d.splice(Math.random()*d.length|0,1);
+    while(d.length<n)d.push(die());
+    return d.sort((a,b)=>a-b);
+  });
   const now=clock();
   Object.assign(O,{bid:null,hist:[],ph:'roll',rollDl:now+ROLL_WAIT,rollAt:0,rn:O.rn+1,start:st,sh:null,
     rolled:H.players.map(p=>p.finished?1:0),shk:H.players.map(()=>0),pk:H.players.map(()=>0),
@@ -116,10 +125,13 @@ function startRound(st){
   O.bt.forEach(b=>{if(b)b.r=b.s+rand(700,1300)});
   H.turn=st;H.deadline=clock()+864e5;H.botActAt=0;H.seatNote={};mark();
 }
-function doRoll(seat){
+function doRoll(seat,touched){   // touched: 컵을 만졌으면 새로 굴림, 시간이 다 돼 저절로면 그대로
   const O=H.ld;if(O.rolled[seat])return;
-  O.rolled[seat]=1;O.shk[seat]=0;pushEv({k:'r',s:seat});
+  O.rolled[seat]=1;O.shk[seat]=0;
+  if(touched)O.dice[seat]=O.dice[seat].map(()=>1+(Math.random()*6|0)).sort((a,b)=>a-b);
+  pushEv({k:'r',s:seat,t:touched?1:0});
   if(O.rolled.every(Boolean))O.rollAt=clock()+SETTLE_MS;
+  else if(O.rolled.filter(x=>!x).length===1)O.rollDl=Math.min(O.rollDl,clock()+ROLL_LAST);
   mark();
 }
 function doBid(seat,q,f){
@@ -286,10 +298,10 @@ function doSurrender(seat){
   if(checkOver())return;
   if(O.ph==='show'){if(O.sh.st===seat)O.sh.st=nextAlive(seat);mark();return}
   if(O.ph==='bid'&&(H.turn===seat||(O.bid&&O.bid.s===seat))){startRound(nextAlive(seat));return}   // 그 사람의 차례·선언이 걸려 있으면 다시 굴림
-  if(O.ph==='bid'||O.ph==='roll'){O.dice[seat]=[];if(O.start===seat)O.start=nextAlive(seat);if(O.ph==='roll'){H.turn=O.start;doRoll(seat)}}
+  if(O.ph==='bid'||O.ph==='roll'){O.dice[seat]=[];if(O.start===seat)O.start=nextAlive(seat);if(O.ph==='roll'){H.turn=O.start;doRoll(seat,false)}}
   mark();
 }
-G._test={minQ,countOf,SH,showLen,ROLL_WAIT,SETTLE_MS,PRESET,presetOf,botAct,probOf};
+G._test={minQ,countOf,SH,showLen,ROLL_WAIT,ROLL_LAST,SETTLE_MS,PRESET,presetOf,botAct,probOf};
 G.engine={
   start(){
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,known:{},turn:0,botActAt:0,deadline:0});
@@ -307,7 +319,7 @@ G.engine={
     if(dealing()||H.players[seat].finished)return;
     if(O.ph==='roll'){
       if(a.t==='shake'&&!O.rolled[seat]){const v=a.on?1:0;if(O.shk[seat]!==v){O.shk[seat]=v;mark()}}
-      else if(a.t==='roll')doRoll(seat);
+      else if(a.t==='roll')doRoll(seat,true);
       return;
     }
     if(O.ph!=='bid')return;
@@ -325,8 +337,8 @@ G.engine={
     if(O.ph==='roll'){
       if(O.rollAt){if(t>=O.rollAt){O.ph='bid';O.pk=H.players.map(()=>0);setTurn(aliveOr(O.start))}return}
       H.players.forEach((p,i)=>{const b=O.bt[i];if(!b||O.rolled[i]||p.finished)return;   // 봇: 잠깐 흔들고 엎음
-        if(t>=b.r)doRoll(i);else if(t>=b.s&&!O.shk[i]){O.shk[i]=1;mark()}});
-      if(t>=O.rollDl&&!O.rolled.every(Boolean))H.players.forEach((p,i)=>{if(!O.rolled[i])doRoll(i)});   // 10초가 지나면 저절로
+        if(t>=b.r)doRoll(i,true);else if(t>=b.s&&!O.shk[i]){O.shk[i]=1;mark()}});
+      if(t>=O.rollDl&&!O.rolled.every(Boolean))H.players.forEach((p,i)=>{if(!O.rolled[i])doRoll(i,false)});   // 시간이 다 되면 안 만진 사람은 그대로
       return;
     }
     if(O.ph==='show'){if(t>=O.sh.t0+O.sh.ms)endShow();return}
@@ -343,7 +355,7 @@ G.engine={
       dn:O.dice.map(d=>d.length),lv:H.players.map(p=>p.lf),dc:H.players.map(p=>p.dc),out:H.players.map(p=>p.finished?1:0),T:totalDice(),sq:O.sq,ev:O.ev.map(e=>({...e}))};
     if(you>=0&&O.dice[you])s.ld.my=O.dice[you].slice();
     if(open&&O.sh)s.ld.all=O.dice.map(d=>d.slice());
-    if(O.ph==='roll'){s.ld.rd=O.rolled.slice();s.ld.sk=O.shk.slice();s.ld.ra=Math.max(0,Math.round(O.rollDl-t))}
+    if(O.ph==='roll'){s.ld.rd=O.rolled.slice();s.ld.sk=O.shk.slice();s.ld.ra=Math.max(0,Math.round(O.rollDl-t));if(O.rn===1)s.ld.fl=O.dice.map((d,i)=>O.rolled[i]?[]:d.slice())}   // 첫 판 바닥 주사위는 모두에게 보임
     if(O.ph==='bid')s.ld.pk=O.pk.slice();
     if(O.sh)s.ld.sh={k:O.sh.k,by:O.sh.by,bid:{...O.sh.bid},n:O.sh.n,res:O.sh.res,d:{...O.sh.d},m:O.sh.m,ms:O.sh.ms,el:Math.max(0,Math.round(t-O.sh.t0))};
     s.gr=0;s.dl=O.ph==='bid'&&H.phase==='play'?Math.max(0,Math.round(H.deadline-t)):0;
@@ -421,7 +433,7 @@ G.cues=(v,pv)=>{
   const a=v.ld,b=pv&&pv.ld;if(!a||!b||a.gn!==b.gn)return;
   for(const e of a.ev)if(e.sn>b.sq){
     if(e.k==='r'){if(e.s!==myIdx())sndSlam(.45)}
-    else if(e.k==='b'){sfx('play',1);showBubble(e.s,`<span class="bt sm ld-bb">${dieSVG(e.f)}<b>${e.q}</b></span>`,1900,'soft')}
+    else if(e.k==='b'){sfx('play',1);showBubble(e.s,`<span class="bt sm ld-bb">${dieSVG(e.f)}<i>×</i><b>${e.q}</b></span>`,1900,'soft')}
     else if(e.k==='c'){if(e.c==='g'){sfx('gura');showBubble(e.s,'<span class="bt">구라!</span>',2100,'real')}else{sfx('gura');showBubble(e.s,`<span class="bt">${NM[e.c]}</span>`,2100,'ldx')}}
   }
 };
@@ -450,8 +462,8 @@ function drawMineLife(L,o,i){
    남이 들면 그 사람 쪽으로 들리고 아래에는 눈 없는 하얀 주사위가 보임.
    공개(show): 모든 컵이 들려 바깥쪽에 엎어지고, 주사위가 커지며 퍼짐. 선언한 사람부터 시계 방향으로 맞는 주사위에 빛 고리 + 톡 튐, 가운데 숫자가 하나씩 오름.
    모든 움직임은 시각(판 시작·엎은 때·든 때·공개 시작)으로 계산 */
-const R_CUP=2.75,R_ME=2.75,CO_H=.06,CUP_K=.74,K_ME=.74,DS=.24,DS_ME=.24,HY=.9,NW=640,NH=420;
-const M={on:false,built:false,fail:false,root:null,raf:0,cups:[],dice:[],blank:[],rings:[],num:null,life:null,glow:null,key:'',rn:-1,gn:-1,roundT0:0,prevSh:null,lastSh:null,showT0:0,shKey:'',lastTick:-1,verdictSaid:false,rdAt:[],pkS:[],rattleAt:0,hitKey:'',puKey:''};
+const R_CUP=2.75,R_ME=2.75,CO_H=.06,CUP_K=.74,K_ME=.74,DS=.24,DS_ME=.24,HY=.38,NW=640,NH=420;
+const M={skAt:[],rt:[],on:false,built:false,fail:false,root:null,raf:0,cups:[],dice:[],blank:[],rings:[],num:null,life:null,glow:null,key:'',rn:-1,gn:-1,roundT0:0,prevSh:null,lastSh:null,showT0:0,shKey:'',lastTick:-1,verdictSaid:false,rdAt:[],pkS:[],rattleAt:0,hitKey:'',puKey:''};
 const HOLD={on:false,mode:'',rolledAt:0,src:''};
 const ez=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 const lerp=(a,b,k)=>a+(b-a)*k;
@@ -513,7 +525,7 @@ function build(){
     {const gt=canvasTex(256,256,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,w*.2,w/2,h/2,w*.5);gr.addColorStop(0,'rgba(255,190,90,0)');gr.addColorStop(.62,'rgba(255,176,74,.85)');gr.addColorStop(1,'rgba(255,150,50,0)');g.fillStyle=gr;g.fillRect(0,0,w,h)});
      const m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:gt,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.renderOrder=1;m.visible=false;root.add(m);M.glow=m}
     const c=document.createElement('canvas');c.width=NW;c.height=NH;const t=new THREE.CanvasTexture(c);t.anisotropy=4;
-    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,depthWrite:false}));sp.position.set(0,HY,.15);sp.scale.set(1.9,1.25,1);sp.renderOrder=55;root.add(sp);
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,depthWrite:false}));sp.position.set(0,HY,0);sp.scale.set(1.9,1.25,1);sp.renderOrder=55;root.add(sp);
     M.num={c,t,sp};
     {const c2=document.createElement('canvas');c2.width=384;c2.height=128;const t2=new THREE.CanvasTexture(c2);t2.anisotropy=4;
      const m=new THREE.Mesh(new THREE.PlaneGeometry(1.2,.4),new THREE.MeshBasicMaterial({map:t2,transparent:true,depthWrite:false}));m.rotation.order='YXZ';m.rotation.x=-Math.PI/2;m.renderOrder=2;m.visible=false;root.add(m);M.life={c:c2,t:t2,m,key:''}}
@@ -537,6 +549,7 @@ const qSeat=(i,rx)=>new THREE.Quaternion().setFromAxisAngle(Y_AX(),seatAngle(i))
 /* 컵 자세: closed(컵받침 위에 엎음) · peek · peek(엎은 채 그 사람 쪽을 th만큼 들어 올림: 먼 쪽 입구를 축으로) · aside(공개 때 컵받침 옆에 엎음) */
 function cupPose(i,kind,th){
   const k=kOf(i),H=1.03*k,R=.62*k,r=rOf(i);
+  if(kind==='side')return {p:cPt(i,R*2+.18,0,.1),q:qSeat(i,0)};   // 첫 판 시작: 컵받침 옆에 입구가 위로
   if(kind==='aside')return {p:cPt(i,R*2+.18,H,.1),q:qSeat(i,Math.PI)};   // 공개: 컵받침 옆(그 사람의 오른쪽)에 엎어 둠
   if(kind==='peek'){const y=CO_H+H*Math.cos(th)+R*Math.sin(th),z=-H*Math.sin(th)+R*Math.cos(th);return {p:cPt(i,0,y,-R+z),q:qSeat(i,-th).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI))}}
   return {p:cPt(i,0,CO_H+H,0),q:qSeat(i,Math.PI)};
@@ -562,8 +575,10 @@ function drawNum(main,f,tag,col,sub,subCol){
   g.shadowColor=col;g.shadowBlur=30;g.fillStyle=col;
   if(main){
     g.font=`700 ${main.length>3?150:200}px "IBM Plex Mono", "Jua", monospace`;
-    const tw=g.measureText(main).width,ds=f?170:0,gap=f?30:0,x0=NW/2-(tw+gap+ds)/2;   // 주사위 눈 → 개수
-    g.textAlign='left';g.fillText(main,x0+ds+gap,150);g.fillText(main,x0+ds+gap,150);
+    const tw=g.measureText(main).width,ds=f?150:0,xf='700 110px "IBM Plex Mono", monospace';
+    g.font=xf;g.textAlign='left';const xw=f?g.measureText('×').width:0,gap=f?18:0,x0=NW/2-(ds+gap+xw+gap+tw)/2;   // 주사위 눈 × 개수
+    if(f)g.fillText('×',x0+ds+gap,158);
+    g.font=`700 ${main.length>3?150:200}px "IBM Plex Mono", "Jua", monospace`;g.fillText(main,x0+ds+gap*2+xw,150);g.fillText(main,x0+ds+gap*2+xw,150);
     if(f){const x=x0,y=150-ds/2;g.lineWidth=12;g.strokeStyle=col;rr(g,x,y,ds,ds,30);g.stroke();
       const P=[.25,.5,.75];for(const k of PIPS[f]){g.beginPath();g.arc(x+P[(k-1)%3]*ds,y+P[Math.floor((k-1)/3)]*ds,f===1?24:16,0,7);g.fill()}}
     g.textAlign='center';
@@ -572,7 +587,7 @@ function drawNum(main,f,tag,col,sub,subCol){
   else if(tag){g.shadowBlur=14;g.font='700 60px "Jua", "IBM Plex Mono", sans-serif';g.fillText(tag,NW/2,330)}
   g.shadowBlur=0;L.t.needsUpdate=true;
 }
-const RES={true:['진짜!','#ffd24a'],lie:['구라!','#ff5a3c'],spot:['spot on!','#ff7ad9'],xok:['spot on!','#ff7ad9'],xno:['실패','#ff5a3c'],cok:['칼사!','#7ee07a'],cno:['실패','#ff5a3c']};
+const RES={true:['진짜였다','#ffd24a'],lie:['걸렸다!','#ff5a3c'],spot:['spot on!','#ff7ad9'],xok:['spot on!','#ff7ad9'],xno:['아니었다','#ff5a3c'],cok:['칼사!','#7ee07a'],cno:['아니었다','#ff5a3c']};
 const TRUE_RES=new Set(['true','spot','xok','cok']);
 /* 상태가 오면 시각 기준을 잡음 */
 G.field3D=(v)=>{
@@ -581,14 +596,17 @@ G.field3D=(v)=>{
   const now=clock();
   if(o.gn!==M.gn||o.rn!==M.rn){
     const fresh=o.gn!==M.gn;M.gn=o.gn;M.rn=o.rn;M.roundT0=now;
-    M.prevSh=fresh?null:M.lastSh;M.lastTick=-1;M.rdAt=[];M.pkS=[];HOLD.rolledAt=0;
+    M.prevSh=fresh?null:M.lastSh;M.lastTick=-1;M.rdAt=[];M.pkS=[];M.skAt=[];M.rt=[];HOLD.rolledAt=0;HOLD.pressAt=0;
     if(HOLD.on&&HOLD.mode!=='shake')holdEnd(true);
   }
+  for(const e of o.ev||[])if(e.k==='r'&&e.rn===o.rn)M.rt[e.s]=e.t;   // 만져서 굴렸는지(1) 시간이 다 돼 그대로인지(0)
+  if(o.sk)o.sk.forEach((k,i)=>{if(k&&M.skAt[i]==null)M.skAt[i]=now});
+  if(o.rd)o.rd.forEach((r,i)=>{if(r&&M.skAt[i]==null&&M.rt[i]===1)M.skAt[i]=now});
   if(o.rd)o.rd.forEach((r,i)=>{if(r&&M.rdAt[i]==null)M.rdAt[i]=i===myIdx()&&HOLD.rolledAt?HOLD.rolledAt:now});
   if(o.pk)o.pk.forEach((p,i)=>{const s=M.pkS[i];if(!s||s.v!==p)M.pkS[i]={v:p,at:now}});
   if(o.sh){const k=o.gn+':'+o.rn+':'+o.sh.by;if(k!==M.shKey){M.shKey=k;M.showT0=now-(o.sh.el||0);M.lastTick=-1;M.verdictSaid=false;if(HOLD.on)holdEnd(true)}M.lastSh=o.sh}
 };
-const PK_MS=170;
+const PK_MS=170,FLIP={t1:380,t2:720};   // 첫 판: 주사위가 컵으로(0~0.38초) → 컵이 뒤집혀 닫힘(~0.72초)
 function peekK(i,now){
   if(i===myIdx()){const s=M.pkS.me;if(!s)return 0;const e=ez((now-s.at)/PK_MS);return s.v?e:1-e}
   const s=M.pkS[i];if(!s)return 0;const e=ez((now-s.at)/PK_MS);return s.v?e:1-e;
@@ -604,7 +622,7 @@ function step(){
   const order=inShow?countOrder(o):[],cnt=inShow?Math.max(0,Math.min(order.length,Math.floor((e-SH.count0)/SH.per)+1)):0;
   if(inShow&&cnt!==M.lastTick&&e>=SH.count0){if(cnt>M.lastTick&&cnt>0)tone(880+cnt*40,.05,{type:'triangle',vol:.08});M.lastTick=cnt}
   const lit=new Set(order.slice(0,cnt).map(([i,k])=>i+':'+k)),hopAt=new Map(order.map(([i,k],j)=>[i+':'+k,SH.count0+j*SH.per]));
-  let rattle=false;
+  let rattle=false;const floor=[];
   for(let i=0;i<Math.max(n,M.cups.length);i++){
     const alive=i<n&&show&&!o.out[i]&&(o.dn[i]>0||inShow),cup=alive||M.cups[i]?cupOf(i):null;
     if(!cup)continue;cup.visible=alive;
@@ -624,6 +642,13 @@ function step(){
         P={p:base.clone().add(d).add(C.p.clone().sub(base).applyQuaternion(qj)),q:qj.clone().multiply(C.q)};
         coT={p:base.clone().add(d).add(new THREE.Vector3(0,CO_H/2,0).applyQuaternion(qj)),q:qj};
         if(M.prevSh&&backK<1)P=lerpPose(cupPose(i,'aside'),P,backK,1);
+        if(o.rn===1){   // 첫 판: 컵은 옆에 서 있고 주사위는 바닥에. 누르면 주사위가 컵으로 뛰어들고 컵이 뒤집혀 닫힘
+          const gAt=mine?HOLD.pressAt||M.skAt[i]:M.skAt[i];
+          if(gAt){const g=now-gAt;if(g<FLIP.t1){P=cupPose(i,'side');coT=null}else if(g<FLIP.t2){P=lerpPose(cupPose(i,'side'),cupPose(i,'closed'),ez((g-FLIP.t1)/(FLIP.t2-FLIP.t1)),.45);coT=null}}
+          else if(rolled&&M.rdAt[i]){const g=now-M.rdAt[i];if(g<FLIP.t2-FLIP.t1){P=lerpPose(cupPose(i,'side'),cupPose(i,'closed'),ez(g/(FLIP.t2-FLIP.t1)),.45);coT=null}}   // 안 만짐: 바닥 주사위 그대로 덮음
+          else{P=cupPose(i,'side');coT=null}
+          floor[i]={gAt,closeAt:!gAt&&rolled?M.rdAt[i]:0};
+        }
       }else if(inShow)P=lerpPose(cupPose(i,'closed'),cupPose(i,'aside'),liftK,1.1);
       else{pk=peekK(i,now);P=pk>0?cupPose(i,'peek',pk*(mine?.78:.62)):cupPose(i,'closed')}
       setPose(cup,P);
@@ -633,6 +658,18 @@ function step(){
     const real=inShow&&o.all?o.all[i]||[]:mine&&o.my?o.my:[];
     const nd=inShow&&o.all?(o.all[i]||[]).length:o.dn[i]||0;
     const peekShow=!inShow&&pk>.15,useBlank=peekShow&&!mine;
+    const F=floor[i],flv=F?(mine?o.my:o.fl&&o.fl[i])||[]:null;
+    if(F&&alive){   // 첫 판 바닥 주사위(모두에게 보임)
+      for(let k=0;k<Math.max(flv.length,(M.dice[i]||[]).length,(M.blank[i]||[]).length);k++){
+        const d=dieOf(i,k),b=blankOf(i,k);b.visible=false;ringOf(i,k).visible=false;
+        let vis=k<flv.length,pos=clusterPos(i,k,flv.length,1.25),y=CO_H+dsOf(i)/2;
+        if(vis&&F.gAt){const t=(now-F.gAt-k*45)/300;if(t>=1)vis=false;else if(t>0){const m=cPt(i,.78*kOf(i)*2+.18,1.05*kOf(i),.1),tt=ez(t);pos=pos.clone().lerp(m,tt);y=lerp(y,m.y,tt)+Math.sin(Math.PI*tt)*.45}}
+        if(vis&&F.closeAt&&now-F.closeAt>FLIP.t2-FLIP.t1)vis=false;
+        d.visible=vis;if(!vis)continue;
+        d.position.set(pos.x,y,pos.z);d.quaternion.copy(dieQ(flv[k],seatAngle(i)+k*.55));d.scale.setScalar(dsOf(i));
+      }
+      continue;
+    }
     const cnt2=Math.max((M.dice[i]||[]).length,(M.blank[i]||[]).length,nd);
     for(let k=0;k<cnt2;k++){
       const d=dieOf(i,k),b=blankOf(i,k),rg=ringOf(i,k);rg.visible=false;
@@ -678,7 +715,9 @@ function placeTags(now,o,me,inShow,liftK){
   const st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight;
   document.querySelectorAll('#labels .seat[data-i]').forEach(el=>{
     const i=+el.dataset.i;if(i===me||o.out[i])return;
-    const R=.78*kOf(i),k=inShow?liftK:0,p=cPt(i,0,lerp(CO_H,0,k),lerp(0,R+.22,k));   // 공개: 컵받침 뒤(그 사람 쪽)로 올려 주사위·가운데 숫자를 가리지 않게
+    const R=.78*kOf(i),fl=o.ph==='roll'&&o.rn===1&&M.skAt[i]==null&&!(o.rd&&o.rd[i]),k=inShow?liftK:fl?1:0;
+    /* 평소: 컵받침 앞 테두리(화면 쪽)에 붙여 컵받침을 가림. 주사위가 보일 때(공개·첫 판 바닥): 컵받침 뒤(그 사람 쪽)로 올림 */
+    const p=cPt(i,0,CO_H/2,0).add(new THREE.Vector3(0,0,.5*R).multiplyScalar(1-k)).add(seatPt(i,0,0,0,R+.22).multiplyScalar(k));
     const [x0,y0]=scrOf(p),hw=el.offsetWidth/2,hh=el.offsetHeight/2;
     const x=Math.max(hw+6,Math.min(W-hw-6,x0)),y=Math.max(hh+6,Math.min(Hh-hh-6,y0-(k?hh*k:0)));
     const L=Math.round(x)+'px',Tp=Math.round(y)+'px';if(el.style.left!==L)el.style.left=L;if(el.style.top!==Tp)el.style.top=Tp;   // 공통 코드가 자리를 다시 놓아도 다음 프레임에 되돌림
@@ -707,7 +746,7 @@ function placeCupUI(now,o,me){
 /* 컵 누르기: 굴리기 단계면 흔들기(떼면 엎음), 선언 단계면 들춰 보기(떼면 닫음) */
 function holdStart(src){
   const o=O_(),me=myIdx();if(!o||me<0||o.out[me]||V.st!=='play'||HOLD.on||dealingV())return false;
-  if(o.ph==='roll'&&!HOLD.rolledAt&&!(o.rd&&o.rd[me])){HOLD.on=true;HOLD.mode='shake';HOLD.src=src;sendAct({t:'shake',on:1});return true}
+  if(o.ph==='roll'&&!HOLD.rolledAt&&!(o.rd&&o.rd[me])){HOLD.on=true;HOLD.mode='shake';HOLD.src=src;if(!HOLD.pressAt)HOLD.pressAt=clock();sendAct({t:'shake',on:1});return true}
   if(o.ph==='bid'){HOLD.on=true;HOLD.mode='peek';HOLD.src=src;M.pkS.me={v:1,at:clock()};sendAct({t:'peek',on:1});sfx('lift');return true}
   sfx('no');return false;
 }
@@ -852,6 +891,7 @@ G.init=()=>{
 .ld-mine{display:inline-flex;align-items:center;margin-left:6px}
 .ld-mine .ld-life{margin-right:0}
 .bubble.soft .bt.ld-bb{display:inline-flex;align-items:center;gap:calc(6px*var(--bk,1));font-family:"IBM Plex Mono","Jua",monospace;font-size:calc(30px*var(--bk,1))}
+.bubble .ld-bb i{font-style:normal;font-size:.7em;opacity:.75}
 .bubble .ld-bb svg.ld-d{position:relative;inset:auto;width:calc(32px*var(--bk,1));height:calc(32px*var(--bk,1))}
 .bubble.ldx svg path{fill:#7d3fa8;stroke:#55287a}
 .bubble.ldx .bt{color:#fff;text-shadow:0 2px 0 #55287a}
