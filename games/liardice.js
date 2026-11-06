@@ -354,7 +354,7 @@ G.cues=(v,pv)=>{
   const a=v.ld,b=pv&&pv.ld;if(!a||!b||a.gn!==b.gn)return;
   for(const e of a.ev)if(e.q>b.sq){
     if(e.k==='r'){if(e.s!==myIdx())sndSlam(.45)}
-    else if(e.k==='b'){sfx('play',1);showBubble(e.s,`<span class="bt sm ld-bb"><b>${e.q}</b>${dieSVG(e.f)}</span>`,1900,'soft')}
+    else if(e.k==='b'){sfx('play',1);showBubble(e.s,`<span class="bt sm ld-bb">${dieSVG(e.f)}<b>${e.q}</b></span>`,1900,'soft')}
     else if(e.k==='c'){if(e.c==='g'){sfx('gura');showBubble(e.s,'<span class="bt">구라!</span>',2100,'real')}else{sfx('gura');showBubble(e.s,`<span class="bt">${NM[e.c]}</span>`,2100,'ldx')}}
   }
 };
@@ -383,7 +383,7 @@ function drawMineLife(L,o,i){
    남이 들면 그 사람 쪽으로 들리고 아래에는 눈 없는 하얀 주사위가 보임.
    공개(show): 모든 컵이 들려 바깥쪽에 엎어지고, 주사위가 커지며 퍼짐. 선언한 사람부터 시계 방향으로 맞는 주사위에 빛 고리 + 톡 튐, 가운데 숫자가 하나씩 오름.
    모든 움직임은 시각(판 시작·엎은 때·든 때·공개 시작)으로 계산 */
-const R_CUP=2.5,R_ME=2.72,R_ASIDE=3.5,CUP_K=.82,K_ME=1.15,DS=.26,DS_ME=.34,HY=.9,NW=640,NH=420;
+const R_CUP=2.3,R_ME=2.72,CO_H=.06,CUP_K=.82,K_ME=1.15,DS=.26,DS_ME=.34,HY=.9,NW=640,NH=420;
 const M={on:false,built:false,fail:false,root:null,raf:0,cups:[],dice:[],blank:[],rings:[],num:null,life:null,glow:null,key:'',rn:-1,gn:-1,roundT0:0,prevSh:null,lastSh:null,showT0:0,shKey:'',lastTick:-1,verdictSaid:false,rdAt:[],pkS:[],rattleAt:0,hitKey:'',puKey:''};
 const HOLD={on:false,mode:'',rolledAt:0,src:''};
 const ez=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
@@ -438,13 +438,15 @@ function build(){
       const b2=new THREE.Mesh(b2G,b2M);b2.rotation.x=Math.PI/2;b2.position.y=.13;
       inner.add(body,new THREE.Mesh(hullG,ink),b1,b2);inner.scale.setScalar(CUP_K);g.add(inner);g.visible=false;root.add(g);g.userData.inner=inner;return g;
     };
+    {const cg=new THREE.CylinderGeometry(.74,.78,CO_H,40),cm=toon({color:0x8a5a34,rim:.18}),tg=new THREE.CircleGeometry(.66,40),tm=toon({color:0x2e5e3e,rim:.1});
+     M.mkCo=()=>{const g=new THREE.Group(),b=new THREE.Mesh(cg,cm),t=new THREE.Mesh(tg,tm);b.receiveShadow=true;t.rotation.x=-Math.PI/2;t.position.y=CO_H/2+.002;t.receiveShadow=true;g.add(b,t,new THREE.Mesh(cg,ink));g.children[2].scale.set(1.03,1.15,1.03);g.visible=false;root.add(g);return g}}   // 컵받침: 나무 테 + 안쪽 천
     const rt=ringTex(),rg=new THREE.PlaneGeometry(1,1);
     M.mkRing=()=>{const m=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({map:rt,transparent:true,depthWrite:false}));m.rotation.order='YXZ';m.rotation.x=-Math.PI/2;m.renderOrder=2;m.visible=false;root.add(m);return m};
     /* 아직 안 굴렸을 때 내 컵 밑에서 숨 쉬는 빛 */
     {const gt=canvasTex(256,256,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,w*.2,w/2,h/2,w*.5);gr.addColorStop(0,'rgba(255,190,90,0)');gr.addColorStop(.62,'rgba(255,176,74,.85)');gr.addColorStop(1,'rgba(255,150,50,0)');g.fillStyle=gr;g.fillRect(0,0,w,h)});
      const m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:gt,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.renderOrder=1;m.visible=false;root.add(m);M.glow=m}
     const c=document.createElement('canvas');c.width=NW;c.height=NH;const t=new THREE.CanvasTexture(c);t.anisotropy=4;
-    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,depthWrite:false}));sp.position.set(0,HY,.3);sp.scale.set(1.9,1.25,1);sp.renderOrder=55;root.add(sp);
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,depthWrite:false}));sp.position.set(0,HY,.45);sp.scale.set(1.9,1.25,1);sp.renderOrder=55;root.add(sp);
     M.num={c,t,sp};
     {const c2=document.createElement('canvas');c2.width=384;c2.height=128;const t2=new THREE.CanvasTexture(c2);t2.anisotropy=4;
      const m=new THREE.Mesh(new THREE.PlaneGeometry(1.2,.4),new THREE.MeshBasicMaterial({map:t2,transparent:true,depthWrite:false}));m.rotation.order='YXZ';m.rotation.x=-Math.PI/2;m.renderOrder=2;m.visible=false;root.add(m);M.life={c:c2,t:t2,m,key:''}}
@@ -453,28 +455,31 @@ function build(){
   }catch(e){M.fail=true;try{console.warn('구라! 다이스 3D 준비 실패',e)}catch(_){}}
   return M.built;
 }
+const coOf=i=>(M.cos||(M.cos=[]))[i]||(M.cos[i]=M.mkCo());
 const cupOf=i=>M.cups[i]||(M.cups[i]=M.mkCup(SEAT_C[i%SEAT_C.length]));
 const dieOf=(i,k)=>{const a=M.dice[i]||(M.dice[i]=[]);return a[k]||(a[k]=M.mkDie())};
 const blankOf=(i,k)=>{const a=M.blank[i]||(M.blank[i]=[]);return a[k]||(a[k]=M.mkBlank())};
 const ringOf=(i,k)=>{const a=M.rings[i]||(M.rings[i]=[]);return a[k]||(a[k]=M.mkRing())};
+const XO=.95;   // 남의 컵은 자리에서 그 사람 왼쪽으로 비켜 둠: 가운데에 두면 자리 이름표가 컵을 가림
+const xoOf=i=>i===myIdx()?0:XO;
 const kOf=i=>i===myIdx()?K_ME:CUP_K,dsOf=i=>i===myIdx()?DS_ME:DS,rOf=i=>i===myIdx()?R_ME:R_CUP;
 /* 자리 기준 좌표(+z = 그 사람 쪽) → 세계 */
+const cPt=(i,x,y,z)=>seatPt(i,rOf(i),x+xoOf(i),y,z);   // 그 사람 컵받침 기준
 function seatPt(i,r,x,y,z){const a=seatAngle(i),cx=Math.sin(a)*r,cz=Math.cos(a)*r,ca=Math.cos(a),sa=Math.sin(a);return new THREE.Vector3(cx+x*ca+z*sa,y,cz-x*sa+z*ca)}
 const qSeat=(i,rx)=>new THREE.Quaternion().setFromAxisAngle(Y_AX(),seatAngle(i)).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),rx));
-/* 컵 자세: up(똑바로) · closed(엎음) · peek(엎은 채 그 사람 쪽을 th만큼 들어 올림: 먼 쪽 입구를 축으로) · aside(공개 때 바깥쪽에 엎음) */
+/* 컵 자세: closed(컵받침 위에 엎음) · peek · peek(엎은 채 그 사람 쪽을 th만큼 들어 올림: 먼 쪽 입구를 축으로) · aside(공개 때 컵받침 옆에 엎음) */
 function cupPose(i,kind,th){
   const k=kOf(i),H=1.03*k,R=.62*k,r=rOf(i);
-  if(kind==='up')return {p:seatPt(i,r,0,0,0),q:qSeat(i,0)};
-  if(kind==='aside')return {p:seatPt(i,R_ASIDE,0,H,0),q:qSeat(i,Math.PI)};
-  if(kind==='peek'){const y=H*Math.cos(th)+R*Math.sin(th),z=-H*Math.sin(th)+R*Math.cos(th);return {p:seatPt(i,r,0,y,-R+z),q:qSeat(i,-th).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI))}}
-  return {p:seatPt(i,r,0,H,0),q:qSeat(i,Math.PI)};
+  if(kind==='aside')return {p:cPt(i,R*2+.18,H,.1),q:qSeat(i,Math.PI)};   // 공개: 컵받침 옆(그 사람의 오른쪽)에 엎어 둠
+  if(kind==='peek'){const y=CO_H+H*Math.cos(th)+R*Math.sin(th),z=-H*Math.sin(th)+R*Math.cos(th);return {p:cPt(i,0,y,-R+z),q:qSeat(i,-th).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI))}}
+  return {p:cPt(i,0,CO_H+H,0),q:qSeat(i,Math.PI)};
 }
 /* 컵 아래 뭉친 주사위 (컵 크기 안): 5개까지 고리, 6개는 고리 5 + 가운데 */
 function clusterPos(i,k,n,spread){
   const ds=dsOf(i),ring=n===6?5:n,rad=n<=1?0:(n===2?.58:n===3?.62:.74)*ds*spread;
-  if(n===6&&k===5)return seatPt(i,rOf(i),0,0,0);
+  if(n===6&&k===5)return cPt(i,0,0,0);
   const t=ring<=1?0:k/ring*Math.PI*2+.4;
-  return seatPt(i,rOf(i),Math.cos(t)*rad,0,Math.sin(t)*rad);
+  return cPt(i,Math.cos(t)*rad,0,Math.sin(t)*rad);
 }
 function lerpPose(A,B,k,arc){const p=A.p.clone().lerp(B.p,k);if(arc)p.y+=Math.sin(Math.PI*k)*arc;return {p,q:A.q.clone().slerp(B.q,k)}}
 function setPose(g,P){g.position.copy(P.p);g.quaternion.copy(P.q)}
@@ -490,9 +495,9 @@ function drawNum(main,f,tag,col,sub,subCol){
   g.shadowColor=col;g.shadowBlur=30;g.fillStyle=col;
   if(main){
     g.font=`700 ${main.length>3?150:200}px "IBM Plex Mono", "Jua", monospace`;
-    const tw=g.measureText(main).width,ds=f?170:0,gap=f?30:0,x0=NW/2-(tw+gap+ds)/2;
-    g.textAlign='left';g.fillText(main,x0,150);g.fillText(main,x0,150);
-    if(f){const x=x0+tw+gap,y=150-ds/2;g.lineWidth=12;g.strokeStyle=col;rr(g,x,y,ds,ds,30);g.stroke();
+    const tw=g.measureText(main).width,ds=f?170:0,gap=f?30:0,x0=NW/2-(tw+gap+ds)/2;   // 주사위 눈 → 개수
+    g.textAlign='left';g.fillText(main,x0+ds+gap,150);g.fillText(main,x0+ds+gap,150);
+    if(f){const x=x0,y=150-ds/2;g.lineWidth=12;g.strokeStyle=col;rr(g,x,y,ds,ds,30);g.stroke();
       const P=[.25,.5,.75];for(const k of PIPS[f]){g.beginPath();g.arc(x+P[(k-1)%3]*ds,y+P[Math.floor((k-1)/3)]*ds,f===1?24:16,0,7);g.fill()}}
     g.textAlign='center';
   }
@@ -544,16 +549,17 @@ function step(){
       if(o.ph==='roll'){
         const rolled=mine?(!!HOLD.rolledAt||!!(o.rd&&o.rd[i])):!!(o.rd&&o.rd[i]),at=mine&&HOLD.rolledAt?HOLD.rolledAt:M.rdAt[i];
         const shaking=!rolled&&(mine?HOLD.on&&HOLD.mode==='shake':!!(o.sk&&o.sk[i]));
-        let U=cupPose(i,'up');
-        if(shaking){const s=now/1000,a=1;rattle=rattle||mine||true;U.p.y+=.45+Math.abs(Math.sin(s*24+i))*.12*a;U.p.add(seatPt(i,0,Math.sin(s*31+i*2)*.07,0,Math.cos(s*27+i)*.06).setY(0));
+        let U=cupPose(i,'closed');   // 흔들 때도 엎은 채로: 컵받침 위에서 들려 흔들림
+        if(shaking){const s=now/1000,a=1;rattle=true;U.p.y+=.32+Math.abs(Math.sin(s*24+i))*.12*a;U.p.add(seatPt(i,0,Math.sin(s*31+i*2)*.07,0,Math.cos(s*27+i)*.06).setY(0));
           U.q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.sin(s*29+i)*.18,0,Math.cos(s*25+i)*.18)))}
         if(M.prevSh&&backK<1)U=lerpPose(cupPose(i,'aside'),U,backK,1);
-        P=rolled?lerpPose(U,cupPose(i,'closed'),ez((now-(at||now))/260),.35):U;
+        P=U;if(rolled&&at&&now-at<200){const k=ez((now-at)/200),C=cupPose(i,'closed');C.p.y+=.32*(1-k);P=lerpPose(C,C,0)}
         if(rolled&&at&&now-at<300&&!cup.userData.slam){cup.userData.slam=1}
       }else if(inShow)P=lerpPose(cupPose(i,'closed'),cupPose(i,'aside'),liftK,1.1);
       else{pk=peekK(i,now);P=pk>0?cupPose(i,'peek',pk*(mine?.78:.62)):cupPose(i,'closed')}
       setPose(cup,P);
     }
+    const co=coOf(i);co.visible=alive;if(alive){co.position.copy(cPt(i,0,CO_H/2,0));co.scale.set(kOf(i),1,kOf(i))}
     /* 주사위: 공개면 진짜 눈(모두), 들춰 보면 내 것은 진짜 눈·남의 것은 하얀 주사위 */
     const real=inShow&&o.all?o.all[i]||[]:mine&&o.my?o.my:[];
     const nd=inShow&&o.all?(o.all[i]||[]).length:o.dn[i]||0;
@@ -564,17 +570,17 @@ function step(){
       const has=alive&&k<nd,vis=has&&(inShow?liftK>.15:peekShow&&(useBlank||k<real.length));
       d.visible=vis&&!useBlank;b.visible=vis&&useBlank;if(!vis)continue;
       const g=useBlank?b:d,v=useBlank?1:real[k],a=seatAngle(i),ds=dsOf(i);
-      const sp=inShow&&!mine?lerp(1,1.7,liftK):inShow?lerp(1,1.35,liftK):1,sz=inShow&&!mine?lerp(ds,ds*1.35,liftK):ds;
+      const sp=inShow&&!mine?lerp(1,1.3,liftK):inShow?lerp(1,1.2,liftK):1,sz=inShow&&!mine?lerp(ds,ds*1.25,liftK):ds;
       const p=clusterPos(i,k,nd,sp),yaw=a+k*.55,key=i+':'+k,h=hopAt.get(key);let hop=0;
       if(h!=null&&e>=h){const t=(e-h)/260;if(t<1)hop=Math.sin(Math.PI*t)*.28}
-      g.position.set(p.x,sz/2+hop,p.z);g.quaternion.copy(dieQ(v,yaw));g.scale.setScalar(sz);
-      if(inShow&&lit.has(key)){rg.visible=true;rg.position.set(p.x,.022,p.z);rg.rotation.y=yaw;rg.scale.setScalar(sz*1.6);rg.material.opacity=.8+.2*Math.sin(now/160)}
+      g.position.set(p.x,CO_H+sz/2+hop,p.z);g.quaternion.copy(dieQ(v,yaw));g.scale.setScalar(sz);
+      if(inShow&&lit.has(key)){rg.visible=true;rg.position.set(p.x,CO_H+.012,p.z);rg.rotation.y=yaw;rg.scale.setScalar(sz*1.6);rg.material.opacity=.8+.2*Math.sin(now/160)}
     }
   }
   if(rattle&&now>=M.rattleAt){M.rattleAt=now+70+Math.random()*60;const v=HOLD.on&&HOLD.mode==='shake'?1:.35;tone(650+Math.random()*700,.025,{type:'triangle',vol:.05*v});hiss(.02,{freq:2600,q:1.5,vol:.04*v})}
   /* 아직 안 굴렸으면 내 컵 밑에 숨 쉬는 빛 */
   {const gl=M.glow,on=show&&o.ph==='roll'&&me>=0&&!o.out[me]&&!HOLD.rolledAt&&!(o.rd&&o.rd[me])&&!(HOLD.on&&HOLD.mode==='shake');gl.visible=on;
-   if(on){const p=seatPt(me,R_ME,0,.021,0);gl.position.copy(p);gl.scale.setScalar(1.9*K_ME);gl.material.opacity=.45+.35*Math.sin(now/260)}}
+   if(on){const p=seatPt(me,R_ME,0,CO_H+.004,0);gl.position.copy(p);gl.scale.setScalar(2.1*K_ME);gl.material.opacity=.45+.35*Math.sin(now/260)}}
   /* 내 생명: 내 컵 바로 앞(내 쪽) 나무 위 */
   {const L=M.life,ok=show&&me>=0&&!o.out[me];L.m.visible=ok;
    if(ok){L.m.position.copy(seatPt(me,R_ME,0,.02,.95));L.m.rotation.y=seatAngle(me);
@@ -631,6 +637,7 @@ function holdEnd(cancel){
 }
 function clearAll(){
   for(const g of M.cups)if(g)g.visible=false;
+  for(const g of M.cos||[])if(g)g.visible=false;
   for(const L of [M.dice,M.blank,M.rings])for(const a of L)for(const d of a||[])if(d)d.visible=false;
   if(M.num)M.num.sp.visible=false;
   if(M.life)M.life.m.visible=false;
@@ -694,11 +701,11 @@ function draw2d(){
   if(M.on){if(last2d){el2d.innerHTML='';last2d=''}return}
   const o=O_(),me=myIdx();
   let h='';
-  if(o.bid&&o.ph==='bid')h+=`<p class="ld-now">${esc(nameOf(o.bid.s))} : <b>${o.bid.q}</b> ${dieSVG(o.bid.f)}</p>`;
+  if(o.bid&&o.ph==='bid')h+=`<p class="ld-now">${esc(nameOf(o.bid.s))} : ${dieSVG(o.bid.f)} <b>${o.bid.q}</b></p>`;
   if(o.pal>=0&&o.ph!=='show'&&o.ph!=='done')h+='<p class="ld-tag">팔리피코</p>';
   if(o.sh&&(o.ph==='show'||o.ph==='done')){
     const r={wild:o.cf.wild,pal:o.pal>=0},R=RES[o.sh.res]||['',''];
-    h+=`<p class="ld-now">${o.sh.bid.q} ${dieSVG(o.sh.bid.f)} → <b>${o.sh.n}개</b> <span style="color:${R[1]}">${R[0]}</span></p>`;
+    h+=`<p class="ld-now">${dieSVG(o.sh.bid.f)} ${o.sh.bid.q} → <b>${o.sh.n}개</b> <span style="color:${R[1]}">${R[0]}</span></p>`;
     h+='<div class="ld-rows">'+(o.all||[]).map((d,i)=>d.length?`<div class="ld-row"><b>${esc(nameOf(i))}</b>${d.map(v=>dieSVG(v,matches(v,o.sh.bid.f,r)?'hit':'')).join('')}</div>`:'').join('')+'</div>';
   }else if(o.my&&me>=0&&o.ph!=='roll')h+=`<div class="ld-rows"><div class="ld-row me">${lifeHTML(me)}${o.my.map(v=>dieSVG(v)).join('')}</div></div>`;
   if(h!==last2d){el2d.innerHTML=h;last2d=h}
@@ -775,7 +782,8 @@ G.init=()=>{
 .ld-q::before{content:"×";font-size:22px;margin-right:2px;opacity:.6}
 .ld-pick .ld-bid{grid-column:1/3;width:100%;height:50px;min-width:0}
 .ld-calls{position:absolute;left:var(--plateL,12px);bottom:calc(var(--plateB,14px) + 54px);display:flex;flex-direction:column;gap:10px;pointer-events:auto;z-index:8;transform:scale(var(--actS,1));transform-origin:0 100%}
-.ld-calls .act{min-width:110px}
+.ld-calls .act{min-width:150px;min-height:64px;font-size:26px}
+.ld-calls .act small{font-size:11px}
 .ld-calls .act[hidden]{display:none}
 .act-ldx{--face:#7d3fa8;--edge:#55287a;--ink-on:#fff}
 .ld-cup{position:absolute;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;z-index:5}
@@ -795,7 +803,7 @@ G.init=()=>{
 .ld-row{display:flex;align-items:center;gap:4px;font-size:15px}
 .ld-row b{min-width:64px}
 .ld-row.me .ld-d{width:40px;height:40px}
-@media (max-width:520px){.ld-arr{width:46px;height:28px}.ld-face .ld-d{width:42px;height:42px}.ld-q{font-size:34px;line-height:44px;min-width:46px}.ld-calls .act{min-width:96px}}
+@media (max-width:520px){.ld-arr{width:46px;height:28px}.ld-face .ld-d{width:42px;height:42px}.ld-q{font-size:34px;line-height:44px;min-width:46px}.ld-calls .act{min-width:124px;min-height:58px;font-size:23px}}
 `;
   document.head.appendChild(css);
   elBox=document.createElement('div');elBox.className='ld-box';elBox.hidden=true;
