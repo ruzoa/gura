@@ -256,7 +256,7 @@ G.engine={
 /* ---------- 화면: 조작 ----------
    넘길 차례: 손패 위 오른쪽 세로 휠(선언할 벌레, 처음 값 = 고른 카드의 벌레). 카드를 끌어 상대 쪽으로 가져가면 그 사람 이름표가 빛나고, 놓으면 넘김.
    카드를 고르고 이름표를 눌러도 넘김. 몰래 본 카드는 휠 위에 한 장으로 나오고 같은 방법으로 넘김 */
-let elBox=null,el2d=null,elT=null,elF=null,elP=null,elWh=null,elHeld=null,elPn=null;
+let elBox=null,el2d=null,elT=null,elF=null,elP=null,elWh=null,elHeld=null,elPn=null,elVd=null;
 let pkCl=0,pkCtx='',dragKindId=null,lastD='',lockAt=-1e9,aimI=-1,pnKey='',barKey='',peekAt=0;
 const HD={on:false,x:0,y:0,id:-1};
 const iSeat=()=>{const i=myIdx();return i>=0&&V&&V.ps&&i<V.ps.length};
@@ -396,8 +396,9 @@ function evCue(e){
   if(e.k==='g'||e.k==='p')sfx('play',1);
   else if(e.k==='k')sfx('pick');
   else if(e.k==='a'){
-    if(e.v)showBubble(e.s,'<span class="bt">진짜!</span>',1900,'cpb');
-    else{sfx('gura');showBubble(e.s,'<span class="bt">구라!</span>',2100,'real')}
+    const life=M.on?SH.to:1900;   // 3D에서는 카드가 가운데로 떠올라 앞면을 보이기 전에 사라짐 (공개 카드를 가리지 않게)
+    if(e.v)showBubble(e.s,'<span class="bt">진짜!</span>',life,'cpb');
+    else{sfx('gura');showBubble(e.s,'<span class="bt">구라!</span>',life,'real')}
     setTimeout(()=>{if(V&&V.cp)sfx(e.tr?'truth':'lie')},SH.face-200);
   }
 }
@@ -408,7 +409,7 @@ function evCue(e){
    펼친 카드는 각자 앞 펠트에 종류별로 겹쳐 쌓음(4종류가 넘으면 두 줄). 한 장 더 모이면 지는 종류는 빨간 테두리.
    같은 종류가 모여 지면 그 종류 카드만 공중에 나란히 띄움 */
 const R0=2.35,R1=1.45,STEP=.12,CS=.5,SP=.43,LIFT=.75;
-const SH={hold:450,up:800,to:1150,face:1550};   // 공개: 말풍선 → 들어 올림 → 외친 사람 앞 공중 → 앞면
+const SH={hold:450,up:800,to:1150,face:1550};   // 공개: 말풍선 → 들어 올림 → 탁자 가운데 공중 → 앞면
 const M={on:false,built:false,fail:false,root:null,raf:0,card:null,cardCs:-1,col:[],glow:new Map(),gn:-1,lastSh:null,fl:null,key:'',aim:null};
 const TW=new Set();
 const ez=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
@@ -428,8 +429,8 @@ function build(){
 const seatFrom=(i,me)=>{const p=i===me?nearMe():seatPos(i,3.85);p.y=.5;return p};
 const holdSpot=i=>{const p=seatPos(i,.75);p.y=.04;return p};
 const narrow=()=>!!(T.cam&&T.cam.aspect<1);
-/* 외친 사람(나면 내 눈앞)이 카드를 들어 보이는 자리: 모두 내 화면 쪽(카메라)으로 앞면 */
-function airOf(i,me){if(i===me)return narrow()?{x:0,y:2.35,z:2.3,s:1.2}:{x:0,y:1.75,z:2.4,s:1.2};const p=seatPos(i,1.9);return {x:p.x,y:1.25,z:p.z,s:1.15}}
+/* 공개 자리: 누가 외쳤든 탁자 가운데 공중, 모두 내 화면 쪽(카메라)으로 앞면. 이름표(2D)와 겹치지 않게 가운데와 내 쪽 사이 높이 */
+const AIR=()=>narrow()?{x:0,y:1.05,z:1.0,s:1.15}:{x:0,y:1.0,z:.9,s:1.3};
 function newCard(pos,rx,ry,s,id){const c=makeCard(pos,rx,ry,s);if(id!=null)c.children[0].material=faceMat(id);return c}
 function setFace(c,id){const m=id!=null&&id>=0?faceMat(id):T.back;if(c.children[0].material!==m)c.children[0].material=m}
 /* 키 프레임: keys = [{t(ms), x,y,z,rx,ry,s 중 바뀌는 것}], 첫 프레임은 지금 모습. keep이면 끝난 뒤에도 그 자리에 둠(아니면 공통 따라가기로 넘김) */
@@ -511,7 +512,7 @@ G.field3D=(v,pv,me)=>{
       else if(o.ph==='peek'&&o.to===me){setFace(c,o.id);tween(c,[{t:260,y:LIFT},{t:620,x:0,y:1.2,z:3.4,rx:-.6,ry:0,s:1}],true)}
       else if(o.ph==='peek'){tween(c,[{t:260,y:LIFT},{t:560,rx:-.75,ry}],true)}
       else{   // show: 외친 사람이 들어 올려 보여 줌
-        const A=airOf(o.sh.by,me);setFace(c,o.id);c.visible=true;M.lastSh={tk:o.sh.tk,k:kindOf(o.id)};
+        const A=AIR();setFace(c,o.id);c.visible=true;M.lastSh={tk:o.sh.tk,k:kindOf(o.id)};
         tween(c,[{t:SH.hold},{t:SH.up,y:Math.max(c.position.y,LIFT+.1),rx:Math.PI/2},{t:SH.to,x:A.x,y:A.y,z:A.z,rx:Math.PI/2,ry:0,s:A.s},{t:SH.face,rx:-.6}],true);
       }
     }
@@ -543,32 +544,36 @@ function step(){
   const now=clock(),o=V.cp,me=myIdx();
   twStep(now);
   if(M.card)M.card.visible=!(o.ph==='peek'&&o.to===me&&now-peekAt>650);   // 몰래 본 카드는 들어 올린 뒤 내 손(2D 한 장)으로
-  /* 선언 표시: 구라!의 '지금' 칸처럼 떠 있고 말이 바뀌면 톡 튀어나옴. 카드를 가리지 않게 카드 오른쪽 옆(화면 끝이면 왼쪽)에, 공개 중에는 숨김 */
+  /* 선언 표시: 구라!의 '지금' 칸처럼 카드 위에 붙어 다니고(겹쳐도 됨) 말이 바뀌면 톡 튀어나옴. 공개 중에는 지우고 판정 글자로 */
   const pv=V.st==='play'&&!dealingV()&&o.cl!=null&&(o.ph==='ask'||o.ph==='peek');
   if(elPn.hidden===pv)elPn.hidden=!pv;
   if(pv){
     const k=o.cs+':'+o.cl+':'+o.fr;
     if(k!==pnKey){pnKey=k;elPn.style.setProperty('--rc',KINDS[o.cl].c);elPn.querySelector('img').src=iconURL(o.cl);elPn.classList.remove('pop');void elPn.offsetWidth;elPn.classList.add('pop')}
-    const b=M.card&&M.card.visible?M.card.position:holdSpot(o.to),st=$('#stage'),W=st.clientWidth,Hs=st.clientHeight;
-    const scr=(x,y,z)=>{_pv.set(x,y,z).project(T.cam);return [(_pv.x+1)/2*W,(1-_pv.y)/2*Hs]};
-    const c=scr(b.x,b.y,b.z),hw=Math.abs(scr(b.x+.42,b.y,b.z)[0]-c[0]),hh=Math.abs(scr(b.x,b.y,b.z+.58)[1]-c[1]),pw=elPn.offsetWidth||62,ph=elPn.offsetHeight||74,gap=8;
-    /* 자리 후보: 화면 가운데 쪽 옆 → 반대쪽 옆 → 위 → 아래 → 위 대각선. 이름표·내 이름 칸·휠·몰래 본 카드·버튼·손패·펼친 카드와
-       겹치지 않는 첫 자리, 다 겹치면 가장 적게 겹치는 자리 */
-    const inward=c[0]>W/2+20?-1:1,sx=hw+gap+pw/2,sy=hh+gap+ph/2;
-    const cand=[[c[0]+inward*sx,c[1]],[c[0]-inward*sx,c[1]],[c[0],c[1]-sy],[c[0],c[1]+sy],[c[0]+inward*sx,c[1]-sy],[c[0]-inward*sx,c[1]-sy]];
-    const sr=st.getBoundingClientRect(),boxes=[];
-    document.querySelectorAll('#labels .seat,#me,.cp-wh:not([hidden]),.cp-held:not([hidden]),#actions .act:not([hidden]),#hand').forEach(el=>{const q=el.getBoundingClientRect();if(q.width)boxes.push([q.left-sr.left,q.top-sr.top,q.right-sr.left,q.bottom-sr.top])});
-    for(const row of M.col)for(const arr of row)for(const cc of arr){const p=cc.position,k=cc.scale.x,m=scr(p.x,p.y,p.z),ax=Math.abs(scr(p.x+.37*k,p.y,p.z)[0]-m[0]),ay=Math.abs(scr(p.x,p.y,p.z+.54*k)[1]-m[1]);boxes.push([m[0]-ax,m[1]-ay,m[0]+ax,m[1]+ay])}
-    const cost=([x,y])=>{let a=(x-pw/2<4||x+pw/2>W-4||y-ph/2<4)?1e6:0;for(const q of boxes){const ox=Math.min(x+pw/2,q[2]+4)-Math.max(x-pw/2,q[0]-4),oy=Math.min(y+ph/2,q[3]+4)-Math.max(y-ph/2,q[1]-4);if(ox>0&&oy>0)a+=ox*oy}return a};
-    let at=cand[0],best=Infinity;for(const p of cand){const v=cost(p);if(v<best){best=v;at=p;if(!v)break}}
-    elPn.style.left=at[0].toFixed(1)+'px';elPn.style.top=(at[1]+ph/2).toFixed(1)+'px';
+    const b=M.card&&M.card.visible?M.card.position:holdSpot(o.to),st=$('#stage');
+    _pv.set(b.x,Math.max(.1,b.y)+.45,b.z).project(T.cam);
+    elPn.style.left=((_pv.x+1)/2*st.clientWidth).toFixed(1)+'px';elPn.style.top=((1-_pv.y)/2*st.clientHeight).toFixed(1)+'px';
   }
+  drawVerdict(now);
   M.aim.visible=aimI>=0&&V.st==='play';
   if(M.aim.visible){const p=seatPos(aimI,2.1);M.aim.position.set(p.x,.024,p.z);M.aim.material.opacity=.75+.25*Math.sin(now/180)}
   const pulse=.75+.25*Math.sin(now/260);
   for(const g of M.glow.values())if(g.visible)g.material.opacity=pulse;
 }
 
+/* 판정 글자: 구라!처럼 화면 위쪽에 '넘긴 사람 → 외친 사람'과 진짜였다/걸렸다!. 카드가 앞면을 보이는 순간부터 공개가 끝날 때까지 */
+let vdKey='',vdAt=0;
+function drawVerdict(now){
+  if(!elVd)return;
+  const o=V&&V.cp,on=!!(o&&V.st==='play'&&o.ph==='show'&&o.sh&&o.id!=null);
+  if(!on){if(!elVd.hidden){elVd.hidden=true;elVd.innerHTML=''}vdKey='';return}
+  const key=o.cs+':'+o.sh.by;
+  if(key!==vdKey){vdKey=key;vdAt=now+(M.on?SH.face-250:300);elVd.hidden=true;elVd.innerHTML=''}
+  if(now<vdAt||!elVd.hidden)return;
+  const lie=kindOf(o.id)!==o.cl;
+  elVd.innerHTML=`<div class="vw"><b>${esc(nameOf(o.fr))}</b> → <b>${esc(nameOf(o.sh.by))}</b></div><div class="vt ${lie?'lie':'truth'}">${lie?'걸렸다!':'진짜였다'}</div>`;
+  elVd.hidden=false;
+}
 /* ---------- 2D (WebGL이 없을 때)·버튼 ---------- */
 const imgI=(k,cls)=>`<img class="${cls||''}" src="${iconURL(k)}" alt="${KNAME(k)}">`;
 function draw2d(){
@@ -592,7 +597,7 @@ G.live=()=>{
   if(elT.hidden===ask){elT.hidden=elF.hidden=!ask}
   const cp=ask&&canPassV();if(elP.hidden===cp)elP.hidden=!cp;
   keyTags();drawWheel();drawHeld();placeBar();markTags();draw2d();
-  if(!M.on&&elPn&&!elPn.hidden)elPn.hidden=true;
+  if(!M.on){if(elPn&&!elPn.hidden)elPn.hidden=true;drawVerdict(clock())}
 };
 G.hud=inGame=>{
   if(!elBox)return;
@@ -621,7 +626,7 @@ G.leave=()=>{
   Object.assign(M,{on:false,gn:-1});
   pkCtx='';lastD='';barKey='';pnKey='';aimI=-1;HD.on=false;HD.id=-1;
   if(elWh){elWh.hidden=true;elWh.innerHTML=''}
-  if(elHeld)elHeld.hidden=true;if(elPn)elPn.hidden=true;
+  if(elHeld)elHeld.hidden=true;if(elPn)elPn.hidden=true;if(elVd){elVd.hidden=true;elVd.innerHTML=''}vdKey='';
   document.querySelectorAll('#labels .seat').forEach(el=>el.classList.remove('cp-aim','cp-tg','cp-dim'));
   const st=$('#stage');st.classList.remove('cpg');st.style.removeProperty('--cpB');
   $('#btnPass').disabled=false;
@@ -666,6 +671,7 @@ G.init=()=>{
 .cp-held.drag{transition:none;cursor:grabbing}
 .cp-held[hidden]{display:none}
 .cp-held img{width:100%;height:100%;display:block;pointer-events:none}
+.cp-vd.verdict[hidden]{display:none}
 .pilenum.cp-pn{position:absolute;min-width:62px;height:74px}
 .pilenum.cp-pn .pn-l{font-size:11px;letter-spacing:0;white-space:nowrap;margin-bottom:2px}
 .pilenum.cp-pn b{display:flex;align-items:center;justify-content:center}
@@ -686,10 +692,10 @@ G.init=()=>{
 `;
   document.head.appendChild(css);
   elBox=document.createElement('div');elBox.className='cp-box';elBox.hidden=true;
-  elBox.innerHTML='<div class="cp-2d"></div><div class="pilenum cp-pn" hidden><span class="pn-l">이 카드는</span><b><img alt=""></b></div><div class="numwheel cp-wh" hidden></div><div class="card cp-held" role="img" hidden></div>';
+  elBox.innerHTML='<div class="cp-2d"></div><div class="pilenum cp-pn" hidden><span class="pn-l">이 카드는</span><b><img alt=""></b></div><div class="numwheel cp-wh" hidden></div><div class="card cp-held" role="img" hidden></div><div class="verdict cp-vd" hidden></div>';
   $('#stage').appendChild(elBox);
   $('#actions').insertAdjacentHTML('beforeend','<button type="button" class="act act-play cp-act" id="cpT" hidden>진짜!<small></small></button><button type="button" class="act act-gura cp-act" id="cpF" hidden>구라!<small></small></button><button type="button" class="act act-pass cp-act" id="cpP" hidden>넘기기<small></small></button>');
-  elT=$('#cpT');elF=$('#cpF');elP=$('#cpP');el2d=elBox.querySelector('.cp-2d');elWh=elBox.querySelector('.cp-wh');elHeld=elBox.querySelector('.cp-held');elPn=elBox.querySelector('.cp-pn');
+  elT=$('#cpT');elF=$('#cpF');elP=$('#cpP');el2d=elBox.querySelector('.cp-2d');elWh=elBox.querySelector('.cp-wh');elHeld=elBox.querySelector('.cp-held');elPn=elBox.querySelector('.cp-pn');elVd=elBox.querySelector('.cp-vd');
   elT.addEventListener('click',()=>answer(1));elF.addEventListener('click',()=>answer(0));elP.addEventListener('click',pressPass);
   /* 휠: 화살표·누르기·마우스 휠·위아래로 밀기 */
   elWh.addEventListener('click',e=>{const a=e.target.closest('.wh-arrow');if(a){stepCl(+a.dataset.step);return}const b=e.target.closest('.np');if(b&&+b.dataset.k!==pkCl){pkCl=+b.dataset.k;sfx('tick');drawWheel()}});
