@@ -100,7 +100,8 @@ const alive=()=>H.players.map((_,i)=>i).filter(i=>!H.players[i].finished);
 const lifeOf=i=>{const p=H.players[i];return H.ld.cf.dl?p.dc:p.lf};   // 생명은 p.lf (p.lv는 공통 코드의 봇 난이도)
 function nextAlive(i){const n=H.players.length;for(let k=1;k<=n;k++){const j=(i+k)%n;if(!H.players[j].finished)return j}return -1}
 const aliveOr=i=>H.players[i]&&!H.players[i].finished?i:nextAlive(i);
-const pushEv=e=>{const O=H.ld;e.q=++O.sq;O.ev.push(e);if(O.ev.length>12)O.ev.shift();return e};
+const pushEv=e=>{const O=H.ld;e.sn=++O.sq;   // 순번은 sn (q는 선언 개수)
+O.ev.push(e);if(O.ev.length>12)O.ev.shift();return e};
 const ruleNow=seat=>{const O=H.ld;return {wild:O.cf.wild,pal:O.pal>=0,free:O.pal>=0&&seat>=0&&lifeOf(seat)===1}};
 const totalDice=()=>H.ld.dice.reduce((a,d)=>a+d.length,0);
 function setTurn(i){H.turn=i;H.deadline=clock()+(+H.cfg.turn||30)*1000;H.botActAt=H.players[i].bot?clock()+rand(1500,2900):0;mark()}
@@ -418,7 +419,7 @@ G.logCue=()=>false;
 const NM={g:'구라!',x:'도전!',c:'칼사!'};
 G.cues=(v,pv)=>{
   const a=v.ld,b=pv&&pv.ld;if(!a||!b||a.gn!==b.gn)return;
-  for(const e of a.ev)if(e.q>b.sq){
+  for(const e of a.ev)if(e.sn>b.sq){
     if(e.k==='r'){if(e.s!==myIdx())sndSlam(.45)}
     else if(e.k==='b'){sfx('play',1);showBubble(e.s,`<span class="bt sm ld-bb">${dieSVG(e.f)}<b>${e.q}</b></span>`,1900,'soft')}
     else if(e.k==='c'){if(e.c==='g'){sfx('gura');showBubble(e.s,'<span class="bt">구라!</span>',2100,'real')}else{sfx('gura');showBubble(e.s,`<span class="bt">${NM[e.c]}</span>`,2100,'ldx')}}

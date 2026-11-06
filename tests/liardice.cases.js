@@ -102,3 +102,5 @@ setup(3,2,{},2);at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:14,f
   {let k=0;while(H.ld.ph==='bid'&&k++<40){NOW+=100;engineTick()}eq(H.ld.ph,'show','hard bot snipes');eq(H.ld.sh.by,2,'sniper is bot 2');eq(k>=15,true,'waits before sniping')}
 setup(3,2,{},1);at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:14,f:6});{let k=0;while(H.ld.ph==='bid'&&k++<40){NOW+=100;engineTick()}eq(H.ld.ph,'bid','normal bot does not snipe')}
 console.log('liardice bots ok');
+/* 선언 기록(ev)의 개수가 순번에 덮이지 않음 (말풍선 숫자 버그) */
+setup(3);at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:2,f:5});{const e=snapFor(1).ld.ev.filter(x=>x.k==='b').pop();eq(e.q,2,'bubble count = bid count');eq(e.f,5,'bubble face');eq(e.sn>0,true,'seq separate')}
