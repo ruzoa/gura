@@ -554,7 +554,7 @@ const qSeat=(i,rx)=>new THREE.Quaternion().setFromAxisAngle(Y_AX(),seatAngle(i))
 /* 컵 자세: closed(컵받침 위에 엎음) · peek · peek(엎은 채 그 사람 쪽을 th만큼 들어 올림: 먼 쪽 입구를 축으로) · aside(공개 때 컵받침 옆에 엎음) */
 function cupPose(i,kind,th){
   const k=kOf(i),H=1.03*k,R=.62*k,r=rOf(i);
-  if(kind==='side')return {p:cPt(i,R*2+.18,0,.1),q:qSeat(i,0)};   // 첫 판 시작: 컵받침 옆에 입구가 위로
+  if(kind==='side')return {p:cPt(i,0,CO_H,0),q:qSeat(i,0)};   // 첫 판 시작: 컵받침 위(가운데)에 입구가 위로, 주사위는 옆 바닥에
   if(kind==='aside'){const A=cPt(i,R*2+.18,H,.1),B=cPt(i,-(R*2+.18),H,.1);return {p:B.z<A.z-.01?B:A,q:qSeat(i,Math.PI)}}   // 공개: 컵받침 옆(카메라에서 먼 쪽: 컵이 주사위를 가리지 않게)
   if(kind==='peek'){const y=CO_H+H*Math.cos(th)+R*Math.sin(th),z=-H*Math.sin(th)+R*Math.cos(th);return {p:cPt(i,0,y,-R+z),q:qSeat(i,-th).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI))}}
   return {p:cPt(i,0,CO_H+H,0),q:qSeat(i,Math.PI)};
@@ -614,6 +614,7 @@ G.field3D=(v)=>{
   if(o.pk)o.pk.forEach((p,i)=>{const s=M.pkS[i];if(!s||s.v!==p)M.pkS[i]={v:p,at:now}});
   if(o.sh){const k=o.gn+':'+o.rn+':'+o.sh.by;if(k!==M.shKey){M.shKey=k;M.showT0=now-(o.sh.el||0);M.lastTick=-1;M.verdictSaid=false;if(HOLD.on)holdEnd(true)}M.lastSh=o.sh}
 };
+const floorX=i=>{const R=.78*kOf(i)*2+.2,A=cPt(i,R,0,0),B=cPt(i,-R,0,0);return B.z<A.z-.01?-R:R};   // 컵받침 옆: 카메라에서 먼 쪽
 const PK_MS=170,FLIP={t1:380,t2:720};   // 첫 판: 주사위가 컵으로(0~0.38초) → 컵이 뒤집혀 닫힘(~0.72초)
 function peekK(i,now){
   if(i===myIdx()){const s=M.pkS.me;if(!s)return 0;const e=ez((now-s.at)/PK_MS);return s.v?e:1-e}
@@ -644,7 +645,7 @@ function step(){
         const shaking=!rolled&&(mine?HOLD.on&&HOLD.mode==='shake':!!(o.sk&&o.sk[i]));
         /* 흔들기: 컵받침째 들어 흔듦(엎은 컵 + 컵받침이 한 덩어리), 떼면 함께 탁 내려앉음 */
         let lift=0,jx=0,jz=0,qj=new THREE.Quaternion();
-        if(shaking){const s=now/1000;rattle=true;lift=.3+Math.abs(Math.sin(s*24+i))*.1;jx=Math.sin(s*31+i*2)*.06;jz=Math.cos(s*27+i)*.05;qj.setFromEuler(new THREE.Euler(Math.sin(s*29+i)*.16,0,Math.cos(s*25+i)*.16))}
+        if(shaking){const s=now/1000;rattle=true;lift=.22+.26*(.5+.5*Math.sin(s*19+i*1.7));jx=Math.sin(s*7+i)*.015;qj.setFromEuler(new THREE.Euler(Math.sin(s*19+i*1.7)*.04,0,0))}   // 위아래로 흔들기
         else if(rolled&&at&&now-at<200)lift=.3*(1-ez((now-at)/200));
         const base=cPt(i,0,0,0),C=cupPose(i,'closed'),d=seatPt(i,0,jx,0,jz).setY(lift);
         P={p:base.clone().add(d).add(C.p.clone().sub(base).applyQuaternion(qj)),q:qj.clone().multiply(C.q)};
@@ -653,9 +654,9 @@ function step(){
         if(o.rn===1){   // 첫 판: 컵은 옆에 서 있고 주사위는 바닥에. 누르면 주사위가 컵으로 뛰어들고 컵이 뒤집혀 닫힘
           const gAt=mine?HOLD.pressAt||M.skAt[i]:M.skAt[i];
           if(gAt){const g=now-gAt;if(g<FLIP.t1){P=cupPose(i,'side');coT=null}else if(g<FLIP.t2){P=lerpPose(cupPose(i,'side'),cupPose(i,'closed'),ez((g-FLIP.t1)/(FLIP.t2-FLIP.t1)),.45);coT=null}}
-          else if(rolled&&M.rdAt[i]){const g=now-M.rdAt[i];if(g<FLIP.t2-FLIP.t1){P=lerpPose(cupPose(i,'side'),cupPose(i,'closed'),ez(g/(FLIP.t2-FLIP.t1)),.45);coT=null}}   // 안 만짐: 바닥 주사위 그대로 덮음
+          else if(rolled&&M.rdAt[i]){const g=now-M.rdAt[i];if(g<FLIP.t1){P=cupPose(i,'side');coT=null}else if(g<FLIP.t2){P=lerpPose(cupPose(i,'side'),cupPose(i,'closed'),ez((g-FLIP.t1)/(FLIP.t2-FLIP.t1)),.45);coT=null}}   // 안 만짐: 바닥 주사위가 그대로 컵에 들어가 닫힘(안 섞임)
           else{P=cupPose(i,'side');coT=null}
-          floor[i]={gAt,closeAt:!gAt&&rolled?M.rdAt[i]:0};
+          floor[i]={gAt:gAt||(rolled?M.rdAt[i]:0),closeAt:0};
         }
       }else if(inShow)P=lerpPose(cupPose(i,'closed'),cupPose(i,'aside'),liftK,1.1);
       else{pk=peekK(i,now);P=pk>0?cupPose(i,'peek',pk*(mine?.78:.62)):cupPose(i,'closed')}
@@ -670,8 +671,8 @@ function step(){
     if(F&&alive){   // 첫 판 바닥 주사위(모두에게 보임)
       for(let k=0;k<Math.max(flv.length,(M.dice[i]||[]).length,(M.blank[i]||[]).length);k++){
         const d=dieOf(i,k),b=blankOf(i,k);b.visible=false;ringOf(i,k).visible=false;
-        let vis=k<flv.length,pos=clusterPos(i,k,flv.length,1.25),y=CO_H+dsOf(i)/2;
-        if(vis&&F.gAt){const t=(now-F.gAt-k*45)/300;if(t>=1)vis=false;else if(t>0){const m=cPt(i,.78*kOf(i)*2+.18,1.05*kOf(i),.1),tt=ez(t);pos=pos.clone().lerp(m,tt);y=lerp(y,m.y,tt)+Math.sin(Math.PI*tt)*.45}}
+        let vis=k<flv.length,pos=clusterPos(i,k,flv.length,1.25).add(seatPt(i,0,floorX(i),0,0)),y=dsOf(i)/2;   // 바닥 주사위: 컵받침 옆 펠트(카메라에서 먼 쪽)
+        if(vis&&F.gAt){const t=(now-F.gAt-k*45)/300;if(t>=1)vis=false;else if(t>0){const m=cPt(i,0,CO_H+1.05*kOf(i),0),tt=ez(t);pos=pos.clone().lerp(m,tt);y=lerp(y,m.y,tt)+Math.sin(Math.PI*tt)*.45}}
         if(vis&&F.closeAt&&now-F.closeAt>FLIP.t2-FLIP.t1)vis=false;
         d.visible=vis;if(!vis)continue;
         d.position.set(pos.x,y,pos.z);d.quaternion.copy(dieQ(flv[k],seatAngle(i)+k*.55));d.scale.setScalar(dsOf(i));
