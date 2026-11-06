@@ -79,3 +79,4 @@
 - 방법: 시간 기준 키 프레임으로 ① 평평한 채 물건 반 길이보다 높이 떠오름 ② 공중에서 돌림 ③ 내려앉음. 다른 자리로 옮길 때도 평평한 채 호를 그리며.
 - 예: 바퀴벌레 포커 `flyFlat`, 공개(`SH`), 끝 공중 카드(`floatLose`).
 - **말풍선 안 SVG 아이콘은 자기 클래스로 되돌림**: `showBubble`의 말풍선 모양은 `.bubble svg{position:absolute;inset:0;width:100%;height:100%}`로 그려서, 내용에 SVG 아이콘(주사위 눈 등)을 넣으면 그 아이콘도 말풍선 전체로 펼쳐집니다. 아이콘에는 자기 클래스로 `position:relative;inset:auto`와 크기를 줍니다(구라! 다이스 `.bubble .ld-bb svg.ld-d`). 공통 경로 색 규칙(`.bubble svg path`)도 받으니 아이콘은 `path` 대신 `rect`·`circle`로 그리거나 색을 직접 줍니다.
+- **플레이어 칸의 공통 이름은 게임 값으로 쓰지 않음**: `H.players[i]`에는 공통 코드가 쓰는 칸이 있습니다. 특히 `p.lv`는 봇 난이도(`botLv(p)`, 대기실 이름표 메뉴)라서 생명을 `p.lv`에 넣으면 봇 난이도가 생명 값으로 바뀌고, 스냅샷의 난이도 표시도 틀어집니다(구라! 다이스에서 겪음). 게임 값은 `p.lf`처럼 자기 이름을 씁니다. 그 밖의 공통 칸: `hand`·`finished`·`rank`·`bot`·`away`·`surrendered`.
