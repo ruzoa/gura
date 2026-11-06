@@ -413,7 +413,6 @@ G.onKey=(act,e)=>{
   return false;
 };
 G.preView=()=>{};
-G.postView=()=>{};
 G.buttons=()=>{$('#btnGura').hidden=true;$('#btnPlay').disabled=true;$('#btnPass').disabled=true};
 G.logCue=()=>false;
 const NM={g:'구라!',x:'도전!',c:'칼사!'};
@@ -450,7 +449,7 @@ function drawMineLife(L,o,i){
    남이 들면 그 사람 쪽으로 들리고 아래에는 눈 없는 하얀 주사위가 보임.
    공개(show): 모든 컵이 들려 바깥쪽에 엎어지고, 주사위가 커지며 퍼짐. 선언한 사람부터 시계 방향으로 맞는 주사위에 빛 고리 + 톡 튐, 가운데 숫자가 하나씩 오름.
    모든 움직임은 시각(판 시작·엎은 때·든 때·공개 시작)으로 계산 */
-const R_CUP=1.5,R_ME=2.75,CO_H=.06,CUP_K=.62,K_ME=.86,DS=.2,DS_ME=.27,HY=.9,NW=640,NH=420;
+const R_CUP=2.75,R_ME=2.75,CO_H=.06,CUP_K=.74,K_ME=.74,DS=.24,DS_ME=.24,HY=.9,NW=640,NH=420;
 const M={on:false,built:false,fail:false,root:null,raf:0,cups:[],dice:[],blank:[],rings:[],num:null,life:null,glow:null,key:'',rn:-1,gn:-1,roundT0:0,prevSh:null,lastSh:null,showT0:0,shKey:'',lastTick:-1,verdictSaid:false,rdAt:[],pkS:[],rattleAt:0,hitKey:'',puKey:''};
 const HOLD={on:false,mode:'',rolledAt:0,src:''};
 const ez=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
@@ -513,7 +512,7 @@ function build(){
     {const gt=canvasTex(256,256,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,w*.2,w/2,h/2,w*.5);gr.addColorStop(0,'rgba(255,190,90,0)');gr.addColorStop(.62,'rgba(255,176,74,.85)');gr.addColorStop(1,'rgba(255,150,50,0)');g.fillStyle=gr;g.fillRect(0,0,w,h)});
      const m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:gt,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.renderOrder=1;m.visible=false;root.add(m);M.glow=m}
     const c=document.createElement('canvas');c.width=NW;c.height=NH;const t=new THREE.CanvasTexture(c);t.anisotropy=4;
-    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,depthWrite:false}));sp.position.set(0,HY,1.05);sp.scale.set(1.9,1.25,1);sp.renderOrder=55;root.add(sp);
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,depthWrite:false}));sp.position.set(0,HY,.15);sp.scale.set(1.9,1.25,1);sp.renderOrder=55;root.add(sp);
     M.num={c,t,sp};
     {const c2=document.createElement('canvas');c2.width=384;c2.height=128;const t2=new THREE.CanvasTexture(c2);t2.anisotropy=4;
      const m=new THREE.Mesh(new THREE.PlaneGeometry(1.2,.4),new THREE.MeshBasicMaterial({map:t2,transparent:true,depthWrite:false}));m.rotation.order='YXZ';m.rotation.x=-Math.PI/2;m.renderOrder=2;m.visible=false;root.add(m);M.life={c:c2,t:t2,m,key:''}}
@@ -668,8 +667,23 @@ function step(){
     sp.position.y=HY+Math.sin(now/600)*.03;
   }
   placeCupUI(now,o,me);
+  placeTags(now,o,me,inShow,liftK);
   if(IN.on)introStep(now);
 }
+/* 상대 이름표는 그 사람 컵과 컵받침 사이(컵 밑동)에. 공개 중에는 컵받침 뒤(그 사람 쪽)로 올려 주사위를 가리지 않게.
+   공통 placeLabels가 자리에 놓은 뒤 매 프레임·postView에서 덮어씀(포커 seatTags와 같은 방식) */
+function placeTags(now,o,me,inShow,liftK){
+  if(!M.on||!o||!(V.st==='play'||V.st==='over'))return;
+  const st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight;
+  document.querySelectorAll('#labels .seat[data-i]').forEach(el=>{
+    const i=+el.dataset.i;if(i===me||o.out[i])return;
+    const R=.78*kOf(i),k=inShow?liftK:0,p=cPt(i,0,lerp(CO_H,0,k),lerp(0,R+.22,k));   // 공개: 컵받침 뒤(그 사람 쪽)로 올려 주사위·가운데 숫자를 가리지 않게
+    const [x0,y0]=scrOf(p),hw=el.offsetWidth/2,hh=el.offsetHeight/2;
+    const x=Math.max(hw+6,Math.min(W-hw-6,x0)),y=Math.max(hh+6,Math.min(Hh-hh-6,y0-(k?hh*k:0)));
+    const L=Math.round(x)+'px',Tp=Math.round(y)+'px';if(el.style.left!==L)el.style.left=L;if(el.style.top!==Tp)el.style.top=Tp;   // 공통 코드가 자리를 다시 놓아도 다음 프레임에 되돌림
+  });
+}
+G.postView=()=>{const o=O_();if(o&&M.on){const now=clock(),inShow=(o.ph==='show'||o.ph==='done')&&o.sh;placeTags(now,o,myIdx(),inShow,inShow?ez((now-M.showT0-SH.lift)/SH.liftDur):0)}};
 /* 내 컵 위 투명 누르는 자리, 들었을 때 공중 2D 눈 */
 function scrOf(p){const st=$('#stage'),w=st.clientWidth,h=st.clientHeight,v=p.clone().project(T.cam);return [(v.x+1)/2*w,(1-v.y)/2*h]}
 function placeCupUI(now,o,me){
