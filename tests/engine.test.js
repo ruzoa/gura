@@ -47,6 +47,7 @@ run(fs.readFileSync(path.join(root,'games/bohnanza.js'),'utf8'),'bohnanza.js');
 run(fs.readFileSync(path.join(root,'games/onecard.js'),'utf8'),'onecard.js');
 run(fs.readFileSync(path.join(root,'games/mia.js'),'utf8'),'mia.js');
 run(fs.readFileSync(path.join(root,'games/cockroach.js'),'utf8'),'cockroach.js');
+run(fs.readFileSync(path.join(root,'games/liardice.js'),'utf8'),'liardice.js');
 run(cut('/* 카드 id 규칙은','const PEER_PREFIX='),'core-consts');
 run(cut('let H=null, flushQueued=false, lastBeat=0;','function seatOfConn(conn){').replace('setInterval(engineTick,100);',''),'core-engine');
 run(`
@@ -379,10 +380,14 @@ run(`{
 const CP=GAMES.cockroach;
 `+fs.readFileSync(path.join(__dirname,'cockroach.cases.js'),'utf8')+`
 }`,'cockroach.cases.js');
+run(`{
+const LD=GAMES.liardice;
+`+fs.readFileSync(path.join(__dirname,'liardice.cases.js'),'utf8')+`
+}`,'liardice.cases.js');
 // 탈주: 나가기 버튼은 바로, 연결 끊김은 DESERT_WAIT(45초) 이어질 때 항복 처리 + 표시 (모든 게임).
 //  기다리는 동안 봇은 두지 않고 제한 시간은 그대로 흐름(멈추면 끊어서 시간을 벌 수 있음). 그 전에 돌아오면 그대로. 방장은 해당 없음
 run(`
-for(const [g,n] of [['gura',3],['president',3],['quoridor',3],['yahtzee',3],['omok',2],['chess',2],['janggi',2],['blackjack',3],['poker',3],['alkkagi',2],['blackwhite',2],['animal',2],['baseball',2],['pixel',3],['abalone',2],['mind',3],['bohnanza',3],['robo77',3],['davinci',3],['onecard',3],['mia',3],['cockroach',3]]){
+for(const [g,n] of [['gura',3],['president',3],['quoridor',3],['yahtzee',3],['omok',2],['chess',2],['janggi',2],['blackjack',3],['poker',3],['alkkagi',2],['blackwhite',2],['animal',2],['baseball',2],['pixel',3],['abalone',2],['mind',3],['bohnanza',3],['robo77',3],['davinci',3],['onecard',3],['mia',3],['cockroach',3],['liardice',3]]){
   const setup=(bots)=>{hostNew(false,'t','t');H.cfg={...cfgFor(g),game:g,turn:120};
     H.members=[];for(let i=0;i<n;i++)H.members.push(bots&&i?{name:'b'+i,bot:true,conn:null,host:false,lv:1}:{name:'p'+i,bot:false,conn:i?{}:null,host:i===0,cid:i?'c'+i:''});
     hostStart();for(let k=0;k<60;k++){NOW+=250;engineTick()}   // 시작 연출이 끝날 때까지 (제한 시간 안)

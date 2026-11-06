@@ -1,4 +1,4 @@
-# 탁자하나 (A table) — 게임 모음 (구라! · 대부호 · 쿼리도 · 야추다이스 · 오목 · 체스 · 장기 · 블랙잭 · 포커 · 알까기 · 흑과백 · 동물장기 · 숫자야구 · 픽셀 · 아발론 · 더 마인드 · 보난자 · 로보77 · 다빈치코드 · 원카드 · 미아 · 바퀴벌레 포커)
+# 탁자하나 (A table) — 게임 모음 (구라! · 대부호 · 쿼리도 · 야추다이스 · 오목 · 체스 · 장기 · 블랙잭 · 포커 · 알까기 · 흑과백 · 동물장기 · 숫자야구 · 픽셀 · 아발론 · 더 마인드 · 보난자 · 로보77 · 다빈치코드 · 원카드 · 미아 · 바퀴벌레 포커 · 구라! 다이스)
 
 사이트 이름은 **탁자하나**(영어 A table), 로비 메뉴는 **상차리기**(방 만들기)·**참여하기**(방 들어가기), 링크 미리보기 문구는 "그저 탁자 하나"입니다. 구라!는 그 안의 게임 하나입니다.
 화면에서 방은 **탁자**로 부릅니다: 탁자 이름, 탁자 번호(4자리 코드), 공개 탁자·비공개 탁자, 탁자 목록, 아무 탁자나 앉기, 번호로 참여하기, 탁자 설정, 탁자 떠나기. **방장**과 **대기실**은 그대로 씁니다. 코드 안의 이름(`room`, `H.code`, `gura-` 저장 키, PeerJS 이름표)은 바꾸지 않습니다.
@@ -35,6 +35,7 @@
 | `games/onecard.js` | 원카드 (2~6명·트럼프 60장·+2/+4/리버스/금지/색 바꾸기·겹치기 설정·+4 도전·패 위 원카드 버튼·클래식/빠른 모드·3단계 봇) | `docs/onecard.md` |
 | `games/davinci.js` | 다빈치코드 (2~4명·흑백 0~11과 조커·흩어진 패에서 뽑기·상대 쪽으로 다가가는 카메라·타일이 쓰러져 공개·3단계 봇) | `docs/davinci.md` |
 | `games/cockroach.js` | 바퀴벌레 포커 (2~6명·벌레 8종류 64장·세로 휠로 선언·상대 쪽으로 끌어 넘기기·진짜!/구라!/몰래 보고 넘기기·탁자 가운데에서 공개·진짜였다/걸렸다!·같은 종류 4장 또는 손패 없음이면 패배·위험 종류 빨간 테두리·진 종류만 공중에·쉬움 봇) | `docs/cockroach.md` |
+| `games/liardice.js` | 구라! 다이스 (2~4명 라이어스 다이스·컵으로 덮은 주사위·오른쪽 아래 눈/개수 선언 칸·누구나 구라!·규칙 묶음 구라! 다이스/페루도/커스텀(1 와일드·주사위 잃기·spot on(도전·spot on!)·칼사·팔리피코)·컵이 들리고 맞는 주사위를 하나씩 셈·쉬움 봇) | `docs/liardice.md` |
 | `games/mia.js` | 미아 (2~4명·사용자 오리지널·9×9 판·내 말만 안 보임·게임 모드 클래식/배틀로얄(공통 탈출구)·칸 사이 2칸 벽 20개·시작 전 벽 절반·앞에 세운 보관대·격리 금지·라운드 끝 거리·칸 메모·알파벳·숫자 10면체·3단계 봇) | `docs/mia.md` |
 | `tests/`, `dicepick.js`, `lab*.html`, `manifest.webmanifest`, `sw.js`, 아이콘 | 테스트(`node tests/engine.test.js`, `node tests/dicepick.test.js`), 첫 차례 주사위 계산·주사위 만들기, 연출·아이콘 테스트룸, 홈 화면 앱 | `docs/tools.md` |
 
@@ -61,7 +62,7 @@
   - 안 되는 곳을 누르면 글 대신 공통 금지 소리 `sfx('no')`를 냅니다. 왜 안 되는지는 화면에 보여야 합니다(초록 점, 빨간 ✕, 빨간 벽 등).
   - 안내 줄에는 꼭 필요한 것만 짧게 남깁니다(진행 단계, 판 시작 안내, 결과, 조커처럼 화면만으로 알 수 없는 규칙). 비면 자리만 남기고 숨깁니다(`:empty{visibility:hidden}` 또는 고정 높이).
 - **안전 영역(노치·홈 바)**: `body.fs` 한 곳에서만 `env(safe-area-inset-*)` 패딩을 줍니다. `html`/`:root`에 또 주면 홈 화면 앱 위쪽에 띠가 두 번 생깁니다.
-- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`, `gura-roomcfg-chess`, `gura-roomcfg-janggi`, `gura-roomcfg-blackjack`, `gura-roomcfg-poker`, `gura-roomcfg-alkkagi`, `gura-roomcfg-blackwhite`, `gura-roomcfg-animal`, `gura-roomcfg-baseball`, `gura-roomcfg-pixel`, `gura-roomcfg-abalone`, `gura-roomcfg-mind`, `gura-roomcfg-bohnanza`, `gura-roomcfg-robo77`, `gura-roomcfg-davinci`, `gura-roomcfg-onecard`, `gura-roomcfg-mia`, `gura-roomcfg-cockroach`). 더 마인드는 인원별 최고 기록(`gura-mind-best`)도 저장합니다. 숫자야구는 그 판의 숫자 메모(`gura-nb-lamp`)도 저장합니다. 미아는 그 판의 칸 메모(`gura-mia-memo`)도 저장합니다. 오목은 이 밖에 커스텀 규칙 기억(`gura-omok-custom`)과 세부 설정 펼침(`gura-omok-more`)도 저장합니다.
+- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`, `gura-roomcfg-chess`, `gura-roomcfg-janggi`, `gura-roomcfg-blackjack`, `gura-roomcfg-poker`, `gura-roomcfg-alkkagi`, `gura-roomcfg-blackwhite`, `gura-roomcfg-animal`, `gura-roomcfg-baseball`, `gura-roomcfg-pixel`, `gura-roomcfg-abalone`, `gura-roomcfg-mind`, `gura-roomcfg-bohnanza`, `gura-roomcfg-robo77`, `gura-roomcfg-davinci`, `gura-roomcfg-onecard`, `gura-roomcfg-mia`, `gura-roomcfg-cockroach`, `gura-roomcfg-liardice`). 더 마인드는 인원별 최고 기록(`gura-mind-best`)도 저장합니다. 숫자야구는 그 판의 숫자 메모(`gura-nb-lamp`)도 저장합니다. 미아는 그 판의 칸 메모(`gura-mia-memo`)도 저장합니다. 오목은 이 밖에 커스텀 규칙 기억(`gura-omok-custom`)과 세부 설정 펼침(`gura-omok-more`)도 저장합니다.
 - **움직임 줄이기**: 기기의 '움직임 줄이기'(`prefers-reduced-motion`) 설정을 보고 게임 움직임을 끄지 않습니다. 시작 연출, 주사위 굴리기, 말·벽 이동, 돌 놓기처럼 게임 진행을 보여 주는 움직임은 설정과 상관없이 모든 기기에서 똑같이 보여야 합니다. `matchMedia('(prefers-reduced-motion…')`로 움직임을 건너뛰는 코드를 새로 넣지 않습니다. (아직 남은 예외: `games/yahtzee.js`의 2D 주사위 CSS. 손볼 때 같이 정리)
 
 ## 모든 모드 공통 원칙
@@ -87,6 +88,7 @@
 - **탑뷰 판은 화면 가운데, 폭은 거의 끝까지**: 바로 위에서 보는 게임(쿼리도·오목·장기·알까기)은 판 가운데를 화면 가운데에 두고, 위아래는 이름 칸 자리를 같은 높이로 비우고 양옆은 휴대폰 8px·PC 16px만 남깁니다(`tvBox`). 판 옆 물건(옆자리 보관함·알 줄)은 좁은 화면에서 끝만 보이게. 가로 화면(폭>높이)과 폭 700px 이상의 2명 판은 안내 줄을 왼쪽 위 구석으로(`.wide`) 빼서 위 칸이 맨 위 줄로 올라가고 위아래 여백이 칸 한 줄만큼으로 줄어듭니다. 비스듬히 보는 체스도 같은 조건에서 안내 줄만 같은 방식으로 옮겨 판 자리를 위로 넓힘.
 - **PC에서 버튼은 손패 바로 옆**: 손패 양 끝 28px 옆(`--actR`·`--plateL`), PC에서 최대 1.3배(`--actS`). 손패를 숨기는 게임은 구석 그대로. 구라!는 예외로 버튼 줄이 손패 바로 위 가운데(`.gmid`).
 - **카드 손패는 테이블 모서리에 걸침**: 내 쪽 테이블 모서리(`T.edgeB`)가 카드 가운데에 오고, 가리키면(마우스·터치·키보드 커서) 그 카드 한 장만 살짝 올라오고 나머지 카드는 벌어짐(`FOC`, 손패 전체는 올라오지 않음). 구라!·대부호만(`G.dealAnim`). 손패 높이를 읽는 게임 코드는 `G.afterFan`으로 다시 맞춤.
+- **말풍선 안 SVG 아이콘은 자기 클래스로 되돌림**: 공통 `.bubble svg`(말풍선 모양)가 안의 SVG도 화면 가득 펼침. 아이콘에는 `position:relative;inset:auto`와 크기를 줌(구라! 다이스 `.ld-bb`).
 - **트럼프 왼쪽 위 글자는 공통 함수로**: 2D `trumpCorner`, 3D `drawTrumpCorner`로 숫자와 무늬를 가로 한 줄에. 순서는 숫자가 앞, 무늬가 더 중요한 게임만 무늬가 앞(원카드).
 - **넓은 화면에서 한쪽으로 몰리지 않게**: 세로 가운데 맞춤이나 최대 높이.
 - **무작위는 방장이 정하고 화면은 연출만**.
