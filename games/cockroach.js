@@ -655,7 +655,8 @@ G.init=()=>{
 .cp-held.drag{transition:none;cursor:grabbing}
 .cp-held[hidden]{display:none}
 .cp-held img{width:100%;height:100%;display:block;pointer-events:none}
-.pilenum.cp-pn{position:absolute;min-width:58px;height:62px}
+.pilenum.cp-pn{position:absolute;min-width:62px;height:74px}
+.pilenum.cp-pn .pn-l{font-size:11px;letter-spacing:0;white-space:nowrap;margin-bottom:2px}
 .pilenum.cp-pn b{display:flex;align-items:center;justify-content:center}
 .pilenum.cp-pn img{width:46px;height:46px;display:block}
 .cp-peek img{width:72px;height:106px;border-radius:8px;display:block;margin:0 auto}
@@ -674,7 +675,7 @@ G.init=()=>{
 `;
   document.head.appendChild(css);
   elBox=document.createElement('div');elBox.className='cp-box';elBox.hidden=true;
-  elBox.innerHTML='<div class="cp-2d"></div><div class="pilenum cp-pn" hidden><b><img alt=""></b></div><div class="numwheel cp-wh" hidden></div><div class="card cp-held" role="img" hidden></div>';
+  elBox.innerHTML='<div class="cp-2d"></div><div class="pilenum cp-pn" hidden><span class="pn-l">이 카드는</span><b><img alt=""></b></div><div class="numwheel cp-wh" hidden></div><div class="card cp-held" role="img" hidden></div>';
   $('#stage').appendChild(elBox);
   $('#actions').insertAdjacentHTML('beforeend','<button type="button" class="act act-play cp-act" id="cpT" hidden>진짜!<small></small></button><button type="button" class="act act-gura cp-act" id="cpF" hidden>구라!<small></small></button><button type="button" class="act act-pass cp-act" id="cpP" hidden>넘기기<small></small></button>');
   elT=$('#cpT');elF=$('#cpF');elP=$('#cpP');el2d=elBox.querySelector('.cp-2d');elWh=elBox.querySelector('.cp-wh');elHeld=elBox.querySelector('.cp-held');elPn=elBox.querySelector('.cp-pn');
