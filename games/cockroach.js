@@ -543,15 +543,25 @@ function step(){
   const now=clock(),o=V.cp,me=myIdx();
   twStep(now);
   if(M.card)M.card.visible=!(o.ph==='peek'&&o.to===me&&now-peekAt>650);   // 몰래 본 카드는 들어 올린 뒤 내 손(2D 한 장)으로
-  /* 선언 표시: 구라!의 '지금' 칸처럼 카드 위에 떠 있고, 말이 바뀌면 톡 튀어나옴 */
-  const pv=V.st==='play'&&!dealingV()&&o.cl!=null&&(o.ph==='ask'||o.ph==='peek'||o.ph==='show');
+  /* 선언 표시: 구라!의 '지금' 칸처럼 떠 있고 말이 바뀌면 톡 튀어나옴. 카드를 가리지 않게 카드 오른쪽 옆(화면 끝이면 왼쪽)에, 공개 중에는 숨김 */
+  const pv=V.st==='play'&&!dealingV()&&o.cl!=null&&(o.ph==='ask'||o.ph==='peek');
   if(elPn.hidden===pv)elPn.hidden=!pv;
   if(pv){
     const k=o.cs+':'+o.cl+':'+o.fr;
     if(k!==pnKey){pnKey=k;elPn.style.setProperty('--rc',KINDS[o.cl].c);elPn.querySelector('img').src=iconURL(o.cl);elPn.classList.remove('pop');void elPn.offsetWidth;elPn.classList.add('pop')}
-    const base=M.card&&M.card.visible&&o.ph!=='show'?M.card.position:holdSpot(o.to);
-    _pv.set(base.x,Math.max(.1,base.y)+.62,base.z).project(T.cam);
-    const st=$('#stage');elPn.style.left=((_pv.x+1)/2*st.clientWidth).toFixed(1)+'px';elPn.style.top=((1-_pv.y)/2*st.clientHeight).toFixed(1)+'px';
+    const b=M.card&&M.card.visible?M.card.position:holdSpot(o.to),st=$('#stage'),W=st.clientWidth,Hs=st.clientHeight;
+    const scr=(x,y,z)=>{_pv.set(x,y,z).project(T.cam);return [(_pv.x+1)/2*W,(1-_pv.y)/2*Hs]};
+    const c=scr(b.x,b.y,b.z),hw=Math.abs(scr(b.x+.42,b.y,b.z)[0]-c[0]),hh=Math.abs(scr(b.x,b.y,b.z+.58)[1]-c[1]),pw=elPn.offsetWidth||62,ph=elPn.offsetHeight||74,gap=8;
+    /* 자리 후보: 화면 가운데 쪽 옆 → 반대쪽 옆 → 위 → 아래 → 위 대각선. 이름표·내 이름 칸·휠·몰래 본 카드·버튼·손패·펼친 카드와
+       겹치지 않는 첫 자리, 다 겹치면 가장 적게 겹치는 자리 */
+    const inward=c[0]>W/2+20?-1:1,sx=hw+gap+pw/2,sy=hh+gap+ph/2;
+    const cand=[[c[0]+inward*sx,c[1]],[c[0]-inward*sx,c[1]],[c[0],c[1]-sy],[c[0],c[1]+sy],[c[0]+inward*sx,c[1]-sy],[c[0]-inward*sx,c[1]-sy]];
+    const sr=st.getBoundingClientRect(),boxes=[];
+    document.querySelectorAll('#labels .seat,#me,.cp-wh:not([hidden]),.cp-held:not([hidden]),#actions .act:not([hidden]),#hand').forEach(el=>{const q=el.getBoundingClientRect();if(q.width)boxes.push([q.left-sr.left,q.top-sr.top,q.right-sr.left,q.bottom-sr.top])});
+    for(const row of M.col)for(const arr of row)for(const cc of arr){const p=cc.position,k=cc.scale.x,m=scr(p.x,p.y,p.z),ax=Math.abs(scr(p.x+.37*k,p.y,p.z)[0]-m[0]),ay=Math.abs(scr(p.x,p.y,p.z+.54*k)[1]-m[1]);boxes.push([m[0]-ax,m[1]-ay,m[0]+ax,m[1]+ay])}
+    const cost=([x,y])=>{let a=(x-pw/2<4||x+pw/2>W-4||y-ph/2<4)?1e6:0;for(const q of boxes){const ox=Math.min(x+pw/2,q[2]+4)-Math.max(x-pw/2,q[0]-4),oy=Math.min(y+ph/2,q[3]+4)-Math.max(y-ph/2,q[1]-4);if(ox>0&&oy>0)a+=ox*oy}return a};
+    let at=cand[0],best=Infinity;for(const p of cand){const v=cost(p);if(v<best){best=v;at=p;if(!v)break}}
+    elPn.style.left=at[0].toFixed(1)+'px';elPn.style.top=(at[1]+ph/2).toFixed(1)+'px';
   }
   M.aim.visible=aimI>=0&&V.st==='play';
   if(M.aim.visible){const p=seatPos(aimI,2.1);M.aim.position.set(p.x,.024,p.z);M.aim.material.opacity=.75+.25*Math.sin(now/180)}
@@ -633,6 +643,7 @@ G.init=()=>{
 .stage.cpg .cp-act{display:flex}
 .stage.cpg .cp-act[hidden]{display:none}
 .stage.cpg #btnPlay,.stage.cpg #btnPass{display:none}
+.stage.cpg #dim{display:none}   /* 차례마다 내는 게임이 아니라 내 차례 어둡게 하기는 끔 */
 .stage.cpg .actions{left:50%;right:auto;bottom:var(--cpB,120px);width:min(360px,calc(100% - 20px));justify-content:center;transform:translateX(-50%) scale(var(--actS,1));transform-origin:50% 100%}
 .stage.cpg .actions .act{flex:1;min-width:0;pointer-events:auto}
 .cp-eye{width:1.05em;height:1.05em;vertical-align:-.15em;margin-right:3px}
