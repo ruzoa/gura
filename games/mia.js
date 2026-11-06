@@ -122,7 +122,7 @@ G.modeDesc=['탈출구가 사람마다 하나씩','모두 같은 탈출구, 먼�
 G.defaults={max:2,turn:30,wallS:20,md:0,pickfirst:0};
 const MD_NAME=['클래식','배틀로얄'],mdOf=c=>+c.md===1?1:0;
 G.modeLabel=c=>MD_NAME[mdOf(c)];
-G.roomSet=[{k:'turn',label:'제한 시간',unit:'초',lo:10,hi:120,step:5,desc:'시간이 지나면 무작위 방향으로 움직입니다. 연결이 끊겨도 시간은 흐르고, 45초가 지나면 탈주로 처리합니다'},{k:'wallS',label:'전체 벽',unit:'개',lo:8,hi:40,step:2,desc:'모든 사람의 벽을 합친 수입니다. 똑같이 나눠 가지고 남는 벽은 쓰지 않습니다. 절반은 시작 전에 세웁니다'},{k:'md',label:'게임 모드',unit:'',lo:0,hi:1,step:1,desc:'클래식(0)은 탈출구가 사람마다 하나씩, 배틀로얄(1)은 모두 같은 탈출구 하나를 찾고 먼저 밟으면 승리합니다'}];
+G.roomSet=[{lever:1,k:'turn',label:'제한 시간',unit:'초',lo:10,hi:120,step:5,desc:'시간이 지나면 무작위 방향으로 움직입니다. 연결이 끊겨도 시간은 흐르고, 45초가 지나면 탈주로 처리합니다'},{lever:1,k:'wallS',label:'전체 벽',unit:'개',lo:8,hi:40,step:2,desc:'모든 사람의 벽을 합친 수입니다. 똑같이 나눠 가지고 남는 벽은 쓰지 않습니다. 절반은 시작 전에 세웁니다'},{lever:1,k:'md',label:'게임 모드',unit:'',lo:0,hi:1,step:1,desc:'클래식(0)은 탈출구가 사람마다 하나씩, 배틀로얄(1)은 모두 같은 탈출구 하나를 찾고 먼저 밟으면 승리합니다'}];
 G.ruleSet=[{k:'pickfirst',pick:1,label:'선 플레이어',desc:'선택: 방장이 이름표 메뉴에서 선 플레이어를 고릅니다. 무작위: 주사위로 정하고, 바로 시작하면 다음 사람이 먼저 합니다'}];
 G.boardSet=c=>{
   const rs=roomSetOf(G,c),num=k=>({kind:'num',...rs.find(x=>x.k===k),v:+(c[k]??G.defaults[k]),diff:false}),md=mdOf(c);
@@ -511,7 +511,6 @@ function drawAll(){
   if(!CS||!elMain)return;
   if(!P3.on){const bd=boardHTML();if(bd!==lastBoard){elMain.innerHTML=bd;lastBoard=bd}}
   const top=barHTML(),mb=meBarHTML(),key=top+'\u0001'+mb;if(key!==lastBar){elBar.innerHTML=top;elBarMe.innerHTML=mb;lastBar=key;P3.lay=''}
-  const hs=histHTML();if(hs!==lastHist){elHist.innerHTML=hs;lastHist=hs}
   const showCtl=V.st==='play'&&CS.ph==='move'&&seatMe()&&!isOut(myIdx())&&!introWait();
   elCtl.hidden=!showCtl;
   if(showCtl){const c=ctlHTML();if(c!==lastCtl){elCtl.innerHTML=c;lastCtl=c}if(popAt){popAt=0;const d=elCtl.querySelector('.mia-dist');if(d){d.classList.remove('pop');void d.offsetWidth;d.classList.add('pop')}}}else lastCtl='';
@@ -1088,10 +1087,10 @@ G.init=()=>{
 `;
   document.head.appendChild(css);
   elRoot=document.createElement('div');elRoot.id='mia';elRoot.hidden=true;
-  elRoot.innerHTML=`<div class="mia-bar"></div><div class="mia-mebar"></div><div class="mia-row"><div class="mia-hint" aria-live="polite"></div><div class="mia-hist" aria-label="내 기록"></div></div><div class="mia-bd"><svg class="mia-board" viewBox="-.4 -.4 9.8 9.8" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="미아 판"><g id="miaMain"></g></svg></div><div class="mia-ctl" hidden></div>`;
+  elRoot.innerHTML=`<div class="mia-bar"></div><div class="mia-mebar"></div><div class="mia-row"><div class="mia-hint" aria-live="polite"></div></div><div class="mia-bd"><svg class="mia-board" viewBox="-.4 -.4 9.8 9.8" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="미아 판"><g id="miaMain"></g></svg></div><div class="mia-ctl" hidden></div>`;
   $('#stage').insertBefore(elRoot,$('#fx'));
   elSvg=elRoot.querySelector('svg.mia-board');elMain=elRoot.querySelector('#miaMain');
-  elBar=elRoot.querySelector('.mia-bar');elBarMe=elRoot.querySelector('.mia-mebar');elHint=elRoot.querySelector('.mia-hint');elHist=elRoot.querySelector('.mia-hist');elCtl=elRoot.querySelector('.mia-ctl');
+  elBar=elRoot.querySelector('.mia-bar');elBarMe=elRoot.querySelector('.mia-mebar');elHint=elRoot.querySelector('.mia-hint');elCtl=elRoot.querySelector('.mia-ctl');
   elSvg.addEventListener('click',onSvgClick);
   elCtl.addEventListener('click',e=>{
     const d=e.target.closest('[data-d]');if(d){tapDir(+d.dataset.d);return}
