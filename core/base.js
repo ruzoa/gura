@@ -21,7 +21,7 @@ function drawTrumpCorner(g,k,lab,su,suitFirst){
 }
 /* ===== 게임 목록 =====
    G = 지금 화면에 보이는 게임, EG() = 방장 엔진이 돌리는 게임 (방장 화면에서는 둘이 같음) */
-const GAME_IDS=['gura','president','quoridor','yahtzee','omok','chess','janggi','blackjack','poker','alkkagi','blackwhite','animal','baseball','pixel','abalone','mind','bohnanza','robo77','davinci','onecard','mia'];
+const GAME_IDS=['gura','president','quoridor','yahtzee','omok','chess','janggi','blackjack','poker','alkkagi','blackwhite','animal','baseball','pixel','abalone','mind','bohnanza','robo77','davinci','onecard','mia','cockroach'];
 let G=GAMES.gura;
 const EG=()=>(H&&H.cfg&&GAMES[H.cfg.game])||GAMES.gura;
 const gameOf=id=>GAMES[id]||GAMES.gura;

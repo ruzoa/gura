@@ -57,6 +57,8 @@ function frontHoloPiece(id){
     const k=GAMES.abalone.holoPiece(c=>{const m=holoMat(c);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else if(id==='animal'&&GAMES.animal&&GAMES.animal.holoPiece){   // 사자 타일과 병아리 타일 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.animal.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
+  else if(GAMES[id]&&GAMES[id].holoPiece&&id!=='chess'){   // 나머지 게임: 게임이 holoPiece(재질 함수)로 모양을 주면 그대로 (바퀴벌레 포커)
+    const k=GAMES[id].holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else add(new THREE.OctahedronGeometry(.25),holoMat(0xffffff));
   g.userData={mats};return g;
 }

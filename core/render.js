@@ -162,7 +162,8 @@ function overTrack(st){
   }else if(st!=='over'&&OV.on){OV.on=false;OV.fold=false;OV.at=0;clearTimeout(OV.timer)}
   OV.last=st||'';
 }
-function overWho(){const w=V.ps.filter(p=>p.f===1);return w.length===1?`${w[0].n} 승리`:w.length===V.ps.length?'무승부':'공동 1위'}
+function overWho(){if(G.overWho){const t=G.overWho();if(t)return t}const w=V.ps.filter(p=>p.f===1);   // G.overWho: 접은 결과 창 제목을 게임이 정함(바퀴벌레 포커 'OO 패배')
+  return w.length===1?`${w[0].n} 승리`:w.length===V.ps.length?'무승부':'공동 1위'}
 function setOverFold(on){
   OV.fold=on;$('#panel').classList.toggle('fold',on);sfx('tick');
   const f=on?$('#panelFold'):$('#panel [data-auto]:not([disabled])')||$('#panel [data-act="overfold"]');if(f)f.focus({preventScroll:true});
