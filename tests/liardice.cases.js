@@ -113,3 +113,6 @@ setup(3);{eq(H.ld.rn>=1,true,'started');}
   eq(H.ld.rollDl-NOW<=TT.ROLL_LAST,true,'last one gets 5s');pass(TT.ROLL_LAST+TT.SETTLE_MS+200);eq(H.ld.ph,'bid','auto after 5s');eq(H.ld.dice[2].join(),keep,'untouched keeps dice')}
 setup(3,0,{dl:1});at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:9,f:2});act(1,{t:'gura'});pass(H.ld.sh.ms+100);
   {const d=H.ld.dice[0];eq(d.length,4,'lost one die kept 4');eq(d.every(v=>[2,3,5,6].includes(v)),true,'kept values minus one');eq(H.ld.dice[1].join(),'2,4,4,4,6','others keep until touched')}
+/* 주사위 잃기: 잃을 주사위를 공개 때 정하고(맞는 눈이 아닌 것 먼저) 그 주사위가 빠짐 */
+setup(3,0,{dl:1});at0([[2,2,3,5,6],[2,4,4,4,6],[1,2,3,5,5]]);act(0,{t:'bid',q:9,f:2});act(1,{t:'gura'});
+{const j=H.ld.sh.rm[0];eq(H.ld.dice[0][j]!==2,true,'removed die is not a counted one');const left=H.ld.dice[0].slice();left.splice(j,1);pass(H.ld.sh.ms+100);eq(H.ld.dice[0].join(),left.join(),'that die removed');eq(snapFor(1).ld.sh,undefined,'show cleared next round')}

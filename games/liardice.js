@@ -152,7 +152,9 @@ function doCall(seat,k){
   }else if(k==='x'){if(ex){res='xok';all(seat,-1)}else{res='xno';d[seat]=-1}}
   else{if(ex){res='cok';d[seat]=1}else{res='cno';d[seat]=-1}}
   const m=O.dice.reduce((a,dd)=>a+dd.filter(v=>matches(v,B.f,r)).length,0);
-  O.ph='show';O.sh={k,by:seat,bid:{...B},n,res,d,st,t0:clock(),m,ms:showLen(m)};
+  const rm={};   // 주사위 잃기: 잃을 주사위를 공개 때 정함(맞는 눈이 아닌 것 먼저) → 판정 때 그 주사위가 펑
+  if(cf.dl)for(const k2 in d)if(d[k2]<0){const dd=O.dice[+k2],c=dd.map((v,j)=>j).filter(j=>!matches(dd[j],B.f,r)),pool=c.length?c:dd.map((v,j)=>j);rm[k2]=pool[Math.random()*pool.length|0]}
+  O.ph='show';O.sh={k,by:seat,bid:{...B},n,res,d,st,rm,t0:clock(),m,ms:showLen(m)};
   H.turn=-1;H.botActAt=0;H.deadline=clock()+864e5;H.seatNote={};
   const NM={g:'구라!',x:'도전',c:'칼사'};
   addLog(`${H.players[seat].name} ${NM[k]} · ${B.f} ${n}개`,res==='true'||res==='cok'?'fin':'lie');
@@ -176,12 +178,12 @@ function endShow(){
   for(const k in S.d){
     const i=+k,p=H.players[i];if(p.finished)continue;
     const before=lifeOf(i);
-    if(cf.dl)p.dc=Math.max(0,Math.min(cf.D,p.dc+S.d[k]));else p.lf=Math.max(0,Math.min(cf.L,p.lf+S.d[k]));
+    if(cf.dl){p.dc=Math.max(0,Math.min(cf.D,p.dc+S.d[k]));if(S.d[k]<0&&S.rm&&S.rm[k]!=null)O.dice[i].splice(S.rm[k],1)}else p.lf=Math.max(0,Math.min(cf.L,p.lf+S.d[k]));
     const now=lifeOf(i);
     if(now<=0){out.push(i);addLog(`${p.name} 탈락`,'lie')}
     else if(now===1&&before>1)one.push(i);
   }
-  retire(out);
+  retire(out);S.ap=1;   // 생명 반영됨 (끝 화면에서 화면이 한 번 더 빼지 않게)
   if(checkOver())return;
   let st=aliveOr(S.st);
   if(cf.pal){   // 팔리피코: 처음 1개만 남은 사람부터 (사람마다 한 번)
@@ -357,7 +359,7 @@ G.engine={
     if(open&&O.sh)s.ld.all=O.dice.map(d=>d.slice());
     if(O.ph==='roll'){s.ld.rd=O.rolled.slice();s.ld.sk=O.shk.slice();s.ld.ra=Math.max(0,Math.round(O.rollDl-t));if(O.rn===1)s.ld.fl=O.dice.map((d,i)=>O.rolled[i]?[]:d.slice())}   // 첫 판 바닥 주사위는 모두에게 보임
     if(O.ph==='bid')s.ld.pk=O.pk.slice();
-    if(O.sh)s.ld.sh={k:O.sh.k,by:O.sh.by,bid:{...O.sh.bid},n:O.sh.n,res:O.sh.res,d:{...O.sh.d},m:O.sh.m,ms:O.sh.ms,el:Math.max(0,Math.round(t-O.sh.t0))};
+    if(O.sh)s.ld.sh={k:O.sh.k,by:O.sh.by,bid:{...O.sh.bid},n:O.sh.n,res:O.sh.res,d:{...O.sh.d},rm:{...O.sh.rm},ap:O.sh.ap?1:0,m:O.sh.m,ms:O.sh.ms,el:Math.max(0,Math.round(t-O.sh.t0))};
     s.gr=0;s.dl=O.ph==='bid'&&H.phase==='play'?Math.max(0,Math.round(H.deadline-t)):0;
     if(O.ph!=='bid')delete s.t;
   },
@@ -439,20 +441,26 @@ G.cues=(v,pv)=>{
 };
 /* 생명·주사위: 이름표 (주사위 잃기면 주사위 아이콘 + 개수, 아니면 하트) */
 const SHOWN={k:'',v:null};   // 공개 연출이 판정에 닿기 전에는 생명이 줄지 않게: 다음 판 상태가 오기 전까지 스냅샷 값 그대로
-function lifeHTML(i){
-  const o=O_();if(!o||o.out[i])return '';
-  if(o.cf.dl)return `<span class="ld-life" data-s="${i}">${dieSVG(5,'ld-mini')}<b>${o.dc[i]}</b></span>`;
-  return `<span class="ld-life" data-s="${i}">${Array.from({length:o.cf.L},(_,k)=>`<i class="${k<o.lv[i]?'on':''}">${HEART}</i>`).join('')}</span>`;
+/* 화면에 보일 생명: 판정이 뜨면 바로 줄어든 값(엔진은 공개가 끝날 때 반영). 이번 판정에서 잃었으면 lost=그 하트 자리 */
+function lifeNow(i){
+  const o=O_(),base=o.cf.dl?o.dc[i]:o.lv[i],sh=o.sh,dd=sh&&!sh.ap&&(o.ph==='show'||o.ph==='done')&&M.vdOn?(sh.d[i]||0):0;
+  const v=Math.max(0,Math.min(o.cf.dl?o.cf.D:o.cf.L,base+dd));return {v,lost:dd<0?v:-1,gain:dd>0}
 }
-G.nameTag=(p,i)=>V&&V.st!=='wait'&&O_()&&i!==myIdx()?lifeHTML(i):'';
+function lifeHTML(i,force){
+  const o=O_();if(!o||(o.out[i]&&!force))return '';
+  const L=lifeNow(i);
+  if(o.cf.dl)return `<span class="ld-life${L.lost>=0?' shk':''}" data-s="${i}">${dieSVG(5,'ld-mini')}<b>${L.v}</b></span>`;
+  return `<span class="ld-life${L.lost>=0?' shk':''}" data-s="${i}">${Array.from({length:o.cf.L},(_,k)=>`<i class="${k<L.v?'on':''}${k===L.lost?' lost':''}">${HEART}</i>`).join('')}</span>`;
+}
+G.nameTag=(p,i)=>V&&V.st!=='wait'&&O_()&&i!==myIdx()?lifeHTML(i,M.vdOn&&O_().sh&&O_().sh.d[i]):'';
 /* 내 생명은 내 이름 칸이 아니라 내 주사위 줄 바로 앞 탁자 위에 (공통 원칙: 내 이름 칸에는 이모티콘·닉네임만) */
 function removeMine(){}
 function drawMineLife(L,o,i){
   const g=L.c.getContext('2d'),w=L.c.width,h=L.c.height;g.clearRect(0,0,w,h);
   const heart=(x,y,r,on)=>{g.beginPath();g.moveTo(x,y+r*.9);g.bezierCurveTo(x-r*1.6,y-r*.1,x-r*.7,y-r*1.3,x,y-r*.45);g.bezierCurveTo(x+r*.7,y-r*1.3,x+r*1.6,y-r*.1,x,y+r*.9);g.fillStyle=on?'#d8352a':'rgba(59,42,31,.28)';g.fill()};
   if(o.cf.dl){g.fillStyle='rgba(255,250,240,.9)';rr(g,w/2-118,h/2-46,92,92,18);g.fill();g.strokeStyle='#4a3020';g.lineWidth=6;g.stroke();g.fillStyle='#2a2118';for(const [a,b] of [[.25,.25],[.75,.25],[.5,.5],[.25,.75],[.75,.75]]){g.beginPath();g.arc(w/2-118+a*92,h/2-46+b*92,8,0,7);g.fill()}
-    g.fillStyle='#fff6e2';g.font='700 92px "IBM Plex Mono", monospace';g.textAlign='left';g.textBaseline='middle';g.shadowColor='rgba(0,0,0,.4)';g.shadowBlur=6;g.fillText('×'+o.dc[i],w/2-14,h/2+4);g.shadowBlur=0}
-  else{const n=o.cf.L,gap=72,x0=w/2-(n-1)*gap/2;for(let k=0;k<n;k++)heart(x0+k*gap,h/2,30,k<o.lv[i])}
+    g.fillStyle='#fff6e2';g.font='700 92px "IBM Plex Mono", monospace';g.textAlign='left';g.textBaseline='middle';g.shadowColor='rgba(0,0,0,.4)';g.shadowBlur=6;g.fillText('×'+lifeNow(i).v,w/2-14,h/2+4);g.shadowBlur=0}
+  else{const n=o.cf.L,gap=72,x0=w/2-(n-1)*gap/2;const lv=lifeNow(i).v;for(let k=0;k<n;k++)heart(x0+k*gap,h/2,30,k<lv)}
   L.t.needsUpdate=true;
 }
 
@@ -554,6 +562,7 @@ const qSeat=(i,rx)=>new THREE.Quaternion().setFromAxisAngle(Y_AX(),seatAngle(i))
 /* 컵 자세: closed(컵받침 위에 엎음) · peek · peek(엎은 채 그 사람 쪽을 th만큼 들어 올림: 먼 쪽 입구를 축으로) · aside(공개 때 컵받침 옆에 엎음) */
 function cupPose(i,kind,th){
   const k=kOf(i),H=1.03*k,R=.62*k,r=rOf(i);
+  if(kind==='fallen'){const A=cPt(i,R*2+.18,.55*k,.1),B=cPt(i,-(R*2+.18),.55*k,.1),p=B.z<A.z-.01?B:A;return {p,q:new THREE.Quaternion().setFromAxisAngle(Y_AX(),seatAngle(i)+.6).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),Math.PI/2))}}   // 탈락: 옆으로 쓰러진 컵
   if(kind==='side')return {p:cPt(i,0,CO_H,0),q:qSeat(i,0)};   // 첫 판 시작: 컵받침 위(가운데)에 입구가 위로, 주사위는 옆 바닥에
   if(kind==='aside'){const A=cPt(i,R*2+.18,H,.1),B=cPt(i,-(R*2+.18),H,.1);return {p:B.z<A.z-.01?B:A,q:qSeat(i,Math.PI)}}   // 공개: 컵받침 옆(카메라에서 먼 쪽: 컵이 주사위를 가리지 않게)
   if(kind==='peek'){const y=CO_H+H*Math.cos(th)+R*Math.sin(th),z=-H*Math.sin(th)+R*Math.cos(th);return {p:cPt(i,0,y,-R+z),q:qSeat(i,-th).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI))}}
@@ -612,7 +621,8 @@ G.field3D=(v)=>{
   if(o.rd)o.rd.forEach((r,i)=>{if(r&&M.skAt[i]==null&&M.rt[i]===1)M.skAt[i]=now});
   if(o.rd)o.rd.forEach((r,i)=>{if(r&&M.rdAt[i]==null)M.rdAt[i]=i===myIdx()&&HOLD.rolledAt?HOLD.rolledAt:now});
   if(o.pk)o.pk.forEach((p,i)=>{const s=M.pkS[i];if(!s||s.v!==p)M.pkS[i]={v:p,at:now}});
-  if(o.sh){const k=o.gn+':'+o.rn+':'+o.sh.by;if(k!==M.shKey){M.shKey=k;M.showT0=now-(o.sh.el||0);M.lastTick=-1;M.verdictSaid=false;if(HOLD.on)holdEnd(true)}M.lastSh=o.sh}
+  if(o.sh){const k=o.gn+':'+o.rn+':'+o.sh.by;if(k!==M.shKey){M.shKey=k;M.showT0=now-(o.sh.el||0);M.lastTick=-1;M.verdictSaid=false;M.vdOn=false;M.vdAt=0;M.popped={};if(HOLD.on)holdEnd(true)}M.lastSh=o.sh}
+  else M.vdOn=false;
 };
 const floorX=i=>{const R=.78*kOf(i)*2+.2,A=cPt(i,R,0,0),B=cPt(i,-R,0,0);return B.z<A.z-.01?-R:R};   // 컵받침 옆: 카메라에서 먼 쪽
 const PK_MS=170,FLIP={t1:380,t2:720};   // 첫 판: 주사위가 컵으로(0~0.38초) → 컵이 뒤집혀 닫힘(~0.72초)
@@ -633,6 +643,9 @@ function step(){
   const lit=new Set(order.slice(0,cnt).map(([i,k])=>i+':'+k)),hopAt=new Map(order.map(([i,k],j)=>[i+':'+k,SH.count0+j*SH.per]));
   let rattle=false;const floor=[];
   for(let i=0;i<Math.max(n,M.cups.length);i++){
+    const fallen=i<n&&show&&!!o.out[i]&&!inShow;   // 탈락한 사람: 컵이 쓰러진 채로 남음(가라앉지 않음)
+    if(fallen){const c=cupOf(i);c.visible=true;c.userData.inner.scale.setScalar(kOf(i));setPose(c,cupPose(i,'fallen'));c.userData.glow.visible=false;const co=coOf(i);co.visible=true;co.position.copy(cPt(i,0,CO_H/2,0));co.quaternion.identity();co.scale.set(kOf(i),1,kOf(i));
+      for(const L of [M.dice[i],M.blank[i],M.rings[i]])for(const d of L||[])d.visible=false;continue}
     const alive=i<n&&show&&!o.out[i]&&(o.dn[i]>0||inShow),cup=alive||M.cups[i]?cupOf(i):null;
     if(!cup)continue;cup.visible=alive;
     const mine=i===me;
@@ -658,7 +671,8 @@ function step(){
           else{P=cupPose(i,'side');coT=null}
           floor[i]={gAt:gAt||(rolled?M.rdAt[i]:0),closeAt:0};
         }
-      }else if(inShow)P=lerpPose(cupPose(i,'closed'),cupPose(i,'aside'),liftK,1.1);
+      }else if(inShow){P=lerpPose(cupPose(i,'closed'),cupPose(i,'aside'),liftK,1.1);
+        if(M.vdOn&&lifeNow(i).v===0){const k=ez((now-M.vdAt-120)/420);if(k>0)P=lerpPose(P,cupPose(i,'fallen'),k,.25)}}   // 탈락: 판정 때 컵이 쓰러짐
       else{pk=peekK(i,now);P=pk>0?cupPose(i,'peek',pk*(mine?.78:.62)):cupPose(i,'closed')}
       setPose(cup,P);
     }
@@ -688,7 +702,9 @@ function step(){
       const sp=inShow&&!mine?lerp(1,1.3,liftK):inShow?lerp(1,1.2,liftK):1,sz=inShow&&!mine?lerp(ds,ds*1.25,liftK):ds;
       const p=clusterPos(i,k,nd,sp),yaw=a+k*.55,key=i+':'+k,h=hopAt.get(key);let hop=0;
       if(h!=null&&e>=h){const t=(e-h)/260;if(t<1)hop=Math.sin(Math.PI*t)*.28}
-      g.position.set(p.x,CO_H+sz/2+hop,p.z);g.quaternion.copy(dieQ(v,yaw));g.scale.setScalar(sz);
+      let szz=sz;
+      if(inShow&&M.vdOn&&o.cf.dl&&o.sh.rm&&o.sh.rm[i]===k&&(o.sh.d[i]||0)<0){const t=(now-M.vdAt)/260;szz=sz*(1-ez(t));if(!M.popped[key]){M.popped[key]=1;puff(new THREE.Vector3(p.x,CO_H+sz/2,p.z),'#f4ecdf',.9);sndPop()}if(t>=1){g.visible=false;continue}}   // 잃은 주사위: 펑
+      g.position.set(p.x,CO_H+szz/2+hop,p.z);g.quaternion.copy(dieQ(v,yaw));g.scale.setScalar(szz);
       if(inShow&&lit.has(key)){rg.visible=true;rg.position.set(p.x,CO_H+.012,p.z);rg.rotation.y=yaw;rg.scale.setScalar(sz*1.6);rg.material.opacity=.8+.2*Math.sin(now/160)}
     }
   }
@@ -700,14 +716,14 @@ function step(){
   /* 내 생명: 내 컵 바로 앞(내 쪽) 나무 위 */
   {const L=M.life,ok=show&&me>=0&&!o.out[me];L.m.visible=ok;
    if(ok){L.m.position.copy(seatPt(me,R_ME,0,.02,.95));L.m.rotation.y=seatAngle(me);
-     const k=[o.cf.dl,o.cf.L,o.lv[me],o.dc[me]].join();if(k!==L.key){L.key=k;drawMineLife(L,o,me)}}}
+     const k=[o.cf.dl,o.cf.L,lifeNow(me).v].join();if(k!==L.key){L.key=k;drawMineLife(L,o,me)}}}
   /* 가운데 홀로그램 */
   const sp=M.num.sp;sp.visible=show&&(!!o.bid||inShow||o.pal>=0);
   if(sp.visible){
     let args,vtxt='',vcol='';
     if(inShow){
       const vd=e>=verdictAt(order.length),R=RES[o.sh.res]||['',''];
-      if(vd&&!M.verdictSaid){M.verdictSaid=true;sfx(TRUE_RES.has(o.sh.res)?'truth':'lie');if(o.sh.res==='spot'||o.sh.res==='xok')sfx('special')}
+      if(vd&&!M.verdictSaid){M.verdictSaid=true;sfx(TRUE_RES.has(o.sh.res)?'truth':'lie');if(o.sh.res==='spot'||o.sh.res==='xok')sfx('special');onVerdict(o,now)}
       args=[`${cnt}/${o.sh.bid.q}`,o.sh.bid.f,'',vd?R[1]:'#ffb04a'];
       vtxt=vd?R[0]:'';vcol=R[1];
     }else args=[o.bid?String(o.bid.q):'',o.bid?o.bid.f:0,o.pal>=0?'팔리피코':'','#ffb04a'];
@@ -720,6 +736,7 @@ function step(){
   }else M.num.vp.visible=false;
   placeCupUI(now,o,me);
   placeBubs(now);
+  stepFX(now);
   placeTags(now,o,me,inShow,liftK);
   if(IN.on)introStep(now);
 }
@@ -788,6 +805,48 @@ function holdEnd(cancel){
     else sendAct({t:'shake',on:0});
   }else if(mode==='peek'){M.pkS.me={v:0,at:clock()};if(!cancel||(o&&o.ph==='bid'))sendAct({t:'peek',on:0})}
 }
+/* 펑 효과: 연기 덩어리·하트 조각·반짝이 (시각 기준으로 움직이고 끝나면 지움) */
+const FX=[];
+let puffTex=null,heartTex=null,starTex=null;
+function fxTex(){
+  if(puffTex)return;
+  puffTex=canvasTex(64,64,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,2,w/2,h/2,w/2);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.6,'rgba(255,255,255,.75)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,w,h)});
+  heartTex=canvasTex(64,64,(g,w,h)=>{const x=w/2,y=h/2+2,r=20;g.beginPath();g.moveTo(x,y+r*.9);g.bezierCurveTo(x-r*1.6,y-r*.1,x-r*.7,y-r*1.3,x,y-r*.45);g.lineTo(x,y+r*.9);g.fillStyle='#d8352a';g.fill()});
+  starTex=canvasTex(64,64,(g,w,h)=>{g.translate(w/2,h/2);g.fillStyle='#ffe27a';g.beginPath();for(let k=0;k<8;k++){const r=k%2?8:28,a=k*Math.PI/4;g.lineTo(Math.sin(a)*r,-Math.cos(a)*r)}g.fill()});
+}
+function spr(tex,col){const m=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:new THREE.Color(col),transparent:true,depthWrite:false}));m.renderOrder=60;M.root.add(m);return m}
+function puff(p,col,big){
+  fxTex();const t0=clock();
+  for(let k=0;k<7;k++){const a=k/7*Math.PI*2+Math.random()*.5,v=new THREE.Vector3(Math.cos(a)*.35,.25+Math.random()*.35,Math.sin(a)*.35).multiplyScalar(big),m=spr(puffTex,col);
+    FX.push({m,t0,dur:620+Math.random()*200,f:(m,k)=>{m.position.copy(p).addScaledVector(v,ez(k)*1.2);m.scale.setScalar((.12+.32*ez(k))*big);m.material.opacity=.9*(1-k)}})}
+}
+function heartPop(p){
+  fxTex();const t0=clock();
+  for(const sd of [-1,1]){const m=spr(heartTex,'#ffffff');if(sd>0)m.material.map=heartTex;m.scale.set(.16*sd,.16,1);
+    FX.push({m,t0,dur:650,f:(m,k)=>{m.position.set(p.x+sd*.22*k,p.y+.18*Math.sin(Math.PI*Math.min(1,k*1.4))-.05*k,p.z);m.material.rotation=sd*k*1.4;m.material.opacity=1-ez((k-.5)*2)}})}
+  puff(p,'#e8e1d6',.55);
+}
+function sparkle(p){
+  fxTex();const t0=clock();
+  for(let k=0;k<6;k++){const a=k/6*Math.PI*2,m=spr(starTex,'#ffffff');FX.push({m,t0,dur:600,f:(m,kk)=>{m.position.set(p.x+Math.cos(a)*.3*ez(kk),p.y+.1+.2*kk,p.z+Math.sin(a)*.3*ez(kk));m.scale.setScalar(.12*(1-kk*.6));m.material.opacity=1-kk}})}
+}
+function stepFX(now){
+  for(let j=FX.length-1;j>=0;j--){const F=FX[j],k=(now-F.t0)/F.dur;if(k>=1){M.root.remove(F.m);F.m.material.dispose();FX.splice(j,1);continue}F.f(F.m,Math.max(0,k))}
+}
+function clearFX(){for(const F of FX){if(M.root)M.root.remove(F.m);F.m.material.dispose()}FX.length=0}
+const sndPop=()=>{tone(560,.05,{type:'triangle',vol:.16});tone(300,.08,{type:'sine',vol:.12,at:.02});hiss(.2,{freq:1400,q:.6,vol:.12})};
+/* 판정 순간: 생명을 바로 줄여 보이고(이름표 다시 그림), 내 3D 하트는 펑, 되찾으면 반짝, 탈락하면 컵이 쓰러짐 */
+function onVerdict(o,now){
+  M.vdOn=true;M.vdAt=now;M.popped=M.popped||{};
+  try{renderLabels()}catch(_){}
+  const me=myIdx(),d=o.sh.d||{};
+  if(me>=0&&d[me]&&!o.cf.dl){
+    const n=o.cf.L,L=lifeNow(me),idx=d[me]<0?L.v:L.v-1,x=(192+(idx-(n-1)/2)*72-192)/384*1.2,p=seatPt(me,R_ME,x,.08,.95);
+    if(d[me]<0){heartPop(p);sndPop()}else sparkle(p);
+  }
+  for(const k in d)if(d[k]>0&&(+k!==me||o.cf.dl))sparkle(cPt(+k,0,.3,0));
+  if(Object.keys(d).some(k=>lifeNow(+k).v===0))setTimeout(()=>{tone(85,.18,{type:'triangle',vol:.22});hiss(.15,{freq:500,q:.7,vol:.12})},420);
+}
 function clearAll(){
   for(const g of M.cups)if(g)g.visible=false;
   for(const g of M.cos||[])if(g)g.visible=false;
@@ -796,7 +855,8 @@ function clearAll(){
   if(M.life)M.life.m.visible=false;
   if(M.glow)M.glow.visible=false;
   if(elCup)elCup.hidden=true;if(elPU)elPU.hidden=true;
-  clearBubs();
+  clearBubs();clearFX();
+  for(const g of M.cups)if(g&&g.userData.glow)g.userData.glow.visible=false;
 }
 
 /* ---------- 시작 연출: 컵이 자리에 내려앉고 가운데에서 첫 차례 주사위 ---------- */
@@ -918,6 +978,10 @@ G.init=()=>{
 .ld-life b{font-size:13px}
 .ld-life i{display:inline-flex}
 .ld-h{width:12px;height:11px;fill:#d9cbb4}
+.ld-life.shk{animation:ldShk .5s ease-in-out}
+.ld-life i.lost .ld-h{animation:ldLost .6s ease-out}
+@keyframes ldShk{0%,100%{transform:none}15%{transform:translateX(-3px) rotate(-6deg)}35%{transform:translateX(3px) rotate(6deg)}55%{transform:translateX(-2px) rotate(-4deg)}75%{transform:translateX(2px) rotate(3deg)}}
+@keyframes ldLost{0%{fill:#d8352a;transform:scale(1.25)}60%{fill:#d8352a}100%{fill:#d9cbb4;transform:none}}
 .ld-life i.on .ld-h{fill:#d8352a;filter:drop-shadow(0 0 2px rgba(216,53,42,.5))}
 .ld-mine{display:inline-flex;align-items:center;margin-left:6px}
 .ld-mine .ld-life{margin-right:0}
