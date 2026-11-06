@@ -9,7 +9,7 @@
 const G={id:'cockroach',name:'바퀴벌레 포커',short:'바퀴',lead:'거짓말로 벌레 카드를 떠넘기는 게임',dealAnim:true,maxHi:6,minN:2,noFast:true,oneBotLv:true,botLvs:['쉬움'],emptyHandOk:true};
 
 /* ---------- 규칙 값 ---------- */
-const KN=8,CN=64,SHOW_MS=2300;
+const KN=8,CN=64,SHOW_MS=2700;
 const kindOf=id=>id>>3;
 
 /* ---------- 카드 그림 (직접 그린 실루엣) ---------- */
@@ -104,7 +104,7 @@ Object.assign(G,{labelOf:id=>KNAME(kindOf(id)),cmpCard:(a,b)=>a-b});
 G.cardHTML=(id,extra)=>`<button type="button" class="card cp-c ${extra||''}" data-id="${id}" aria-label="${KNAME(kindOf(id))}"><img src="${faceURL(kindOf(id))}" alt="" draggable="false"></button>`;
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>카드</b> : 바퀴벌레·박쥐·파리·두꺼비·쥐·전갈·거미·노린재 8종류가 8장씩, 64장을 모두 나눕니다</li><li><b>넘기기</b> : 내 차례에 카드 한 장을 고르고, 다른 사람에게 엎어서 넘기며 무슨 벌레인지 말합니다. 진짜를 말해도, 거짓말을 해도 됩니다</li><li><b>받으면</b> : <b>진짜</b>나 <b>가짜</b>를 고르거나, <b>넘기기</b>로 카드를 몰래 보고 아직 안 본 사람에게 다시 넘깁니다. 이때 말은 바꿔도 됩니다. 모두 본 카드는 넘길 수 없습니다</li><li><b>판정</b> : 맞히면 넘긴 사람이, 틀리면 받은 사람이 그 카드를 앞에 펼쳐 둡니다. 카드를 가져간 사람이 다음 차례입니다</li><li><b>패배</b> : 같은 벌레가 정한 장수(기본 4장)만큼 앞에 모이면 집니다. 내 차례에 손패가 없어도 집니다. 진 한 사람 말고는 모두 승리입니다</li><li><b>표시</b> : 한 장만 더 모이면 지는 벌레는 빨갛게 빛납니다. 카드를 본 사람은 이름표에 눈이 뜹니다</li><li><b>제한 시간</b> : 시간이 지나면 무작위로 넘기거나 고릅니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>카드</b> : 바퀴벌레·박쥐·파리·두꺼비·쥐·전갈·거미·노린재 8종류가 8장씩, 64장을 모두 나눕니다</li><li><b>넘기기</b> : 내 차례에 카드 한 장을 고르면 휠에 그 벌레가 뜹니다. 휠을 돌려 말할 벌레를 정하고(거짓말도 됩니다), 카드를 상대 쪽으로 끌어 놓거나 상대 이름표를 누르면 엎어서 넘깁니다</li><li><b>받으면</b> : <b>진짜!</b>나 <b>구라!</b>를 외치거나, <b>넘기기</b>로 카드를 몰래 보고 아직 안 본 사람에게 다시 넘깁니다. 이때 말은 바꿔도 됩니다. 모두 본 카드는 넘길 수 없습니다</li><li><b>판정</b> : 외친 사람이 카드를 들어 모두에게 보여 줍니다. 맞히면 넘긴 사람이, 틀리면 외친 사람이 그 카드를 앞에 펼쳐 둡니다. 카드를 가져간 사람이 다음 차례입니다</li><li><b>패배</b> : 같은 벌레가 정한 장수(기본 4장)만큼 앞에 모이면 집니다. 내 차례에 손패가 없어도 집니다. 진 한 사람 말고는 모두 승리입니다</li><li><b>표시</b> : 한 장만 더 모이면 지는 벌레는 빨갛게 빛납니다. 카드를 본 사람은 이름표에 눈이 뜹니다</li><li><b>제한 시간</b> : 시간이 지나면 무작위로 넘기거나 외칩니다</li></ol>';
 G.modeDesc=['한 사람이 질 때까지','한 사람이 질 때까지'];
 G.defaults={max:6,turn:30,lose:4,pickfirst:0};
 G.roomSet=[
@@ -119,7 +119,8 @@ G.cardInfo=()=>'<p class="cardinfo">벌레 8종류 × 8장 · 64장</p>';
 G.rankTitle=()=>'';
 G.finLabel=f=>f===1?'승리':'패배';
 G.noEmotes=[];
-G.keys={};G.keyActions=[];
+G.keys={cpTrue:'KeyT'};   // 구라!는 구라! 게임 키(gura), 넘기기는 패스 키, 휠은 구라! 선언 휠 키(numUp·numDown)를 같이 씀
+G.keyActions=[{a:'cpTrue',n:'진짜!',d:'바퀴벌레 포커: 받은 카드가 말한 벌레라고 외칩니다. 구라!는 구라! 키, 넘기기는 패스 키, 선언할 벌레는 선언 자음 키를 같이 씁니다'}];
 
 /* ---------- 방장 엔진 ---------- */
 const loseN=()=>Math.max(3,Math.min(5,+H.cfg.lose||4));
@@ -165,8 +166,8 @@ function doAnswer(seat,v){
   const O=H.cp,C=O.cur,truth=kindOf(C.id)===C.cl,ok=(v===1)===truth,tk=ok?C.fr:seat;
   O.ph='show';O.sh={v,ok:ok?1:0,tk,by:seat,at:clock()+SHOW_MS};
   H.botActAt=0;H.deadline=clock()+864e5;
-  addLog(`${H.players[seat].name} "${v?'진짜':'가짜'}" · ${KNAME(kindOf(C.id))}였음`,ok?'fin':'lie');
-  pushEv({k:'a',s:seat,v,ok:ok?1:0,tk,id:C.id});mark();
+  addLog(`${H.players[seat].name} ${v?'진짜!':'구라!'} · ${KNAME(kindOf(C.id))}였음`,ok?'fin':'lie');
+  pushEv({k:'a',s:seat,v,ok:ok?1:0,tr:truth?1:0,tk,id:C.id});mark();
 }
 function endShow(){
   const O=H.cp,C=O.cur,S=O.sh,k=kindOf(C.id);
@@ -251,13 +252,17 @@ G.engine={
   emoPhase:ph=>ph==='play'||ph==='over'
 };
 
-/* ---------- 화면: 조작 ---------- */
-let elBox=null,elPick=null,el2d=null,elT=null,elF=null,elP=null;
-let pkTo=-1,pkCl=-1,pkCtx='',pickKey='',lastD='',layKey='',lockAt=-1e9;
+
+/* ---------- 화면: 조작 ----------
+   넘길 차례: 손패 위 가로 휠(선언할 벌레, 처음 값 = 고른 카드의 벌레). 카드를 끌어 상대 쪽으로 가져가면 그 사람 이름표가 빛나고, 놓으면 넘김.
+   카드를 고르고 이름표를 눌러도 넘김. 몰래 본 카드는 휠 위에 한 장으로 나오고 같은 방법으로 넘김 */
+let elBox=null,el2d=null,elT=null,elF=null,elP=null,elWh=null,elHeld=null,elPn=null;
+let pkCl=0,pkCtx='',dragKindId=null,lastD='',lockAt=-1e9,aimI=-1,pnKey='',barKey='',peekAt=0;
+const HD={on:false,x:0,y:0,id:-1};
 const iSeat=()=>{const i=myIdx();return i>=0&&V&&V.ps&&i<V.ps.length};
 const myTurn=()=>!!(V&&V.cp&&V.st==='play'&&iSeat()&&V.t===myIdx()&&!dealingV());
 const phIs=ph=>myTurn()&&V.cp.ph===ph;
-const pickedCard=()=>{if(!phIs('give'))return null;const a=[...sel];return a.length===1&&myHand().includes(a[0])?a[0]:null};
+const selCard=()=>{const a=[...sel];return a.length===1&&myHand().includes(a[0])?a[0]:null};
 /* 넘길 수 있는 사람: 처음 넘길 때는 나 말고 모두, 본 뒤에는 아직 안 본 사람 */
 function targetsV(){
   const me=myIdx(),o=V.cp,all=V.ps.map((_,i)=>i).filter(i=>i!==me);
@@ -265,202 +270,302 @@ function targetsV(){
 }
 const canPassV=()=>phIs('ask')&&targetsV().length>0;
 const nameOf=i=>V&&V.ps&&V.ps[i]?V.ps[i].n:'';
+/* 휠 값: 카드를 고르면(몰래 보면) 그 카드의 벌레로 시작 */
+function syncPick(){
+  const g=phIs('give'),p=phIs('peek'),id=g?selCard():p?V.cp.id:null;
+  const ctx=g?'g'+id:p?'p'+V.cp.cs+':'+V.cp.sq:'';
+  if(ctx!==pkCtx){pkCtx=ctx;if(id!=null)pkCl=kindOf(id);if(p)peekAt=clock()}
+}
 G.handMarks=(i,h,hand)=>{
   if(sel.size>1){const keep=[...sel].pop();sel.clear();sel.add(keep)}
+  syncPick();
   const g=phIs('give');
   for(const el of hand.children){const id=+el.dataset.id;el.classList.toggle('sel',sel.has(id));el.classList.toggle('match',g)}
 };
 G.me=()=>{$('#numpick').hidden=true};
-function send(a){if(clock()-lockAt<300)return;lockAt=clock();sendAct(a);sel.clear();pkTo=pkCl=-1;sfx('play',1)}
-function trySend(){
-  if(pkTo<0||pkCl<0)return;
-  if(phIs('give')){const id=pickedCard();if(id==null)return;send({t:'give',id,cl:pkCl,to:pkTo})}
-  else if(phIs('peek'))send({t:'pass',cl:pkCl,to:pkTo});
-  if(typeof renderMe==='function')renderMe();
+function send(a){if(clock()-lockAt<300)return false;lockAt=clock();sendAct(a);sel.clear();sfx('play',1);setAim(-1);if(typeof renderMe==='function')renderMe();return true}
+/* i번에게 넘기기 (give: 고른 카드 또는 끈 카드, peek: 본 카드) */
+function giveTo(i,id){
+  if(phIs('give')){const c=id??selCard();if(c==null||!targetsV().includes(i)){sfx('no');return false}return send({t:'give',id:c,cl:pkCl,to:i})}
+  if(phIs('peek')){if(!targetsV().includes(i)){sfx('no');return false}return send({t:'pass',cl:pkCl,to:i})}
+  return false;
 }
-G.play=()=>{if(pickedCard()==null)sfx('no')};
-G.pass=()=>{sfx('no')};
+G.play=()=>{if(selCard()==null)sfx('no')};
+G.pass=()=>{if(canPassV())pressPass();else sfx('no')};
 function answer(v){if(!phIs('ask')){sfx('no');return}send({t:'ans',v})}
 function pressPass(){if(!canPassV()){sfx('no');return}send({t:'peek'})}
 G.keyPhase=st=>st==='play';
-G.onKey=()=>false;
+G.onKey=(act,e)=>{
+  if(!V||!V.cp||V.cfg.game!=='cockroach')return false;
+  if(act==='cpTrue'){if(!e.repeat)answer(1);return true}
+  if(act==='gura'){if(!e.repeat)answer(0);return true}
+  if(act==='pass'){if(!e.repeat){if(canPassV())pressPass();else sfx('no')}return true}
+  if(act==='numUp'||act==='numDown'){if(!elWh.hidden)stepCl(act==='numUp'?-1:1);return true}
+  return false;
+};
 G.preView=()=>{};
 G.postView=()=>{};
 G.buttons=()=>{
   $('#btnGura').hidden=true;
-  const pb=$('#btnPlay');pb.disabled=true;pb.classList.remove('ready');
+  const pb=$('#btnPlay'),ok=phIs('give')&&selCard()!=null;pb.disabled=!ok;pb.classList.remove('ready');   // 끌어서 넘기기는 이 버튼 상태를 씀 (버튼은 CSS로 숨김)
   $('#btnPass').disabled=true;
 };
+/* ----- 겨누기: 끄는 카드가 손패에서 떨어지면, 시작점에서 본 방향이 가장 가까운 사람의 이름표가 빛남 ----- */
+function tagCenter(i){const el=document.querySelector(`#labels .seat[data-i="${i}"]`);if(!el)return null;const r=el.getBoundingClientRect();return r.width?[(r.left+r.right)/2,(r.top+r.bottom)/2]:null}
+function aimAt(x,y,ox,oy){
+  const tg=targetsV();if(!tg.length||Math.hypot(x-ox,y-oy)<50)return -1;
+  if(tg.length===1)return tg[0];
+  const a=Math.atan2(y-oy,x-ox);let best=-1,bd=9;
+  for(const i of tg){const c=tagCenter(i);if(!c)continue;let d=Math.abs(Math.atan2(c[1]-oy,c[0]-ox)-a);if(d>Math.PI)d=2*Math.PI-d;if(d<bd){bd=d;best=i}}
+  return best;
+}
+function setAim(i){if(i===aimI)return;aimI=i;if(i>=0)sfx('tick');markTags()}
+/* 이름표 표시: 겨눈 사람(빛남), 넘길 수 있는 사람(테두리), 이미 본 사람(흐림) */
+function markTags(){
+  const on=phIs('give')||phIs('peek'),tg=on?targetsV():[],me=myIdx();
+  document.querySelectorAll('#labels .seat[data-i]').forEach(el=>{const i=+el.dataset.i;
+    el.classList.toggle('cp-aim',on&&i===aimI);el.classList.toggle('cp-tg',on&&tg.includes(i)&&i!==aimI);el.classList.toggle('cp-dim',on&&i!==me&&!tg.includes(i))});
+}
+G.dragMove=(x,y,free,D)=>{
+  if(!phIs('give'))return;
+  const ids=D.cards.map(c=>+c.dataset.id);if(ids.length!==1){setAim(-1);return}
+  if(ids[0]!==selCard()&&ids[0]!==dragKindId){dragKindId=ids[0];pkCl=kindOf(ids[0]);drawWheel()}
+  setAim(free?aimAt(x,y,D.x,D.y):-1);
+};
+G.dragDrop=(free,ids)=>{
+  dragKindId=null;
+  if(!phIs('give')){setAim(-1);return false}
+  const i=aimI;setAim(-1);
+  if(free&&ids.length===1&&i>=0)giveTo(i,ids[0]);
+  else pkCtx='';   // 넘기지 않았으면 휠을 고른 카드의 벌레로 되돌림
+  return true;   // 아무도 겨누지 않고 놓으면 손패로 돌아감 (소리 없음)
+};
+/* ----- 가로 휠 (구라! 선언 휠과 같은 모양) ----- */
+const WW=52;
+function buildWheel(){
+  elWh.innerHTML=`<span class="wh-t">선언할 벌레</span><button type="button" class="wh-arrow" data-step="-1" aria-label="이전 벌레">◀</button><div class="wh-view"><ul class="wh-list">${[...Array(KN).keys()].map(k=>`<li><button type="button" class="np" data-k="${k}" aria-label="${KNAME(k)}"><img class="wl" src="${iconURL(k)}" alt=""></button></li>`).join('')}</ul></div><button type="button" class="wh-arrow" data-step="1" aria-label="다음 벌레">▶</button>`;
+}
+function drawWheel(){
+  if(!elWh)return;
+  const show=phIs('give')||phIs('peek');
+  if(elWh.hidden===show){elWh.hidden=!show;barKey=''}
+  if(!show)return;
+  if(!elWh.firstChild)buildWheel();
+  elWh.querySelector('.wh-list').style.transform=`translateX(${(1-pkCl)*WW}px)`;
+  elWh.querySelectorAll('.np').forEach(b=>b.classList.toggle('on',+b.dataset.k===pkCl));
+  elWh.querySelectorAll('.wh-arrow').forEach(a=>a.disabled=+a.dataset.step<0?pkCl<=0:pkCl>=KN-1);
+}
+function stepCl(d){const n=Math.max(0,Math.min(KN-1,pkCl+d));if(n===pkCl)return;pkCl=n;sfx('tick');drawWheel()}
+/* ----- 몰래 본 카드: 휠 위에 한 장, 끌어서 넘김 ----- */
+function drawHeld(){
+  if(!elHeld)return;
+  const id=phIs('peek')?V.cp.id:null,show=id!=null&&(!M.on||clock()-peekAt>650);
+  if(!show){if(!elHeld.hidden){elHeld.hidden=true;HD.on=false;elHeld.classList.remove('drag');elHeld.style.removeProperty('--dx');elHeld.style.removeProperty('--dy')}return}
+  if(HD.id!==id){HD.id=id;elHeld.innerHTML=`<img src="${faceURL(kindOf(id))}" alt="${KNAME(kindOf(id))}" draggable="false">`;elHeld.setAttribute('aria-label',KNAME(kindOf(id)))}
+  if(elHeld.hidden){elHeld.hidden=false;barKey=''}
+}
+function heldDown(e){if(e.button>0)return;HD.on=true;HD.moved=false;HD.x=e.clientX;HD.y=e.clientY;try{elHeld.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()}
+function heldMove(e){
+  if(!HD.on)return;const dx=e.clientX-HD.x,dy=e.clientY-HD.y;
+  if(!HD.moved&&Math.hypot(dx,dy)<6)return;HD.moved=true;elHeld.classList.add('drag');
+  elHeld.style.setProperty('--dx',dx+'px');elHeld.style.setProperty('--dy',dy+'px');
+  setAim(Math.hypot(dx,dy)>70?aimAt(e.clientX,e.clientY,HD.x,HD.y):-1);
+}
+function heldUp(e,cancel){
+  if(!HD.on)return;HD.on=false;
+  elHeld.classList.remove('drag');elHeld.style.removeProperty('--dx');elHeld.style.removeProperty('--dy');
+  const i=aimI;setAim(-1);if(!cancel&&HD.moved&&i>=0)giveTo(i);
+}
+/* 손패 위 자리: 휠은 손패 바로 위(왼쪽 아래 내 이름 칸과 겹치면 그 위), 몰래 본 카드는 휠 위 */
+function placeBar(){
+  const st=$('#stage'),fh=+T.fanH||0,me=$('#me'),key=fh+'|'+st.clientWidth+'x'+st.clientHeight+'|'+elWh.hidden+'|'+elHeld.hidden;
+  if(key===barKey)return;barKey=key;
+  st.style.setProperty('--cpB',(fh+6)+'px');
+  let b=fh+6;elWh.style.bottom=b+'px';
+  if(!elWh.hidden&&me&&!me.hidden){
+    const a=elWh.getBoundingClientRect(),m=me.getBoundingClientRect(),r=st.getBoundingClientRect();
+    if(a.left<m.right+4&&a.bottom>m.top-4){b=Math.round(r.bottom-m.top+6);elWh.style.bottom=b+'px'}
+  }
+  elHeld.style.bottom=(b+(elWh.hidden?0:(elWh.offsetHeight||46))+12)+'px';
+}
+G.afterFan=()=>{barKey=''};
 const EYE='<svg class="cp-eye" viewBox="0 0 24 24" aria-label="봄"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" fill="#fff6e2" stroke="#b5521e" stroke-width="2"/><circle cx="12" cy="12" r="3.6" fill="#3b2a1f"/></svg>';
 G.nameTag=(p,i)=>{const o=V&&V.cp;return V&&V.st==='play'&&o&&(o.ph==='ask'||o.ph==='peek')&&(o.sn||[]).includes(i)?EYE:''};
 G.logCue=()=>false;
-const sndOk=()=>{tone(660,.1,{type:'triangle',vol:.16});tone(990,.18,{type:'triangle',vol:.15,at:.09})};
-const sndBad=()=>{tone(170,.25,{type:'triangle',vol:.2});tone(120,.35,{type:'triangle',vol:.16,at:.12})};
 G.cues=(v,pv)=>{
   const a=v.cp,b=pv&&pv.cp;if(!a||!b||a.gn!==b.gn)return;
-  for(const e of a.ev)if(e.q>b.sq)evCue(e,v);
+  for(const e of a.ev)if(e.q>b.sq)evCue(e);
 };
-function evCue(e,v){
+/* 외치기는 구라! 게임의 말풍선·소리, 공개 소리는 구라! 판정과 같은 진짜/거짓 소리 */
+function evCue(e){
   if(e.k==='g'||e.k==='p')sfx('play',1);
   else if(e.k==='k')sfx('pick');
   else if(e.k==='a'){
-    showBubble(e.s,`<span class="bt">${e.v?'진짜':'가짜'}</span>`,1800,'cpb');
-    setTimeout(()=>{if(!V||!V.cp)return;fxSay(`${KNAME(kindOf(e.id))} · ${e.ok?'맞힘':'틀림'}`,e.ok?'#2f7a3a':'#b03a2e');e.ok?sndOk():sndBad()},650);
+    if(e.v)showBubble(e.s,'<span class="bt">진짜!</span>',1900,'cpb');
+    else{sfx('gura');showBubble(e.s,'<span class="bt">구라!</span>',2100,'real')}
+    setTimeout(()=>{if(V&&V.cp)sfx(e.tr?'truth':'lie')},SH.face-200);
   }
 }
 
 /* ---------- 3D ----------
-   넘기는 카드는 받은 사람 앞(가운데 쪽)에 엎어 두고 그 위 공중에 말한 벌레 그림. 몰래 볼 때는 내 눈앞으로 들어 올림.
-   펼친 카드는 각자 앞 펠트에 종류별로 겹쳐 쌓음(4종류가 넘으면 두 줄). 한 장 더 모이면 지는 종류는 빨갛게 빛남.
-   끝나면 진 사람이 모은 카드를 공중에 띄움 */
-const R0=2.35,R1=1.45,STEP=.12,CS=.5,SP=.43;
-const M={on:false,built:false,fail:false,root:null,raf:0,card:null,cardCs:-1,cardId:-2,sp:null,spK:-1,tex:[],col:[],glow:new Map(),gn:-1,lastSh:null,fl:null,flAt:0};
-function claimTex(k){
-  if(!M.tex[k])M.tex[k]=canvasTex(256,256,(g,w,h)=>{
-    g.save();g.shadowColor='#ff8a2a';g.shadowBlur=24;g.fillStyle='rgba(255,250,240,.95)';g.beginPath();g.arc(w/2,h/2,96,0,7);g.fill();g.restore();
-    g.strokeStyle='#ffb04a';g.lineWidth=10;g.beginPath();g.arc(w/2,h/2,96,0,7);g.stroke();
-    g.save();g.translate(w/2,h/2);g.scale(1.45,1.45);drawBug(g,k);g.restore();
-  });
-  return M.tex[k];
-}
+   넘기는 카드는 받은 사람 앞(가운데 쪽)에 엎어 둠. 움직임은 모두 시간 기준 키 프레임(tween): 탁자 위에서 돌리지 않고 먼저 들어 올린 뒤 돌림.
+   외치면 외친 사람이 카드를 들어 올려 앞면을 보여 주고, 판정이 끝나면 가져갈 사람 앞 펠트로 감.
+   펼친 카드는 각자 앞 펠트에 종류별로 겹쳐 쌓음(4종류가 넘으면 두 줄). 한 장 더 모이면 지는 종류는 빨간 테두리.
+   같은 종류가 모여 지면 그 종류 카드만 공중에 나란히 띄움 */
+const R0=2.35,R1=1.45,STEP=.12,CS=.5,SP=.43,LIFT=.75;
+const SH={hold:450,up:800,to:1150,face:1550};   // 공개: 말풍선 → 들어 올림 → 외친 사람 앞 공중 → 앞면
+const M={on:false,built:false,fail:false,root:null,raf:0,card:null,cardCs:-1,col:[],glow:new Map(),gn:-1,lastSh:null,fl:null,key:'',aim:null};
+const TW=new Set();
+const ez=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 function build(){
   if(M.built||M.fail)return M.built;
   if(!T.ok||typeof THREE==='undefined'){M.fail=true;return false}
   try{
     const root=new THREE.Group();root.visible=false;T.scene.add(root);M.root=root;
-    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:claimTex(0),transparent:true,depthTest:false,depthWrite:false}));sp.scale.set(.62,.62,1);sp.renderOrder=55;sp.visible=false;root.add(sp);M.sp=sp;M.spK=0;
     M.glowGeo=new THREE.PlaneGeometry(1,1);
+    const at=canvasTex(128,128,(x,w,h)=>{const g=x.createRadialGradient(w/2,h/2,4,w/2,h/2,w/2);g.addColorStop(0,'rgba(255,190,90,.85)');g.addColorStop(.6,'rgba(255,160,60,.35)');g.addColorStop(1,'rgba(255,150,50,0)');x.fillStyle=g;x.fillRect(0,0,w,h)});
+    at.premultiplyAlpha=true;
+    const aim=new THREE.Mesh(M.glowGeo,new THREE.MeshBasicMaterial({map:at,transparent:true,premultipliedAlpha:true,depthWrite:false}));aim.rotation.x=-Math.PI/2;aim.scale.set(2.2,2.2,1);aim.renderOrder=2;aim.visible=false;root.add(aim);M.aim=aim;
     M.built=true;
   }catch(e){M.fail=true;try{console.warn('바퀴벌레 포커 3D 준비 실패',e)}catch(_){}}
   return M.built;
 }
 const seatFrom=(i,me)=>{const p=i===me?nearMe():seatPos(i,3.85);p.y=.5;return p};
 const holdSpot=i=>{const p=seatPos(i,.75);p.y=.04;return p};
+const narrow=()=>!!(T.cam&&T.cam.aspect<1);
+/* 외친 사람(나면 내 눈앞)이 카드를 들어 보이는 자리: 모두 내 화면 쪽(카메라)으로 앞면 */
+function airOf(i,me){if(i===me)return narrow()?{x:0,y:2.35,z:2.3,s:1.2}:{x:0,y:1.75,z:2.4,s:1.2};const p=seatPos(i,1.9);return {x:p.x,y:1.25,z:p.z,s:1.15}}
 function newCard(pos,rx,ry,s,id){const c=makeCard(pos,rx,ry,s);if(id!=null)c.children[0].material=faceMat(id);return c}
 function setFace(c,id){const m=id!=null&&id>=0?faceMat(id):T.back;if(c.children[0].material!==m)c.children[0].material=m}
+/* 키 프레임: keys = [{t(ms), x,y,z,rx,ry,s 중 바뀌는 것}], 첫 프레임은 지금 모습. keep이면 끝난 뒤에도 그 자리에 둠(아니면 공통 따라가기로 넘김) */
+function tween(c,keys,keep){
+  const u=c.userData,p0={t:0,x:c.position.x,y:c.position.y,z:c.position.z,rx:c.rotation.x,ry:c.rotation.y,s:c.scale.x},ks=[p0];
+  for(const k of keys){const q={...ks[ks.length-1],...k},d=q.ry-ks[ks.length-1].ry;q.ry=ks[ks.length-1].ry+Math.atan2(Math.sin(d),Math.cos(d));ks.push(q)}
+  u.man=true;u.tw={t0:clock(),ks,keep:!!keep};TW.add(c);
+}
+const poseKey=(t,p,rx,ry,s)=>({t,x:p.x,y:p.y,z:p.z,rx,ry,s});
+function twStep(now){
+  for(const c of [...TW]){
+    const u=c.userData,w=u.tw;if(!w||!T.cards.has(c)){TW.delete(c);continue}
+    const e=now-w.t0,ks=w.ks;let j=1;while(j<ks.length-1&&e>ks[j].t)j++;
+    const a=ks[j-1],b=ks[j],f=b.t>a.t?ez((e-a.t)/(b.t-a.t)):1,L=(p,q)=>p+(q-p)*f;
+    c.rotation.order='YXZ';c.position.set(L(a.x,b.x),L(a.y,b.y),L(a.z,b.z));c.rotation.set(L(a.rx,b.rx),L(a.ry,b.ry),0);c.scale.setScalar(L(a.s,b.s));
+    if(e>=ks[ks.length-1].t){u.tw=null;TW.delete(c);if(!w.keep){u.man=false;c.rotation.y=u.ry}}
+  }
+}
+/* 탁자 위 카드를 다른 자리로: 평평한 채 떠올라 옮긴 뒤 내려앉음 (탁자를 뚫지 않게) */
+function flyFlat(c,to,rx,ry,s,dur,keep){
+  const mx=(c.position.x+to.x)/2,mz=(c.position.z+to.z)/2,h=Math.max(c.position.y,to.y)+.55;
+  tween(c,[{t:dur*.5,x:mx,y:h,z:mz,rx,ry,s:(c.scale.x+s)/2},poseKey(dur,to,rx,ry,s)],keep);
+}
 function getGlow(key){
   let g=M.glow.get(key);
-  if(!M.glowTex)M.glowTex=canvasTex(160,224,(x,w,h)=>{   // 빨갛게 빛나는 테두리 (가운데는 비움)
+  if(!M.glowTex){M.glowTex=canvasTex(160,224,(x,w,h)=>{   // 빨갛게 빛나는 테두리 (가운데는 비움)
     x.fillStyle='rgba(255,70,40,.28)';rr(x,14,14,w-28,h-28,16);x.fill();
     x.shadowColor='#ff2a10';x.shadowBlur=16;x.strokeStyle='#ff5a3a';x.lineWidth=11;rr(x,14,14,w-28,h-28,16);x.stroke();x.stroke();
-  });
-  M.glowTex.premultiplyAlpha=true;   // 투명한 가장자리가 검게 번져 갈색으로 보이지 않게
+  });M.glowTex.premultiplyAlpha=true}   // 투명한 가장자리가 검게 번져 갈색으로 보이지 않게
   if(!g){g=new THREE.Mesh(M.glowGeo,new THREE.MeshBasicMaterial({map:M.glowTex,transparent:true,premultipliedAlpha:true,opacity:.8,depthWrite:false}));g.rotation.order='YXZ';g.renderOrder=2;M.root.add(g);M.glow.set(key,g)}
   return g;
 }
 function clearAll(){
   if(M.card){killCard(M.card);M.card=null}
   for(const row of M.col)for(const arr of row)arr.forEach(killCard);
-  M.col=[];for(const g of M.glow.values()){M.root.remove(g);g.material.dispose()}M.glow.clear();
-  M.cardCs=-1;M.cardId=-2;M.lastSh=null;M.fl=null;if(M.sp)M.sp.visible=false;
+  M.col=[];for(const g of M.glow.values()){M.root.remove(g);g.material.dispose()}M.glow.clear();TW.clear();
+  M.cardCs=-1;M.lastSh=null;M.fl=null;M.key='';
 }
 /* 펼친 카드 자리: 종류별 열, 열 안에서는 다음 카드가 주인 쪽으로 겹침(위 끝의 작은 그림이 보이게) */
-function layoutCol(i,col,lose,show){
+function layoutCol(i,col,lose,show,skip){
   const a=seatAngle(i),tx=Math.cos(a),tz=-Math.sin(a),ox=Math.sin(a),oz=Math.cos(a);
-  const ks=[];for(let k=0;k<KN;k++)if(col[k]>0)ks.push(k);
+  const ks=[];for(let k=0;k<KN;k++)if(col[k]>0&&k!==skip)ks.push(k);
   const rows=ks.length>4?[ks.slice(0,Math.ceil(ks.length/2)),ks.slice(Math.ceil(ks.length/2))]:[ks];
+  for(let k=0;k<KN;k++)if(M.glow.has(i+':'+k))M.glow.get(i+':'+k).visible=false;
   rows.forEach((row,r)=>row.forEach((k,j)=>{
     const R=r?R1:R0,off=(j-(row.length-1)/2)*SP,arr=M.col[i][k];
-    arr.forEach((c,n)=>{const u=c.userData,rr2=R+n*STEP;u.p.set(ox*rr2+tx*off,.03+n*.005,oz*rr2+tz*off);u.rx=-Math.PI/2;u.ry=a;u.s=CS;u.man=false});
-    const key=i+':'+k,danger=show&&arr.length>=lose-1;
-    if(danger){
-      const g=getGlow(key),len=1.08*CS+(arr.length-1)*STEP+.14,mid=R+(arr.length-1)*STEP/2;
-      g.visible=true;g.position.set(ox*mid+tx*off,.022,oz*mid+tz*off);g.rotation.set(-Math.PI/2,a,0);g.scale.set(.744*CS+.2,len+.06,1);g.userData.fl=false;
-    }else if(M.glow.has(key))M.glow.get(key).visible=false;
-  }));
-  for(let k=0;k<KN;k++)if(!col[k]&&M.glow.has(i+':'+k))M.glow.get(i+':'+k).visible=false;
-}
-/* 진 사람이 모은 카드를 공중에 띄움: 내 쪽 공중에 종류별 열(세로 화면은 한 줄 3열), 지게 만든 종류는 빨갛게 */
-const FL={S:.9,X:.82,DY:.15,CY:1.45,Z:2.3,TIL:-.6,GAP:.18};
-function layoutFloat(i,col,lk){
-  const ks=[];for(let k=0;k<KN;k++)if(col[k]>0)ks.push(k);
-  const per=T.cam&&T.cam.aspect<1?3:4,rows=[];for(let j=0;j<ks.length;j+=per)rows.push(ks.slice(j,j+per));
-  const {S,X,DY,CY,Z,TIL,GAP}=FL,ch=1.08*S,rh=ch+3*DY+GAP,top=CY+(rows.length*rh-GAP)/2-ch/2;
-  for(const g of M.glow.values())g.visible=false;
-  rows.forEach((row,r)=>row.forEach((k,j)=>{
-    const x=(j-(row.length-1)/2)*X,y0=top-r*rh,arr=M.col[i][k];
-    arr.forEach((c,n)=>{const u=c.userData;u.p.set(x,y0-n*DY,Z+n*.03);u.rx=TIL;u.ry=0;u.s=S;u.man=false});
-    if(k===lk){
-      const g=getGlow('fl'),h=ch+(arr.length-1)*DY+.22;
-      g.visible=true;g.position.set(x,y0-(arr.length-1)*DY/2,Z-.06);g.rotation.set(TIL,0,0);g.scale.set(.744*S+.3,h+.1,1);g.userData.fl=true;
+    arr.forEach((c,n)=>{const u=c.userData,rr2=R+n*STEP;u.p.set(ox*rr2+tx*off,.03+n*.005,oz*rr2+tz*off);u.rx=-Math.PI/2;u.ry=a;u.s=CS});
+    if(show&&arr.length>=lose-1){
+      const g=getGlow(i+':'+k),len=1.08*CS+(arr.length-1)*STEP+.14,mid=R+(arr.length-1)*STEP/2;
+      g.visible=true;g.position.set(ox*mid+tx*off,.022,oz*mid+tz*off);g.rotation.set(-Math.PI/2,a,0);g.scale.set(.744*CS+.2,len+.06,1);
     }
   }));
+}
+/* 같은 종류가 모여 진 사람: 그 종류 카드만 내 쪽 공중에 나란히 (탁자 위 카드는 먼저 평평하게 떠오름) */
+function floatLose(i,k){
+  const arr=M.col[i][k],n=arr.length,S=narrow()?.72:.95,X=narrow()?.6:.78,Y=1.45,Z=2.3,TIL=-.6;
+  arr.forEach((c,j)=>{
+    const to={x:(j-(n-1)/2)*X,y:Y,z:Z},d=j*90;
+    if(c.position.y<.3)tween(c,[{t:d},{t:d+380,y:LIFT+.2},poseKey(d+900,to,TIL,0,S)],true);
+    else tween(c,[poseKey(600,to,TIL,0,S)],true);
+  });
+  const g=getGlow('fl');g.visible=true;g.position.set(0,Y,Z-.07);g.rotation.set(TIL,0,0);g.scale.set((n-1)*X+.744*S+.35,1.08*S+.35,1);
 }
 G.field3D=(v,pv,me)=>{
   const o=v.cp;if(!o||!T.ok||!M.built||v.st==='wait')return;
   if(M.gn!==o.gn){clearAll();M.gn=o.gn}
   const n=v.ps.length;
   while(M.col.length<n)M.col.push(Array.from({length:KN},()=>[]));
-  /* 넘기는 카드 */
+  /* 넘기는 카드: 단계가 바뀔 때마다 키 프레임 */
   const has=o.cl!=null&&(o.ph==='ask'||o.ph==='peek'||o.ph==='show');
   let adopt=null;
   if(has){
-    if(!M.card||M.cardCs!==o.cs){
-      if(M.card)killCard(M.card);
-      M.card=newCard(seatFrom(o.fr,me),Math.PI/2,seatAngle(o.fr),.8,null);M.cardCs=o.cs;M.cardId=-2;
+    const fresh=!M.card||M.cardCs!==o.cs;
+    if(fresh){if(M.card)killCard(M.card);M.card=newCard(seatFrom(o.fr,me),Math.PI/2,seatAngle(o.fr),.8,null);M.card.userData.man=true;M.cardCs=o.cs}
+    const c=M.card,key=o.ph+':'+o.to+':'+o.cs;
+    if(key!==M.key){
+      M.key=key;const hs=holdSpot(o.to),ry=seatAngle(o.to);
+      if(o.ph==='ask'){setFace(c,null);c.visible=true;flyFlat(c,hs,Math.PI/2,ry,1,fresh?480:620,true)}
+      else if(o.ph==='peek'&&o.to===me){setFace(c,o.id);tween(c,[{t:260,y:LIFT},{t:620,x:0,y:1.2,z:3.4,rx:-.6,ry:0,s:1}],true)}
+      else if(o.ph==='peek'){tween(c,[{t:260,y:LIFT},{t:560,rx:-.75,ry}],true)}
+      else{   // show: 외친 사람이 들어 올려 보여 줌
+        const A=airOf(o.sh.by,me);setFace(c,o.id);c.visible=true;M.lastSh={tk:o.sh.tk,k:kindOf(o.id)};
+        tween(c,[{t:SH.hold},{t:SH.up,y:Math.max(c.position.y,LIFT+.1),rx:Math.PI/2},{t:SH.to,x:A.x,y:A.y,z:A.z,rx:Math.PI/2,ry:0,s:A.s},{t:SH.face,rx:-.6}],true);
+      }
     }
-    const u=M.card.userData;u.man=false;
-    let id=null;
-    if(o.ph==='show'){const p=holdSpot(o.to);p.y=.06;u.p.copy(p);u.rx=-Math.PI/2;u.ry=0;u.s=1.1;id=o.id;M.lastSh={tk:o.sh.tk,k:kindOf(o.id)}}
-    else if(o.ph==='peek'&&o.to===me&&o.id!=null){if(T.cam&&T.cam.aspect<1)u.p.set(0,2.35,2.3);else u.p.set(0,1.75,2.4);u.rx=-.6;u.ry=0;u.s=1.25;id=o.id}   // 내 눈앞(고르기 판 위쪽)으로 들어 올림
-    else if(o.ph==='peek'){const p=holdSpot(o.to);p.y=.45;u.p.copy(p);u.rx=-.7;u.ry=seatAngle(o.to);u.s=1}
-    else{u.p.copy(holdSpot(o.to));u.rx=Math.PI/2;u.ry=seatAngle(o.to);u.s=1}
-    if(id!==M.cardId){M.cardId=id;setFace(M.card,id)}
   }else if(M.card){
     if(M.lastSh)adopt=M.lastSh;else{killCard(M.card);M.card=null}
-    M.lastSh=null;
+    M.lastSh=null;M.key='';
   }
   /* 펼친 카드 맞추기 */
+  let moved=null;
   for(let i=0;i<n;i++)for(let k=0;k<KN;k++){
     const want=o.col[i]?o.col[i][k]:0,arr=M.col[i][k];
     while(arr.length>want)killCard(arr.pop());
     while(arr.length<want){
-      if(adopt&&adopt.tk===i&&adopt.k===k&&M.card){setFace(M.card,k*8);arr.push(M.card);M.card=null;adopt=null;continue}
-      const p=seatPos(i,R0);p.y=.4;arr.push(newCard(p,-Math.PI/2,seatAngle(i),CS,k*8));
+      if(adopt&&adopt.tk===i&&adopt.k===k&&M.card){M.card.visible=true;setFace(M.card,k*8);arr.push(M.card);moved=M.card;M.card=null;adopt=null;continue}
+      const p=seatPos(i,R0);p.y=.03;arr.push(newCard(p,-Math.PI/2,seatAngle(i),CS,k*8));
     }
   }
   if(M.card&&!has){killCard(M.card);M.card=null}
-  const lo=v.st==='over'&&o.lo?o.lo:null;
-  for(let i=0;i<n;i++){if(lo&&i===lo.s)continue;layoutCol(i,o.col[i],o.lose,v.st==='play'||!!lo)}
-  if(lo){if(!M.fl){M.fl=lo;M.flAt=clock()}layoutFloat(lo.s,o.col[lo.s],lo.k)}
-  else M.fl=null;
+  const lo=v.st==='over'&&o.lo?o.lo:null,lk=lo&&lo.why==='col'?lo.k:-1;
+  for(let i=0;i<n;i++)layoutCol(i,o.col[i],o.lose,v.st==='play'||!!lo,lo&&i===lo.s?lk:-1);
+  if(moved){const u=moved.userData;flyFlat(moved,u.p,u.rx,u.ry,u.s,650,false)}   // 공중에서 가져갈 사람 앞 펠트로
+  if(lk>=0&&!M.fl){M.fl=lo;floatLose(lo.s,lk)}
+  if(!lo){M.fl=null;if(M.glow.has('fl'))M.glow.get('fl').visible=false}
 };
+const _pv=window.THREE?new THREE.Vector3():null;
 function step(){
   M.raf=0;if(!M.on||!V||!V.cp)return;
   M.raf=requestAnimationFrame(step);
-  const now=clock(),o=V.cp,show=V.st!=='wait'&&!dealingV();
-  const sv=show&&!!M.card&&o.cl!=null&&(o.ph==='ask'||o.ph==='peek'||o.ph==='show')&&!(o.ph==='peek'&&o.to===myIdx());
-  M.sp.visible=sv;
-  if(sv){
-    if(M.spK!==o.cl){M.spK=o.cl;M.sp.material.map=claimTex(o.cl);M.sp.material.needsUpdate=true}
-    const p=M.card.position;M.sp.position.set(p.x,p.y+.72+Math.sin(now/420)*.03,p.z);
+  const now=clock(),o=V.cp,me=myIdx();
+  twStep(now);
+  if(M.card)M.card.visible=!(o.ph==='peek'&&o.to===me&&now-peekAt>650);   // 몰래 본 카드는 들어 올린 뒤 내 손(2D 한 장)으로
+  /* 선언 표시: 구라!의 '지금' 칸처럼 카드 위에 떠 있고, 말이 바뀌면 톡 튀어나옴 */
+  const pv=V.st==='play'&&!dealingV()&&o.cl!=null&&(o.ph==='ask'||o.ph==='peek'||o.ph==='show');
+  if(elPn.hidden===pv)elPn.hidden=!pv;
+  if(pv){
+    const k=o.cs+':'+o.cl+':'+o.fr;
+    if(k!==pnKey){pnKey=k;elPn.style.setProperty('--rc',KINDS[o.cl].c);elPn.querySelector('img').src=iconURL(o.cl);elPn.classList.remove('pop');void elPn.offsetWidth;elPn.classList.add('pop')}
+    const base=M.card&&M.card.visible&&o.ph!=='show'?M.card.position:holdSpot(o.to);
+    _pv.set(base.x,Math.max(.1,base.y)+.62,base.z).project(T.cam);
+    const st=$('#stage');elPn.style.left=((_pv.x+1)/2*st.clientWidth).toFixed(1)+'px';elPn.style.top=((1-_pv.y)/2*st.clientHeight).toFixed(1)+'px';
   }
+  M.aim.visible=aimI>=0&&V.st==='play';
+  if(M.aim.visible){const p=seatPos(aimI,2.1);M.aim.position.set(p.x,.024,p.z);M.aim.material.opacity=.75+.25*Math.sin(now/180)}
   const pulse=.75+.25*Math.sin(now/260);
   for(const g of M.glow.values())if(g.visible)g.material.opacity=pulse;
 }
 
-/* ---------- 2D: 고르기 판·WebGL이 없을 때 ---------- */
+/* ---------- 2D (WebGL이 없을 때)·버튼 ---------- */
 const imgI=(k,cls)=>`<img class="${cls||''}" src="${iconURL(k)}" alt="${KNAME(k)}">`;
-function drawPick(){
-  if(!elPick)return;
-  const give=phIs('give'),peek=phIs('peek'),id=give?pickedCard():null,on=(give&&id!=null)||peek;
-  const ctx=on?(give?'g'+id:'p'+V.cp.cs)+':'+V.cp.sq:'';
-  if(ctx!==pkCtx){pkCtx=ctx;pkTo=pkCl=-1}
-  if(!on){if(!elPick.hidden){elPick.hidden=true;elPick.innerHTML='';pickKey=''}return}
-  const tg=targetsV();if(tg.length===1)pkTo=tg[0];
-  if(T.ok&&V.ps.length>2)tg.sort((a,b)=>Math.sin(seatAngle(a))-Math.sin(seatAngle(b)));   // 화면에서 왼쪽 자리부터
-  if(pkTo>=0&&!tg.includes(pkTo))pkTo=-1;
-  const peekImg=peek&&!M.on&&V.cp.id!=null?`<div class="cp-peek"><img src="${faceURL(kindOf(V.cp.id))}" alt="${KNAME(kindOf(V.cp.id))}"></div>`:'';
-  const h=`${peekImg}${tg.length>1?`<div class="cp-to">${tg.map(i=>`<button type="button" data-to="${i}"${i===pkTo?' class="on"':''}>${esc(nameOf(i))}</button>`).join('')}</div>`:''}<div class="cp-cl">${[...Array(KN).keys()].map(k=>`<button type="button" data-cl="${k}" style="--bg:${KINDS[k].bg}"${k===pkCl?' class="on"':''} aria-label="${KNAME(k)}">${imgI(k)}</button>`).join('')}</div>`;
-  if(h!==pickKey){pickKey=h;elPick.innerHTML=h;elPick.style.bottom='';elPick.hidden=false;liftPick()}
-  elPick.hidden=false;
-}
-/* 고르기 판이 왼쪽 아래 내 이름 칸(#me)과 겹치면 그 위로 올림 */
-function liftPick(){
-  const me=$('#me'),st=$('#stage');if(!me||me.hidden||!st)return;
-  const a=elPick.getBoundingClientRect(),b=me.getBoundingClientRect(),r=st.getBoundingClientRect();
-  if(a.left<b.right+4&&a.bottom>b.top-4)elPick.style.bottom=Math.round(r.bottom-b.top+6)+'px';
-}
 function draw2d(){
   if(!el2d||!V||!V.cp)return;
   if(M.on){if(lastD){el2d.innerHTML='';lastD=''}return}
@@ -474,19 +579,15 @@ function draw2d(){
   const h=top+`<div class="cp-rows">${rows}</div>`;
   if(h!==lastD){el2d.innerHTML=h;lastD=h}
 }
-function layoutBar(){
-  const st=$('#stage'),fh=+T.fanH||0,key=String(fh);
-  if(key===layKey)return;layKey=key;pickKey='';
-  st.style.setProperty('--cpB',(fh+6)+'px');
-}
-G.afterFan=layoutBar;
+function keyTags(){for(const [el,k] of [[elT,KEYS.cpTrue],[elF,KEYS.gura],[elP,KEYS.pass]]){const s=el.querySelector('small'),t=k?keyLabel(k):'';if(s&&s.textContent!==t)s.textContent=t}}
 G.live=()=>{
   if(!elT||!V||!V.cp)return;
-  layoutBar();
+  syncPick();
   const ask=phIs('ask');
   if(elT.hidden===ask){elT.hidden=elF.hidden=!ask}
   const cp=ask&&canPassV();if(elP.hidden===cp)elP.hidden=!cp;
-  drawPick();draw2d();
+  keyTags();drawWheel();drawHeld();placeBar();markTags();draw2d();
+  if(!M.on&&elPn&&!elPn.hidden)elPn.hidden=true;
 };
 G.hud=inGame=>{
   if(!elBox)return;
@@ -498,13 +599,14 @@ G.hud=inGame=>{
   if(!on){if(T.ok&&M.built)clearAll();M.gn=-1;return}
   draw2d();
 };
-G.overDelay=()=>M.on?2400:0;
+G.overDelay=()=>{const o=V&&V.cp;return M.on&&o&&o.lo&&o.lo.why==='col'?2600:0};
 G.overWho=()=>{const o=V&&V.cp;return o&&o.lo?`${nameOf(o.lo.s)} 패배`:''};
 G.overRank=p=>{const o=V&&V.cp,t=p.sr===3?'탈주':p.sr?'항복':o&&o.lo&&o.lo.s===p.i?'패배':'';return t?`<span class="left">${t}</span>`:''};
 G.overExtra=()=>{
   const o=V&&V.cp;if(!o||!o.lo)return '';
-  const c=o.col[o.lo.s]||[],cells=[...Array(KN).keys()].filter(k=>c[k]>0).map(k=>`<span class="cp-n${k===o.lo.k?' bad':''}">${imgI(k,'cp-ic')}${c[k]}</span>`).join('');
-  return `<div class="cp-over"><p>${esc(nameOf(o.lo.s))}${o.lo.why==='empty'?' · 손패 없음':''}</p><div>${cells||'—'}</div></div>`;
+  const L=o.lo,c=o.col[L.s]||[];
+  const body=L.why==='col'?`<span class="cp-n bad">${imgI(L.k,'cp-ic')}${c[L.k]}</span>`:L.why==='empty'?'손패 없음':'';
+  return body?`<div class="cp-over"><p>${esc(nameOf(L.s))}</p><div>${body}</div></div>`:'';
 };
 G.enter=()=>{$('#btnGura').hidden=true};
 G.leave=()=>{
@@ -512,8 +614,10 @@ G.leave=()=>{
   if(elBox)elBox.hidden=true;
   if(M.root)M.root.visible=false;
   Object.assign(M,{on:false,gn:-1});
-  layKey='';pkTo=pkCl=-1;pkCtx='';pickKey='';lastD='';
-  if(elPick){elPick.hidden=true;elPick.innerHTML=''}
+  pkCtx='';lastD='';barKey='';pnKey='';aimI=-1;HD.on=false;HD.id=-1;
+  if(elWh){elWh.hidden=true;elWh.innerHTML=''}
+  if(elHeld)elHeld.hidden=true;if(elPn)elPn.hidden=true;
+  document.querySelectorAll('#labels .seat').forEach(el=>el.classList.remove('cp-aim','cp-tg','cp-dim'));
   const st=$('#stage');st.classList.remove('cpg');st.style.removeProperty('--cpB');
   $('#btnPass').disabled=false;
 };
@@ -538,15 +642,29 @@ G.init=()=>{
 .stage.cpg .actions .act{flex:1;min-width:0;pointer-events:auto}
 .cp-eye{width:1.05em;height:1.05em;vertical-align:-.15em;margin-right:3px}
 .bubble.cpb .bt{font-size:calc(24px*var(--bk,1))}
-.cp-pick{position:absolute;left:50%;bottom:calc(var(--cpB,120px) + 6px);transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px;border-radius:16px;background:rgba(59,42,31,.92);pointer-events:auto;max-width:calc(100% - 16px);box-sizing:border-box}
-.cp-pick[hidden]{display:none}
-.cp-to{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
-.cp-to button{font:400 16px "Jua",sans-serif;padding:7px 12px;border-radius:10px;border:0;background:#f4ead8;color:#3b2a1f;cursor:pointer;touch-action:manipulation}
-.cp-to button.on{background:#ffb04a;box-shadow:0 0 0 2px #fff6e2 inset}
-.cp-cl{display:grid;grid-template-columns:repeat(4,58px);gap:6px}
-.cp-cl button{width:58px;height:58px;border-radius:12px;border:0;background:var(--bg);padding:5px;cursor:pointer;touch-action:manipulation}
-.cp-cl button.on{box-shadow:0 0 0 3px #ffb04a}
-.cp-cl img{width:100%;height:100%;display:block;pointer-events:none}
+.stage.cpg .seat.cp-tg{border-color:#ffb04a}
+.stage.cpg .seat.cp-dim{opacity:.5}
+.stage.cpg .seat.cp-aim{border-color:#ff8a2a;box-shadow:0 0 0 3px #ffb04a,0 0 18px 4px rgba(255,150,50,.75);transform:translate(-50%,-50%) scale(1.18);z-index:3}
+.cp-wh.numwheel{position:absolute;left:50%;top:auto;transform:translateX(-50%);flex-direction:row;align-items:center;gap:4px;height:46px;box-sizing:border-box;padding:3px 5px;pointer-events:auto;background:rgba(255,250,240,.82);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:0 2px 8px -3px rgba(59,42,31,.35)}
+.cp-wh.numwheel[hidden]{display:none}
+.cp-wh .wh-t{display:block;margin-right:2px}
+.cp-wh .wh-arrow{flex:none;width:24px;height:36px;padding:0;background:rgba(59,42,31,.1)}
+.cp-wh .wh-view{height:40px;width:${WW*3}px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent)}
+.cp-wh .wh-view::before{top:0;bottom:0;left:50%;right:auto;height:auto;width:${WW}px;margin:0 0 0 -${WW/2}px}
+.cp-wh .wh-view::after{display:none}
+.cp-wh .wh-list{display:flex;width:max-content}
+.cp-wh .np{width:${WW}px;height:40px;flex:none;padding:0;opacity:.4;transition:opacity .16s;justify-content:center}
+.cp-wh .np.on{opacity:1}
+.cp-wh .np img.wl{width:28px;height:28px;display:block;pointer-events:none}
+.cp-wh .np.on img.wl{width:36px;height:36px}
+@media (max-width:600px){.cp-wh .wh-t{display:none}}
+.cp-held{position:absolute;left:50%;width:78px;height:114px;margin-left:-39px;border-radius:8px;overflow:hidden;pointer-events:auto;touch-action:none;cursor:grab;box-shadow:0 0 0 3px #ffb04a,0 8px 16px -6px rgba(59,42,31,.6);transform:translate(var(--dx,0),var(--dy,0));transition:transform .2s;animation:pop .3s ease-out}
+.cp-held.drag{transition:none;cursor:grabbing}
+.cp-held[hidden]{display:none}
+.cp-held img{width:100%;height:100%;display:block;pointer-events:none}
+.pilenum.cp-pn{position:absolute;min-width:58px;height:72px}
+.pilenum.cp-pn b{display:flex;align-items:center;justify-content:center}
+.pilenum.cp-pn img{width:46px;height:46px;display:block}
 .cp-peek img{width:72px;height:106px;border-radius:8px;display:block;margin:0 auto}
 .cp-2d{position:absolute;left:0;right:0;top:104px;text-align:center;color:#3b2a1f;font-family:"Jua",sans-serif}
 .cp-2d p{margin:2px 0}
@@ -563,18 +681,28 @@ G.init=()=>{
 `;
   document.head.appendChild(css);
   elBox=document.createElement('div');elBox.className='cp-box';elBox.hidden=true;
-  elBox.innerHTML='<div class="cp-2d"></div><div class="cp-pick" hidden></div>';
+  elBox.innerHTML='<div class="cp-2d"></div><div class="pilenum cp-pn" hidden><span class="pn-l">선언</span><b><img alt=""></b></div><div class="numwheel cp-wh" hidden></div><div class="card cp-held" role="img" hidden></div>';
   $('#stage').appendChild(elBox);
-  $('#actions').insertAdjacentHTML('beforeend','<button type="button" class="act act-play cp-act" id="cpT" hidden>진짜</button><button type="button" class="act act-gura cp-act" id="cpF" hidden>가짜</button><button type="button" class="act act-pass cp-act" id="cpP" hidden>넘기기</button>');
-  elT=$('#cpT');elF=$('#cpF');elP=$('#cpP');el2d=elBox.querySelector('.cp-2d');elPick=elBox.querySelector('.cp-pick');
+  $('#actions').insertAdjacentHTML('beforeend','<button type="button" class="act act-play cp-act" id="cpT" hidden>진짜!<small></small></button><button type="button" class="act act-gura cp-act" id="cpF" hidden>구라!<small></small></button><button type="button" class="act act-pass cp-act" id="cpP" hidden>넘기기<small></small></button>');
+  elT=$('#cpT');elF=$('#cpF');elP=$('#cpP');el2d=elBox.querySelector('.cp-2d');elWh=elBox.querySelector('.cp-wh');elHeld=elBox.querySelector('.cp-held');elPn=elBox.querySelector('.cp-pn');
   elT.addEventListener('click',()=>answer(1));elF.addEventListener('click',()=>answer(0));elP.addEventListener('click',pressPass);
-  elPick.addEventListener('click',e=>{
-    const b=e.target.closest('button');if(!b)return;
-    if(!phIs('give')&&!phIs('peek')){sfx('no');return}
-    if(b.dataset.to!=null){const i=+b.dataset.to;pkTo=pkTo===i?-1:i}
-    else if(b.dataset.cl!=null){const k=+b.dataset.cl;pkCl=pkCl===k?-1:k}
-    sfx('pick');trySend();drawPick();
-  });
+  /* 휠: 화살표·누르기·마우스 휠·옆으로 밀기 */
+  elWh.addEventListener('click',e=>{const a=e.target.closest('.wh-arrow');if(a){stepCl(+a.dataset.step);return}const b=e.target.closest('.np');if(b&&+b.dataset.k!==pkCl){pkCl=+b.dataset.k;sfx('tick');drawWheel()}});
+  let acc=0,tx0=null;
+  elWh.addEventListener('wheel',e=>{e.preventDefault();acc+=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY;if(Math.abs(acc)>=40){stepCl(acc>0?1:-1);acc=0}},{passive:false});
+  elWh.addEventListener('touchstart',e=>{tx0=e.touches[0].clientX},{passive:true});
+  elWh.addEventListener('touchmove',e=>{if(tx0==null)return;const d=e.touches[0].clientX-tx0;if(Math.abs(d)>=26){stepCl(d>0?-1:1);tx0=e.touches[0].clientX}},{passive:true});
+  elWh.addEventListener('touchend',()=>{tx0=null});
+  /* 몰래 본 카드 끌기 */
+  elHeld.addEventListener('pointerdown',heldDown);elHeld.addEventListener('pointermove',heldMove);
+  elHeld.addEventListener('pointerup',e=>heldUp(e,false));elHeld.addEventListener('pointercancel',e=>heldUp(e,true));
+  /* 이름표 누르기 = 그 사람에게 넘기기 (넘길 차례에 카드를 골랐을 때·몰래 본 뒤). 이때는 이름표 메뉴를 열지 않음 */
+  $('#labels').addEventListener('click',e=>{
+    if(!V||!V.cp||V.cfg.game!=='cockroach')return;
+    const seat=e.target.closest('.seat[data-i]');if(!seat)return;
+    const g=phIs('give'),p=phIs('peek');if(!(p||(g&&selCard()!=null)))return;
+    e.stopPropagation();e.preventDefault();giveTo(+seat.dataset.i);
+  },true);
 };
 (window.GAMES=window.GAMES||{}).cockroach=G;
 })();

@@ -391,6 +391,7 @@ function dragMove(e){
   const dx=e.clientX-DRAG.x,dy=e.clientY-DRAG.y,k=parseFloat($('#hand').style.getPropertyValue('--k'))||1;
   DRAG.cards.forEach((c,j)=>{const o=DRAG.off[j]||[0,0];c.style.setProperty('--dx',(o[0]+dx/k).toFixed(1)+'px');c.style.setProperty('--dy',(o[1]+dy/k).toFixed(1)+'px')});
   const go=dragFree();for(const c of DRAG.cards)c.classList.toggle('go',go);
+  if(G.dragMove)G.dragMove(e.clientX,e.clientY,go,DRAG);   // 게임이 끄는 위치를 씀 (바퀴벌레 포커: 상대 쪽 겨누기)
 }
 /* 끌고 있는 카드가 손패(끌기 전 카드 자리 전체)와 한 점도 겹치지 않으면 true */
 function dragFree(){
@@ -400,8 +401,9 @@ function dragFree(){
 /* 놓기: 손패와 떨어져 있으면 냄 (내기 버튼을 누른 것과 같음). 한 장을 끌었으면 그 카드만 골라서 냄 */
 function dragDrop(cancel){
   for(const c of DRAG.cards)c.classList.remove('gath');   // 모이는 중에 놓아도 다 모인 자리로 판단
-  const free=!cancel&&dragFree(),one=DRAG.one;
+  const free=!cancel&&dragFree(),one=DRAG.one,ids=DRAG.cards.map(c=>+c.dataset.id);
   dragClear();DRAG.suppress=Date.now();
+  if(G.dragDrop&&G.dragDrop(free,ids))return;   // 게임이 놓기를 직접 처리 (바퀴벌레 포커: 겨눈 사람에게 넘기기)
   if(!free)return;
   const pb=$('#btnPlay');
   if(one!=null){
