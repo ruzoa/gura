@@ -254,7 +254,7 @@ G.engine={
 
 
 /* ---------- 화면: 조작 ----------
-   넘길 차례: 손패 위 가로 휠(선언할 벌레, 처음 값 = 고른 카드의 벌레). 카드를 끌어 상대 쪽으로 가져가면 그 사람 이름표가 빛나고, 놓으면 넘김.
+   넘길 차례: 손패 위 오른쪽 세로 휠(선언할 벌레, 처음 값 = 고른 카드의 벌레). 카드를 끌어 상대 쪽으로 가져가면 그 사람 이름표가 빛나고, 놓으면 넘김.
    카드를 고르고 이름표를 눌러도 넘김. 몰래 본 카드는 휠 위에 한 장으로 나오고 같은 방법으로 넘김 */
 let elBox=null,el2d=null,elT=null,elF=null,elP=null,elWh=null,elHeld=null,elPn=null;
 let pkCl=0,pkCtx='',dragKindId=null,lastD='',lockAt=-1e9,aimI=-1,pnKey='',barKey='',peekAt=0;
@@ -340,10 +340,10 @@ G.dragDrop=(free,ids)=>{
   else pkCtx='';   // 넘기지 않았으면 휠을 고른 카드의 벌레로 되돌림
   return true;   // 아무도 겨누지 않고 놓으면 손패로 돌아감 (소리 없음)
 };
-/* ----- 가로 휠 (구라! 선언 휠과 같은 모양) ----- */
-const WW=52;
+/* ----- 세로 휠 (구라! 세로 화면의 선언 휠과 같은 모양, 손패 위 오른쪽: 옆자리 이름표를 가리지 않게) ----- */
+const WH=44;
 function buildWheel(){
-  elWh.innerHTML=`<span class="wh-t">선언할 벌레</span><button type="button" class="wh-arrow" data-step="-1" aria-label="이전 벌레">◀</button><div class="wh-view"><ul class="wh-list">${[...Array(KN).keys()].map(k=>`<li><button type="button" class="np" data-k="${k}" aria-label="${KNAME(k)}"><img class="wl" src="${iconURL(k)}" alt=""></button></li>`).join('')}</ul></div><button type="button" class="wh-arrow" data-step="1" aria-label="다음 벌레">▶</button>`;
+  elWh.innerHTML=`<button type="button" class="wh-arrow" data-step="-1" aria-label="이전 벌레">▲</button><div class="wh-view"><ul class="wh-list">${[...Array(KN).keys()].map(k=>`<li><button type="button" class="np" data-k="${k}" aria-label="${KNAME(k)}"><img class="wl" src="${iconURL(k)}" alt=""></button></li>`).join('')}</ul></div><button type="button" class="wh-arrow" data-step="1" aria-label="다음 벌레">▼</button>`;
 }
 function drawWheel(){
   if(!elWh)return;
@@ -351,7 +351,7 @@ function drawWheel(){
   if(elWh.hidden===show){elWh.hidden=!show;barKey=''}
   if(!show)return;
   if(!elWh.firstChild)buildWheel();
-  elWh.querySelector('.wh-list').style.transform=`translateX(${(1-pkCl)*WW}px)`;
+  elWh.querySelector('.wh-list').style.transform=`translateY(${(1-pkCl)*WH}px)`;
   elWh.querySelectorAll('.np').forEach(b=>b.classList.toggle('on',+b.dataset.k===pkCl));
   elWh.querySelectorAll('.wh-arrow').forEach(a=>a.disabled=+a.dataset.step<0?pkCl<=0:pkCl>=KN-1);
 }
@@ -376,17 +376,12 @@ function heldUp(e,cancel){
   elHeld.classList.remove('drag');elHeld.style.removeProperty('--dx');elHeld.style.removeProperty('--dy');
   const i=aimI;setAim(-1);if(!cancel&&HD.moved&&i>=0)giveTo(i);
 }
-/* 손패 위 자리: 휠은 손패 바로 위(왼쪽 아래 내 이름 칸과 겹치면 그 위), 몰래 본 카드는 휠 위 */
+/* 손패 위 자리: 몰래 본 카드는 손패 바로 위 가운데 (휠은 손패 위 오른쪽) */
 function placeBar(){
-  const st=$('#stage'),fh=+T.fanH||0,me=$('#me'),key=fh+'|'+st.clientWidth+'x'+st.clientHeight+'|'+elWh.hidden+'|'+elHeld.hidden;
+  const st=$('#stage'),fh=+T.fanH||0,key=fh+'|'+elHeld.hidden;
   if(key===barKey)return;barKey=key;
   st.style.setProperty('--cpB',(fh+6)+'px');
-  let b=fh+6;elWh.style.bottom=b+'px';
-  if(!elWh.hidden&&me&&!me.hidden){
-    const a=elWh.getBoundingClientRect(),m=me.getBoundingClientRect(),r=st.getBoundingClientRect();
-    if(a.left<m.right+4&&a.bottom>m.top-4){b=Math.round(r.bottom-m.top+6);elWh.style.bottom=b+'px'}
-  }
-  elHeld.style.bottom=(b+(elWh.hidden?0:(elWh.offsetHeight||46))+12)+'px';
+  elHeld.style.bottom=(fh+14)+'px';
 }
 G.afterFan=()=>{barKey=''};
 const EYE='<svg class="cp-eye" viewBox="0 0 24 24" aria-label="봄"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" fill="#fff6e2" stroke="#b5521e" stroke-width="2"/><circle cx="12" cy="12" r="3.6" fill="#3b2a1f"/></svg>';
@@ -645,24 +640,22 @@ G.init=()=>{
 .stage.cpg .seat.cp-tg{border-color:#ffb04a}
 .stage.cpg .seat.cp-dim{opacity:.5}
 .stage.cpg .seat.cp-aim{border-color:#ff8a2a;box-shadow:0 0 0 3px #ffb04a,0 0 18px 4px rgba(255,150,50,.75);transform:translate(-50%,-50%) scale(1.18);z-index:3}
-.cp-wh.numwheel{position:absolute;left:50%;top:auto;transform:translateX(-50%);flex-direction:row;align-items:center;gap:4px;height:46px;box-sizing:border-box;padding:3px 5px;pointer-events:auto;background:rgba(255,250,240,.82);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:0 2px 8px -3px rgba(59,42,31,.35)}
+.cp-wh.numwheel{position:absolute;left:auto;right:8px;top:auto;bottom:calc(var(--cpB,120px) + 8px);transform:none;flex-direction:column;align-items:center;gap:3px;width:70px;height:auto;box-sizing:border-box;padding:4px 4px 5px;pointer-events:auto;background:rgba(255,250,240,.82);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:0 2px 8px -3px rgba(59,42,31,.35)}
 .cp-wh.numwheel[hidden]{display:none}
-.cp-wh .wh-t{display:block;margin-right:2px}
-.cp-wh .wh-arrow{flex:none;width:24px;height:36px;padding:0;background:rgba(59,42,31,.1)}
-.cp-wh .wh-view{height:40px;width:${WW*3}px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(90deg,transparent,#000 30%,#000 70%,transparent)}
-.cp-wh .wh-view::before{top:0;bottom:0;left:50%;right:auto;height:auto;width:${WW}px;margin:0 0 0 -${WW/2}px}
+.cp-wh .wh-arrow{width:100%;height:22px;padding:0;background:rgba(59,42,31,.1)}
+.cp-wh .wh-view{width:60px;height:${WH*3}px;-webkit-mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent)}
+.cp-wh .wh-view::before{left:0;right:0;top:50%;bottom:auto;width:auto;height:${WH}px;margin:-${WH/2}px 0 0 0}
 .cp-wh .wh-view::after{display:none}
-.cp-wh .wh-list{display:flex;width:max-content}
-.cp-wh .np{width:${WW}px;height:40px;flex:none;padding:0;opacity:.4;transition:opacity .16s;justify-content:center}
+.cp-wh .wh-list{display:block;width:auto}
+.cp-wh .np{width:60px;height:${WH}px;padding:0;opacity:.4;transition:opacity .16s;justify-content:center}
 .cp-wh .np.on{opacity:1}
 .cp-wh .np img.wl{width:28px;height:28px;display:block;pointer-events:none}
-.cp-wh .np.on img.wl{width:36px;height:36px}
-@media (max-width:600px){.cp-wh .wh-t{display:none}}
+.cp-wh .np.on img.wl{width:38px;height:38px}
 .cp-held{position:absolute;left:50%;width:78px;height:114px;margin-left:-39px;border-radius:8px;overflow:hidden;pointer-events:auto;touch-action:none;cursor:grab;box-shadow:0 0 0 3px #ffb04a,0 8px 16px -6px rgba(59,42,31,.6);transform:translate(var(--dx,0),var(--dy,0));transition:transform .2s;animation:pop .3s ease-out}
 .cp-held.drag{transition:none;cursor:grabbing}
 .cp-held[hidden]{display:none}
 .cp-held img{width:100%;height:100%;display:block;pointer-events:none}
-.pilenum.cp-pn{position:absolute;min-width:58px;height:72px}
+.pilenum.cp-pn{position:absolute;min-width:58px;height:62px}
 .pilenum.cp-pn b{display:flex;align-items:center;justify-content:center}
 .pilenum.cp-pn img{width:46px;height:46px;display:block}
 .cp-peek img{width:72px;height:106px;border-radius:8px;display:block;margin:0 auto}
@@ -681,17 +674,17 @@ G.init=()=>{
 `;
   document.head.appendChild(css);
   elBox=document.createElement('div');elBox.className='cp-box';elBox.hidden=true;
-  elBox.innerHTML='<div class="cp-2d"></div><div class="pilenum cp-pn" hidden><span class="pn-l">선언</span><b><img alt=""></b></div><div class="numwheel cp-wh" hidden></div><div class="card cp-held" role="img" hidden></div>';
+  elBox.innerHTML='<div class="cp-2d"></div><div class="pilenum cp-pn" hidden><b><img alt=""></b></div><div class="numwheel cp-wh" hidden></div><div class="card cp-held" role="img" hidden></div>';
   $('#stage').appendChild(elBox);
   $('#actions').insertAdjacentHTML('beforeend','<button type="button" class="act act-play cp-act" id="cpT" hidden>진짜!<small></small></button><button type="button" class="act act-gura cp-act" id="cpF" hidden>구라!<small></small></button><button type="button" class="act act-pass cp-act" id="cpP" hidden>넘기기<small></small></button>');
   elT=$('#cpT');elF=$('#cpF');elP=$('#cpP');el2d=elBox.querySelector('.cp-2d');elWh=elBox.querySelector('.cp-wh');elHeld=elBox.querySelector('.cp-held');elPn=elBox.querySelector('.cp-pn');
   elT.addEventListener('click',()=>answer(1));elF.addEventListener('click',()=>answer(0));elP.addEventListener('click',pressPass);
-  /* 휠: 화살표·누르기·마우스 휠·옆으로 밀기 */
+  /* 휠: 화살표·누르기·마우스 휠·위아래로 밀기 */
   elWh.addEventListener('click',e=>{const a=e.target.closest('.wh-arrow');if(a){stepCl(+a.dataset.step);return}const b=e.target.closest('.np');if(b&&+b.dataset.k!==pkCl){pkCl=+b.dataset.k;sfx('tick');drawWheel()}});
   let acc=0,tx0=null;
   elWh.addEventListener('wheel',e=>{e.preventDefault();acc+=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY;if(Math.abs(acc)>=40){stepCl(acc>0?1:-1);acc=0}},{passive:false});
-  elWh.addEventListener('touchstart',e=>{tx0=e.touches[0].clientX},{passive:true});
-  elWh.addEventListener('touchmove',e=>{if(tx0==null)return;const d=e.touches[0].clientX-tx0;if(Math.abs(d)>=26){stepCl(d>0?-1:1);tx0=e.touches[0].clientX}},{passive:true});
+  elWh.addEventListener('touchstart',e=>{tx0=e.touches[0].clientY},{passive:true});
+  elWh.addEventListener('touchmove',e=>{if(tx0==null)return;const d=e.touches[0].clientY-tx0;if(Math.abs(d)>=26){stepCl(d>0?-1:1);tx0=e.touches[0].clientY}},{passive:true});
   elWh.addEventListener('touchend',()=>{tx0=null});
   /* 몰래 본 카드 끌기 */
   elHeld.addEventListener('pointerdown',heldDown);elHeld.addEventListener('pointermove',heldMove);
