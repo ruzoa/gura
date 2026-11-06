@@ -555,7 +555,7 @@ const qSeat=(i,rx)=>new THREE.Quaternion().setFromAxisAngle(Y_AX(),seatAngle(i))
 function cupPose(i,kind,th){
   const k=kOf(i),H=1.03*k,R=.62*k,r=rOf(i);
   if(kind==='side')return {p:cPt(i,R*2+.18,0,.1),q:qSeat(i,0)};   // 첫 판 시작: 컵받침 옆에 입구가 위로
-  if(kind==='aside'){const A=cPt(i,R*2+.18,H,.1),B=cPt(i,-(R*2+.18),H,.1);return {p:B.z<A.z-.01?B:A,q:qSeat(i,Math.PI)}}   // 공개: 컵받침 옆(카메라에서 먼 쪽: 컵이 주사위를 가리지 않게)   // 공개: 컵받침 옆(그 사람의 오른쪽)에 엎어 둠
+  if(kind==='aside'){const A=cPt(i,R*2+.18,H,.1),B=cPt(i,-(R*2+.18),H,.1);return {p:B.z<A.z-.01?B:A,q:qSeat(i,Math.PI)}}   // 공개: 컵받침 옆(카메라에서 먼 쪽: 컵이 주사위를 가리지 않게)
   if(kind==='peek'){const y=CO_H+H*Math.cos(th)+R*Math.sin(th),z=-H*Math.sin(th)+R*Math.cos(th);return {p:cPt(i,0,y,-R+z),q:qSeat(i,-th).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI))}}
   return {p:cPt(i,0,CO_H+H,0),q:qSeat(i,Math.PI)};
 }
