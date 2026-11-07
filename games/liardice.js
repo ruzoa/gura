@@ -597,12 +597,12 @@ function drawNum(main,f,tag,col,sub,subCol){
   if(tag){g.shadowBlur=14;g.font='700 60px "Jua", "IBM Plex Mono", sans-serif';g.fillText(tag,NW/2,330)}
   g.shadowBlur=0;L.t.needsUpdate=true;
 }
-/* 판정 글자: 공통 판정 칸(.verdict, 구라!·바퀴벌레 포커와 같음). 작은 줄은 선언과 실제 개수 */
+/* 판정 글자: 공통 판정 칸(.verdict, 구라!·바퀴벌레 포커와 같음). 선언·실제 개수는 탁자 홀로그램이 보여 주므로 작은 줄은 WebGL이 없는 화면에서만 */
 function showVerdict(o){
   if(!elVd)return;
   if(!o){if(!elVd.hidden){elVd.hidden=true;elVd.innerHTML='';elVd.dataset.k=''}return}
   const sh=o.sh,R=RES[sh.res]||['',''],k=o.gn+':'+o.rn+':'+sh.by+':'+sh.res;if(elVd.dataset.k===k)return;
-  elVd.dataset.k=k;elVd.innerHTML=`<div class="vw">${dieSVG(sh.bid.f)}<i>×</i><b>${sh.bid.q}</b> 선언 · 실제 <b>${sh.n}개</b></div><div class="vt ${R[1]}">${R[0]}</div>`;elVd.hidden=false;
+  elVd.dataset.k=k;elVd.innerHTML=(M.on?'':`<div class="vw">${dieSVG(sh.bid.f)}<i>×</i><b>${sh.bid.q}</b> 선언 · 실제 <b>${sh.n}개</b></div>`)+`<div class="vt ${R[1]}">${R[0]}</div>`;elVd.hidden=false;
 }
 const RES={true:['진짜였다','truth'],lie:['걸렸다!','lie'],spot:['spot on!','ldsp'],xok:['spot on!','ldsp'],xno:['아니었다','lie'],cok:['칼사!','truth'],cno:['아니었다','lie']};
 const TRUE_RES=new Set(['true','spot','xok','cok']);
