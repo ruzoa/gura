@@ -371,7 +371,7 @@ G.engine={
 const PIPS={1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
 const dieSVG=(v,cls)=>`<svg class="ld-d ${cls||''}" viewBox="0 0 30 30" aria-label="${v}"><rect x="1.5" y="1.5" width="27" height="27" rx="6" fill="#fbf3e0" stroke="#4a3020" stroke-width="2"/>${(PIPS[v]||[]).map(k=>`<circle cx="${[8,15,22][(k-1)%3]}" cy="${[8,15,22][Math.floor((k-1)/3)]}" r="${v===1?4.2:2.8}" fill="${v===1?'#cc3a2e':'#2a2118'}"/>`).join('')}</svg>`;
 const HEART='<svg viewBox="0 0 20 18" class="ld-h"><path d="M10 17 2.4 9.6A4.6 4.6 0 0 1 10 3.4a4.6 4.6 0 0 1 7.6 6.2z"/></svg>';
-let elBox=null,el2d=null,elPick=null,elCalls=null,elG=null,elX=null,elBid=null,elCup=null,elPU=null;
+let elBox=null,elVd=null,el2d=null,elPick=null,elCalls=null,elG=null,elX=null,elBid=null,elCup=null,elPU=null;
 let pkF=2,pkQ=1,pkCtx='',lockAt=-1e9,last2d='',lastPick='';
 const O_=()=>V&&V.ld;
 const iSeat=()=>{const i=myIdx();return i>=0&&V&&V.ps&&i<V.ps.length&&O_()&&!O_().out[i]};
@@ -536,10 +536,7 @@ function build(){
     const c=document.createElement('canvas');c.width=NW;c.height=NH;const t=new THREE.CanvasTexture(c);t.anisotropy=4;
     /* 선언 숫자: 탁자 한가운데에 바닥과 나란히 살짝 띄움(내 자리에서 바로 읽히게 돌림) */
     const sp=new THREE.Mesh(new THREE.PlaneGeometry(2.3,2.3*NH/NW),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}));sp.rotation.order='YXZ';sp.rotation.x=-Math.PI/2;sp.position.set(0,HY,0);sp.renderOrder=55;root.add(sp);
-    /* 판정 글자: 숫자의 먼 쪽 끝에서 위로 세운 판 */
-    const vc=document.createElement('canvas');vc.width=640;vc.height=160;const vt=new THREE.CanvasTexture(vc);vt.anisotropy=4;
-    const vp=new THREE.Mesh(new THREE.PlaneGeometry(2.2,.55),new THREE.MeshBasicMaterial({map:vt,transparent:true,depthWrite:false}));vp.renderOrder=56;vp.visible=false;root.add(vp);
-    M.num={c,t,sp,vc,vt,vp,vkey:''};
+    M.num={c,t,sp};
     {const c2=document.createElement('canvas');c2.width=384;c2.height=128;const t2=new THREE.CanvasTexture(c2);t2.anisotropy=4;
      const m=new THREE.Mesh(new THREE.PlaneGeometry(1.2,.4),new THREE.MeshBasicMaterial({map:t2,transparent:true,depthWrite:false}));m.rotation.order='YXZ';m.rotation.x=-Math.PI/2;m.renderOrder=2;m.visible=false;root.add(m);M.life={c:c2,t:t2,m,key:''}}
     if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{M.key=''});
@@ -600,11 +597,14 @@ function drawNum(main,f,tag,col,sub,subCol){
   if(tag){g.shadowBlur=14;g.font='700 60px "Jua", "IBM Plex Mono", sans-serif';g.fillText(tag,NW/2,330)}
   g.shadowBlur=0;L.t.needsUpdate=true;
 }
-function drawVerdict(txt,col){
-  const L=M.num,g=L.vc.getContext('2d'),w=L.vc.width,h=L.vc.height;g.clearRect(0,0,w,h);
-  g.textAlign='center';g.textBaseline='middle';g.shadowColor=col;g.shadowBlur=22;g.fillStyle=col;g.font='700 104px "Jua", "IBM Plex Mono", sans-serif';g.fillText(txt,w/2,h/2+4);g.fillText(txt,w/2,h/2+4);g.shadowBlur=0;L.vt.needsUpdate=true;
+/* 판정 글자: 공통 판정 칸(.verdict, 구라!·바퀴벌레 포커와 같음). 선언·실제 개수는 탁자 홀로그램이 보여 주므로 작은 줄은 WebGL이 없는 화면에서만 */
+function showVerdict(o){
+  if(!elVd)return;
+  if(!o){if(!elVd.hidden){elVd.hidden=true;elVd.innerHTML='';elVd.dataset.k=''}return}
+  const sh=o.sh,R=RES[sh.res]||['',''],k=o.gn+':'+o.rn+':'+sh.by+':'+sh.res;if(elVd.dataset.k===k)return;
+  elVd.dataset.k=k;elVd.innerHTML=(M.on?'':`<div class="vw">${dieSVG(sh.bid.f)}<i>×</i><b>${sh.bid.q}</b> 선언 · 실제 <b>${sh.n}개</b></div>`)+`<div class="vt ${R[1]}">${R[0]}</div>`;elVd.hidden=false;
 }
-const RES={true:['진짜였다','#ffd24a'],lie:['걸렸다!','#ff5a3c'],spot:['spot on!','#ff7ad9'],xok:['spot on!','#ff7ad9'],xno:['아니었다','#ff5a3c'],cok:['칼사!','#7ee07a'],cno:['아니었다','#ff5a3c']};
+const RES={true:['진짜였다','truth'],lie:['걸렸다!','lie'],spot:['spot on!','ldsp'],xok:['spot on!','ldsp'],xno:['아니었다','lie'],cok:['칼사!','truth'],cno:['아니었다','lie']};
 const TRUE_RES=new Set(['true','spot','xok','cok']);
 /* 상태가 오면 시각 기준을 잡음 */
 G.field3D=(v)=>{
@@ -726,20 +726,18 @@ function step(){
   /* 가운데 홀로그램 */
   const sp=M.num.sp;sp.visible=show&&(!!o.bid||inShow||o.pal>=0);
   if(sp.visible){
-    let args,vtxt='',vcol='';
+    let args;
     if(inShow){
-      const vd=e>=verdictAt(order.length),R=RES[o.sh.res]||['',''];
+      const vd=e>=verdictAt(order.length);
       if(vd&&!M.verdictSaid){M.verdictSaid=true;sfx(TRUE_RES.has(o.sh.res)?'truth':'lie');if(o.sh.res==='spot'||o.sh.res==='xok')sfx('special');onVerdict(o,now)}
-      args=[`${cnt}/${o.sh.bid.q}`,o.sh.bid.f,'',vd?R[1]:'#ffb04a'];
-      vtxt=vd?R[0]:'';vcol=R[1];
+      args=[`${cnt}/${o.sh.bid.q}`,o.sh.bid.f,'',vd?(TRUE_RES.has(o.sh.res)?'#7ee07a':'#ff5a3c'):'#ffb04a'];
+      showVerdict(vd?o:null);
     }else args=[o.bid?String(o.bid.q):'',o.bid?o.bid.f:0,o.pal>=0?'팔리피코':'','#ffb04a'];
     const key=args.join('|');
     if(key!==M.key){M.key=key;drawNum(...args)}
     const a=me>=0?seatAngle(me):seatAngle(0);sp.rotation.y=a;sp.position.y=HY+Math.sin(now/600)*.015;
-    const vp=M.num.vp;vp.visible=!!vtxt;
-    if(vtxt){const vk=vtxt+vcol;if(vk!==M.num.vkey){M.num.vkey=vk;drawVerdict(vtxt,vcol)}
-      const pop=ez((e-verdictAt(order.length))/220);vp.position.set(-Math.sin(a)*1.0,.32+.06*pop,-Math.cos(a)*1.0);vp.rotation.set(0,a,0);vp.scale.setScalar(.8+.2*pop)}
-  }else M.num.vp.visible=false;
+  }
+  if(!sp.visible||!inShow)showVerdict(null);
   placeCupUI(now,o,me);
   placeBubs(now);
   stepFX(now);
@@ -766,15 +764,21 @@ G.postView=()=>{const o=O_();if(o&&M.on){const now=clock(),inShow=(o.ph==='show'
 /* 말풍선: 그 사람 컵과 탁자 가운데 사이에 띄움(자리 쪽 공통 말풍선은 이름표·주사위와 겹쳐서). WebGL이 없으면 공통 말풍선 */
 const BUBS=[];
 function sayAt(seat,html,ms,cls){
-  if(!M.on||!elBox){showBubble(seat,cls?`<span class="bt">${html}</span>`:html.replace('ld-bb','bt sm ld-bb'),ms,cls==='gura'?'real':cls==='ldx'?'ldx':'soft');return}
+  const kind=cls==='gura'?'real':cls==='ldx'?'ldx':'soft',inner=cls?`<span class="bt">${html}</span>`:html.replace('ld-bb','bt sm ld-bb');
+  if(!M.on){showBubble(seat,inner,ms,kind);return}
+  /* 공통 말풍선과 같은 모양(.bubble·softPath·burstPath)을 그 사람 컵과 탁자 가운데 사이에 띄움 */
   for(const b of BUBS.filter(b=>b.s===seat)){b.el.remove();BUBS.splice(BUBS.indexOf(b),1)}
-  const el=document.createElement('div');el.className='ld-say '+(cls||'');el.innerHTML=html;elBox.appendChild(el);
-  BUBS.push({el,s:seat,end:clock()+ms});placeBubs(clock());
+  const box=$('#bubbles');if(!box)return;
+  const st=$('#stage').getBoundingClientRect(),k=Math.max(1,Math.min(2.2,st.width/900,st.height/620));
+  const [bx,by]=scrOf(seatPt(seat,1.55,0,.3,0)),[cx,cy]=scrOf(cPt(seat,0,.4,0)),ang=Math.atan2(cy-by,cx-bx);
+  const el=document.createElement('div');el.className='bubble '+kind+' ld-bub';el.dataset.ld=seat;
+  el.style.setProperty('--life',Math.max(300,ms-300)+'ms');el.style.setProperty('--bk',k);
+  el.innerHTML=`<svg viewBox="0 0 ${BUB.w} ${BUB.h}" aria-hidden="true"><path d="${kind==='soft'?softPath(ang,60):burstPath(ang)}"/></svg>${inner}`;
+  box.appendChild(el);BUBS.push({el,s:seat,end:clock()+ms});placeBubs(clock());
 }
 function placeBubs(now){
   for(let k=BUBS.length-1;k>=0;k--){const b=BUBS[k];if(now>=b.end||!V||!V.ps||b.s>=V.ps.length){b.el.remove();BUBS.splice(k,1);continue}
-    const [x,y]=scrOf(seatPt(b.s,1.55,0,.3,0)),L=Math.round(x)+'px',Tp=Math.round(y)+'px';if(b.el.style.left!==L)b.el.style.left=L;if(b.el.style.top!==Tp)b.el.style.top=Tp;
-    b.el.classList.toggle('out',b.end-now<220)}
+    const [x,y]=scrOf(seatPt(b.s,1.55,0,.3,0)),L=Math.round(x)+'px',Tp=Math.round(y)+'px';if(b.el.style.left!==L)b.el.style.left=L;if(b.el.style.top!==Tp)b.el.style.top=Tp}
 }
 function clearBubs(){for(const b of BUBS)b.el.remove();BUBS.length=0}
 /* 내 컵 위 투명 누르는 자리, 들었을 때 공중 2D 눈 */
@@ -857,7 +861,7 @@ function clearAll(){
   for(const g of M.cups)if(g)g.visible=false;
   for(const g of M.cos||[])if(g)g.visible=false;
   for(const L of [M.dice,M.blank,M.rings])for(const a of L)for(const d of a||[])if(d)d.visible=false;
-  if(M.num){M.num.sp.visible=false;M.num.vp.visible=false}
+  if(M.num)M.num.sp.visible=false;showVerdict(null);
   if(M.life)M.life.m.visible=false;
   if(M.glow)M.glow.visible=false;
   if(elCup)elCup.hidden=true;if(elPU)elPU.hidden=true;
@@ -924,11 +928,11 @@ function draw2d(){
   if(o.bid&&o.ph==='bid')h+=`<p class="ld-now">${esc(nameOf(o.bid.s))} : ${dieSVG(o.bid.f)} <b>${o.bid.q}</b></p>`;
   if(o.pal>=0&&o.ph!=='show'&&o.ph!=='done')h+='<p class="ld-tag">팔리피코</p>';
   if(o.sh&&(o.ph==='show'||o.ph==='done')){
-    const r={wild:o.cf.wild,pal:o.pal>=0},R=RES[o.sh.res]||['',''];
-    h+=`<p class="ld-now">${dieSVG(o.sh.bid.f)} ${o.sh.bid.q} → <b>${o.sh.n}개</b> <span style="color:${R[1]}">${R[0]}</span></p>`;
+    const r={wild:o.cf.wild,pal:o.pal>=0};
     h+='<div class="ld-rows">'+(o.all||[]).map((d,i)=>d.length?`<div class="ld-row"><b>${esc(nameOf(i))}</b>${d.map(v=>dieSVG(v,matches(v,o.sh.bid.f,r)?'hit':'')).join('')}</div>`:'').join('')+'</div>';
   }else if(o.my&&me>=0&&o.ph!=='roll')h+=`<div class="ld-rows"><div class="ld-row me">${lifeHTML(me)}${o.my.map(v=>dieSVG(v)).join('')}</div></div>`;
   if(h!==last2d){el2d.innerHTML=h;last2d=h}
+  showVerdict(o.sh&&(o.ph==='show'||o.ph==='done')?o:null);
 }
 G.live=()=>{
   if(!elBox||!O_())return;
@@ -956,7 +960,7 @@ G.leave=()=>{
   if(IN.die){IN.die.dispose();IN.die=null}IN.on=false;
   Object.assign(M,{on:false,gn:-1,rn:-1,key:'',shKey:''});
   pkCtx='';last2d='';lastPick='';if(HOLD.on)holdEnd(true);HOLD.rolledAt=0;if(elCup){elCup.hidden=true;elCup.classList.remove('flat')}if(elPU)elPU.hidden=true;
-  if(elPick)elPick.hidden=true;if(elG)elG.hidden=true;if(elX)elX.hidden=true;
+  showVerdict(null);if(elPick)elPick.hidden=true;if(elG)elG.hidden=true;if(elX)elX.hidden=true;
   $('#stage').classList.remove('ldg');
   $('#btnPlay').disabled=false;$('#btnPass').disabled=false;
   removeMine();clearBubs();document.querySelectorAll('#labels .seat').forEach(el=>{el.style.opacity=''});
@@ -994,6 +998,12 @@ G.init=()=>{
 .bubble.soft .bt.ld-bb{display:inline-flex;align-items:center;gap:calc(6px*var(--bk,1));font-family:"IBM Plex Mono","Jua",monospace;font-size:calc(30px*var(--bk,1))}
 .bubble .ld-bb i{font-style:normal;font-size:.7em;opacity:.75}
 .bubble .ld-bb svg.ld-d{position:relative;inset:auto;width:calc(32px*var(--bk,1));height:calc(32px*var(--bk,1))}
+.ld-vd.verdict[hidden]{display:none}
+.ld-vd .vt{animation-delay:0s}
+.ld-vd .vt.ldsp{color:#b8338a}
+.ld-vd .vw{display:inline-flex;align-items:center;gap:4px}
+.ld-vd .vw .ld-d{width:18px;height:18px}
+.ld-vd .vw i{font-style:normal;opacity:.7}
 .bubble.ldx svg path{fill:#7d3fa8;stroke:#55287a}
 .bubble.ldx .bt{color:#fff;text-shadow:0 2px 0 #55287a}
 .ld-pick{position:absolute;right:12px;bottom:calc(var(--plateB,14px) + 4px);display:grid;grid-template-columns:auto auto;gap:6px 8px;align-items:center;justify-items:center;padding:8px 10px 10px;border-radius:16px;background:rgba(255,250,240,.86);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:0 2px 10px -3px rgba(59,42,31,.4);pointer-events:auto;z-index:8;user-select:none;touch-action:manipulation;transform:scale(var(--actS,1));transform-origin:100% 100%}
@@ -1020,14 +1030,6 @@ G.init=()=>{
 .ld-pu[hidden]{display:none}
 .ld-pu .ld-d{width:40px;height:40px}
 @media (min-width:900px) and (min-height:600px){.ld-pu .ld-d{width:46px;height:46px}}
-.ld-say{position:absolute;transform:translate(-50%,-50%);padding:6px 14px;border-radius:16px;background:rgba(255,250,240,.95);color:#3b2a1f;font:700 22px "Jua",sans-serif;box-shadow:0 3px 10px -3px rgba(59,42,31,.5);pointer-events:none;z-index:7;white-space:nowrap;animation:ldPop .22s cubic-bezier(.3,1.6,.5,1);transition:opacity .2s}
-.ld-say.out{opacity:0}
-.ld-say.gura{background:#d8352a;color:#fff;font-size:28px;padding:6px 16px;text-shadow:0 2px 0 #8e1d14;border:2px solid #8e1d14}
-.ld-say.ldx{background:#7d3fa8;color:#fff;font-size:26px;text-shadow:0 2px 0 #55287a;border:2px solid #55287a}
-.ld-say .ld-bb{display:inline-flex;align-items:center;gap:5px;font-family:"IBM Plex Mono","Jua",monospace;font-size:24px}
-.ld-say .ld-bb i{font-style:normal;font-size:.7em;opacity:.7}
-.ld-say .ld-d{width:28px;height:28px}
-@keyframes ldPop{from{transform:translate(-50%,-50%) scale(.4);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
 .ld-col{touch-action:none}
 .ld-2d{position:absolute;left:0;right:0;top:104px;text-align:center;color:#3b2a1f;font-family:"Jua",sans-serif}
 .ld-2d p{margin:3px 0}
@@ -1041,12 +1043,12 @@ G.init=()=>{
 `;
   document.head.appendChild(css);
   elBox=document.createElement('div');elBox.className='ld-box';elBox.hidden=true;
-  elBox.innerHTML=`<div class="ld-2d"></div>
+  elBox.innerHTML=`<div class="ld-2d"></div><div class="verdict ld-vd" hidden></div>
 <div class="ld-pick" hidden><div class="ld-col"><button type="button" class="ld-arr" data-f="1" aria-label="큰 눈">▲</button><div class="ld-face"></div><button type="button" class="ld-arr" data-f="-1" aria-label="작은 눈">▼</button></div><div class="ld-col"><button type="button" class="ld-arr" data-q="1" aria-label="개수 늘리기">▲</button><div class="ld-q">1</div><button type="button" class="ld-arr" data-q="-1" aria-label="개수 줄이기">▼</button></div><button type="button" class="act act-play ld-bid">선언<small></small></button></div>
 <button type="button" class="ld-cup" aria-label="내 컵" hidden></button><div class="ld-pu" hidden></div>
 <div class="ld-calls"><button type="button" class="act act-gura ld-g" hidden>구라!<small></small></button><button type="button" class="act act-ldx ld-x" hidden><b>도전</b><small></small></button></div>`;
   $('#stage').appendChild(elBox);
-  el2d=elBox.querySelector('.ld-2d');elPick=elBox.querySelector('.ld-pick');elCalls=elBox.querySelector('.ld-calls');elG=elBox.querySelector('.ld-g');elX=elBox.querySelector('.ld-x');elBid=elBox.querySelector('.ld-bid');
+  el2d=elBox.querySelector('.ld-2d');elVd=elBox.querySelector('.ld-vd');elPick=elBox.querySelector('.ld-pick');elCalls=elBox.querySelector('.ld-calls');elG=elBox.querySelector('.ld-g');elX=elBox.querySelector('.ld-x');elBid=elBox.querySelector('.ld-bid');
   /* 눈·개수 칸을 위아래로 밀어서 바꿈 (약 24px마다 한 칸) */
   let dragEnd=0;
   elPick.querySelectorAll('.ld-col').forEach(col=>{
