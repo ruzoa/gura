@@ -630,7 +630,7 @@ function peekK(i,now){
   if(i===myIdx()){const s=M.pkS.me;if(!s)return 0;const e=ez((now-s.at)/PK_MS);return s.v?e:1-e}
   const s=M.pkS[i];if(!s)return 0;const e=ez((now-s.at)/PK_MS);return s.v?e:1-e;
 }
-const SHK={w:28.5,A:.16,th:25*Math.PI/180,y0:.42};   // 흔들기: 초당 약 4.5번 왕복, 경로 폭, 기울기 25°, 들어 올린 높이
+const SHK={w:28.5,A:.17,pa:65*Math.PI/180,th:25*Math.PI/180,y0:.42};   // 흔들기: 초당 약 4.5번 왕복, 경로 폭, 경로 각도(수평에서 65°), 컵 기울기(세운 데서 오른쪽으로 25° = 경로 방향), 들어 올린 높이
 const sndRattle=v=>{tone(650+Math.random()*700,.025,{type:'triangle',vol:.06*v});tone(900+Math.random()*600,.02,{type:'triangle',vol:.04*v,at:.018});hiss(.025,{freq:2600,q:1.5,vol:.05*v})};
 const sndSlam=v=>{tone(105,.09,{type:'triangle',vol:.22*v});hiss(.07,{freq:700,q:.7,vol:.18*v});tone(900,.03,{type:'triangle',vol:.05*v,at:.02})};
 function step(){
@@ -661,12 +661,12 @@ function step(){
         /* 흔들기: 컵받침째 들어 흔듦(엎은 컵 + 컵받침이 한 덩어리), 떼면 함께 탁 내려앉음 */
         let lift=0,jx=0,jz=0,qj=new THREE.Quaternion();
         const zAx=seatPt(i,0,0,0,1);
-        if(shaking){   // 대각선(그 사람 자리에서 오른쪽 위 ↔ 왼쪽 아래)으로 흔듦. 컵·받침은 경로와 같은 기울기
+        if(shaking){   // 대각선(그 사람 자리에서 오른쪽 위 ↔ 왼쪽 아래)으로 흔듦. 컵 몸통 축이 경로 방향(오른쪽으로 기움)
           const st=(mine?HOLD.pressAt||M.skAt[i]:M.skAt[i])||now,tk=ez((now-st-(o.rn===1?FLIP.t2:0))/150),ph=now/1000*SHK.w+i*1.7,u=Math.sin(ph)*tk;
-          lift=SHK.y0*tk;jx=u*SHK.A*Math.cos(SHK.th);lift+=u*SHK.A*Math.sin(SHK.th);qj.setFromAxisAngle(zAx,SHK.th*tk);
+          lift=SHK.y0*tk;jx=u*SHK.A*Math.cos(SHK.pa);lift+=u*SHK.A*Math.sin(SHK.pa);qj.setFromAxisAngle(zAx,-SHK.th*tk);
           const dir=Math.cos(ph)>=0?1:-1;if(M.shD[i]&&M.shD[i]!==dir&&tk>.5)sndRattle(mine?1:.35);M.shD[i]=dir;   // 끝에서 방향이 바뀔 때마다 찰칵
         }
-        else if(rolled&&at&&now-at<200){const k=1-ez((now-at)/200);lift=.3*k;qj.setFromAxisAngle(zAx,SHK.th*k)}
+        else if(rolled&&at&&now-at<200){const k=1-ez((now-at)/200);lift=.3*k;qj.setFromAxisAngle(zAx,-SHK.th*k)}
         const base=cPt(i,0,0,0),C=cupPose(i,'closed'),d=seatPt(i,0,jx,0,jz).setY(lift);
         P={p:base.clone().add(d).add(C.p.clone().sub(base).applyQuaternion(qj)),q:qj.clone().multiply(C.q)};
         coT={p:base.clone().add(d).add(new THREE.Vector3(0,CO_H/2,0).applyQuaternion(qj)),q:qj};
