@@ -449,8 +449,8 @@ function lifeNow(i){
 function lifeHTML(i,force){
   const o=O_();if(!o||(o.out[i]&&!force))return '';
   const L=lifeNow(i);
-  if(o.cf.dl)return `<span class="ld-life${L.lost>=0?' shk':''}" data-s="${i}">${dieSVG(5,'ld-mini')}<b>${L.v}</b></span>`;
-  return `<span class="ld-life${L.lost>=0?' shk':''}" data-s="${i}">${Array.from({length:o.cf.L},(_,k)=>`<i class="${k<L.v?'on':''}${k===L.lost?' lost':''}">${HEART}</i>`).join('')}</span>`;
+  if(o.cf.dl)return `<span class="ld-life" data-s="${i}">${dieSVG(5,'ld-mini')}<b class="${L.lost>=0?'shk':''}">${L.v}</b></span>`;
+  return `<span class="ld-life" data-s="${i}">${Array.from({length:o.cf.L},(_,k)=>`<i class="${k<L.v?'on':''}${k===L.lost?' lost':''}">${HEART}</i>`).join('')}</span>`;
 }
 G.nameTag=(p,i)=>V&&V.st!=='wait'&&O_()&&i!==myIdx()?lifeHTML(i,M.vdOn&&O_().sh&&O_().sh.d[i]):'';
 /* 내 생명은 내 이름 칸이 아니라 내 주사위 줄 바로 앞 탁자 위에 (공통 원칙: 내 이름 칸에는 이모티콘·닉네임만) */
@@ -471,7 +471,7 @@ function drawMineLife(L,o,i){
    공개(show): 모든 컵이 들려 바깥쪽에 엎어지고, 주사위가 커지며 퍼짐. 선언한 사람부터 시계 방향으로 맞는 주사위에 빛 고리 + 톡 튐, 가운데 숫자가 하나씩 오름.
    모든 움직임은 시각(판 시작·엎은 때·든 때·공개 시작)으로 계산 */
 const R_CUP=2.75,R_ME=2.75,CO_H=.06,CUP_K=.74,K_ME=.74,DS=.24,DS_ME=.24,HY=.07,NW=640,NH=420;
-const M={skAt:[],rt:[],on:false,built:false,fail:false,root:null,raf:0,cups:[],dice:[],blank:[],rings:[],num:null,life:null,glow:null,key:'',rn:-1,gn:-1,roundT0:0,prevSh:null,lastSh:null,showT0:0,shKey:'',lastTick:-1,verdictSaid:false,rdAt:[],pkS:[],rattleAt:0,hitKey:'',puKey:''};
+const M={skAt:[],rt:[],on:false,built:false,fail:false,root:null,raf:0,cups:[],dice:[],blank:[],rings:[],num:null,life:null,glow:null,key:'',rn:-1,gn:-1,roundT0:0,prevSh:null,lastSh:null,showT0:0,shKey:'',lastTick:-1,verdictSaid:false,rdAt:[],pkS:[],rattleAt:0,shD:[],hitKey:'',puKey:''};
 const HOLD={on:false,mode:'',rolledAt:0,src:''};
 const ez=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 const lerp=(a,b,k)=>a+(b-a)*k;
@@ -630,6 +630,8 @@ function peekK(i,now){
   if(i===myIdx()){const s=M.pkS.me;if(!s)return 0;const e=ez((now-s.at)/PK_MS);return s.v?e:1-e}
   const s=M.pkS[i];if(!s)return 0;const e=ez((now-s.at)/PK_MS);return s.v?e:1-e;
 }
+const SHK={w:28.5,A:.16,th:25*Math.PI/180,y0:.42};   // 흔들기: 초당 약 4.5번 왕복, 경로 폭, 기울기 25°, 들어 올린 높이
+const sndRattle=v=>{tone(650+Math.random()*700,.025,{type:'triangle',vol:.06*v});tone(900+Math.random()*600,.02,{type:'triangle',vol:.04*v,at:.018});hiss(.025,{freq:2600,q:1.5,vol:.05*v})};
 const sndSlam=v=>{tone(105,.09,{type:'triangle',vol:.22*v});hiss(.07,{freq:700,q:.7,vol:.18*v});tone(900,.03,{type:'triangle',vol:.05*v,at:.02})};
 function step(){
   M.raf=0;if(!M.on||!V||!O_())return;
@@ -658,8 +660,13 @@ function step(){
         const shaking=!rolled&&(mine?HOLD.on&&HOLD.mode==='shake':!!(o.sk&&o.sk[i]));
         /* 흔들기: 컵받침째 들어 흔듦(엎은 컵 + 컵받침이 한 덩어리), 떼면 함께 탁 내려앉음 */
         let lift=0,jx=0,jz=0,qj=new THREE.Quaternion();
-        if(shaking){const s=now/1000;rattle=true;lift=.22+.26*(.5+.5*Math.sin(s*19+i*1.7));jx=Math.sin(s*7+i)*.015;qj.setFromEuler(new THREE.Euler(Math.sin(s*19+i*1.7)*.04,0,0))}   // 위아래로 흔들기
-        else if(rolled&&at&&now-at<200)lift=.3*(1-ez((now-at)/200));
+        const zAx=seatPt(i,0,0,0,1);
+        if(shaking){   // 대각선(그 사람 자리에서 오른쪽 위 ↔ 왼쪽 아래)으로 흔듦. 컵·받침은 경로와 같은 기울기
+          const st=(mine?HOLD.pressAt||M.skAt[i]:M.skAt[i])||now,tk=ez((now-st-(o.rn===1?FLIP.t2:0))/150),ph=now/1000*SHK.w+i*1.7,u=Math.sin(ph)*tk;
+          lift=SHK.y0*tk;jx=u*SHK.A*Math.cos(SHK.th);lift+=u*SHK.A*Math.sin(SHK.th);qj.setFromAxisAngle(zAx,SHK.th*tk);
+          const dir=Math.cos(ph)>=0?1:-1;if(M.shD[i]&&M.shD[i]!==dir&&tk>.5)sndRattle(mine?1:.35);M.shD[i]=dir;   // 끝에서 방향이 바뀔 때마다 찰칵
+        }
+        else if(rolled&&at&&now-at<200){const k=1-ez((now-at)/200);lift=.3*k;qj.setFromAxisAngle(zAx,SHK.th*k)}
         const base=cPt(i,0,0,0),C=cupPose(i,'closed'),d=seatPt(i,0,jx,0,jz).setY(lift);
         P={p:base.clone().add(d).add(C.p.clone().sub(base).applyQuaternion(qj)),q:qj.clone().multiply(C.q)};
         coT={p:base.clone().add(d).add(new THREE.Vector3(0,CO_H/2,0).applyQuaternion(qj)),q:qj};
@@ -708,7 +715,6 @@ function step(){
       if(inShow&&lit.has(key)){rg.visible=true;rg.position.set(p.x,CO_H+.012,p.z);rg.rotation.y=yaw;rg.scale.setScalar(sz*1.6);rg.material.opacity=.8+.2*Math.sin(now/160)}
     }
   }
-  if(rattle&&now>=M.rattleAt){M.rattleAt=now+70+Math.random()*60;const v=HOLD.on&&HOLD.mode==='shake'?1:.35;tone(650+Math.random()*700,.025,{type:'triangle',vol:.05*v});hiss(.02,{freq:2600,q:1.5,vol:.04*v})}
   /* 아직 안 굴렸으면 내 컵 윤곽선이 숨 쉬듯 주황빛 */
   if(me>=0&&M.cups[me]){const gl=M.cups[me].userData.glow,on=show&&o.ph==='roll'&&!o.out[me]&&!HOLD.rolledAt&&!(o.rd&&o.rd[me])&&!(HOLD.on&&HOLD.mode==='shake');gl.visible=on;if(on)gl.material.opacity=.55+.4*Math.sin(now/260)}
   M.glow.visible=false;
@@ -977,11 +983,11 @@ G.init=()=>{
 .ld-life{display:inline-flex;align-items:center;gap:2px;vertical-align:middle;margin-right:5px}
 .ld-life b{font-size:13px}
 .ld-life i{display:inline-flex}
-.ld-h{width:12px;height:11px;fill:#d9cbb4}
-.ld-life.shk{animation:ldShk .5s ease-in-out}
-.ld-life i.lost .ld-h{animation:ldLost .6s ease-out}
-@keyframes ldShk{0%,100%{transform:none}15%{transform:translateX(-3px) rotate(-6deg)}35%{transform:translateX(3px) rotate(6deg)}55%{transform:translateX(-2px) rotate(-4deg)}75%{transform:translateX(2px) rotate(3deg)}}
-@keyframes ldLost{0%{fill:#d8352a;transform:scale(1.25)}60%{fill:#d8352a}100%{fill:#d9cbb4;transform:none}}
+.ld-h{width:12px;height:11px;fill:#8d8a86}
+.ld-life b.shk,.ld-life i.lost{animation:ldShk .45s ease-in-out}
+.ld-life i.lost .ld-h{animation:ldLost .45s ease-out}
+@keyframes ldShk{0%,100%{transform:none}25%{transform:translateX(-3px) rotate(-12deg)}75%{transform:translateX(3px) rotate(12deg)}}
+@keyframes ldLost{0%,70%{fill:#d8352a}100%{fill:#8d8a86}}
 .ld-life i.on .ld-h{fill:#d8352a;filter:drop-shadow(0 0 2px rgba(216,53,42,.5))}
 .ld-mine{display:inline-flex;align-items:center;margin-left:6px}
 .ld-mine .ld-life{margin-right:0}
