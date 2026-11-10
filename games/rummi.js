@@ -262,5 +262,41 @@ G.engine={
   emoPhase:ph=>ph==='play'||ph==='over'
 };
 
+/* ---------- 그림 도구: 타일 얼굴·자리 계산 (게임 화면과 테스트룸 lab-rummi.html이 같이 씀. THREE는 받아서 씀) ----------
+   길이 단위는 타일 폭 = 1. 칸판 가운데가 (0,0), +z가 내 쪽. 받침대는 칸판 아래쪽(내 쪽)에 2단 */
+const LAY={TW:1,TH:1.42,TT:.3,CW:1.08,CH:1.56,GAP:.5,RK:W};
+const INK=['#26262a','#d2362b','#2563c4','#e3891b'];   // 검정·빨강·파랑·주황
+const cellXZ=cell=>({x:(cell%W-(W-1)/2)*LAY.CW,z:((cell/W|0)-(RH-1)/2)*LAY.CH});
+const BOARD={w:W*LAY.CW,d:RH*LAY.CH};
+/* 받침대: 한 단에 RK개. 시작 패 14개까지는 한 단에 조금 줄여 담고, 넘치면 두 단에 나눠 담음(두 단도 넘치면 그만큼 줄임). i번째 타일의 자리와 크기 */
+function rackXZ(i,n){
+  const per=n<=LAY.RK+1?Math.max(LAY.RK,n):Math.max(LAY.RK,Math.ceil(n/2)),sc=Math.min(1,LAY.RK/per),tier=i<per?0:1,k=tier?i-per:i;
+  return {x:(k-(per-1)/2)*LAY.CW*sc,z:BOARD.d/2+LAY.GAP+LAY.CH*(tier+.5),s:sc,tier};
+}
+/* 화면에 꼭 들어와야 하는 곳: 칸판 + 받침대 2단 */
+const REGION={w:BOARD.w,z0:-BOARD.d/2,z1:BOARD.d/2+LAY.GAP+LAY.CH*2};
+/* 타일 얼굴. style 0 = 밝은 타일에 색 숫자, 1 = 색 타일에 밝은 숫자 */
+function drawFace(g,w,h,id,style){
+  const j=isJ(id),c=j?(id===JK?1:0):colOf(id),ink=INK[c],bg=style?ink:'#f6eeda',fg=style?'#fff6e2':ink,r=w*.13;
+  g.clearRect(0,0,w,h);
+  g.beginPath();g.moveTo(r,0);g.arcTo(w,0,w,h,r);g.arcTo(w,h,0,h,r);g.arcTo(0,h,0,0,r);g.arcTo(0,0,w,0,r);g.closePath();
+  g.fillStyle=bg;g.fill();
+  g.lineWidth=w*.035;g.strokeStyle=style?'rgba(0,0,0,.28)':'rgba(120,92,50,.45)';g.stroke();
+  g.fillStyle=fg;g.strokeStyle=fg;g.textAlign='center';g.textBaseline='middle';
+  if(j){   // 조커: 웃는 얼굴
+    const cx=w/2,cy=h*.46,R=w*.33;
+    g.lineWidth=w*.07;g.beginPath();g.arc(cx,cy,R,0,Math.PI*2);g.stroke();
+    g.beginPath();g.arc(cx-R*.38,cy-R*.22,w*.05,0,Math.PI*2);g.arc(cx+R*.38,cy-R*.22,w*.05,0,Math.PI*2);g.fill();
+    g.beginPath();g.arc(cx,cy+R*.05,R*.55,Math.PI*.15,Math.PI*.85);g.stroke();
+    return;
+  }
+  const v=numOf(id),t=String(v);
+  g.font=`700 ${Math.round(h*.6)}px "IBM Plex Mono", ui-monospace, Menlo, monospace`;
+  const mw=g.measureText(t).width,k=Math.min(1,w*.86/mw);
+  g.save();g.translate(w/2,h*.45);g.scale(k,1);g.fillText(t,0,0);g.restore();
+  g.lineWidth=w*.045;g.beginPath();g.arc(w/2,h*.86,w*.085,0,Math.PI*2);g.stroke();   // 아래 동그라미 (6·9 구분: 동그라미가 아래)
+}
+G.kit={LAY,INK,BOARD,REGION,cellXZ,rackXZ,drawFace};
+
 (window.GAMES=window.GAMES||{}).rummi=G;
 })();
