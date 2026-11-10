@@ -48,7 +48,7 @@ run(fs.readFileSync(path.join(root,'games/onecard.js'),'utf8'),'onecard.js');
 run(fs.readFileSync(path.join(root,'games/mia.js'),'utf8'),'mia.js');
 run(fs.readFileSync(path.join(root,'games/cockroach.js'),'utf8'),'cockroach.js');
 run(fs.readFileSync(path.join(root,'games/liardice.js'),'utf8'),'liardice.js');
-run(fs.readFileSync(path.join(root,'games/rummi.js'),'utf8'),'rummi.js');   // 루미큐브: 아직 화면이 없어 index.html에는 없고 엔진만 돌림
+run(fs.readFileSync(path.join(root,'games/rummi.js'),'utf8'),'rummi.js');
 run(cut('/* 카드 id 규칙은','const PEER_PREFIX='),'core-consts');
 run(cut('let H=null, flushQueued=false, lastBeat=0;','function seatOfConn(conn){').replace('setInterval(engineTick,100);',''),'core-engine');
 run(`

@@ -59,7 +59,7 @@ body{display:flex;flex-direction:column}
 /* 루미큐브 탑뷰 미리보기: 실제 게임이 쓸 타일 그림·칸 자리(games/rummi.js의 G.kit)로 정해진 장면을 그림. 조작은 없음 */
 const RM=GAMES.rummi,K=RM.kit,J=RM.judge,TT=RM._test,L=K.LAY;
 const Q=new URLSearchParams(location.search);
-const S={n:80,rack:14,style:0,cam:90,tilt:20,mark:0,pl:4,size:'fit'};
+const S={n:80,rack:14,style:0,cam:75,tilt:40,mark:0,pl:4,size:'fit'};
 for(const k in S)if(Q.has(k))S[k]=k==='size'?Q.get(k):+Q.get(k);
 if(Q.get('ui')==='0')document.getElementById('ui').style.display='none';
 const $=s=>document.querySelector(s);
