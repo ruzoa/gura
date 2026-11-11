@@ -136,6 +136,20 @@ setup(3,0,{meld:0});board([[ID(0,3),ID(0,4),ID(0,5),ID(1,9)],[ID(2,1)],[ID(2,2)]
 E.act(0,{t:'mv',ids:[ID(0,3),ID(0,4)],to:at(5,0)});E.act(0,{t:'surrender'});
 eq(H.players[0].finished,true,'surrender');eq(H.players[0].rank,3,'surrender last');eq(H.rm.g.every(x=>x<0),true,'surrender reverts');eq(H.rm.pool.length,5,'tiles to pool');eq(H.turn,1,'turn moved');
 E.act(2,{t:'surrender'});eq(H.phase,'over','last one wins');eq(H.players[1].rank,1,'winner by surrender');eq(H.players[2].rank,2,'second');
+/* 타일 줍기: 동시에 줍기, 같은 자리는 먼저 누른 사람, 14개까지, 시간이 지나면 채움, 숨김 */
+setup(3,0,{pick:1});
+eq(!!H.rm.pk,true,'pick phase');eq(H.rm.rk.map(r=>r.length).join(),'0,0,0','pick starts empty');eq(H.rm.pool.length,TT.NT,'pick pool');
+eq(snapFor(0).o.pk.sp.length,TT.NT,'pick spots');eq(snapFor(0).o.pk.ids,undefined,'pick ids hidden');eq(snapFor(1).t,1,'pick turn is mine');
+E.act(0,{t:'pick',k:5});E.act(1,{t:'pick',k:5});E.act(1,{t:'pick',k:6});E.act(2,{t:'pick',k:200});E.act(0,{t:'mv',ids:[H.rm.rk[0][0]],to:0});E.act(0,{t:'end'});
+eq(H.rm.rk.map(r=>r.length).join(),'1,1,0','pick conflict');eq(H.rm.pk.tk[5],0,'first wins');eq(H.rm.g.every(x=>x<0),true,'no moves while picking');eq(total(),TT.NT,'pick total');
+for(let k=10;k<40;k++)E.act(0,{t:'pick',k});eq(H.rm.rk[0].length,TT.START,'pick stops at 14');eq(snapFor(0).t,undefined,'done picking: not my turn');eq(snapFor(2).t,2,'still picking');
+H.deadline=NOW+10;pass(100);eq(!!H.rm.pk,false,'pick timeout ends');eq(H.rm.rk.map(r=>r.length).join(),'14,14,14','pick filled');eq(H.rm.pool.length,TT.NT-42,'pick pool after');eq(total(),TT.NT,'pick total after');eq(uniq(),true,'pick unique');
+eq(H.turn,H.rm.first,'first player after pick');eq(H.deadline>NOW,true,'turn clock after pick');
+setup(3,1,{pick:1});H.botActAt=0;for(let k=0;k<400&&H.rm.pk;k++){NOW+=50;engineTick();if(k===20)for(let j=0;j<TT.NT&&H.rm.rk[0].length<TT.START;j++)E.act(0,{t:'pick',k:j})}
+eq(!!H.rm.pk,false,'bots pick');eq(H.rm.rk.map(r=>r.length).join(),'14,14,14','bots picked 14');
+setup(3,0,{pick:1});E.act(1,{t:'pick',k:1});E.act(1,{t:'surrender'});eq(H.rm.pool.length,TT.NT,'pick surrender returns');eq(!!H.rm.pk,true,'pick continues');
+for(let k=0;k<60;k++){E.act(0,{t:'pick',k});E.act(2,{t:'pick',k:k+60>105?0:k+45})}
+eq(!!H.rm.pk,false,'pick ends without surrendered');eq(H.phase,'play','play after pick');
 /* 봇 묶음 찾기 */
 {const S=TT.rackSets([ID(0,3),ID(0,4),ID(0,5),ID(0,6),ID(1,9),ID(2,9),ID(3,9),ID(1,1)]);eq(S.length,2,'bot finds 2 sets');eq(S.every(s=>sv(s)>0),true,'bot sets valid')}
 {const S=TT.rackSets([ID(0,3),ID(0,5),J0,ID(1,1)]);eq(S.length,1,'bot joker');eq(sv(S[0]),12,'bot joker middle')}
@@ -148,7 +162,7 @@ for(let k=0;k<300;k++){const R=shuffle([...Array(TT.NT).keys()]).slice(0,14+k%10
 /* 봇 대전: 타일 보존, 차례가 넘어갈 때 탁자는 늘 맞음, 언제나 끝남 */
 {let outs=0,pts=0,turns=0,t0=Date.now();
 for(let g=0;g<RM_GAMES;g++){
-  setup(2+g%3,1,{meld:g%4?1:0});H.players[0].bot=true;H.players[0].cid='';H.botActAt=NOW+1;
+  setup(2+g%3,1,{meld:g%4?1:0,pick:g%5===0?1:0});H.players[0].bot=true;H.players[0].cid='';H.botActAt=NOW+1;
   let last=-1;
   for(let k=0;k<200000&&H.phase==='play';k++){NOW+=200;engineTick();
     if(total()!==TT.NT||!uniq()){fail('rummi tiles lost '+total());break}
