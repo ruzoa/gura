@@ -99,6 +99,25 @@ eq(TT.tableState(H.rm.g,H.rm.put,false).ok,true,'joker reused');
 E.act(0,{t:'back',ids:[J0]});eq(H.rm.g[at(2,4)],J0,'joker from table stays on table');
 E.act(0,{t:'end'});eq(H.phase,'over','went out');eq(H.players[0].rank,1,'winner');eq(H.players[1].rank,2,'loser');
 {const o=snapFor(1).o;eq(o.all.length,2,'racks shown at end');eq(o.fin.w,0,'fin winner')}
+/* 붙어 있는 묶음: 맞는 묶음들로 나눌 수 있으면 됨 */
+{const sp=TT.splitRun;
+ eq(sp([ID(0,3),ID(0,4),ID(0,5),ID(0,7),ID(1,7),ID(2,7)]).cuts.join(),'0,3','run + group adjacent');
+ eq(sp([ID(0,3),ID(0,4),ID(0,5),ID(0,6),ID(0,7),ID(0,8)]).cuts.join(),'0','one long run, not two');
+ eq(sp([ID(0,3),ID(0,4),ID(0,5),ID(0,7)]),null,'leftover tile');
+ eq(sp([ID(0,7),ID(1,7),ID(2,7),ID(0,7,1),ID(1,7,1),ID(3,7)]).cuts.join(),'0,3','two groups adjacent');
+ eq(sp([ID(0,3),ID(0,4)]),null,'short');
+ eq(sp([ID(0,10),ID(1,10),ID(2,10),ID(3,1),ID(3,2),ID(3,3)],[ID(0,10),ID(1,10),ID(2,10)],true).pts,30,'meld next to table set');
+ eq(sp([ID(3,1),ID(3,2),ID(3,3),ID(3,4)],[ID(3,4)],true),null,'meld cannot extend table set')}
+setup(2,0,{meld:0});board([[ID(0,7),ID(1,7),ID(2,7),ID(1,9)],[ID(2,1)]],[[at(0,0),[ID(3,1),ID(3,2),ID(3,3)]]],[ID(1,1),ID(1,2),ID(1,3)]);
+E.act(0,{t:'mv',ids:[ID(0,7),ID(1,7),ID(2,7)],to:at(0,3)});E.act(0,{t:'end'});eq(H.turn,1,'adjacent sets ok');eq(H.rm.rk[0].length,1,'adjacent sets no penalty');eq(H.rm.g[at(0,5)],ID(2,7),'adjacent kept');
+/* 가운데를 빼면 붙음: 7 7 [7] 7 → 7 7 7. 연속은 안 붙음 */
+setup(2,0,{meld:0});board([[ID(3,4),ID(3,5),ID(1,9)],[ID(2,1)]],[[at(2,2),[ID(0,7),ID(1,7),ID(2,7),ID(3,7)]],[at(4,0),[ID(0,1),ID(0,2),ID(0,3),ID(0,4),ID(0,5)]]],[ID(1,1),ID(1,2),ID(1,3)],[1,0]);
+E.act(0,{t:'mv',ids:[ID(1,7)],to:at(8,0)});eq(H.rm.g.slice(at(2,2),at(2,6)).join(),[ID(0,7),ID(2,7),ID(3,7),-1].join(),'group closes');
+E.act(0,{t:'mv',ids:[ID(0,3)],to:at(9,0)});eq(H.rm.g[at(4,2)],-1,'run stays open');eq(H.rm.g[at(4,3)],ID(0,4),'run right part stays');
+E.act(0,{t:'mv',ids:[ID(0,3)],to:at(4,2)});E.act(0,{t:'mv',ids:[ID(1,7)],to:at(2,5)});
+E.act(0,{t:'mv',ids:[ID(3,4),ID(3,5)],to:at(6,0)});E.act(0,{t:'mv',ids:[ID(3,7)],to:at(6,2)});   // 주황 7을 빼서 주황 4 5 뒤에 (틀린 묶음)
+eq(H.rm.g.slice(at(2,2),at(2,6)).join(),[ID(0,7),ID(2,7),ID(1,7),-1].join(),'end tile removal keeps order');
+E.act(0,{t:'back',ids:[ID(3,4)]});eq(H.rm.g[at(6,0)],-1,'back leaves gap when rest is invalid');
 /* 시간 초과: 맞으면 그대로, 틀리면 되돌리고 3장, 안 냈으면 1장 */
 setup(2,0,{meld:0});board([[ID(0,3),ID(0,4),ID(0,5),ID(1,9)],[ID(2,1)]],[],[ID(1,1),ID(1,2),ID(1,3),ID(1,4)]);
 E.act(0,{t:'mv',ids:[ID(0,3),ID(0,4),ID(0,5)],to:at(5,0)});H.deadline=NOW+10;pass(100);eq(H.turn,1,'timeout turn');eq(H.rm.g[at(5,0)],ID(0,3),'timeout keeps valid');eq(H.rm.rk[0].length,1,'timeout no draw');
