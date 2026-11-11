@@ -302,7 +302,7 @@ G.kit={LAY,INK,BOARD,REGION,cellXZ,rackXZ,drawFace};
    - 받침대는 직접 배열(처음 한 번만 색·숫자 순). 자리는 이 기기에 기억(gura-rummi-rack)
    - 이번 차례에 낸 타일은 노란 바탕, 맞지 않는 묶음은 빨간 테두리 */
 const SEAT_C=['#c53026','#2b65ca','#1f7a2e','#c9831a'];
-const SC=.355,ZC=(REGION.z0+REGION.z1)/2,TILT=40*Math.PI/180,CAMA=15*Math.PI/180,RKY=.16,ROOT_Y=.03;
+const SC=.33,ZC=(REGION.z0+REGION.z1)/2,TILT=40*Math.PI/180,CAMA=15*Math.PI/180,RKY=.05,ROOT_Y=.03;
 const LONG_MS=420,LONG_STEP=170,MOVE_MS=190;
 let CS=null,GV=new Array(CELLS).fill(-1),slots=[],slotsKey='',sel=[],want={},PT=null,DR=null;
 let elRm=null,elBar=null,elHint=null,elBd=null,lastBar='',lastHint='',last2d='';
@@ -344,6 +344,14 @@ function syncRack(){
   for(let i=slots.length-1;i>=0&&slots.length>2*P;i--)if(slots[i]<0)slots.splice(i,1);
   saveRack();
 }
+/* 왼쪽부터 놓인 타일들이 묶음으로 이어질 수 있는지 (2개 이하도 봄): 같은 숫자·다른 색 4개까지, 또는 같은 색으로 1씩 커짐 */
+function fits(a){
+  const n=a.length,L=a.filter(x=>!isJ(x));if(!L.length)return n<=13;
+  const v=numOf(L[0]);
+  if(n<=4&&L.every(x=>numOf(x)===v)&&new Set(L.map(colOf)).size===L.length)return true;
+  const c=colOf(L[0]),i0=a.findIndex(x=>!isJ(x)),st=numOf(a[i0])-i0;
+  return st>=1&&st+n-1<=13&&a.every((x,i)=>isJ(x)||(colOf(x)===c&&numOf(x)===st+i));
+}
 /* 고르기·놓기 */
 const onTable=id=>GV.indexOf(id)>=0;
 function canTake(id){   // 탁자 타일을 옮길 수 있는지
@@ -356,27 +364,36 @@ function toggle(id,inRack){
   if(!inRack&&!canTake(id)){sndNo();return false}
   sel.push(id);sndPick(.12);redraw();return true;
 }
-/* 고른 타일을 h(칸 또는 받침대 자리)에 놓음. k = 그 자리에 올 타일이 고른 것 중 몇 번째인지 */
-function placeAt(h,k){
-  const ids=sel.slice(),n=ids.length;if(!n||!h)return false;
-  const fail=()=>{sndNo();redraw();return false};
+/* 고른 타일 ids를 h(칸 또는 받침대 자리)에 놓을 수 있으면 {kind,to,back}. k = 그 자리에 올 타일이 ids 중 몇 번째인지 */
+function planAt(h,k,ids){
+  const n=ids.length;if(!n||!h)return null;
   if(h.kind==='cell'){
-    if(!myTurnNow())return fail();
+    if(!myTurnNow())return null;
     const to=h.k-k,row=h.k/W|0;
-    if(to<row*W||to+n>(row+1)*W)return fail();
-    for(let j=0;j<n;j++){const x=GV[to+j];if(x>=0&&!ids.includes(x))return fail()}
-    if(ids.some(id=>onTable(id)?!canTake(id):!slots.includes(id)))return fail();
-    if(ids.every((id,j)=>GV[to+j]===id))return fail();
-    sel=[];sendAct({t:'mv',ids,to});sndPut();redraw();return true;
+    if(to<row*W||to+n>(row+1)*W)return null;
+    for(let j=0;j<n;j++){const x=GV[to+j];if(x>=0&&!ids.includes(x))return null}
+    if(ids.some(id=>onTable(id)?!canTake(id):!slots.includes(id)))return null;
+    if(ids.every((id,j)=>GV[to+j]===id))return null;
+    return {kind:'cell',to,back:[]};
   }
   const P=perTier(),tier=h.k/P|0,to=h.k-k;
-  if(!P||to<tier*P||to+n>(tier+1)*P)return fail();
+  if(!P||to<tier*P||to+n>(tier+1)*P)return null;
   const back=ids.filter(onTable);
-  if(back.length&&(!myTurnNow()||back.some(id=>!CS.put.includes(id))))return fail();
-  for(let j=0;j<n;j++){const x=slots[to+j];if(x>=0&&!ids.includes(x))return fail()}
-  ids.forEach(id=>{const i=slots.indexOf(id);if(i>=0)slots[i]=-1});
-  ids.forEach((id,j)=>{if(onTable(id))want[id]=to+j;else slots[to+j]=id});
-  sel=[];saveRack();if(back.length)sendAct({t:'back',ids:back});sndPut();redraw();return true;
+  if(back.length&&(!myTurnNow()||back.some(id=>!CS.put.includes(id))))return null;
+  for(let j=0;j<n;j++){const x=slots[to+j];if(x>=0&&!ids.includes(x))return null}
+  return {kind:'slot',to,back};
+}
+function placeAt(h,k){
+  const ids=sel.slice(),pl=planAt(h,k,ids);
+  if(!pl){sndNo();redraw();return false}
+  sel=[];
+  if(pl.kind==='cell')sendAct({t:'mv',ids,to:pl.to});
+  else{
+    ids.forEach(id=>{const i=slots.indexOf(id);if(i>=0)slots[i]=-1});
+    ids.forEach((id,j)=>{if(onTable(id))want[id]=pl.to+j;else slots[pl.to+j]=id});
+    saveRack();if(pl.back.length)sendAct({t:'back',ids:pl.back});
+  }
+  sndPut();redraw();return true;
 }
 function tap(h){
   if(!h||!CS||V.st!=='play'||introWait())return;
@@ -437,28 +454,22 @@ function d3Build(){
     const root=new THREE.Group();root.visible=false;root.scale.setScalar(SC);root.position.set(0,ROOT_Y,-ZC*SC);
     GEO.box=new THREE.BoxGeometry(LAY.TW,LAY.TT,LAY.TH);GEO.flat=new THREE.PlaneGeometry(1,1);GEO.flat.rotateX(-Math.PI/2);
     MAT.side=toon({color:0xe2d6b8,rim:.06});
+    P3.feltTex=canvasTex(8,8,(g,w,h)=>{g.fillStyle='#2f6b4a';g.fillRect(0,0,w,h)});
     MAT.sel=new THREE.MeshBasicMaterial({color:0xfff6c2,transparent:true,opacity:.98,depthWrite:false});
     MAT.put=new THREE.MeshBasicMaterial({color:0xf2b632,transparent:true,opacity:.95,depthWrite:false});
     MAT.bad=new THREE.MeshBasicMaterial({color:0xe5352b,transparent:true,opacity:.95,depthWrite:false});
     const bg=new THREE.Group();root.add(bg);P3.boardG=bg;
-    /* 깔개: 칸판 + 받침대 자리. 칸마다 옅은 테두리 */
-    const mw=BOARD.w+.6,md=REGION.z1-REGION.z0+.9,mz=ZC+.1;
-    const mt=canvasTex(1024,Math.round(1024*md/mw),(g,w,h)=>{
-      g.fillStyle='#2f6b4a';g.fillRect(0,0,w,h);
-      const u=w/mw,ox=(mw-BOARD.w)/2*u,oz=(-BOARD.d/2-(mz-md/2))*u;
-      g.strokeStyle='rgba(255,255,255,.16)';g.lineWidth=2;
-      for(let r=0;r<RH;r++)for(let c=0;c<W;c++){
-        const x=ox+c*LAY.CW*u+LAY.CW*u*.05,y=oz+r*LAY.CH*u+LAY.CH*u*.04,ww=LAY.CW*u*.9,hh=LAY.CH*u*.92,rr=6;
-        g.beginPath();g.moveTo(x+rr,y);g.arcTo(x+ww,y,x+ww,y+hh,rr);g.arcTo(x+ww,y+hh,x,y+hh,rr);g.arcTo(x,y+hh,x,y,rr);g.arcTo(x,y,x+ww,y,rr);g.closePath();g.stroke()}
-    });
-    const mat=new THREE.Mesh(new THREE.BoxGeometry(mw,.06,md),[MAT.matS=toon({color:0x275a3e,rim:0}),MAT.matS,toon({map:mt,rim:0}),MAT.matS,MAT.matS,MAT.matS]);
-    mat.position.set(0,-.03,mz);mat.receiveShadow=true;bg.add(mat);
-    /* 내 받침대 몸통 */
-    const wood=toon({color:0x9a6a3c,rim:.08}),wood2=toon({color:0x7c5230,rim:.08}),rz=BOARD.d/2+LAY.GAP;
+    /* 받침대: 타일과 같은 기울기의 비탈 + 아래 턱. 한 단짜리 모양을 만들어 내 것은 2단, 남의 것은 1단으로 씀 */
+    P3.wood=toon({color:0x9a6a3c,rim:.08});
+    {const top=RKY+Math.sin(TILT)*LAY.TH+.02,z0=LAY.CH/2-Math.cos(TILT)*LAY.TH/2-.04,z1=LAY.CH/2+Math.cos(TILT)*LAY.TH/2+.04,sh=new THREE.Shape();
+     sh.moveTo(z0,0);sh.lineTo(z0,top);sh.lineTo(z1,RKY-.02);sh.lineTo(z1,RKY+.2);sh.lineTo(z1+.1,RKY+.2);sh.lineTo(z1+.1,0);sh.closePath();
+     const g=new THREE.ExtrudeGeometry(sh,{depth:1,bevelEnabled:false});g.rotateY(-Math.PI/2);g.translate(.5,0,0);GEO.rack=g}   // x: -.5~.5, z: 0~CH, y: 0~
     const rb=new THREE.Group();P3.rackG=rb;bg.add(rb);
-    {const b=new THREE.Mesh(new THREE.BoxGeometry(BOARD.w+.4,RKY,LAY.CH*2+.1),wood);b.position.set(0,RKY/2,rz+LAY.CH);b.receiveShadow=true;rb.add(b);
-     for(const t of [0,1]){const lip=new THREE.Mesh(new THREE.BoxGeometry(BOARD.w+.4,.3,.1),wood2);lip.position.set(0,.15,rz+LAY.CH*(t+1)-.02);rb.add(lip)}}
-    P3.wood=wood;
+    for(const t of [0,1]){const m=new THREE.Mesh(GEO.rack,P3.wood);m.scale.x=BOARD.w+.3;m.position.set(0,0,BOARD.d/2+LAY.GAP+LAY.CH*t);m.castShadow=true;m.receiveShadow=true;rb.add(m)}
+    /* 끄는 동안 놓일 자리 그림자 */
+    MAT.spot=new THREE.MeshBasicMaterial({color:0x10200f,transparent:true,opacity:.3,depthWrite:false});
+    MAT.spotNo=new THREE.MeshBasicMaterial({color:0xe5352b,transparent:true,opacity:.4,depthWrite:false});
+    P3.spots=[];P3.sg=new THREE.Group();root.add(P3.sg);
     P3.pg=new THREE.Group();root.add(P3.pg);
     P3.og=new THREE.Group();root.add(P3.og);
     P3.mg=new THREE.Group();root.add(P3.mg);
@@ -494,12 +505,44 @@ function d3Sync(){
     o.put.visible=GV.indexOf(id)>=0&&CS.put.includes(id);o.fr.visible=sel.includes(id);
     if(DR&&DR.ids.includes(id)){o.to=p;continue}
     if(fresh||!o.cur){   // 새 타일: 받침대는 위에서 내려앉고, 탁자는 그 자리에
-      applyPose(o,p);o.to=p;o.from=null;
+      applyPose(o,p);o.to=p;o.from=null;if(IN.on3d&&slots.includes(id))o.g.visible=false;
       if(!IN.on3d&&slots.includes(id)&&P3.seen){o.from={...p,y:p.y+1.4};o.t0=now;applyPose(o,o.from)}
     }else if(!samePose(o.to,p)){o.from={...o.cur};o.to=p;o.t0=now}
   }
   P3.seen=true;
   d3Opp();d3Marks();P3.dirty=true;
+}
+/* 펠트: 게임에 들어오면 점선 없는 천으로 바꾸고 탁자 끝 가까이까지 커짐(칸판 귀퉁이까지 천 위). 나가면 되돌림 */
+const FELT_R0=3.15,FELT_R1=4.5,FELT_MS=900;
+const FE={on:false,t0:0,r:FELT_R0};
+function feltSize(r){FE.r=r;const k=r/FELT_R0;T.felt.mat.scale.set(k,1,k);if(T.felt.ink)T.felt.ink.scale.set(k,k,1)}
+function useFelt(on,slow){
+  if(!T.ok||!T.felt||!P3.feltTex)return;
+  const m=T.felt.mat.material[1],want=on?P3.feltTex:T.felt.tex;
+  if(m.map!==want){m.map=want;m.needsUpdate=true}
+  if(on&&!FE.on){FE.on=true;FE.t0=clock();feltSize(slow?FELT_R0:FELT_R1)}
+  else if(!on&&FE.on){FE.on=false;feltSize(FELT_R0)}
+  P3.dirty=true;
+}
+function feltFrame(now){
+  if(!FE.on||FE.r>=FELT_R1)return false;
+  feltSize(FELT_R0+(FELT_R1-FELT_R0)*ease((now-FE.t0)/FELT_MS));return true;
+}
+/* 끄는 동안: 손을 떼면 놓일 칸에 그림자(못 놓는 곳은 붉게) */
+function d3Spots(){
+  if(!P3.sg)return;
+  let n=0;
+  if(DR&&DR.h){
+    const ids=DR.ids,pl=planAt(DR.h,DR.k,ids),P=perTier(),slot=DR.h.kind==='slot',per=slot?P:W;
+    let to=pl?pl.to:DR.h.k-DR.k;const lo=(DR.h.k/per|0)*per;to=Math.max(lo,Math.min(lo+per-ids.length,to));
+    for(let j=0;j<ids.length&&per>=ids.length;j++){
+      const m=P3.spots[n]||(P3.spots[n]=flatMesh(MAT.spot,1,1,.004,1));if(!m.parent)P3.sg.add(m);n++;
+      m.material=pl?MAT.spot:MAT.spotNo;m.visible=true;m.rotation.x=0;
+      if(slot){const q=slotXZ(to+j);m.scale.set(LAY.TW*q.s,1,LAY.TH*q.s);m.rotation.x=TILT;m.position.set(q.x,RKY+Math.sin(TILT)*LAY.TH*q.s/2+.03,q.z)}
+      else{const q=cellXZ(to+j);m.scale.set(LAY.TW,1,LAY.TH);m.position.set(q.x,.004,q.z)}
+    }
+  }
+  for(;n<P3.spots.length;n++)P3.spots[n].visible=false;
 }
 /* 다른 사람 받침대(뒷면): 내 다음 사람부터 왼쪽 → 위 → 오른쪽. 2명은 위 */
 function d3Opp(){
@@ -510,9 +553,9 @@ function d3Opp(){
   for(let k=seated()?1:0;k<n;k++){
     const i=(b+k)%n,cnt=CS.n[i],side=place[k]||'b',max=side==='t'?11.5:side==='b'?BOARD.w:BOARD.d-1,sc=Math.min(1,max/(Math.max(1,cnt)*LAY.CW)),g=new THREE.Group();
     for(let j=0;j<cnt;j++){const t=backTile();t.scale.setScalar(sc);t.rotation.x=TILT;t.position.set((j-(cnt-1)/2)*LAY.CW*sc,RKY+Math.sin(TILT)*LAY.TH*sc/2,0);g.add(t)}
-    const base=new THREE.Mesh(new THREE.BoxGeometry(Math.max(3,cnt*LAY.CW*sc)+.4,RKY,LAY.CH+.1),P3.wood);base.position.y=RKY/2;g.add(base);
+    const base=new THREE.Mesh(GEO.rack,P3.wood);base.scale.set(Math.max(3,cnt*LAY.CW*sc)+.3,sc,sc);base.position.z=-LAY.CH*sc/2;g.add(base);
     if(side==='t'){g.rotation.y=Math.PI;g.position.set(0,0,REGION.z0-LAY.GAP-LAY.CH/2-.3)}
-    else if(side==='b')g.position.set(0,0,BOARD.d/2+LAY.GAP+LAY.CH)
+    else if(side==='b')g.position.set(0,0,BOARD.d/2+LAY.GAP+LAY.CH/2)
     else{g.rotation.y=side==='l'?-Math.PI/2:Math.PI/2;g.position.set((side==='l'?-1:1)*(BOARD.w/2+LAY.GAP+LAY.CH/2+.3),0,0)}
     P3.og.add(g);
   }
@@ -574,7 +617,7 @@ function d3Step(now){
 function d3Render(t){
   if(!P3.on||!T.ok)return;
   if(d3Layout(t))P3.dirty=true;
-  const busy=d3Step(t),intro=IN.on3d&&introStep(t);
+  const busy=d3Step(t)|feltFrame(t),intro=IN.on3d&&introStep(t);d3Spots();
   if(!busy&&!intro&&!P3.dirty&&t-P3.lastR<400)return;
   P3.dirty=false;P3.lastR=t;
   const fog=T.scene.fog,fn=fog?fog.near:0,ff=fog?fog.far:0;
@@ -605,7 +648,8 @@ const introOn=()=>IN.on&&clock()<IN.t0+IN.total;
 const introWait=()=>introOn()&&!IN.said;
 const tileAt=i=>{const A=IN.again?AGAIN:INTRO;return A.tile[0]+i*A.tile[1]};
 G.intro=(t0,o)=>{
-  if(!V||!V.o||!V.ps||!CS)return;
+  if(!CS||CS!==V.o)G.preView();   // 공통 코드가 화면 상태를 잡기 전에 부를 수 있음
+  if(!V||!V.ps||!CS)return;
   IN.again=!!(o&&o.again)&&P3.on;
   const rolls=IN.again?-1:o&&o.rolls,seed=(o&&o.seed)||1,cnt=CS.n.length;
   IN.on=true;IN.t0=t0;IN.said=false;IN.snd={};IN.fromLobby=!P3.on;IN.on3d=true;
@@ -613,6 +657,7 @@ G.intro=(t0,o)=>{
   if(IN.die){IN.die.dispose();IN.die=null}
   IN.fp=firstPick(t0+IN.r,{seats:Array.from({length:cnt},(_,k)=>k),first:CS.first,rolls,seed});
   $('#stage').classList.add('rm-intro');if(elRm&&IN.fromLobby)elRm.classList.add('intro');
+  if(IN.fromLobby&&FE.on){FE.t0=t0+INTRO.mat[0];feltSize(FELT_R0)}
   lastBar='';P3.dirty=true;
 };
 function introStep(now,force){
@@ -678,16 +723,22 @@ const tileAtH=(kind,k)=>kind==='slot'?(k>=0&&k<slots.length?slots[k]:-1):(k>=0&&
 function stopLong(){if(PT&&PT.tm){clearTimeout(PT.tm);clearInterval(PT.tm);PT.tm=0}}
 function ptDown(e){
   if(!P3.on||!V||!V.cfg||V.cfg.game!=='rummi'||!CS||V.st!=='play'||introWait()||(e.pointerType==='mouse'&&e.button!==0)||e.target.id!=='cv'||PT)return;
-  const h=pickAt(e);if(!h)return;
-  PT={id:e.pointerId,x:e.clientX,y:e.clientY,h,moved:false,long:false,tm:0,next:h.k};
-  if(h.id>=0)PT.tm=setTimeout(()=>{   // 꾹 누르기: 이 타일부터 오른쪽으로 붙어 있는 타일을 하나씩
+  const h=pickAt(e);
+  PT={id:e.pointerId,x:e.clientX,y:e.clientY,h,moved:false,long:false,tm:0,next:h?h.k:0};
+  if(h&&h.id>=0)PT.tm=setTimeout(()=>{   // 꾹 누르기: 이 타일부터 오른쪽으로 붙어 있는 타일을 하나씩
     if(!PT||PT.moved)return;
     PT.long=true;
+    const down=sel.includes(h.id),chain=[];   // 올라와 있던 타일이면 내리기
     const step=()=>{
       if(!PT)return;
       const P=h.kind==='slot'?perTier():W,k=PT.next,id=tileAtH(h.kind,k);
       if(id<0||(k!==h.k&&k%P===0)){stopLong();return}
-      if(!sel.includes(id)&&!toggle(id,h.kind==='slot')){stopLong();return}
+      if(down){if(!sel.includes(id)){stopLong();return}toggle(id,h.kind==='slot')}
+      else{
+        if(!fits([...chain,id])){stopLong();return}
+        if(!sel.includes(id)&&!toggle(id,h.kind==='slot')){stopLong();return}
+        chain.push(id);
+      }
       PT.next=k+1;
     };
     step();if(PT)PT.tm=setInterval(step,LONG_STEP);
@@ -698,14 +749,15 @@ function ptMove(e){
   if(!PT.moved){
     if(Math.hypot(e.clientX-PT.x,e.clientY-PT.y)<9)return;
     PT.moved=true;stopLong();
-    const h=PT.h;if(h.id<0)return;
+    const h=PT.h;if(!h||h.id<0)return;
     if(!sel.includes(h.id)){if(h.kind==='cell'&&!canTake(h.id)){sndNo();return}sel=[h.id]}
-    DR={ids:sel.slice(),k:sel.indexOf(h.id),x:0,z:0};
+    DR={ids:sel.slice(),k:sel.indexOf(h.id),x:0,z:0,h:null};
     try{e.target.setPointerCapture(e.pointerId)}catch(_){}
     sndPick(.12);
   }
   if(!DR)return;
   const p=localAt(e,1.1);if(p){DR.x=p.x;DR.z=p.z}
+  DR.h=pickAt(e);
   P3.dirty=true;e.preventDefault();
 }
 function ptUp(e){
@@ -717,7 +769,9 @@ function ptUp(e){
     if(!h||!placeAt(h,k)){sel=[];redraw()}
     return;
   }
-  if(!p.moved&&!p.long&&e.type!=='pointercancel')tap(p.h);
+  if(p.moved||p.long||e.type==='pointercancel')return;
+  if(p.h)tap(p.h);
+  else if(sel.length){sel=[];sndPick(.06);redraw()}   // 판 밖을 누르면 고른 것을 모두 내림
 }
 function on2dClick(e){
   const t=e.target.closest('[data-c],[data-s]');if(!t||P3.on)return;
@@ -727,7 +781,7 @@ function on2dClick(e){
 
 /* ---------- 공통 코드가 부르는 것 ---------- */
 G.preView=()=>{
-  if(!V.o||!V.o.g||!Array.isArray(V.o.n)){CS=null;return}
+  if(!V||!V.o||!V.o.g||!Array.isArray(V.o.n)){CS=null;return}
   CS=V.o;GV=new Array(CELLS).fill(-1);for(let i=0;i<CS.g.length;i+=2)GV[CS.g[i]]=CS.g[i+1];
   syncRack();
   const mine=myTurnNow()||(V.st==='play'&&V.t===myIdx());
@@ -752,7 +806,7 @@ G.hud=inGame=>{
   elRm.hidden=!on;
   $('#stage').classList.toggle('rm-over',!!(on&&V.st==='over'));
   const d3=on&&d3Build();
-  if(d3!==P3.on){P3.on=d3;P3.lay='';P3.seen=false;P3.oppKey='';if(P3.root)P3.root.visible=d3;$('#stage').classList.toggle('rm3d',d3);last2d='';lastHint=''}
+  if(d3!==P3.on){useFelt(d3,IN.on&&IN.fromLobby);P3.on=d3;P3.lay='';P3.seen=false;P3.oppKey='';if(P3.root)P3.root.visible=d3;$('#stage').classList.toggle('rm3d',d3);last2d='';lastHint=''}
   $('#stage').classList.toggle('rm2d',on&&!d3);
   if(!on){lastBar='';lastHint='';last2d='';return}
   drawAll();
@@ -771,7 +825,7 @@ G.buttons=()=>{
   const play=$('#btnPlay'),can=myTurnNow();
   $('#btnPass').hidden=true;$('#btnGura').hidden=true;
   play.disabled=!can;play.classList.toggle('ready',can&&!!CS&&CS.put.length>0&&tableState(GV,CS.put,meldNeed(myIdx())).ok);
-  const lab=!CS||CS.put.length?'마치기':CS.pool>0?'뽑기':'넘기기';
+  const lab=!CS||(can&&CS.put.length)?'마치기':CS.pool>0?'뽑기':'넘기기';
   if($('#playMain').textContent!==lab)$('#playMain').textContent=lab;
   const sub=keyLabel(KEYS.play);if($('#playSub').textContent!==sub)$('#playSub').textContent=sub;
 };
@@ -796,7 +850,7 @@ G.leave=()=>{
   introEnd();stopLong();PT=null;DR=null;sel=[];
   $('#stage').classList.remove('rm','rm-over','rm3d','rm2d');
   if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
-  if(P3.root)P3.root.visible=false;P3.on=false;
+  useFelt(false);if(P3.root)P3.root.visible=false;P3.on=false;
   for(const o of P3.tiles.values())if(P3.pg)P3.pg.remove(o.g);P3.tiles.clear();P3.seen=false;P3.oppKey='';
   $('#btnPass').hidden=false;
   if(elRm){elRm.hidden=true;lastBar='';lastHint='';last2d=''}
@@ -847,7 +901,7 @@ G.init=()=>{
 #rm .rm-g{display:grid;grid-template-columns:repeat(${W},minmax(0,1fr));gap:2px;width:min(100%,520px);background:#2f6b4a;padding:4px;border-radius:8px}
 #rm .rm-g.rk{grid-template-columns:repeat(var(--rp),minmax(0,1fr));background:#9a6a3c}
 #rm .rm-g .t{aspect-ratio:1/1.3;display:flex;align-items:center;justify-content:center;border-radius:4px;background:#f6eeda;font:700 15px/1 var(--f-num,monospace);font-style:normal;cursor:pointer;user-select:none;-webkit-user-select:none;border:2px solid transparent}
-#rm .rm-g .t.e{background:rgba(255,255,255,.08)}
+#rm .rm-g .t.e{background:none}
 #rm .rm-g .t.c0{color:${INK[0]}}#rm .rm-g .t.c1{color:${INK[1]}}#rm .rm-g .t.c2{color:${INK[2]}}#rm .rm-g .t.c3{color:${INK[3]}}
 #rm .rm-g .t.put{background:#ffe9a8}
 #rm .rm-g .t.bad{border-color:#e5352b}

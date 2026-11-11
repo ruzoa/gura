@@ -132,13 +132,8 @@ function plane(mat,w,d,x,y,z){const m=new THREE.Mesh(flat,mat);m.scale.set(w,1,d
 function build(){
   while(root.children.length)root.remove(root.children[0]);
   const D=scene(S.n,S.rack),B=K.BOARD,Rg=K.REGION;
-  /* 펠트 + 칸 자리 표시 */
+  /* 펠트 */
   root.add(plane(new THREE.MeshLambertMaterial({color:0x2f6b4a}),B.w+3.2,Rg.z1-Rg.z0+7,0,-.01,(Rg.z0+Rg.z1)/2));
-  {const c=document.createElement('canvas'),u=48;c.width=TT.W*u;c.height=TT.RH*Math.round(u*L.CH/L.CW);const g=c.getContext('2d'),ch=c.height/TT.RH;
-   g.strokeStyle='rgba(255,255,255,.13)';g.lineWidth=2;
-   for(let r=0;r<TT.RH;r++)for(let q=0;q<TT.W;q++){const x=q*u+u*.06,y=r*ch+ch*.045,w=u*.88,h=ch*.91,rr=6;g.beginPath();g.moveTo(x+rr,y);g.arcTo(x+w,y,x+w,y+h,rr);g.arcTo(x+w,y+h,x,y+h,rr);g.arcTo(x,y+h,x,y,rr);g.arcTo(x,y,x+w,y,rr);g.closePath();g.stroke()}
-   const t=new THREE.CanvasTexture(c);t.anisotropy=rd.capabilities.getMaxAnisotropy();
-   root.add(plane(new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}),B.w,B.d,0,0,0))}
   /* 탁자 타일 */
   D.g.forEach((id,cell)=>{if(id<0)return;const p=K.cellXZ(cell),m=tile(id,S.style);m.position.set(p.x,L.TT/2,p.z);root.add(m);
     root.add(plane(shadowM,L.TW*1.03,L.TH*1.03,p.x+.07,.004,p.z+.1));
