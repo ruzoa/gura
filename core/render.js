@@ -299,7 +299,7 @@ $('#panel').addEventListener('click',e=>{
   if(a==='leave'){
     // 방장이 나가면 방이 없어지므로, 다른 사람이 있으면 한 번 확인
     if(b.classList.contains('back')&&mode==='host'&&H&&H.online&&H.members.some(m=>!m.host&&!m.bot)&&!confirm('방장이 떠나면 탁자가 정리됩니다. 떠나시겠습니까?'))return;
-    leaveRoom();return}
+    frontLeave();return}
   if(a==='emopad'){$('#emoPad').hidden?openEmoPad(b):closeEmoPad();return}
   if(a.startsWith('emo:')){sendEmote(a.slice(4));return}
   if(a==='join'){sendAct({t:'join'});return}
@@ -670,7 +670,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#menu').hidden)
 $('#mKeys').addEventListener('click',()=>{closeMenu();openKeys()});
 $('#mLeave').addEventListener('click',()=>{
   if(!leaveArmed){leaveArmed=true;const b=$('#mLeave');b.classList.add('arm');b.querySelector('span').textContent='한 번 더';leaveTimer=setTimeout(disarmLeave,3000);return}
-  closeMenu();leaveRoom();
+  closeMenu();frontLeave();
 });
 /* 항복: 한 번 누르면 확인 상태, 3초 안에 다시 누르면 항복 */
 let giveUpArmed=false,giveUpTimer=null;

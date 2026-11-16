@@ -22,8 +22,9 @@ function frontBuildList(TG){
     prev:x=>{x.beginPath();x.moveTo(36,64);x.lineTo(86,34);x.lineTo(86,94);x.closePath();x.fill()},
     next:x=>{x.beginPath();x.moveTo(92,64);x.lineTo(42,34);x.lineTo(42,94);x.closePath();x.fill()},
     ref:x=>{x.lineWidth=13;x.beginPath();x.arc(64,66,32,-Math.PI*.35,Math.PI*1.25);x.stroke();const a=-Math.PI*.35,ex=64+32*Math.cos(a),ey=66+32*Math.sin(a);x.beginPath();x.moveTo(ex+20,ey-6);x.lineTo(ex-6,ey-22);x.lineTo(ex-2,ey+14);x.closePath();x.fill()},
+    num:x=>{x.lineWidth=12;x.beginPath();x.arc(56,56,24,0,7);x.stroke();x.lineWidth=15;x.beginPath();x.moveTo(74,74);x.lineTo(94,94);x.stroke()},   // 돋보기: 번호로 찾아가기
     x:x=>{x.lineWidth=16;x.beginPath();x.moveTo(38,38);x.lineTo(90,90);x.moveTo(90,38);x.lineTo(38,90);x.stroke()}};
-   [['prev',-.42],['next',-.14],['ref',.14],['x',.42]].forEach(([k,bx])=>{
+   [['prev',-.48],['next',-.24],['ref',0],['num',.24],['x',.48]].forEach(([k,bx])=>{
     const tx=canvasTex(128,128,(x,w,h)=>{x.fillStyle='#c9a46a';x.fillRect(0,0,w,h);x.strokeStyle=x.fillStyle=ink;x.lineCap='round';x.lineJoin='round';x.translate(64,64);x.rotate(-Math.PI/2);x.translate(-64,-64);dr[k](x)});   // 단추 윗면은 90도 돌아 보여서 미리 반대로 돌려 그림
     const m=new THREE.Mesh(new THREE.CylinderGeometry(BR,BR+.008,.05,28),[brass,toon({map:tx,rim:.2}),brass]);m.rotation.x=Math.PI/2;m.position.set(bx,BY,BZ);m.castShadow=true;b.add(m);
     const o=hull(new THREE.CylinderGeometry(BR+.012,BR+.02,.06,28),m,b);
@@ -34,9 +35,9 @@ function frontBuildList(TG){
   const slit=new THREE.Mesh(new THREE.PlaneGeometry(PW+.16,.22),new THREE.MeshBasicMaterial({color:0x15100c}));slit.rotation.x=-Math.PI/2;slit.position.y=.0005;g.add(slit);
   T.plist={g,b,board,lbtn,cv,tex,rows,L:PL,W:PW,tilt:.08,key:'',flaps:[...Array(FR_ROWS)].map(()=>({to:['','',''],cur:['','',''],until:0,next:0,mid:0})),pick:-1,pickAt:0,drawn:''};
   const fr=$('#front');
-  {const acts={prev:()=>frontListPage(-1),next:()=>frontListPage(1),ref:()=>frontListRefresh(true),x:()=>frontList(false)},nm={prev:'이전 쪽',next:'다음 쪽',ref:'새로고침',x:'닫기'};
+  {const acts={prev:()=>frontListPage(-1),next:()=>frontListPage(1),ref:()=>frontListRefresh(true),num:()=>frontListNum(),x:()=>frontList(false)},nm={prev:'이전 쪽',next:'다음 쪽',ref:'새로고침',num:'번호로 찾아가기',x:'닫기'};
    lbtn.forEach(B=>{const bt=document.createElement('button');bt.type='button';bt.className='fr-hot off fr-key';bt.id='frL'+B.k;bt.setAttribute('aria-label',nm[B.k]);bt.title=nm[B.k];
-     bt.addEventListener('click',()=>{B.at=clock();acts[B.k]();if(B.k==='prev'||B.k==='next'||B.k==='x')sfx('key')});fr.insertBefore(bt,$('#frFoot'))})}
+     bt.addEventListener('click',()=>{B.at=clock();acts[B.k]();if(B.k==='prev'||B.k==='next'||B.k==='x'||B.k==='num')sfx('key')});fr.insertBefore(bt,$('#frFoot'))})}
   rows.forEach((m,i)=>{const bt=document.createElement('button');bt.type='button';bt.className='fr-hot off fr-key';bt.id='frR'+i;bt.addEventListener('click',()=>frontListPick(i));fr.insertBefore(bt,$('#frFoot'))});
 }
 function frontListRooms(){return (FR.lrooms||[]).filter(roomOpen)}
@@ -90,12 +91,12 @@ function frontDrawList(t){
 }
 function frontList(on){
   if(on){
-    if(!FR.ok||mode!=='lobby'||FR.warp||FR.spread||net.peer)return;
+    if(!frGoOk())return;
     FR.list=true;FR.leanOn=true;FR.keyAt=clock();FR.buf='';FR.pub=null;FR.lpage=0;
     if(T.plist){T.plist.key='';T.plist.flaps.forEach(f=>{f.cur=['','',''];f.to=['','',''];f.until=0})}
     if(Date.now()-roomScanAt<20000&&roomCache.length)FR.lrooms=roomCache;
     else{FR.lrooms=null;if(!FR.scan){FR.scan=true;scanRooms(l=>{FR.scan=false;FR.lrooms=l||false})}}
-  }else{if(!FR.list)return;FR.list=false;sfx('tick')}
+  }else{if(!FR.list)return;FR.list=false;sfx('tick');if(FR.seek&&FR.kmode!=='num')frontSeekEnd()}   // 찾아가기 중 목록을 닫으면 대기실로
 }
 /* 새로고침: 누르면 줄을 비우고 다시 찾음(첫 줄이 돎). 판이 열려 있으면 15초마다 저절로 다시 찾음(찾는 동안 지금 줄은 그대로) */
 function frontListRefresh(manual){
@@ -111,7 +112,9 @@ function frontListPage(dir){
   FR.lpage=((FR.lpage||0)+dir+pages)%pages;FR.keyAt=clock();
 }
 function frontListPick(i){
-  const r=frontListRooms()[(FR.lpage||0)*FR_ROWS+i];if(!r||mode!=='lobby'||FR.warp||net.peer)return;
+  const r=frontListRooms()[(FR.lpage||0)*FR_ROWS+i];if(!r||!frGoOk()||(V&&r.code===String(V.code).toLowerCase()))return;
   const P=T.plist;P.pick=i;P.pickAt=clock();sfx('key');
-  setTimeout(()=>{if(mode!=='lobby'||FR.warp||net.peer)return;FR.list=false;joinRoom(r.code)},320);   // 줄이 밝게 딸깍 → 판이 들어가며 출발
+  setTimeout(()=>{if(!frGoOk())return;FR.list=false;frontJoin(r.code)},320);   // 줄이 밝게 딸깍 → 판이 들어가며 출발
 }
+/* 목록 판의 돋보기: 판이 들어가고 같은 틈에서 숫자 키판 */
+function frontListNum(){if(!FR.list||!frGoOk())return;FR.kmode='num';FR.buf='';FR.pub=null;FR.backAt=0;FR.list=false;FR.leanOn=true;FR.keyAt=clock()}

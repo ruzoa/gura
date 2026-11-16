@@ -273,7 +273,7 @@ function frontMenu(k){
 }
 /* 키판: 숫자 4자리를 넣고 엔터면 찾아감. ← 지우기, 엔터 = 찾아가기, 돋보기 = 공개 탁자 목록 판, 주사위 = 아무 탁자나 */
 function frontKey(k){
-  if(!FR.ok||mode!=='lobby'||FR.warp||FR.spread||net.peer)return;
+  if(!frGoOk())return;
   const t=clock();FR.keyAt=t;FR.leanOn=true;FR.sit=true;
   if(FR.kmode!=='num'){if(k==='←')return;FR.kmode='num'}   // 첫 자판일 때 숫자를 치면(PC 키보드) 숫자 키판으로
   if(k!=='←'||FR.buf||FR.pub)FR.word='';
@@ -288,15 +288,15 @@ function frontKey(k){
     if(FR.buf){FR.buf=FR.buf.slice(0,-1);FR.backAt=0;return}
     if(FR.backAt&&t-FR.backAt<2500){FR.backAt=0;FR.word='';frontToMenu();return}
     FR.backAt=t;frontWord('뒤로',2500);return}
-  if(k==='dice'){FR.buf='';FR.pub=null;setTimeout(()=>{if(mode==='lobby'&&!net.peer&&!FR.warp)randomJoin()},380);return}   // 주사위가 구르고 나서 출발
+  if(k==='dice'){FR.buf='';FR.pub=null;setTimeout(()=>{if(frGoOk()){frontSeekLeave();randomJoin()}},380);return}   // 주사위가 구르고 나서 출발
   if(k==='enter'){if(!frontGo())sfx('no');return}
   if(k==='search'){setTimeout(()=>frontList(true),140);return}   // 키가 눌린 걸 보고 나서 키판이 들어감
 }
-function frontToMenu(){FR.kmode='menu';FR.buf='';FR.pub=null;FR.backAt=0;if(FR.list)FR.list=false;FR.leanOn=false}
+function frontToMenu(){if(FR.seek){frontSeekEnd();return}FR.kmode='menu';FR.buf='';FR.pub=null;FR.backAt=0;if(FR.list)FR.list=false;FR.leanOn=false}
 function frontGo(){   // 디스플레이를 누름 / Enter
-  if(mode!=='lobby'||FR.warp||FR.spread||net.peer)return false;
-  if(FR.pub){const c=FR.pub;FR.pub=null;joinRoom(c);return true}
-  if(FR.buf.length===4){const c=FR.buf;FR.buf='';joinRoom(c);return true}
+  if(!frGoOk())return false;
+  if(FR.pub){const c=FR.pub;FR.pub=null;frontJoin(c);return true}
+  if(FR.buf.length===4){const c=FR.buf;if(V&&c===String(V.code).toLowerCase()){FR.fullAt=clock();sfx('no');return true}FR.buf='';frontJoin(c);return true}   // 지금 탁자 번호면 부르르
   return false;
 }
 /* 자판 자세: 디스플레이 아래에서 미끄러져 나온 뒤(0~.6) 올라옴(.6~1). 누른 키는 쑥 들어감 */
@@ -316,6 +316,8 @@ function frontUpdate(t,dt){
   if(!FR.ok)return;
   const lobby=mode==='lobby',wait=frWaitV(),host=mode==='host';
   if(!wait){if(FR.browse)frontBrowse(false);if(FR.pop!=null)seatPopClose()}
+  if(FR.seek&&(!wait||(!FR.list&&FR.kmode!=='num')))frontSeekEnd();
+  if(lobby&&FR.sit&&!FR.warp&&!FR.spread&&!net.peer&&!FR.rb.on&&t-(FR.mkAt||-1e9)>2500){FR.mkAt=t;FR.spread=true;sfx('btnGo');frontMakeHome()}   // 앉으면 바로 내 탁자를 차림
   // 타임머신: 탁자가 떨리고, 해가 돌며 하늘이 낮·밤으로, 안개가 짙어졌다 걷힘 (풍경은 돌지 않음)
   const w=FR.warp;
   if(w){
@@ -359,13 +361,14 @@ function frontUpdate(t,dt){
     T.board.hole.visible=o>.02;T.board.screen.visible=o>.02;T.board.g.visible=o>.001&&!(G.boardHide||(G.ownBoard&&V&&V.st&&V.st!=='wait'&&mode!=='lobby'))}   // 닫히면 덮개도 안 보임(탁자 위는 깔끔하게)   // 첫 화면(서서 볼 때)은 탁자만: 덮개도 안 보임
   // 키판: 첫 화면에서 디스플레이가 열리면 올라옴. 누르면 그 키가 쑥 들어감 (주사위 키는 구르듯 흔들림)
   // 키판: 디스플레이 아래에서 미끄러져 나온 뒤(0~.6) 올라옴(.6~1). 들어갈 때는 거꾸로. 목록 판과 번갈아 나옴
-  if(!lobby||!FR.sit||FR.spread||FR.warp)FR.list=false;
-  const kbase=lobby&&FR.sit&&!FR.spread&&FR.stand<.3;
-  if(!lobby||!FR.sit)FR.kmode='menu';
-  if(T.menuPad){T.menuPad.a=FR.ma;padPose(T.menuPad,kbase&&FR.kmode==='menu'&&!FR.list&&!FR.rb.on&&FR.ka.v<=.01&&FR.pla.v<=.01&&FR.rba.v<=.01,t,lobby?620:400)}
+  const seek=frSeek(),roomDown=[T.hostPad,T.guestPad,T.sitPad].every(Q=>!Q||Q.a.v<=.01);
+  if(!(lobby&&FR.sit)&&!seek||FR.spread||FR.warp)FR.list=false;
+  const kbase=((lobby&&FR.sit)||(seek&&roomDown))&&!FR.spread&&FR.stand<.3;
+  if(!(lobby&&FR.sit)&&!seek)FR.kmode='menu';
+  if(T.menuPad){T.menuPad.a=FR.ma;padPose(T.menuPad,kbase&&!seek&&FR.kmode==='menu'&&!FR.list&&!FR.rb.on&&FR.ka.v<=.01&&FR.pla.v<=.01&&FR.rba.v<=.01,t,lobby?620:400)}
   if(T.hostPad){   // 대기실 자판: 방장·참가자·관전자 중 하나만. 바뀔 때는 앞 자판이 다 들어간 뒤 나옴
     const me=wait?myIdx():-1,sitd=wait&&FR.stand<.05&&FR.open>.98&&!FR.warp,pads=[[T.hostPad,host],[T.guestPad,!host&&me>=0],[T.sitPad,!host&&me<0&&!!(V&&V.spec)]];
-    pads.forEach(([P,mine])=>padPose(P,sitd&&mine&&!FR.rb.on&&FR.rba.v<=.01&&pads.every(([Q])=>Q===P||Q.a.v<=.01),t,wait?620:380));
+    pads.forEach(([P,mine])=>padPose(P,sitd&&mine&&!FR.seek&&FR.ka.v<=.01&&FR.pla.v<=.01&&!FR.rb.on&&FR.rba.v<=.01&&pads.every(([Q])=>Q===P||Q.a.v<=.01),t,wait?620:380));
     if(FR.clearHold&&(!wait||!host)){FR.clearHold=0;if(FR.humStop){FR.humStop();FR.humStop=null}}
     const hp=FR.clearHold?clamp01((t-FR.clearHold)/CLEAR_MS):0;FR.clearP=FR.clearHold?hp:Math.max(0,(FR.clearP||0)-dt*3);   // 떼면 천천히 원래 색으로
     for(const P of [T.hostPad,T.guestPad,T.sitPad])if(P.g.visible)P.keys.forEach(m=>{const k=m.userData.k,ok=frontWaitCan(k);
@@ -376,10 +379,10 @@ function frontUpdate(t,dt){
   {const c=t-(FR.clearAt||-1e9),G2=T.tableG;if(!FR.warp&&G2){if(c<650){const r=1-c/650;G2.position.set(r*.05*Math.sin(t/17),0,r*.04*Math.sin(t/23+1));G2.rotation.set(0,0,r*.012*Math.sin(t/13));FR.clearShook=1}else if(FR.clearShook){FR.clearShook=0;G2.position.set(0,0,0);G2.rotation.set(0,0,0)}}}   // 상을 치움: 탁자가 짧게 흔들림
   if(T.keypad){const kv=frontTween(FR.ka,kbase&&FR.kmode==='num'&&!FR.list&&FR.pla.v<=.01&&FR.ma.v<=.01&&FR.rba.v<=.01?1:0,t,lobby?720:400),ks=smooth(clamp01(kv/.6)),kr=smooth(clamp01((kv-.6)/.4));
     T.keypad.g.position.z=DSP.Z-.45+(.45+DSP.D/2)*ks;T.keypad.g.position.y=-.012+.042*kr;T.keypad.g.visible=kv>.01;
-    const full=lobby&&FR.buf.length===4&&!FR.list;
+    const full=(lobby||seek)&&FR.buf.length===4&&!FR.list;
     for(const m of T.keypad.keys){const d=t-m.userData.downAt,bk=t-(m.userData.blockAt||-1e9);m.position.y=bk<200?-.012*Math.sin(bk/200*Math.PI):d<140?-.028:0;   // 막힌 키는 반만 들어갔다 튕김
       if(m.userData.k==='enter'){const top=m.material[2],p=full?.5+.5*Math.sin(t/180):0;top.color.setRGB(1,1-.08*p,1-.45*p);if(full&&d>=140)m.position.y=.006*p}m.rotation.set(0,m.userData.k==='dice'&&d<420?Math.sin(d/30)*.5*(1-d/420):0,0)}}   // 4자리가 차면 엔터 키가 노랗게 깜빡
-  if(T.plist){const P=T.plist,pv=frontTween(FR.pla,FR.list&&FR.ka.v<=.01&&FR.ma.v<=.01&&FR.rba.v<=.01?1:0,t,FR.list?520:380),pu=smooth(pv);
+  if(T.plist){const P=T.plist,pv=frontTween(FR.pla,FR.list&&(!seek||roomDown)&&FR.ka.v<=.01&&FR.ma.v<=.01&&FR.rba.v<=.01?1:0,t,FR.list?520:380),pu=smooth(pv);
     if(FR.pla.to===1&&pv>0&&!FR.listUp){FR.listUp=1;sfx('btnUp')}if(FR.pla.to===0)FR.listUp=0;
     P.b.position.y=P.L/2-(P.L+.1)*(1-pu);P.g.visible=pv>.01;
 if(pv>.01)frontDrawList(t);
@@ -387,9 +390,9 @@ if(pv>.01)frontDrawList(t);
     {P.lbtn.forEach(B=>{const d=t-B.at,k=d<0||d>300?0:d<90?d/90:1-(d-90)/210;B.m.position.z=B.o.position.z=B.z-.022*k})}   // 눌림
   }
   frontRulesUpdate(t,dt,lobby,wait);
-  if(FR.leanOn&&!FR.rb.on&&(!lobby||!FR.sit||FR.warp||FR.spread||(t-FR.keyAt>20000&&!FR.buf&&!FR.pub&&!FR.list)))FR.leanOn=false;
-  if(lobby&&FR.sit&&FR.kmode==='num'&&!FR.leanOn&&!FR.buf&&!FR.pub&&!FR.list&&!FR.warp&&!FR.spread)frontToMenu();   // 숙여 보기를 그만두면(빈 곳·Esc) 번호가 없을 때 첫 자판으로
-  if(!lobby){FR.buf='';FR.pub=null}
+  if(FR.leanOn&&!FR.rb.on&&((!(lobby&&FR.sit)&&!frSeek())||FR.warp||FR.spread||(t-FR.keyAt>20000&&!FR.buf&&!FR.pub&&!FR.list)))FR.leanOn=false;
+  if(((lobby&&FR.sit)||frSeek())&&FR.kmode==='num'&&!FR.leanOn&&!FR.buf&&!FR.pub&&!FR.list&&!FR.warp&&!FR.spread)frontToMenu();   // 숙여 보기를 그만두면(빈 곳·Esc) 번호가 없을 때 첫 자판으로
+  if(!lobby&&!frSeek()){FR.buf='';FR.pub=null}
   FR.lean=frontTween(FR.la,FR.leanOn?1:0,t,550);
   // 디스플레이 글자
   if(FR.word&&t-FR.wordAt>FR.wordMs)FR.word='';
@@ -398,10 +401,10 @@ if(pv>.01)frontDrawList(t);
   if(FR.word){const s=FR.word;chars=s.length===2?[' ',s[0],s[1],' ']:s.length===3?[' ',...s]:s.padEnd(4).slice(0,4).split('')}
   else if(FR.warp&&FR.warp.ph!=='fail'){if(FR.warp.code)chars=FR.warp.code.toUpperCase().padEnd(4).slice(0,4).split('');else spin=true}
   else if(lobby&&FR.scan)spin=true;
-  else if(lobby&&FR.pub)chars=FR.pub.toUpperCase().padEnd(4).slice(0,4).split('');
-  else if(lobby&&FR.buf)chars=FR.buf.toUpperCase().padEnd(4).split('');
+  else if((lobby||frSeek())&&FR.pub)chars=FR.pub.toUpperCase().padEnd(4).slice(0,4).split('');
+  else if((lobby||frSeek())&&FR.buf)chars=FR.buf.toUpperCase().padEnd(4).split('');
   else if(wait)chars=shownCode(V.code).padEnd(4).slice(0,4).split('');
-  FR.no=!FR.word&&!spin&&(!!(FR.warp&&FR.warp.ph!=='fail'&&FR.warp.code)||(lobby&&!FR.scan&&!!(FR.pub||FR.buf))||(!!wait&&!(lobby&&FR.scan)));   // 탁자 번호를 보일 때만 앞에 'No.'
+  FR.no=!FR.word&&!spin&&(!!(FR.warp&&FR.warp.ph!=='fail'&&FR.warp.code)||((lobby&&!FR.scan||frSeek())&&!!(FR.pub||FR.buf))||(!!wait&&!(lobby&&FR.scan)));   // 탁자 번호를 보일 때만 앞에 'No.'
   FR.lock=wait&&!FR.word?(!V.cfg.pub?'closed':host?'open':''):'';
   FR.eye=wait&&!FR.word?(hideCode?'shut':'open'):'';
   const key=chars.join('')+(spin?'*':'')+FR.lock+FR.eye+(FR.bad?'!':'')+(FR.no?'#':'');
@@ -410,7 +413,7 @@ if(pv>.01)frontDrawList(t);
   if(T.board){const cp=FR.clearHold?FR.clearP||0:0,bl=cp>0&&Math.floor((2*cp+7*cp*cp)*2)%2===1;T.board.screen.material.color.setScalar(bl?.3:1)}   // 상치우기를 누르는 동안 디스플레이가 점점 빨리 깜빡임
   // 투사기·홀로그램, 시작 버튼
   frontHoloPose(t,wait);
-  if(T.startBtn){const S=T.startBtn,can=mode==='host'&&canStart(),want=wait&&host&&can&&FR.stand<.05&&!FR.browse&&!roomSetOpen;   // 시작할 수 있을 때만 구멍이 열리고 올라옴. 아니면 아무 흔적 없음
+  if(T.startBtn){const S=T.startBtn,can=mode==='host'&&canStart(),want=wait&&host&&can&&FR.stand<.05&&!FR.browse&&!roomSetOpen&&!FR.seek;   // 시작할 수 있을 때만 구멍이 열리고 올라옴. 아니면 아무 흔적 없음
     // 구멍이 열림 → 버튼이 올라옴 (내려갈 때는 버튼 → 구멍)
     const hw=want||FR.sta.v>.02?1:0,hu=smooth(frontTween(FR.sha,hw,t,hw?260:220));S.hole.visible=hu>.01;S.hole.scale.setScalar(Math.max(.001,hu));
     if(FR.sha.to===1&&FR.sha.v>=1&&!FR.btnHoleSnd){FR.btnHoleSnd=1;sfx('iris')}if(!hw)FR.btnHoleSnd=0;
@@ -497,10 +500,10 @@ function frontLayout(lobby,wait,host,t){
   const tt=$('#frTitle');tt.hidden=!showTitle;
   if(showTitle){_v3.set(0,0,-4.9).project(T.cam);const far=(1-_v3.y)/2*Hh;tt.style.top=Math.max(64,Math.min(far*.46,Hh*.3))+'px';tt.style.opacity=k;tt.style.marginTop=(-(1-k)*60)+'px'}
   const standing=lobby&&!FR.sit&&FR.stand>.98&&!FR.warp&&!net.peer;   // 첫 화면: 탁자만
-  const front=lobby&&FR.sit&&FR.stand<.05&&!FR.warp&&!FR.spread&&!net.peer;   // 앉아서 상차리기·찾아가기를 고름
-  el.classList.toggle('leaving',!(standing||front));$('#frFoot').hidden=!lobby;
+  const frontL=lobby&&FR.sit&&FR.stand<.05&&!FR.warp&&!FR.spread&&!net.peer,front=frontL||(frSeek()&&FR.stand<.05&&!FR.warp);   // 앉아서 찾아가기를 고름 (대기실에서 찾아가는 중 포함)
+  el.classList.toggle('leaving',!(standing||frontL));$('#frFoot').hidden=!lobby;
   frontPut($('#frTable'),standing,standing?frontRect(T.felt.mat,W,Hh):null,10);
-  const seated=wait&&FR.stand<.05&&!FR.browse&&!FR.rb.on&&FR.rba.v<=.01;
+  const seated=wait&&FR.stand<.05&&!FR.browse&&!FR.rb.on&&FR.rba.v<=.01&&!FR.seek;
   const leaned=front&&FR.lean>.9,kpUp=T.keypad&&T.keypad.g.position.y>.02;
   // 숙이기 전: 디스플레이와 키판을 한 덩어리로 누르면 숙여서 봄
   for(const P of [T.hostPad,T.guestPad,T.sitPad]){const on=seated&&P.g.position.y>.025;P.keys.forEach((m,i)=>frontPut($('#'+P.id+i),on,on?frontRect(m,W,Hh):null,2,44,44))}
@@ -512,7 +515,7 @@ function frontLayout(lobby,wait,host,t){
   T.keypad.keys.forEach((m,i)=>frontPut($('#frK'+i),kOn,kOn?frontRect(m,W,Hh):null,1,30,30));
   const lUp=leaned&&FR.list&&FR.pla.v>=.98,lr=lUp?frontListRooms():[];
   T.plist.rows.forEach((m,i)=>{const r=lr[(FR.lpage||0)*FR_ROWS+i],b=$('#frR'+i);frontPut(b,lUp&&!!r,lUp&&r?frontRect(m,W,Hh):null,0,40,30);if(r&&b.dataset.c!==r.code){b.dataset.c=r.code;b.setAttribute('aria-label',`${r.title} · ${gameOf(r.g).name} · ${r.n}/${r.max}`)}});
-  T.plist.lbtn.forEach(B=>frontPut($('#frL'+B.k),lUp&&(B.k==='ref'||B.k==='x'||frontListRooms().length>FR_ROWS),lUp?frontRect(B.m,W,Hh):null,8,48,48));
+  T.plist.lbtn.forEach(B=>frontPut($('#frL'+B.k),lUp&&(B.k==='ref'||B.k==='x'||B.k==='num'||frontListRooms().length>FR_ROWS),lUp?frontRect(B.m,W,Hh):null,8,48,48));
   const dOn=((front&&FR.lean>.9&&!FR.list&&FR.pla.v<=0&&FR.kmode==='num')||seated)&&FR.open>.98;
   frontPut($('#frBoard'),dOn,dOn?frontRect(T.board.screen,W,Hh):null,6);
   // 눈(위)·자물쇠(아래): 디스플레이 오른쪽 끝 칸
@@ -538,7 +541,7 @@ function frontLayout(lobby,wait,host,t){
   {const tOn=rbUp&&FR.rb.mode==='game'&&FR.rb.pg===rbNSet()&&!FR.rb.chg,el=$('#frRbTitle');   // 첫 규칙 판자 맨 위 게임 이름 → 게임 고르기
    if(tOn){const [l,t2]=rbScreen(RB.CW*.12,50,W,Hh),[r,b]=rbScreen(RB.CW*.88,190,W,Hh);frontPut(el,true,{l,t:t2,r,b},0,60,40)}else frontPut(el,false,null,0)}
   rbLayoutSet(rbUp&&FR.rb.mode==='game'&&!!FR.rb.set&&FR.rb.pg<rbNSet()&&!FR.rb.chg,W,Hh);if(!rbUp)rbTag(null);
-  st.classList.toggle('rbopen',FR.rba.v>.01);
+  st.classList.toggle('rbopen',FR.rba.v>.01||(!!FR.seek&&(FR.pla.v>.01||FR.ka.v>.01||FR.lean>.05)));   // 규칙 판·찾아가기(목록 판·키판)를 보는 동안 이름표·홀로그램 글씨 숨김
   $('#frPad').classList.toggle('off',!pick&&!leaned&&!rbUp);
   // 홀로그램 글씨: 위에서부터 탁자 이름, 게임 이름, 게임 모드 (그 아래가 게임 말). 모드는 지금 고른 게임만(넘겨 보는 중이면 자리만)
   const ht=$('#holoTag'),hOn=wait&&(FR.holoGlow||0)>.05&&!roomSetOpen&&FR.rba.v<=.01;
@@ -564,7 +567,7 @@ function frontNick(){$('#frNickV').textContent=myNick()}
   const b=$('#frNick'),inp=$('#frNickIn');
   const done=ok=>{
     if(inp.hidden)return;
-    if(ok){const v=inp.value.trim().slice(0,10)||'나';$('#inNick').value=v;saveNick();const s=$('#nickShow');if(s)s.textContent=v;document.querySelectorAll('.nickShow2').forEach(e=>e.textContent=v)}
+    if(ok)frontSetNick(inp.value);
     inp.hidden=true;b.hidden=false;frontNick();
   };
   b.addEventListener('click',()=>{
@@ -588,9 +591,9 @@ $('#holoTitle').addEventListener('click',()=>{
   inp.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();done(true)}else if(e.key==='Escape'){e.preventDefault();done(false)}});
   inp.addEventListener('blur',()=>done(true));
 });
-$('#frKeys').addEventListener('click',()=>{if(mode!=='lobby'||FR.warp||FR.spread)return;FR.leanOn=true;FR.keyAt=clock();sfx('tick')});
+$('#frKeys').addEventListener('click',()=>{if(!frGoOk())return;FR.leanOn=true;FR.keyAt=clock();sfx('tick')});
 $('#frBoard').addEventListener('click',()=>{
-  if(mode==='lobby'){if(FR.warp||FR.spread)return;FR.word='';if(frontGo())return;sfx('tick');frontList(true);return}   // 넣은 번호가 있으면 찾아가고, 없으면 공개 탁자 목록 판
+  if(mode==='lobby'||frSeek()){if(FR.warp||FR.spread)return;FR.word='';if(frontGo())return;sfx('tick');frontList(true);return}   // 넣은 번호가 있으면 찾아가고, 없으면 공개 탁자 목록 판
   if(frWaitV()&&V.code){   // 대기실: 초대 링크 복사
     const link=roomLink(String(V.code));
     const ok=()=>{frontWord('복사',1400);sfx('pick')};
@@ -661,13 +664,14 @@ document.addEventListener('keydown',e=>{
   else if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();frontBrowse(false)}
 },true);
 document.addEventListener('keydown',e=>{
-  if(!FR.ok||mode!=='lobby'||lobbyView!=='main'||e.target.matches('input')||e.ctrlKey||e.metaKey||e.altKey||!$('#keysOv').hidden||!$('#rulesOv').hidden||!$('#menu').hidden)return;
+  if(!FR.ok||(mode!=='lobby'||lobbyView!=='main')&&!frSeek()||e.target.matches('input')||e.ctrlKey||e.metaKey||e.altKey||!$('#keysOv').hidden||!$('#rulesOv').hidden||!$('#menu').hidden)return;
   if(/^[0-9a-zA-Z]$/.test(e.key)){e.preventDefault();frontKey(e.key);return}
   if(e.key==='Backspace'){e.preventDefault();frontKey('←');return}
   if(e.key==='Enter'&&(FR.buf||FR.pub)){e.preventDefault();frontGo();return}
   if(FR.list&&/^Arrow(Left|Right|Up|Down)$/.test(e.key)){e.preventDefault();frontListPage(e.key==='ArrowRight'||e.key==='ArrowDown'?1:-1);return}
   if(e.key==='Escape'&&FR.list){e.preventDefault();frontList(false);return}
   if(e.key==='Escape'&&(FR.leanOn||FR.buf||FR.pub)){e.preventDefault();FR.leanOn=false;FR.buf='';FR.pub=null;return}
+  if(e.key==='Escape'&&frSeek()){e.preventDefault();frontSeekEnd();return}
   if(e.key==='Escape'&&FR.sit&&!FR.warp&&!net.peer){e.preventDefault();FR.sit=false;return}   // 일어섬
   if(e.key==='Enter'&&!FR.sit&&!FR.warp&&!net.peer&&document.activeElement===document.body){e.preventDefault();FR.sit=true}
 });
@@ -688,7 +692,7 @@ $('#cv').addEventListener('click',e=>{
   if(!lob&&(!frTableUI()||FR.stand>.05||FR.browse||roomSetOpen||FR.pop!=null))return;
   const out=frontOutside(e.clientX,e.clientY),t=clock(),armed=FR.armAt&&t-FR.armAt<2500;
   if(!out){if(armed){FR.armAt=0;FR.word='';sfx('tick')}return}
-  if(armed){FR.armAt=0;FR.word='';if(lob){FR.sit=false;sfx('tick')}else leaveRoom();return}
+  if(armed){FR.armAt=0;FR.word='';if(lob){FR.sit=false;sfx('tick')}else frontLeave();return}
   FR.armAt=t;frontWord(lob?'일어서기':'떠나기',2500);sfx('tick');
 });
 

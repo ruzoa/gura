@@ -146,6 +146,7 @@ function createRoom(){
     ok=true;createTries=0;net.peer=peer;mode='host';FR.spread=false;
     hostNew(true,code,($('#inTitle').value.trim()||myNick()+'의 탁자').slice(0,20));
     enterRoom();mark();setNote('#createNote','');$('#btnCreate').disabled=false;
+    if(FR.warp&&FR.warp.ph==='go'){const w=FR.warp;setTimeout(()=>{if(FR.warp===w)frontWarpArrive()},Math.max(0,1800-(clock()-w.t0)))}   // 타임머신을 타고 내 탁자로 (떠난 참가자)
   });
   hostPeerHandlers(peer);
   peer.on('error',e=>{
@@ -153,6 +154,7 @@ function createRoom(){
       peer.destroy();$('#btnCreate').disabled=false;
       if(e.type==='unavailable-id'&&createTries++<3){createRoom();return}
       setNote('#createNote','상을 차리지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주십시오.',true);frontFail('끊김');
+      if(FR.ok)setTimeout(()=>{if(mode==='lobby'&&!net.peer&&!FR.warp)FR.sit=false},1800);   // 첫 화면: 일어섬 (다시 앉으면 다시 차림)
     }
   });
 }

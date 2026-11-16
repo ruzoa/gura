@@ -2,7 +2,7 @@
 /* ===== 대기실 자리 이름표 (대기실 창 대신) =====
    사람·봇 자리 = 이름표, 빈 자리 = 점선 '+' 이름표. 누르면 작은 메뉴:
    다른 사람 → 자리 바꾸기·이모티콘 끄기(사람)·(방장) 봇 난이도·선·내보내기 / 빈 자리 → 그 자리로 옮기기(관전 중이면 앉기),  나 → 이모티콘·관전하기 */
-function seatPopClose(){const p=$('#seatPop');if(p){p.hidden=true;p.innerHTML=''}FR.pop=null}
+function seatPopClose(){const p=$('#seatPop'),ni=$('#spNick');if(ni&&!ni.dataset.x){ni.dataset.x='1';frontSetNick(ni.value)}if(p){p.hidden=true;p.innerHTML=''}FR.pop=null}   // 닫힐 때 고친 닉네임 저장 (Esc면 취소)
 function seatPopOpen(key,anchor){
   if(!frWaitV())return;
   const isHost=mode==='host',me=myIdx(),max=+V.cfg.max,ps=V.ps||[],pop=$('#seatPop');
@@ -15,8 +15,8 @@ function seatPopOpen(key,anchor){
     sfx('no');return
   }else{
     const i=+key.slice(1),p=ps[i];if(!p)return;
-    if(i===me){
-      if(!(pickF&&isHost)&&(isHost||+(V.cfg.spec??4)<=0)){sfx('no');return}   // 내 이름표 메뉴: 선 플레이어(방장)·관전하기(참가자)
+    if(i===me){   // 내 이름표 메뉴: 닉네임 바꾸기, 선 플레이어(방장)·관전하기(참가자)
+      h+=`<label class="sp-nick"><small>닉네임</small><input id="spNick" maxlength="10" autocomplete="off" enterkeyhint="done" value="${esc(myNick())}"></label>`;
       if(pickF&&isHost)h+=`<button type="button" data-sp="first:${i}">선 플레이어</button>`;
       if(!isHost&&+(V.cfg.spec??4)>0)h+=`<button type="button" data-sp="tospec">관전하기</button>`;
     }else{
@@ -31,10 +31,14 @@ function seatPopOpen(key,anchor){
     }
   }
   if(FR.pop===key){seatPopClose();return}   // 같은 이름표를 다시 누르면 닫힘
+  if(FR.pop!=null)seatPopClose();
   FR.pop=key;pop.innerHTML=h;pop.hidden=false;sfx('tick');
   const st=$('#stage').getBoundingClientRect(),r=anchor.getBoundingClientRect(),pw=pop.offsetWidth,ph=pop.offsetHeight;
   let x=r.left-st.left+r.width/2-pw/2,y=r.top-st.top-ph-8;if(y<8)y=r.bottom-st.top+8;
   x=Math.max(8,Math.min(st.width-pw-8,x));pop.style.left=x+'px';pop.style.top=y+'px';
+  const ni=$('#spNick');if(ni){   // 닉네임: 바로 고칠 수 있게. Enter·바깥 누르기로 저장, Esc로 취소
+    ni.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();seatPopClose()}else if(e.key==='Escape'){e.preventDefault();ni.dataset.x='1';seatPopClose()}});
+    if(!matchMedia('(pointer:coarse)').matches){ni.focus();ni.select()}}
 }
 $('#seatPop').addEventListener('click',e=>{
   const b=e.target.closest('[data-sp]');if(!b)return;const a=b.dataset.sp;
