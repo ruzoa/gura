@@ -13,7 +13,7 @@ const FR_WORD=new Set(['없음','만석','끊김']);
 const HOLO_C=0xffa04a,HOLO_LINE=0xffe2b8,HOLO_BAD=0xff4d6d;   // 주황빛 (못 하는 게임은 붉은 분홍)
 const FR_KEYS=['1','2','3','4','5','search','dice','6','7','8','9','0','←','enter'];   // 키판 두 줄: 윗줄 1~5·돋보기(공개 탁자 목록)·주사위(아무 탁자나), 아랫줄 6~0·지우기(뒤로)·엔터
 const FR_KEY_NAME={'←':'지우기 (뒤로)',enter:'참여하기',search:'공개 탁자 목록',dice:'아무 탁자나 앉기'};
-const FR_MENU=['create','join','rules'],FR_HOST=['bot','rset','go'];   // 첫 자판(지금은 쓰지 않음: 앉으면 바로 상을 차림), 방장 대기실 자판(봇 추가·탁자 설정·다른 탁자 찾아가기)
+const FR_MENU=['create','join','rules'],FR_HOST=['rules','rset','go'],FR_GUEST=['rules','rset','go'];   // 첫 자판(지금은 쓰지 않음: 앉으면 바로 상을 차림), 대기실 자판(게임 규칙·탁자 설정·다른 탁자 찾아가기). 봇 추가는 빈 자리 메뉴, 관전하기는 내 이름표 메뉴, 앉기는 빈 자리 메뉴
 /* 다른 탁자 찾아가기(FR.seek): 대기실에 앉은 채로 공개 탁자 목록 판·숫자 키판을 씀. 실제로 출발할 때만 지금 탁자를 떠남 */
 const frSeek=()=>!!(FR.seek&&frTableUI());
 const frGoOk=()=>!!(FR.ok&&!FR.warp&&!FR.spread&&((mode==='lobby'&&!net.peer)||frSeek()));
@@ -92,8 +92,8 @@ function frontBuildDisplay(TG){
   T.menuPad=frontBuildPad(TG,FR_MENU,{w:.44,d:.38,gap:.52,id:'frM',on:frontMenu});
   // 대기실 자판: 방장(봇 추가·탁자 설정·상치우기), 참가자(관전하기·떠나기), 관전자(참여하기·떠나기). 같은 틈에서 나옴
   T.hostPad=frontBuildPad(TG,FR_HOST,{w:.44,d:.38,gap:.52,id:'frH',on:frontWaitKey});
-  T.guestPad=frontBuildPad(TG,['spec','rset','go'],{w:.44,d:.38,gap:.52,id:'frG',on:frontWaitKey});
-  T.sitPad=frontBuildPad(TG,['sit','rset','go'],{w:.44,d:.38,gap:.52,id:'frS',on:frontWaitKey});
+  T.guestPad=frontBuildPad(TG,FR_GUEST,{w:.44,d:.38,gap:.52,id:'frG',on:frontWaitKey});   // 방장이 바뀌면 방장 자판이 들어가고 같은 틈에서 참가자 자판이 올라옴
+  T.sitPad=frontBuildPad(TG,FR_GUEST,{w:.44,d:.38,gap:.52,id:'frS',on:frontWaitKey});
   frontClearHold();
   const fr=$('#front');FR_KEYS.forEach((k,i)=>{const b=document.createElement('button');b.type='button';b.className='fr-hot off fr-key';b.id='frK'+i;b.setAttribute('aria-label',FR_KEY_NAME[k]||k);b.addEventListener('click',()=>frontKey(k));fr.insertBefore(b,$('#frFoot'))});
   frontBuildList(TG);frontBuildRules(TG);
@@ -155,7 +155,7 @@ function frontWaitCan(k){
   if(k==='spec')return myIdx()>=0&&mode!=='host'&&spm>0&&sv.length<spm;
   if(k==='sit')return myIdx()<0&&!!V.spec&&!V.nj&&n<max;   // V.nj: 라운드 중 도중 참가 막음 (대부호)
   if(k==='leave')return mode!=='host';
-  if(k==='rset'||k==='go')return true;
+  if(k==='rset'||k==='go'||k==='rules')return true;
   return false;
 }
 function frontWaitKey(k){
@@ -166,6 +166,7 @@ function frontWaitKey(k){
   if(k==='spec'){sfx('key');sendAct({t:'spec'});return}
   if(k==='sit'){sfx('key');sendAct({t:'join'});return}
   if(k==='rset'){sfx('key');setTimeout(()=>frontRules(V.cfg.game||'gura',{set:true}),140);return}   // 설정 판자 → 지금 게임의 규칙 판자
+  if(k==='rules'){sfx('key');setTimeout(()=>frontRules('list'),140);return}   // 게임 목록 규칙 판자 (모든 게임)
   if(k==='go'){sfx('key');frontWord('찾아가기',1200);FR.seek=true;FR.kmode='menu';FR.buf='';FR.pub=null;frontList(true);return}   // 자판이 들어가고 같은 틈에서 공개 탁자 목록 판
   if(k==='leave'){   // 한 번 누르면 디스플레이에 '떠나기', 2.5초 안에 한 번 더 누르면 떠남 
     if(FR.leaveAt&&t-FR.leaveAt<2500){FR.leaveAt=0;FR.word='';sfx('key');frontLeave();return}
@@ -221,4 +222,12 @@ function frontSetNick(v){
   $('#inNick').value=v;saveNick();frontNick();const s=$('#nickShow');if(s)s.textContent=v;document.querySelectorAll('.nickShow2').forEach(e=>e.textContent=v);
   if(mode==='host'&&H&&H.phase==='wait'){const m=H.members.find(x=>x.host);if(m){if(H.firstName===m.name)H.firstName=v;m.name=v;mark()}}
   else if(mode==='guest'&&net.conn&&net.conn.open&&V&&V.st==='wait')guestHello(net.conn);
+}
+/* 친구 초대: 휴대폰은 공유 창, 아니면 초대 링크 복사(디스플레이에 '복사') */
+function frontInvite(){
+  if(!frWaitV()||!V.code)return;
+  const link=roomLink(String(V.code)),ok=()=>{frontWord('복사',1400);sfx('pick')};
+  const copy=()=>{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(link).then(ok,()=>sfx('no'));else sfx('no')};
+  if(navigator.share&&matchMedia('(pointer:coarse)').matches){navigator.share({title:'탁자하나',text:(V.title||'탁자')+'에 앉으러 오십시오.',url:link}).catch(e=>{if(e&&e.name!=='AbortError')copy()});return}
+  copy();
 }

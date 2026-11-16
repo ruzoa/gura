@@ -30,11 +30,11 @@ function shrinkSeats(to){
   fixSeats();let max=Math.max(+H.cfg.max||0,H.members.length);
   while(max>to&&max>H.members.length){const used=new Set(H.members.map(m=>m.seat));let e=max-1;while(e>0&&used.has(e))e--;dropSeat(e);max--}
 }
-function hostAddBot(force){
+function hostAddBot(force,seat){
   if(!force&&(H.phase!=='wait'||H.members.length>=H.cfg.max))return;
   const used=new Set(H.members.map(m=>m.name));
   const nm=BOT_NAMES.map(n=>n+' 봇').find(n=>!used.has(n))||'봇';
-  H.members.push({name:nm,bot:true,conn:null,host:false,lv:1});mark();
+  fixSeats();H.members.push({name:nm,bot:true,conn:null,host:false,lv:1,seat:Number.isInteger(seat)&&!H.members.some(m=>m.seat===seat)?seat:undefined});mark();   // seat: 누른 빈 자리
 }
 /* 선 플레이어: 방 설정에서 '선 플레이어'를 선택으로 한 방은 방장이 대기실에서 고른 사람(H.firstName, 안 골랐거나 나갔으면 방장), 아니면 랜덤 */
 function firstSeat(cnt){

@@ -161,7 +161,7 @@ function createRoom(){
 function guestHello(conn){try{conn.send({t:'hello',nick:myNick(),cid:CID,sp:V&&V.spec?1:0})}catch(e){}}
 function saveGuest(){if(mode==='guest'&&net.code)store('gura-guest',JSON.stringify({code:net.code,at:Date.now()}))}
 function wireGuestConn(conn){
-  conn.on('data',d=>{if(net.conn!==conn)return;if(d&&d.t==='kicked'){guestKicked();return}if(d&&d.t==='cleared'){guestCleared();return}if(d&&d.t==='full'){guestFull();return}if(d&&d.t==='bye'){hostLeft(!!d.nx,cleanNick(d.nxn||''));return}if(d&&typeof d==='object'&&d.t==='state'&&d.s&&typeof d.s==='object'){if(Date.now()-(net.savedAt||0)>5000){net.savedAt=Date.now();saveGuest()}applyView(d.s)}});
+  conn.on('data',d=>{if(net.conn!==conn)return;if(d&&d.t==='kicked'){guestKicked();return}if(d&&d.t==='cleared'){guestCleared();return}if(d&&d.t==='full'){guestFull();return}if(d&&d.t==='bye'){hostLeft(!!d.nx,cleanNick(d.nxn||''),!!d.hd);return}if(d&&typeof d==='object'&&d.t==='state'&&d.s&&typeof d.s==='object'){if(Date.now()-(net.savedAt||0)>5000){net.savedAt=Date.now();saveGuest()}applyView(d.s)}});
   conn.on('close',()=>{if(mode==='guest'&&net.conn===conn)guestReconnect()});
   conn.on('error',()=>{if(mode==='guest'&&net.conn===conn)guestReconnect()});
 }
@@ -201,8 +201,8 @@ function guestReconnect(){
   try{if(net.conn)net.conn.close()}catch(e){}
   net.conn=null;
   net.retry.start=Date.now();
-  const ho=net.handoff;net.handoff='';
-  showPanel(ho?`<h2>방장이 나갔습니다</h2><p><b>${esc(ho)}</b> 님이 새 방장이 됩니다. 새 방장에게 연결하는 중입니다…</p><div class="row"><button class="btn btn-sub" type="button" data-act="leave">로비로</button></div>`
+  const ho=net.handoff,hk=net.handKind;net.handoff='';net.handKind='';
+  showPanel(ho&&hk?`<h2>${hk==='mine'?'방장을 넘겼습니다':'방장이 바뀝니다'}</h2><p><b>${esc(ho)}</b> 님이 새 방장이 됩니다. 다시 연결하는 중입니다…</p>`:ho?`<h2>방장이 나갔습니다</h2><p><b>${esc(ho)}</b> 님이 새 방장이 됩니다. 새 방장에게 연결하는 중입니다…</p><div class="row"><button class="btn btn-sub" type="button" data-act="leave">로비로</button></div>`
     :`<h2>다시 연결하는 중</h2><p>방장과 연결이 끊겼습니다. 방장이 돌아오면 자동으로 이어서 합니다.${V&&V.nxn?`<br>40초 안에 돌아오지 않으면 <b>${esc(V.nxn)}</b> 님이 새 방장이 됩니다.`:''}</p><div class="row"><button class="btn btn-sub" type="button" data-act="leave">로비로</button></div>`,'retry');
   if(ho){net.retry.timer=setTimeout(retryOnce,1500);return}   // 이전 방장 연결이 완전히 닫힌 뒤 새 방장에게
   retryOnce();
@@ -300,10 +300,10 @@ function randomJoin(){
   });
 }
 /* 방장이 나갔을 때: 다음 방장이면 방을 이어서 열고, 아니면 새 방장에게 다시 연결 */
-function hostLeft(amNext,nxName){
+function hostLeft(amNext,nxName,hand){
   if(mode!=='guest')return;
-  if(amNext){becomeHost('left');return}
-  net.handoff=nxName||'다른 참가자';
+  if(amNext){becomeHost(hand?'hand':'left');return}
+  net.handoff=nxName||'다른 참가자';net.handKind=hand?'hand':'';
   guestReconnect();
 }
 function becomeHost(why){
@@ -324,7 +324,7 @@ function becomeHost(why){
       H={online:true,code,title:last.title||myName+'의 탁자',cfg:cfg0,phase:'wait',members:[{name:myName,bot:false,conn:null,cid:CID,host:true}],specs:[],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
       // 봇은 그대로 남기고, 사람들은 다시 연결되면 자동으로 자리에 들어옴
       (last.ps||[]).forEach((p,i)=>{if(p.b&&!p.f&&H.members.length<H.cfg.max)H.members.push({name:String(p.n).replace(/ \(봇\)$/,''),bot:true,conn:null,host:false,lv:p.lv??1})});
-      addLog(why==='left'?`방장이 나가서 ${myName} 님이 새 방장이 되었습니다.`:`방장과 연결이 끊겨 ${myName} 님이 새 방장이 되었습니다.`,'sys');
+      addLog(why==='hand'?`${myName} 님이 방장을 넘겨받았습니다.`:why==='left'?`방장이 나가서 ${myName} 님이 새 방장이 되었습니다.`:`방장과 연결이 끊겨 ${myName} 님이 새 방장이 되었습니다.`,'sys');
       if(last.st&&last.st!=='wait')addLog('진행 중이던 게임은 중단되었습니다.','sys');
       roomSetOpen=false;lastPanelHtml='';mark();
     });
@@ -395,3 +395,18 @@ function myNick(){return ($('#inNick').value.trim()||'나').slice(0,10)}
 function saveNick(){store('gura-nick',myNick())}
 function roomLink(code){return location.origin+location.pathname+'?room='+code.toUpperCase()}
 
+/* 방장 넘기기(대기실, 플레이어 이름표 메뉴): 고른 사람이 같은 번호로 탁자를 이어서 차리고, 나는 참가자로 다시 앉음.
+   방장이 떠날 때(leaveRoom)와 같은 길(bye → becomeHost)을 쓰고, 나는 떠나지 않고 새 방장에게 다시 연결 */
+function hostHandTo(i){
+  if(mode!=='host'||!H||!H.online||H.phase!=='wait')return false;
+  const m=H.members[i];if(!m||m.host||m.bot||m.away||!m.conn||!m.conn.open)return false;
+  const code=H.code,conns=[...net.conns],pr=net.peer;
+  for(const c of conns){try{c.send({t:'bye',nxn:m.name,nx:c===m.conn?1:0,hd:1})}catch(e){}}
+  net.conns.clear();net.peer=null;
+  setTimeout(()=>{for(const c of conns){try{c.close()}catch(e){}}try{pr&&pr.destroy()}catch(e){}},400);
+  if(net.pub){try{net.pub.destroy()}catch(e){}net.pub=null}
+  unstore('gura-host');seatPopClose();roomSetOpen=false;
+  H=null;mode='guest';net.code=code;net.conn=null;net.handoff=m.name;net.handKind='mine';
+  setTimeout(()=>{if(mode==='guest'&&!net.conn)guestReconnect()},900);   // 내 연결이 닫히고 새 방장이 탁자를 연 뒤에
+  render();return true;
+}
