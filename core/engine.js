@@ -54,7 +54,7 @@ function hostStart(){
   H.members=H.members.filter(m=>!m.away);   // 대기실에서 끊긴 채인 사람은 빼고 시작
   fixSeats();H.members.sort((x,y)=>x.seat-y.seat);   // 대기실에서 앉은 자리 순서대로
   if(H.members.length<minPlayers(EG(),H.cfg))return;   // 최소 인원이 안 되면 시작하지 않음 (봇을 자동으로 넣지 않음)
-  H.players=H.members.map(m=>({name:m.name,bot:m.bot,lv:m.bot?(m.lv??1):null,conn:m.conn,cid:m.cid||'',host:m.host,av:m.av?m.av.replace(/-e$/,''):undefined,hand:[],finished:false,rank:null}));
+  H.players=H.members.map(m=>({name:m.name,bot:m.bot,lv:m.bot?(m.lv??1):null,conn:m.conn,cid:m.cid||'',host:m.host,av:m.av?m.av.replace(/-e$/,''):undefined,cr:!!m.cr,hand:[],finished:false,rank:null}));
   EG().engine.start();   // 카드 나누기·첫 차례는 게임마다 다름
   H.fp=0;
   if(EG().dealAnim)beginDeal(DEAL_MS+(EG().dealExtra?+EG().dealExtra()||0:0));   // dealExtra: 카드 나누기 뒤 게임의 추가 연출(대부호 카드 교환) 동안도 멈춤
@@ -194,8 +194,8 @@ function snapFor(you){
   if(H.emos&&H.emos.length)s.em=H.emos;
   if(H.specs&&H.specs.length)s.sv=H.specs.map(x=>x.name);
   s.mc=H.members.length;
-  if(H.phase==='wait'){fixSeats();s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0,lv:m.bot?(m.lv??1):undefined,st:m.seat,av:m.av||undefined}));if(H.firstName)s.fn=H.firstName;if(EG().engine.waitSnap)EG().engine.waitSnap(s);return s}   // waitSnap: 대기실에도 게임별 값 (대부호의 계급)
-  s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=p.surrendered==='time'?2:p.deserter?3:1;if(p.away)o.aw=1;if(p.deserter)o.dz=1;if(p.av)o.av=p.av;if(i===you)o.h=p.hand.slice();return o});
+  if(H.phase==='wait'){fixSeats();s.ps=H.members.map(m=>({n:m.name,b:m.bot?1:0,hs:m.host?1:0,aw:m.away?1:0,lv:m.bot?(m.lv??1):undefined,st:m.seat,av:m.av||undefined,cr:m.cr?1:undefined}));if(H.firstName)s.fn=H.firstName;if(EG().engine.waitSnap)EG().engine.waitSnap(s);return s}   // waitSnap: 대기실에도 게임별 값 (대부호의 계급)
+  s.ps=H.players.map((p,i)=>{const o={n:p.name,b:p.bot?1:0,c:p.hand.length,f:p.rank||0,no:H.seatNote[i]||''};if(p.surrendered)o.sr=p.surrendered==='time'?2:p.deserter?3:1;if(p.away)o.aw=1;if(p.deserter)o.dz=1;if(p.av)o.av=p.av;if(p.host)o.hs=1;if(p.cr)o.cr=1;if(i===you)o.h=p.hand.slice();return o});
   s.t=H.turn;
   if(H.dealUntil>t){s.dk=Math.round(H.dealUntil-t);s.di=H.dealId;s.dm=H.dealMs||0;if(H.dealAgain)s.dg=1;if(H.fp)s.fp=H.fp}   // 카드를 나누는 중 (남은 ms, fp: 첫 차례 주사위를 던질 횟수)
   EG().engine.snap(s,you,t);   // 필드·판정 등은 게임마다 다름
@@ -243,8 +243,17 @@ function successor(){
   const m=H.members.find(x=>!x.host&&!x.bot&&!x.away&&x.conn&&x.conn.open);
   return m||null;
 }
+/* 우승자 왕관: 게임이 끝나면 1등(rank 1)에게 왕관 표시(cr). 모두 1등(무승부·협력)이면 아무도 없음. 대기실 자리(members)에도 적어 다음 판이 끝날 때까지 이어짐 */
+function crownSync(){
+  if(H.phase!=='over'){H.crDone=false;return}
+  if(H.crDone)return;H.crDone=true;
+  const n=H.players.filter(p=>p.rank===1).length,one=n>0&&n<H.players.length;
+  for(const p of H.players)p.cr=one&&p.rank===1;
+  for(const m of H.members){const p=H.players.find(p=>(m.host&&p.host)||(!m.host&&!p.host&&m.cid&&m.cid===p.cid)||(m.bot&&p.bot&&!p.cid&&m.name===p.name));if(p)m.cr=!!p.cr}
+}
 function flush(){
   flushQueued=false;if(!H)return;
+  crownSync();
   pubSync();
   applyView(snapFor(hostSeat()));
   if(H.online){

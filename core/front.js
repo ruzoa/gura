@@ -55,8 +55,8 @@ function frontStumps(t,dt,lobby,wait){
     const p=want&&!lobby?stumpWho(k,wait):null,isBot=!!(p&&p.b);
     if(isBot){const an=BOT_ANI[([...String(p.n)].reduce((a,c)=>a*31+c.charCodeAt(0)|0,7)>>>0)%BOT_ANI.length];if(S.ani!==an){S.ani=an;S.bot.paper.material.map=botPaperTex(an);S.bot.paper.material.needsUpdate=true}}
     S.bs+=((isBot?1:0)-S.bs)*f;if(S.bs<.003&&!isBot)S.bs=0;
-    S.bot.g.visible=S.bs>.01;S.bot.g.scale.setScalar(Math.max(.001,S.bs));S.bot.g.rotation.y=S.a+Math.PI-S.g.rotation.y;
-    avStump(S,t,dt,isBot?null:p);   // 사람 자리: 의자 위 나무 인형 (core/avatar.js)
+    S.bot.g.visible=S.bs>.01;S.bot.g.scale.setScalar(Math.max(.001,S.bs)*BOT_K);S.bot.g.rotation.y=S.a+Math.PI-S.g.rotation.y;
+    avStump(S,t,dt,isBot?null:p);avBotCrown(S,isBot&&p.cr);   // 사람 자리: 의자 위 나무 인형 (core/avatar.js)
   });
 }
 /* 디스플레이: 내 쪽 나무 띠에 박힌 판. 닫히면 등판(원목)이 위로 와서 덮개, 열면 먼 쪽 경첩을 축으로 들려 화면이 나를 향함 */
@@ -275,11 +275,12 @@ function botPaperTex(a){
     g.beginPath();g.arc(cx,cy+s*.12,s*.26,.15*Math.PI,.85*Math.PI);g.stroke();
   });
 }
+const BOT_K=1.3;   // 봇 통나무 크기: 사람 인형(AV_K)과 같게 키워 종이 얼굴이 탁자 위로 보이게 (탁자 윗면은 의자 위 1.25)
 function frontBuildBot(stump,SH){
   const g=new THREE.Group();g.position.y=SH;g.scale.setScalar(.001);g.visible=false;stump.add(g);
-  const LH=1.22,log=new THREE.Mesh(new THREE.CylinderGeometry(.3,.32,LH,14),toon({color:0x7b5534}));log.position.y=LH/2;log.castShadow=true;g.add(log);hull(new THREE.CylinderGeometry(.33,.35,LH+.03,14),log,g);
+  const LH=1.6,log=new THREE.Mesh(new THREE.CylinderGeometry(.3,.32,LH,14),toon({color:0x7b5534}));log.position.y=LH/2;log.castShadow=true;g.add(log);hull(new THREE.CylinderGeometry(.33,.35,LH+.03,14),log,g);
   const top=new THREE.Mesh(new THREE.CircleGeometry(.3,14),toon({color:0xd9b07a}));top.rotation.x=-Math.PI/2;top.position.y=LH+.002;g.add(top);
-  const paper=new THREE.Mesh(new THREE.PlaneGeometry(.4,.44),toon({map:botPaperTex('rabbit'),rim:0}));paper.position.set(0,.84,.325);paper.rotation.z=.06;g.add(paper);
-  const tape=new THREE.Mesh(new THREE.PlaneGeometry(.2,.075),new THREE.MeshBasicMaterial({color:0xfff3c4,transparent:true,opacity:.55}));tape.position.set(.01,1.055,.328);tape.rotation.z=-.1;g.add(tape);
-  return {g,paper};
+  const paper=new THREE.Mesh(new THREE.PlaneGeometry(.4,.44),toon({map:botPaperTex('rabbit'),rim:0}));paper.position.set(0,LH-.38,.325);paper.rotation.z=.06;g.add(paper);
+  const tape=new THREE.Mesh(new THREE.PlaneGeometry(.2,.075),new THREE.MeshBasicMaterial({color:0xfff3c4,transparent:true,opacity:.55}));tape.position.set(.01,LH-.165,.328);tape.rotation.z=-.1;g.add(tape);
+  return {g,paper,h:LH};
 }

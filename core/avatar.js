@@ -12,7 +12,7 @@
    · 크기: 의자 위에서 AV_K배. 탁자 윗면(의자 위 1.25) 위로 가슴까지 보임 */
 const AV_KIND=['나무 말','동물','오뚝이'],AV_ANI=['토끼','곰','고양이','여우','개','쥐','돼지','병아리','개구리'],AV_HAT=['없음','밀짚모자','고깔','목도리','안경'];
 const AV_COL=['#e4573d','#f2994a','#f2c14e','#6fbf5f','#3fa7a0','#4a7fd4','#8c62c9','#e58fb1','#b9824f','#f6ecd8','#9aa0a8','#2a2420'];
-const AV_CELL=[null,'#fff8ea','#2a2420','#f2c14e','#e8c36a','#d9483b','#3f8f6b','#f3a7b5','#f2994a','#ffe2c4'];   // 단색 칸: 0 바탕색, 1 크림, 2 먹, 3 노랑, 4 밀짚, 5 빨강, 6 목도리, 7 분홍, 8 주황, 9 살구
+const AV_CELL=[null,'#fff8ea','#2a2420','#f2c14e','#e8c36a','#d9483b','#3f8f6b','#f3a7b5','#f2994a','#ffe2c4','#f5c542'];   // 단색 칸: 0 바탕색, 1 크림, 2 먹, 3 노랑, 4 밀짚, 5 빨강, 6 목도리, 7 분홍, 8 주황, 9 살구, 10 금
 const AV_RE=/^([0-2])-(\d{1,2})-(\d{1,2})(?:-(\d{1,2}))?(?:-p([0-9a-z]{4,8}))?(-e)?$/;
 const AV_K=1.3,AV_TW=256,AV_HEAD_H=128,AV_BODY_H=112,AV_PMAX=56000;
 const AV={edit:false,spin:0,mine:null,geo:{},tex:{},ink:null,drag:null,stroke:null,tab:0,tool:'fill',bc:11,paint:null,hasPaint:false,dirty:false,pid:'',pdata:'',myTex:null,myKey:'',myDoll:null,sent:null,hostPid:null,ver:0};
@@ -81,8 +81,17 @@ function avBake(parts){
     if(full){g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2))}g.setIndex(idx);return g};
   return {body:mk(pos,true),hull:mk(hp,false)};
 }
-function avGeo(k,a,h){
-  const key=k+'-'+(k===1?a:0)+'-'+h;if(AV.geo[key])return AV.geo[key];
+/* 왕관 부품(우승자): 띠 + 뾰족한 끝 다섯 + 끝의 구슬. 사람 인형은 머리 위(모자·고깔 대신), 봇은 통나무 위 */
+function avCrownParts(R,m,uv){
+  const P=[],L=pts=>new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),20),at=(x,y,z)=>new THREE.Matrix4().multiplyMatrices(m,new THREE.Matrix4().makeTranslation(x,y,z));
+  P.push({g:L([[R-.04,0],[R,0],[R*1.05,.12],[R*1.05-.04,.12]]),uv,m,w:.014});
+  for(let i=0;i<5;i++){const a=i/5*Math.PI*2+Math.PI/2,r=R*1.05-.02,x=Math.cos(a)*r,z=Math.sin(a)*r;
+    P.push({g:new THREE.ConeGeometry(.05,.13,8),uv,m:at(x,.17,z),w:.012});P.push({g:new THREE.SphereGeometry(.03,8,6),uv,m:at(x,.25,z),w:.01})}
+  return P;
+}
+function avGeo(k,a,h,cr){
+  if(cr&&(h===1||h===2))h=0;   // 왕관을 쓰면 모자·고깔은 벗음 (목도리·안경은 그대로)
+  const key=k+'-'+(k===1?a:0)+'-'+h+(cr?'c':'');if(AV.geo[key])return AV.geo[key];
   const parts=[],PI=Math.PI,CR=1,DK=2,YL=3,ST=4,RD=5,SC=6,PK=7,OR=8;
   const lathe=(pts,seg)=>new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg||28);
   const sph=(r,a2,b2)=>new THREE.SphereGeometry(r,a2||16,b2||12);
@@ -160,6 +169,7 @@ function avGeo(k,a,h){
     for(const s of[-1,1])add(new THREE.TorusGeometry(.085,.015,8,20),DK,M(s*(d.x+.01),ey,ez),.006);
     add(new THREE.CylinderGeometry(.012,.012,Math.max(.02,(d.x+.01)*2-.17),6),DK,M(0,ey,ez,1,1,1,0,0,PI/2),.006);
   }
+  if(cr)parts.push(...avCrownParts(hd.r*.58,M(0,hd.y+hd.r*.8,0,1,1,1,-.08,0,.06),10));
   const G2=avBake(parts);G2.reg=reg;return AV.geo[key]=G2;
 }
 /* 바탕 그림: 머리·몸통 칸은 바탕색(동물 배, 오뚝이 얼굴·머리는 그려 둠), 맨 아래 줄은 단색 칸 */
@@ -193,11 +203,12 @@ const avSm=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 function avStump(S,t,dt,p){
   const D=S.av||(S.av=avDoll());
   const me=!!(p&&V&&V.ps&&p===V.ps[myIdx()]),w=avCamW();
+  avFlag(S,t,!!(p&&!p.b&&p.hs&&!me));
   const v=p&&!p.b?(me?Object.assign({},avMine(),{e:AV.edit}):avParse(p.av)):null;
   const show=!!v&&(!me||w>.001);
   if(v&&show){
-    const key=v.k+'-'+(v.k===1?v.a:0)+'-'+v.h;
-    if(D.key!==key){D.geo=avGeo(v.k,v.a,v.h);D.body.geometry=D.geo.body;D.ink.geometry=D.geo.hull;if(D.key&&D.s>.5)D.hopAt=t;D.key=key}
+    const key=v.k+'-'+(v.k===1?v.a:0)+'-'+v.h+(p.cr?'c':'');
+    if(D.key!==key){D.geo=avGeo(v.k,v.a,v.h,!!p.cr);D.body.geometry=D.geo.body;D.ink.geometry=D.geo.hull;if(D.key&&D.s>.5)D.hopAt=t;D.key=key}
     const tex=me?avMyTex():avTex(v.k,v.a,v.c,V.cfg&&+V.cfg.pub?'':v.p);   // 남이 칠한 그림은 비공개 탁자에서만
     if(!D.mat){D.mat=toon({map:tex});D.body.material=D.mat}else if(D.mat.map!==tex)D.mat.map=tex;
     if(me)AV.myDoll=D;
@@ -209,6 +220,32 @@ function avStump(S,t,dt,p){
   const h=(t-D.hopAt)/480,hop=h>0&&h<1?Math.sin(h*Math.PI)*.34:0,sq=h>0&&h<1?1+Math.sin(h*Math.PI)*.07:1,k=Math.max(.001,D.s*S.s)*AV_K;
   D.g.position.set(S.g.position.x,FLOOR_Y+1.35*S.s+hop,S.g.position.z);D.g.scale.set(k/Math.sqrt(sq),k*sq,k/Math.sqrt(sq));
   D.g.rotation.y=S.a+Math.PI+avSm(D.turn.v)*Math.PI+(me?AV.spin:0);   // 평소에는 탁자 가운데를 봄. 바꾸는 중에는 돌아앉음
+}
+/* 방장 깃발: 방장 의자 옆에 꽂힌 노란 삼각 깃발. 인형 어깨 옆, 탁자 위로 올라와 맞은편에서도 보임 (내 화면의 내 자리는 안 그림). avStump가 부름 */
+function avFlag(S,t,on){
+  if(!S.flag){if(!on)return;
+    const g=new THREE.Group(),pole=new THREE.Mesh(new THREE.CylinderGeometry(.03,.035,1.95,8),toon({color:0x7b5534}));pole.position.y=.975;g.add(pole);hull(new THREE.CylinderGeometry(.052,.057,1.98,8),pole,g);
+    const sh=new THREE.Shape();sh.moveTo(0,0);sh.lineTo(.62,-.21);sh.lineTo(0,-.42);sh.closePath();
+    const fl=new THREE.Mesh(new THREE.ShapeGeometry(sh),toon({color:0xf2c14e,rim:0}));fl.material.side=THREE.DoubleSide;
+    const ol=new THREE.Shape();ol.moveTo(-.02,.04);ol.lineTo(.72,-.21);ol.lineTo(-.02,-.46);ol.closePath();
+    const ink=new THREE.Mesh(new THREE.ShapeGeometry(ol),new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.DoubleSide}));ink.position.z=-.006;
+    const w=new THREE.Group();w.position.set(.03,1.91,0);w.scale.x=-1;w.add(ink);w.add(fl);g.add(w);   // 깃발은 인형 바깥쪽으로
+    g.visible=false;T.scene.add(g);S.flag={g,w,s:0,t0:t,on:false};
+  }
+  const F=S.flag;if(on&&!F.on)F.t0=t;F.on=on;
+  F.s=on?Math.min(1,Math.max(0,(t-F.t0)/350)):0;   // 꽂힐 때 0.35초에 걸쳐 올라옴
+  F.g.visible=on&&S.s>.3;if(!F.g.visible)return;
+  const a=S.a,bx=.72,bz=.1;   // 의자 가운데에서 옆(인형 어깨 옆)·조금 뒤. 깃발은 어깨~머리 높이: 위쪽 배경이 좁은 PC 화면에서도 잘리지 않게
+  F.g.position.set(S.g.position.x+Math.sin(a)*bz+Math.cos(a)*bx,FLOOR_Y+1.35*S.s-1.95*(1-avSm(F.s)),S.g.position.z+Math.cos(a)*bz-Math.sin(a)*bx);
+  F.g.rotation.y=a+Math.PI;F.g.scale.setScalar(S.s);F.w.rotation.y=Math.sin(t/620)*.28;   // 살짝 펄럭임
+}
+/* 봇이 우승자면 통나무 위에 왕관 */
+function avBotCrown(S,on){
+  const B=S.bot;if(!B)return;
+  if(!B.crown){if(!on)return;const G2=avBake(avCrownParts(.2,new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(-.08,0,.06)),10));
+    const g=new THREE.Group(),m=new THREE.Mesh(G2.body,toon({color:0xf5c542}));g.add(m);g.add(new THREE.Mesh(G2.hull,AV.ink||(AV.ink=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide}))));
+    g.position.y=B.h-.01;B.g.add(g);B.crown=g}
+  B.crown.visible=!!on;
 }
 /* 아바타 변경 카메라의 무게(0~1). frontApplyCam이 앉은 눈과 섞음 */
 function avCamW(){return FR.ava?avSm(FR.ava.v):0}
