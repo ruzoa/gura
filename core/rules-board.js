@@ -264,10 +264,10 @@ function rbDraw(t){
   t=t??clock();const P=T.rb,S=FR.rb;if(!P)return false;const cv=P.cv,g=cv.getContext('2d');let busy=false;
   const nS=rbNSet();
   if(S.mode==='list'){
-    const h=Math.round(RB.L*RB.PX);if(cv.height!==h)cv.height=h;cv.width=RB.CW;
+    const h=rbListPx();if(cv.height!==h)cv.height=h;cv.width=RB.CW;
     rbWood(g,RB.CW,h,7);rbCarve(g,'게임 규칙',RB.CW/2,RB.tall?140:120,RB.tall?82:72,'center');
     rbBurn(g,()=>{g.fillRect(RB.CW/2-150,RB.tall?162:140,300,5)});
-    GAME_IDS.forEach((id,i)=>{const y=RB.RY0+i*RB.RSTEP,lit=i===S.pick&&clock()-S.pickAt<420;if(y+RB.RH>h-20)return;
+    GAME_IDS.forEach((id,i)=>{const y=RB.RY0+i*RB.RSTEP,lit=i===S.pick&&clock()-S.pickAt<420;
       if(lit){g.fillStyle='rgba(255,236,190,.55)';rr(g,RB.MX-20,y,RB.CW-2*RB.MX+40,RB.RH,16);g.fill()}
       rbBurn(g,()=>{g.font=`${RB.tall?66:58}px ${RB_BODY}`;g.textAlign='left';g.textBaseline='middle';g.fillText(gameOf(id).name,RB.MX+30,y+RB.RH/2+4);
         g.beginPath();g.arc(RB.MX+6,y+RB.RH/2,7,0,7);g.fill();
@@ -295,7 +295,8 @@ function rbDraw(t){
   P.tex.needsUpdate=true;return busy;
 }
 function rbPages(){return FR.rb.mode==='list'?1:rbNSet()+rbPlanks(FR.rb.gid).length}
-function rbLen(){const S=FR.rb;if(S.mode==='list'||S.pg<rbNSet())return RB.L;const p=rbPlanks(S.gid)[S.pg-rbNSet()];return p?p.px/RB.PX:RB.L}
+function rbListPx(){return Math.max(Math.round(RB.L*RB.PX),RB.RY0+GAME_IDS.length*RB.RSTEP+RB.BOT)}   // 게임 목록 판자: 게임이 늘면 길어지고 위아래로 밂
+function rbLen(){const S=FR.rb;if(S.mode==='list')return rbListPx()/RB.PX;if(S.pg<rbNSet())return RB.L;const p=rbPlanks(S.gid)[S.pg-rbNSet()];return p?p.px/RB.PX:RB.L}
 /* 쪽 단추 그림: ⚙ / 🎲 / 숫자 (원통 윗면이 90도 돌아 보여서 미리 반대로 돌려 그림) */
 function rbPgLabel(k,nS){if(k<nS){const P=rbSetPlanks()[k];return P.grp==='main'?'⚙':'🎲'}return String(k-nS+1)}
 function rbPgPaint(b,lab,lit){
@@ -342,7 +343,7 @@ function frontRulesGo(k){   // 왼쪽 기둥의 쪽 단추: 그 판자로 바로
   sfx('key');frontRulesSet(S.mode,S.gid,k,true);
 }
 function frontRulesPick(yPx,hPx){
-  const S=FR.rb,ypx=yPx/hPx*RB.L*RB.PX,i=Math.floor((ypx-RB.RY0)/RB.RSTEP);
+  const S=FR.rb,ypx=(S.s+yPx/hPx*RB.L)*RB.PX,i=Math.floor((ypx-RB.RY0)/RB.RSTEP);
   if(i<0||i>=GAME_IDS.length||ypx-RB.RY0-i*RB.RSTEP>RB.RH)return;
   S.pick=i;S.pickAt=clock();rbDraw();sfx('key');
   setTimeout(()=>{if(S.on&&S.mode==='list'){S.fromList=true;frontRulesSet('game',GAME_IDS[i],0,true)}},240);

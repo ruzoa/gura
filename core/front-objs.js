@@ -117,11 +117,12 @@ function frontDrawBoard(force){
     if(t<f.until){if(t>=f.next){f.next=t+55;f.ch=FR_POOL[Math.random()*FR_POOL.length|0];f.mid=1;if(audible)sfx('flap')}}
     else if(f.ch!==f.to){f.ch=f.to==null?' ':f.to;f.mid=0;if(audible)sfx('flap')}
   }
-  const key=FR.flaps.map(f=>f.ch+(f.mid?'|':'')).join('')+(warn?'!':'')+(FR.lock||'')+(FR.eye||'');
+  const key=FR.flaps.map(f=>f.ch+(f.mid?'|':'')).join('')+(warn?'!':'')+(FR.lock||'')+(FR.eye||'')+(FR.no?'#':'');
   if(!force&&key===FR.drawn)return;FR.drawn=key;
   const g=B.cv.getContext('2d'),W=B.cv.width,Hc=B.cv.height;
   g.fillStyle='#2b1d14';g.fillRect(0,0,W,Hc);
-  const fw=118,fh=164,gap=14,x0=(W-4*fw-3*gap)/2-22,y0=(Hc-fh)/2;
+  const fw=108,fh=164,gap=12,x0=94,y0=(Hc-fh)/2;   // 왼쪽은 'No.' 자리, 오른쪽 끝은 눈·자물쇠 자리
+  if(FR.no){g.save();g.fillStyle=warn?'#ff9b84':'#f6ecd8';g.globalAlpha=.85;g.textAlign='right';g.textBaseline='alphabetic';g.font='44px "Black Han Sans", "Jua", "Apple SD Gothic Neo", sans-serif';g.fillText('No.',x0-10,y0+fh-22);g.restore()}   // 탁자 번호 앞 'No.'
   FR.flaps.forEach((f,i)=>{
     const x=x0+i*(fw+gap);
     g.fillStyle='#16100c';rr(g,x,y0,fw,fh,12);g.fill();
@@ -400,9 +401,10 @@ if(pv>.01)frontDrawList(t);
   else if(lobby&&FR.pub)chars=FR.pub.toUpperCase().padEnd(4).slice(0,4).split('');
   else if(lobby&&FR.buf)chars=FR.buf.toUpperCase().padEnd(4).split('');
   else if(wait)chars=shownCode(V.code).padEnd(4).slice(0,4).split('');
+  FR.no=!FR.word&&!spin&&(!!(FR.warp&&FR.warp.ph!=='fail'&&FR.warp.code)||(lobby&&!FR.scan&&!!(FR.pub||FR.buf))||(!!wait&&!(lobby&&FR.scan)));   // 탁자 번호를 보일 때만 앞에 'No.'
   FR.lock=wait&&!FR.word?(!V.cfg.pub?'closed':host?'open':''):'';
   FR.eye=wait&&!FR.word?(hideCode?'shut':'open'):'';
-  const key=chars.join('')+(spin?'*':'')+FR.lock+FR.eye+(FR.bad?'!':'');
+  const key=chars.join('')+(spin?'*':'')+FR.lock+FR.eye+(FR.bad?'!':'')+(FR.no?'#':'');
   if(key!==FR.boardKey){FR.boardKey=key;frontSetBoard(chars,spin)}
   frontDrawBoard(false);
   if(T.board){const cp=FR.clearHold?FR.clearP||0:0,bl=cp>0&&Math.floor((2*cp+7*cp*cp)*2)%2===1;T.board.screen.material.color.setScalar(bl?.3:1)}   // 상치우기를 누르는 동안 디스플레이가 점점 빨리 깜빡임
@@ -549,9 +551,8 @@ function frontLayout(lobby,wait,host,t){
     if(ht.dataset.k!==tn+'|'+gn+'|'+bad+'|'+host){ht.dataset.k=tn+'|'+gn+'|'+bad+'|'+host;if(!$('#holoTitleIn'))$('#holoTitle').textContent=tn;$('#holoGame').textContent=gn;ht.classList.toggle('bad',bad);$('#holoTitle').classList.toggle('editable',host);$('#holoGame').classList.toggle('pickable',host)}
     ht.style.left=Math.round(x)+'px';ht.style.top=Math.round(y-ht.offsetHeight)+'px';ht.style.opacity=Math.min(1,FR.holoGlow*1.2)*(FR.collapseAt?0:1);
   }
-  {const hc=$('#holoCnt'),on=hOn&&!FR.browse;if(hc.hidden===on)hc.hidden=!on;   // 게임 말 아래 인원 (고르는 중에는 숨김)
-    if(on){const n=(V.ps||[]).length,mx=Math.max(+V.cfg.max||0,n),tx=`${n}/${mx}명`;if(hc.textContent!==tx)hc.textContent=tx;
-      _v3.set(0,.36,0);T.holo.g.localToWorld(_v3);_v3.project(T.cam);hc.style.left=Math.round((_v3.x+1)/2*W)+'px';hc.style.top=Math.round((1-_v3.y)/2*Hh)+'px';hc.style.opacity=Math.min(1,FR.holoGlow*1.2)*(FR.collapseAt?0:1)}}
+  {const hc=$('#holoCnt'),on=hOn&&!FR.browse;if(hc.hidden===on)hc.hidden=!on;   // 게임 이름 오른쪽 (지금 인원/탁자 인원), 다르면 빨갛게 (고르는 중에는 숨김)
+    if(on){const n=(V.ps||[]).length,mx=+V.cfg.max||n,tx=`(${n}/${mx})`;if(hc.textContent!==tx)hc.textContent=tx;hc.classList.toggle('off',n!==mx)}}
 }
 /* 꺼진 시작 버튼을 누름: 금지 소리 + 빈 자리 이름표가 통통 튀며 "사람이 더 필요함"을 보여 줌 */
 function frontNeedSeats(){
