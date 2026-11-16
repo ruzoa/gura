@@ -250,7 +250,8 @@ function frontFail(word){
   FR.spread=false;frontWord(word,4500);FR.shakeAt=clock();
   const w=FR.warp;
   if(w&&w.ph!=='fail'){w.ph='fail';w.t1=clock();w.f1=w.fog||0;w.s1=w.s||0;w.r1=w.rum||0}
-  sfx(w?'warpFail':'no');
+  if(!w&&word&&FR_WORD.has(word))FR.clearAt=clock();   // 이미 도착한 뒤 못 앉음(만석): 탁자가 덜컹
+  sfx(w||FR_WORD.has(word)?'warpFail':'no');
 }
 function frontWord(word,ms){FR.word=word;FR.wordAt=clock();FR.wordMs=ms||4500}
 function frontWarpEnd(){
@@ -410,7 +411,7 @@ if(pv>.01)frontDrawList(t);
   const key=chars.join('')+(spin?'*':'')+FR.lock+FR.eye+(FR.bad?'!':'')+(FR.no?'#':'');
   if(key!==FR.boardKey){FR.boardKey=key;frontSetBoard(chars,spin)}
   frontDrawBoard(false);
-  if(T.board){const cp=FR.clearHold?FR.clearP||0:0,bl=cp>0&&Math.floor((2*cp+7*cp*cp)*2)%2===1;T.board.screen.material.color.setScalar(bl?.3:1)}   // 상치우기를 누르는 동안 디스플레이가 점점 빨리 깜빡임
+  if(T.board){const cp=FR.clearHold?FR.clearP||0:0,wk=t-FR.wordAt,wb=FR_WORD.has(FR.word)&&wk<1800&&Math.floor(wk/220)%2===1,bl=wb||(cp>0&&Math.floor((2*cp+7*cp*cp)*2)%2===1);T.board.screen.material.color.setScalar(bl?.3:1)}   // 못 감(없음·만석·끊김)은 처음 1.8초 깜빡임   // 상치우기를 누르는 동안 디스플레이가 점점 빨리 깜빡임
   // 투사기·홀로그램, 시작 버튼
   frontHoloPose(t,wait);
   if(T.startBtn){const S=T.startBtn,can=mode==='host'&&canStart(),want=wait&&host&&can&&FR.stand<.05&&!FR.browse&&!roomSetOpen&&!FR.seek;   // 시작할 수 있을 때만 구멍이 열리고 올라옴. 아니면 아무 흔적 없음

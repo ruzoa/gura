@@ -778,7 +778,8 @@ function resumeOrInvite(){
   try{sv=JSON.parse(store('gura-host')||'null')}catch(e){}
   try{gv=JSON.parse(store('gura-guest')||'null')}catch(e){}
   if(sv&&sv.H&&soloTable(sv.H)){unstore('gura-host');sv=null}   // 사람이 혼자 봇과 하던 게임 중에 앱을 닫았으면 탁자를 떠난 것으로 (이어서 열지 않음)
-  const ownInvite=!!(invited&&sv&&sv.H&&sv.H.code===invited);   // 내 탁자 초대 링크를 같은 브라우저 새 탭에서 엶: 방장 탭이 살아 있을 수 있으니 복구하지 않고 찾아감
+  const ownInvite=!!(invited&&sv&&sv.H&&sv.H.code===invited);
+  if(invited&&!ownInvite&&sv&&sv.H&&!(sv.H.members||[]).some(m=>!m.host&&!m.bot)){unstore('gura-host');sv=null}   // 혼자(봇만) 앉아 있던 내 탁자보다 초대가 먼저 (앉으면 내 탁자가 바로 차려지므로)   // 내 탁자 초대 링크를 같은 브라우저 새 탭에서 엶: 방장 탭이 살아 있을 수 있으니 복구하지 않고 찾아감
   if(!ownInvite&&sv&&sv.H&&sv.H.code&&Date.now()-sv.at<RESUME_MS){restoreHost(sv,0);return}   // 초대보다 먼저: 내가 차린 탁자가 없어지지 않게 (초대 번호는 떠날 때 참여 창에 남음)
   if(!ownInvite)unstore('gura-host');
   if(invited){
