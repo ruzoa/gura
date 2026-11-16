@@ -1,7 +1,7 @@
 /* index.html 공통 코드 · 네트워크(PeerJS): 방 열기·참가·관전·재접속·방장 이양·공개 탁자 찾기. 파일 순서는 index.html의 <script src> 순서 */
 /* ================= 네트워크 (PeerJS) ================= */
 function cleanNick(n){return (typeof n==='string'&&n.trim()?n.trim():'손님').slice(0,10)}
-function cleanAv(v){return typeof v==='string'&&/^[0-2]-[0-3]-\d{1,2}(-e)?$/.test(v)?v:''}   // 아바타 값 (core/avatar.js)
+function cleanAv(v){return typeof v==='string'&&/^[0-2]-\d{1,2}-\d{1,2}(-\d{1,2})?(-p[0-9a-z]{4,8})?(-e)?$/.test(v)?v:''}   // 아바타 값 (core/avatar.js)
 function hostConn(conn){
   if(!H||mode!=='host'){conn.on('open',()=>{try{conn.close()}catch(e){}});return}   // 이미 방을 떠난 방장
   conn.on('open',()=>{net.conns.add(conn)});
@@ -28,8 +28,9 @@ function hostConn(conn){
           if(back)addLog(`${pl.name} 다시 연결됨`,'sys');
         }else if(!m){if(!hostAddSpec(conn,nick,cid))return}
       }
-      mark();return;
+      avpSendAll(conn);mark();return;
     }
+    if(d.t==='avp'){avpHostGot(conn,d);return}   // 칠한 아바타 그림 (core/avatar.js)
     if(d.t==='out'){conn.__out=true;return}   // '탁자 떠나기'를 누름: 곧 닫히는 연결을 탈주로 처리
     {const sp=specOf(conn);
      if(sp){if(d.t==='join')hostJoinSpec(conn,d.seat);return}}   // 관전자는 이모티콘을 보낼 수 없음
@@ -159,10 +160,10 @@ function createRoom(){
     }
   });
 }
-function guestHello(conn){try{conn.send({t:'hello',nick:myNick(),cid:CID,sp:V&&V.spec?1:0,av:myAvStr()})}catch(e){}}
+function guestHello(conn){try{conn.send({t:'hello',nick:myNick(),cid:CID,sp:V&&V.spec?1:0,av:myAvStr()});avpSendMine(conn)}catch(e){}}
 function saveGuest(){if(mode==='guest'&&net.code)store('gura-guest',JSON.stringify({code:net.code,at:Date.now()}))}
 function wireGuestConn(conn){
-  conn.on('data',d=>{if(net.conn!==conn)return;if(d&&d.t==='kicked'){guestKicked();return}if(d&&d.t==='cleared'){guestCleared();return}if(d&&d.t==='full'){guestFull();return}if(d&&d.t==='bye'){hostLeft(!!d.nx,cleanNick(d.nxn||''),!!d.hd);return}if(d&&typeof d==='object'&&d.t==='state'&&d.s&&typeof d.s==='object'){if(Date.now()-(net.savedAt||0)>5000){net.savedAt=Date.now();saveGuest()}applyView(d.s)}});
+  conn.on('data',d=>{if(net.conn!==conn)return;if(d&&d.t==='avp'){avpPut(d.id,d.d);return}if(d&&d.t==='kicked'){guestKicked();return}if(d&&d.t==='cleared'){guestCleared();return}if(d&&d.t==='full'){guestFull();return}if(d&&d.t==='bye'){hostLeft(!!d.nx,cleanNick(d.nxn||''),!!d.hd);return}if(d&&typeof d==='object'&&d.t==='state'&&d.s&&typeof d.s==='object'){if(Date.now()-(net.savedAt||0)>5000){net.savedAt=Date.now();saveGuest()}applyView(d.s)}});
   conn.on('close',()=>{if(mode==='guest'&&net.conn===conn)guestReconnect()});
   conn.on('error',()=>{if(mode==='guest'&&net.conn===conn)guestReconnect()});
 }

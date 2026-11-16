@@ -632,15 +632,18 @@ body.kb .fan .card.cur{z-index:70!important}
 
 /* '움직임 줄이기' 설정으로 움직임을 끄지 않음(공통 원칙). 예전 전체 끄기 규칙 때문에 그 설정을 켠 PC에서 손패 카드가 뚝뚝 끊겨 보였음 */
 
-/* ===== 아바타 변경 (core/avatar.js): 화면 전체를 덮어 뒤쪽 누르기를 막고(판 밖을 끌면 인형이 돎), 고르는 판은 아래 가운데 ===== */
+/* ===== 아바타 변경 (core/avatar.js): 화면 전체를 덮어 뒤쪽 누르기를 막고(판 밖: 인형을 문지르면 색칠, 그 밖을 끌면 인형이 돎), 고르는 판은 아래 가운데 ===== */
 .avedit{position:absolute;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center;padding:0 10px calc(12px + env(safe-area-inset-bottom));touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
 .avedit[hidden]{display:none}
-.av-panel{width:min(100%,400px);display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:14px;background:var(--paper);border:1.5px solid var(--line-strong);box-shadow:0 8px 20px -8px rgba(59,42,31,.5);cursor:default}
-.av-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}.av-row[hidden]{display:none}
-.av-row button{flex:1;min-width:0;padding:9px 6px;border-radius:9px;border:1.5px solid var(--line-strong);background:var(--paper);font-weight:600;white-space:nowrap}
+.av-panel{width:min(100%,400px);display:flex;flex-direction:column;gap:7px;padding:10px;border-radius:14px;background:var(--paper);border:1.5px solid var(--line-strong);box-shadow:0 8px 20px -8px rgba(59,42,31,.5);cursor:default}
+.av-row{display:flex;gap:5px}
+.av-row button{flex:1;min-width:0;padding:8px 2px;border-radius:9px;border:1.5px solid var(--line-strong);background:var(--paper);font-weight:600;font-size:13.5px;white-space:nowrap}
 .av-row button.on{background:var(--mustard);border-color:var(--mustard-edge)}
-.av-col{display:grid;grid-template-columns:repeat(10,1fr);gap:5px}
-.av-col button{width:100%;aspect-ratio:1;padding:0;border-radius:50%;border:2px solid rgba(59,42,31,.28)}
+.av-tabs button{border:0;border-bottom:3px solid transparent;border-radius:9px 9px 0 0;background:var(--well);padding:7px 2px}
+.av-tabs button.on{background:var(--paper);border-bottom-color:var(--mustard-edge)}
+.av-g5{display:grid;grid-template-columns:repeat(5,1fr)}
+.av-col{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.av-col button{height:30px;padding:0;border-radius:9px;border:2px solid rgba(59,42,31,.28)}
 .av-col button.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--paper),0 0 0 3.5px var(--ink)}
 .av-done{padding:10px;border-radius:10px;border:0;background:var(--mustard);font-weight:700}
 #stage.avedit .labels,#stage.avedit .labels *,#stage.avedit #holoTag,#stage.avedit .specbar,#stage.avedit .fr-foot,#stage.avedit .fr-hot{visibility:hidden!important}   /* 인형만 보이게: 이름표·홀로그램 글씨·투명 누르는 자리를 잠깐 숨김 */
