@@ -19,7 +19,7 @@ const frSeek=()=>!!(FR.seek&&frTableUI());
 const frGoOk=()=>!!(FR.ok&&!FR.warp&&!FR.spread&&((mode==='lobby'&&!net.peer)||frSeek()));
 const FR_ROWS=7;   // 공개 탁자 목록 판: 한 쪽에 7줄
 const PL_CW=832,PL_CH=1092,PL_Y0=72,PL_STEP=122,PL_RH=108,PL_DOTY=24,PL_BTNY=1014;   // 목록 판 그림 크기와 줄 자리: 맨 위 쪽 표시 점 → 플립 줄 7개 → 바로 아래 단추
-const DSP={W:1.5,D:.5,Th:.05,Z:3.9};   // 디스플레이: 폭, 깊이, 두께, 경첩(먼 쪽 끝) 위치
+const DSP={W:1.7,D:.55,Th:.05,Z:3.85};   // 대기실에 펠트가 없어 안쪽으로 크게 (예전 1.5 × .5, 경첩 3.9). 화면 비율은 캔버스(640×208)와 맞춤, 왼쪽 시작 버튼과 겹치지 않게   // 디스플레이: 폭, 깊이, 두께, 경첩(먼 쪽 끝) 위치
 function frontBuild(){
   const TG=T.tableG;
   frontBuildStumps();frontBuildDisplay(TG);frontBuildHolo(TG);frontBuildStart(TG);
@@ -96,11 +96,11 @@ function frontBuildDisplay(TG){
   kp.traverse(o=>{if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{m.clippingPlanes=clipZ})});
   T.keypad={g:kp,keys};
   // 첫 자판: 앉으면 먼저 나옴. 상차리기(탁자 위 +), 참여하기(→]). 참여하기를 누르면 이 자판이 들어가고 같은 틈에서 숫자 키판이 나옴
-  T.menuPad=frontBuildPad(TG,FR_MENU,{w:.44,d:.38,gap:.52,id:'frM',on:frontMenu});
+  T.menuPad=frontBuildPad(TG,FR_MENU,{w:.48,d:.42,gap:.57,id:'frM',on:frontMenu});
   // 대기실 자판: 방장(봇 추가·탁자 설정·상치우기), 참가자(관전하기·떠나기), 관전자(참여하기·떠나기). 같은 틈에서 나옴
-  T.hostPad=frontBuildPad(TG,FR_HOST,{w:.44,d:.38,gap:.52,id:'frH',on:frontWaitKey});
-  T.guestPad=frontBuildPad(TG,FR_GUEST,{w:.44,d:.38,gap:.52,id:'frG',on:frontWaitKey});   // 방장이 바뀌면 방장 자판이 들어가고 같은 틈에서 참가자 자판이 올라옴
-  T.sitPad=frontBuildPad(TG,FR_GUEST,{w:.44,d:.38,gap:.52,id:'frS',on:frontWaitKey});
+  T.hostPad=frontBuildPad(TG,FR_HOST,{w:.48,d:.42,gap:.57,id:'frH',on:frontWaitKey});
+  T.guestPad=frontBuildPad(TG,FR_GUEST,{w:.48,d:.42,gap:.57,id:'frG',on:frontWaitKey});   // 방장이 바뀌면 방장 자판이 들어가고 같은 틈에서 참가자 자판이 올라옴
+  T.sitPad=frontBuildPad(TG,FR_GUEST,{w:.48,d:.42,gap:.57,id:'frS',on:frontWaitKey});
   frontClearHold();
   const fr=$('#front');FR_KEYS.forEach((k,i)=>{const b=document.createElement('button');b.type='button';b.className='fr-hot off fr-key';b.id='frK'+i;b.setAttribute('aria-label',FR_KEY_NAME[k]||k);b.addEventListener('click',()=>frontKey(k));fr.insertBefore(b,$('#frFoot'))});
   frontBuildList(TG);frontBuildRules(TG);

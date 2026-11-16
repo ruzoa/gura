@@ -22,6 +22,10 @@ function frontBuildRules(TG){
   // 닫기: 오른쪽 기둥 위 ✕, 뒤로: 왼쪽 기둥 위 ← (목록에서 들어온 규칙일 때만)
   const [xk,xkO]=knob(knobTex(x=>{x.lineWidth=16;x.beginPath();x.moveTo(-26,-26);x.lineTo(26,26);x.moveTo(26,-26);x.lineTo(-26,26);x.stroke()}),px,1);
   const [bk,bkO]=knob(knobTex(x=>{x.lineWidth=15;x.beginPath();x.moveTo(28,0);x.lineTo(-12,0);x.stroke();x.beginPath();x.moveTo(-34,0);x.lineTo(-8,-26);x.lineTo(-8,26);x.closePath();x.fill()}),-px,1);
+  // 이 게임 하기: 오른쪽 기둥, ✕ 아래 빨간 단추(▶). 방장이 대기실에서 다른 게임의 규칙을 볼 때만. 지금 인원으로 못 하는 게임이면 회색
+  const playOn=toon({color:0xffffff,map:canvasTex(128,128,(x,w,h)=>{x.fillStyle='#cc3a2e';x.fillRect(0,0,w,h);x.fillStyle='#fff6e6';x.translate(64,64);x.rotate(-Math.PI/2);x.beginPath();x.moveTo(-18,-26);x.lineTo(28,0);x.lineTo(-18,26);x.closePath();x.fill()}),rim:.3}),playSide=toon({color:0x8e2a20,rim:.2});
+  const pl=new THREE.Mesh(new THREE.CylinderGeometry(.095,.095,.055,28),[playSide,playOn,playSide]);pl.rotation.x=Math.PI/2;pl.position.set(px,.6,.1);r.add(pl);
+  const plO=hull(new THREE.CylinderGeometry(.108,.108,.065,28),pl,r);plO.rotation.x=Math.PI/2;pl.visible=plO.visible=false;
   // 쪽 단추: 왼쪽 기둥 앞면의 둥근 놋쇠 단추. ⚙ 탁자 설정, 🎲 게임 설정, 숫자 = 규칙 판자. 지금 판자는 밝고 눌려 들어감
   const pgs=[];
   for(let k=0;k<RB_PG;k++){const cvp=document.createElement('canvas');cvp.width=cvp.height=128;const tx=new THREE.CanvasTexture(cvp);
@@ -38,7 +42,7 @@ function frontBuildRules(TG){
   const hitM=new THREE.MeshBasicMaterial({visible:false});
   const win=new THREE.Mesh(new THREE.PlaneGeometry(W,1),hitM);win.position.set(0,.5,.05);r.add(win);
   // 쪽은 왼쪽 기둥 쪽 단추·옆으로 밀기·←→. ✕는 오른쪽 기둥 위
-  T.rb={g,r,cv,tex,plank,pOut,posts,xk,xkO,bk,bkO,pgs,win,px,key:'',fitL:0};
+  T.rb={g,r,cv,tex,plank,pOut,posts,xk,xkO,bk,bkO,pl,plO,playOn,pgs,win,px,key:'',fitL:0};
   rbFit(RB.L,true);
   g.visible=false;
   const fr=$('#front'),mk=(id,lab)=>{const b=document.createElement('button');b.type='button';b.className='fr-hot off fr-key';b.id=id;if(lab){b.setAttribute('aria-label',lab);b.title=lab}fr.insertBefore(b,$('#frFoot'));return b};
@@ -55,6 +59,7 @@ function frontBuildRules(TG){
   }
   mk('frRbX','닫기').addEventListener('click',()=>frontRules(null));
   mk('frRbBack','뒤로').addEventListener('click',()=>{sfx('tick');frontRulesBack()});
+  mk('frRbPlay','이 게임 하기').addEventListener('click',()=>frontRulesPlay());
   for(let k=0;k<RB_PG;k++)mk('frRbPg'+k,'').addEventListener('click',()=>frontRulesGo(k));
   mk('frRbTitle','게임 고르기').addEventListener('click',()=>{const S=FR.rb;if(!S.on||S.chg||S.mode!=='game')return;sfx('tick');S.fromList=true;frontRulesSet('list',null,0,true)});   // 게임 이름을 누르면 게임 목록 판
 }
@@ -66,7 +71,7 @@ function rbFit(L,force){
   RB.RY0=RB.tall?230:190;RB.RSTEP=RB.tall?150:112;RB.RH=RB.tall?128:96;
   const PH=L+.06;
   for(const s of P.posts){s.post.scale.y=PH;s.post.position.y=PH/2;s.po.scale.y=PH+.03;s.po.position.y=PH/2;s.cap.position.y=s.co.position.y=PH+.025}
-  P.xk.position.y=P.xkO.position.y=P.bk.position.y=P.bkO.position.y=PH-.13;
+  P.xk.position.y=P.xkO.position.y=P.bk.position.y=P.bkO.position.y=PH-.13;P.pl.position.y=P.plO.position.y=PH-.42;
   P.win.scale.y=L;P.win.position.y=L/2;
   rbPlanks.c={};rbSetPlanks.c=null;
   if(FR.rb&&FR.rb.on){FR.rb.s=0;rbDraw()}
@@ -294,7 +299,7 @@ function rbDraw(t){
   }
   P.tex.needsUpdate=true;return busy;
 }
-function rbPages(){return FR.rb.mode==='list'?1:rbNSet()+rbPlanks(FR.rb.gid).length}
+function rbPages(){return FR.rb.mode==='list'?1:FR.rb.set?rbNSet():rbPlanks(FR.rb.gid).length}   // 설정 판자(톱니바퀴 키)는 설정만, 규칙은 게임 규칙 키로
 function rbListPx(){return Math.max(Math.round(RB.L*RB.PX),RB.RY0+GAME_IDS.length*RB.RSTEP+RB.BOT)}   // 게임 목록 판자: 게임이 늘면 길어지고 위아래로 밂
 function rbLen(){const S=FR.rb;if(S.mode==='list')return rbListPx()/RB.PX;if(S.pg<rbNSet())return RB.L;const p=rbPlanks(S.gid)[S.pg-rbNSet()];return p?p.px/RB.PX:RB.L}
 /* 쪽 단추 그림: ⚙ / 🎲 / 숫자 (원통 윗면이 90도 돌아 보여서 미리 반대로 돌려 그림) */
@@ -433,8 +438,16 @@ function frontRulesUpdate(t,dt,lobby,wait){
     const y=top-step*(k+(k>=nS?gapN:0)),lit=k===S.pg,sc=Math.min(1,step/.15);b.m.position.y=b.o.position.y=y;b.m.scale.set(sc,1,sc);b.o.scale.set(sc,1,sc);b.m.position.z=b.o.position.z=lit?.085:.1;
     const lab=rbPgLabel(k,nS);if(b.lab!==lab||b.lit!==lit){b.lab=lab;b.lit=lit;rbPgPaint(b,lab,lit)}});
   P.bk.visible=P.bkO.visible=S.mode==='game'&&!!S.fromList;
+  {const on=rbCanPlay();P.pl.visible=P.plO.visible=on;if(on){const ok=frontCanPlay(S.gid);if(P.playOk!==ok){P.playOk=ok;P.playOn.color.setHex(ok?0xffffff:0x8d837b)}const k=clock()-(S.playAt||-1e9),z=k<160?.075:.1;P.pl.position.z=P.plO.position.z=z;P.pl.position.x=P.plO.position.x=P.px+(S.playNo&&k<360?Math.sin(k*.09)*.012:0)}}
   if(S.on&&wait&&S.set&&V&&V.cfg&&S.gid!==(V.cfg.game||'gura')&&!S.chg){S.gid=V.cfg.game||'gura';rbSetPlanks.c=null;if(S.pg>=rbPages())S.pg=0;rbDraw(t)}   // 방장이 게임을 바꿈
   if(S.on&&S.mode==='game'&&S.pg<nS&&!S.chg){const key=JSON.stringify(V&&V.cfg)+mode+S.pg+(S.press?S.press.at:0)+(V&&V.ps?V.ps.length:0);if(key!==S.setKey||S.busy){S.setKey=key;S.busy=rbDraw(t)}}   // 설정이 바뀌면 다시 그림(숫자 넘김·손잡이·못 미끄러짐)
   if(S.on&&S.mode==='game'&&S.pg>=rbPages()&&!S.chg){S.pg=Math.max(0,rbPages()-1);rbDraw(t)}   // 판자 수가 줄면 마지막 판자로
   if(S.pick>=0&&t-S.pickAt>=420){S.pick=-1;if(S.mode==='list')rbDraw()}
+}
+/* 이 게임 하기: 방장이 대기실에서 지금 게임이 아닌 게임의 규칙 판자를 볼 때. 누르면 그 게임으로 바꾸고 판자가 들어감(홀로그램이 바뀜) */
+function rbCanPlay(){const S=FR.rb;return !!(S.on&&S.mode==='game'&&!S.set&&!S.chg&&mode==='host'&&H&&H.phase==='wait'&&frWaitV()&&S.gid&&S.gid!==(V.cfg.game||'gura'))}
+function frontRulesPlay(){
+  const S=FR.rb;if(!rbCanPlay())return;S.playAt=clock();
+  if(!frontCanPlay(S.gid)){S.playNo=1;sfx('no');return}   // 지금 인원으로는 못 하는 게임: 단추가 부르르
+  S.playNo=0;hostSetGame(S.gid);sfx('holoPick');setTimeout(()=>frontRules(null),260);
 }
