@@ -11,7 +11,7 @@
 html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,'Noto Sans KR',sans-serif}
 main{max-width:560px;margin:0 auto;padding:10px 12px calc(24px + env(safe-area-inset-bottom))}
 h1{font-size:15px;margin:2px 0 8px;color:var(--dim);font-weight:600}
-.nav{display:flex;gap:6px;margin-bottom:8px}
+.nav{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
 .nav a{color:var(--dim);text-decoration:none;border:1px solid var(--line);border-radius:18px;padding:5px 12px;font-size:13px}
 .nav a.on{background:var(--acc);color:#1a1405;border-color:var(--acc);font-weight:700}
 /* 미리보기: 정사각형, 안전 영역(가운데 80% 원) 표시 */
@@ -48,7 +48,7 @@ input[type=range]{flex:1;min-width:0;height:34px;accent-color:var(--acc)}
 </head>
 <body>
 <main>
-<nav class="nav"><a href="lab.html">첫 차례 주사위</a><a href="lab-icon.html" class="on">아이콘 찍기</a><a href="lab-hand.html">알까기 손</a><a href="lab-poker.html">포커 카메라</a></nav>
+<nav class="nav"><a href="lab.html">첫 차례 주사위</a><a href="lab-icon.html" class="on">아이콘 찍기</a><a href="lab-hand.html">알까기 손</a><a href="lab-poker.html">포커 카메라</a><a href="lab-doll.html">플레이어 인형</a></nav>
 <h1>테스트룸 · 아이콘 찍기 <span style="font-weight:400">(게임 속 탁자를 들판에서 찍어 홈 화면 아이콘으로 저장합니다)</span></h1>
 
 <div id="viewWrap">
