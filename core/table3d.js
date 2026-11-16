@@ -208,9 +208,11 @@ function init3D(){
       g.strokeStyle='rgba(255,250,240,.5)';g.lineWidth=6;g.beginPath();g.arc(w/2,h/2,488,0,7);g.stroke();
     });
     const fs=toon({color:0x2f6b4a});
-    const mat=new THREE.Mesh(new THREE.CylinderGeometry(3.15,3.15,.02,72),[fs,toon({map:felt,rim:0}),fs]);mat.position.y=.006;mat.receiveShadow=true;TG.add(mat);
-    const ink=new THREE.Mesh(new THREE.RingGeometry(3.14,3.19,96),new THREE.MeshBasicMaterial({color:GFX_INK}));ink.rotation.x=-Math.PI/2;ink.position.y=.0175;TG.add(ink);
-    T.felt={mat,ink,tex:felt};   // 첫 화면에서는 맨 탁자 → 상을 차리면 펼쳐짐 (frontUpdate)
+    const fg=new THREE.Group();fg.scale.set(.001,1,.001);fg.visible=false;TG.add(fg);   // 펠트 묶음: 첫 화면·대기실은 맨 탁자, 펠트가 필요한 게임이 시작되면 가운데 점에서 커짐 (frontFelt). 게임이 펠트를 직접 키우고 줄이는 것(mat.scale)은 이 묶음 안에서
+    const mat=new THREE.Mesh(new THREE.CylinderGeometry(3.15,3.15,.02,72),[fs,toon({map:felt,rim:0}),fs]);mat.position.y=.006;mat.receiveShadow=true;fg.add(mat);
+    const ink=new THREE.Mesh(new THREE.RingGeometry(3.14,3.19,96),new THREE.MeshBasicMaterial({color:GFX_INK}));ink.rotation.x=-Math.PI/2;ink.position.y=.0175;fg.add(ink);
+    const hit=new THREE.Mesh(new THREE.CylinderGeometry(3.15,3.15,.02,24),new THREE.MeshBasicMaterial({visible:false}));hit.position.y=.006;TG.add(hit);   // 첫 화면에서 탁자를 누르는 자리 (펠트가 없어도)
+    T.felt={mat,ink,tex:felt,g:fg,hit};
     setEnv(GFX_ENV);
     T.geo=new THREE.PlaneGeometry(.62,.9);
     T.back=new THREE.MeshBasicMaterial({map:backTex(),alphaTest:.4});

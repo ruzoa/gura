@@ -629,7 +629,7 @@ function drawAll(){
 /* ---------- 3D: 공통 원목 테이블 가운데 원목 판 + 네모 타일 말, 바로 위에서 보는 자기 카메라 ----------
    단위: 월드 그대로. 칸 한 변 C. 내 쪽 끝 줄이 화면 아래(+z). 포로는 판 옆(넓은 화면: 내 것 오른쪽 아래부터, 상대 것 왼쪽 위부터) 또는 앞뒤(좁은 화면) */
 const C=.62,HX=1.5*C,HZ=2*C,BX=HX+.18,BZ=HZ+.18,TOP=.15,TS=.54,TH=.1,PY=TOP+.004,GS=.8;   // PY: 타일 바닥(판 윗면 위)
-const GY=()=>T.felt&&T.felt.mat?T.felt.mat.position.y+.013:.02;   // 포로 바닥: 탁자 천 윗면 위
+const GY=()=>T.felt&&T.felt.mat&&(!T.felt.g||T.felt.g.visible)?T.felt.mat.position.y+.013:.004;   // 포로 바닥: 탁자 천 윗면 위 (펠트가 없으면 나무 윗면 위)
 const Dz3={on:false,built:false,fail:false,root:null,cam:null,dirty:true,lastR:0,lay:'',layAt:0,d:12,layout:'h',pcs:new Map(),hand:[[],[]],anim:[],flipT:null,mvN:-1};
 const ease=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
 function pW(i){const x=X(i),y=Y(i);return Dz3.flipT?[(1-x)*C,(y-1.5)*C]:[(x-1)*C,(1.5-y)*C]}

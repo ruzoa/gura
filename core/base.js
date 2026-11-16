@@ -74,7 +74,10 @@ const RESUME_MS=10*60*1000;   // 새로고침·앱 전환 뒤 이 시간 안이�
 const net={peer:null,conn:null,conns:new Set(),code:'',retry:null,savedAt:0,pub:null,pubBusy:false,pubRetryAt:0,handoff:''};
 let mode='lobby';           // lobby | host | guest | closed
 /* 첫 화면(탁자 하나) 상태. 자세한 설명은 frontBuild 위 */
-const FR={ok:false,rb:{on:false,mode:'list',gid:null,pg:0,s:0,v:0,pick:-1,pickAt:0,drag:false,chg:null},rba:{v:0,to:0,from:0,t0:0,ms:0},kmode:'menu',backAt:0,ma:{v:0,to:0,from:0,t0:0,ms:0},stand:1,sa:null,ca:null,cloth:0,spread:false,warp:null,word:'',wordAt:0,wordMs:4500,shakeAt:-1e9,tw:0,rum:0,open:1,flaps:null,boardKey:'',drawn:'',applied:true,browse:false,hpos:0,sheetMin:false,lock:'',bad:false,buf:'',pub:null,leanOn:false,lean:0,keyAt:0,pop:null,holdAt:0,eye:'',armAt:0,sit:false,arm:{v:0,to:0,from:0,t0:0,ms:0}};
+const FR={ok:false,fa:{v:0,to:0,from:0,t0:0,ms:0},actAt:0,rb:{on:false,mode:'list',gid:null,pg:0,s:0,v:0,pick:-1,pickAt:0,drag:false,chg:null},rba:{v:0,to:0,from:0,t0:0,ms:0},kmode:'menu',backAt:0,ma:{v:0,to:0,from:0,t0:0,ms:0},stand:1,sa:null,ca:null,cloth:0,spread:false,warp:null,word:'',wordAt:0,wordMs:4500,shakeAt:-1e9,tw:0,rum:0,open:1,flaps:null,boardKey:'',drawn:'',applied:true,browse:false,hpos:0,sheetMin:false,lock:'',bad:false,buf:'',pub:null,leanOn:false,lean:0,keyAt:0,pop:null,holdAt:0,eye:'',armAt:0,sit:false,arm:{v:0,to:0,from:0,t0:0,ms:0}};
 let V=null, PV=null;        // 지금 화면 상태, 직전 상태
 const sel=new Set(); let pickNum=null;   // pickNum: 구라!에서 라운드를 시작할 때 고른 선언 자음
 
+/* 펠트가 필요 없는 게임: 판·장치가 따로 있어 맨 나무 탁자 위에서 함 (게임 모듈의 G.felt=true/false가 있으면 그것) */
+const NO_FELT=new Set(['quoridor','omok','chess','janggi','alkkagi','animal','baseball','pixel','abalone','bohnanza','mia']);
+const gameFelt=id=>{const g=gameOf(id||'gura');return g&&g.felt!=null?!!g.felt:!NO_FELT.has(id||'gura')};

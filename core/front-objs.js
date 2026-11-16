@@ -352,7 +352,7 @@ function frontUpdate(t,dt){
   {const st=$('#stage'),sit=!lobby&&FR.stand>.04;if(st.classList.contains('frsit')!==sit)st.classList.toggle('frsit',sit)}
   {const st=$('#stage'),fw=frTableUI();if(st.classList.contains('frwait')!==fw)st.classList.toggle('frwait',fw)}   // 3D 대기실: 게임 CSS가 이름표를 숨겨도 대기실에서는 보이게   // 앉는 동안은 창을 잠깐 숨김
   // 천
-  frontStumps(t,dt,lobby,wait);
+  frontStumps(t,dt,lobby,wait);frontFelt(t,lobby);
   // 디스플레이: 첫 화면·타임머신·대기실에서 열림, 게임이 시작되면 접혀 덮개가 됨
   const padOut=[T.menuPad,T.hostPad,T.guestPad,T.sitPad].some(P=>P&&P.a.v>.01)||(FR.ka&&FR.ka.v>.01)||(FR.pla&&FR.pla.v>.01)||(FR.rba&&FR.rba.v>.01);
   const ow=(lobby&&FR.sit)||!!FR.warp||wait||padOut?1:0;   // 자판이 다 들어간 뒤에 덮개가 닫힘 (안 그러면 키가 탁자 위로 뚫고 나옴)
@@ -503,7 +503,7 @@ function frontLayout(lobby,wait,host,t){
   const standing=lobby&&!FR.sit&&FR.stand>.98&&!FR.warp&&!net.peer;   // 첫 화면: 탁자만
   const frontL=lobby&&FR.sit&&FR.stand<.05&&!FR.warp&&!FR.spread&&!net.peer,front=frontL||(frSeek()&&FR.stand<.05&&!FR.warp);   // 앉아서 찾아가기를 고름 (대기실에서 찾아가는 중 포함)
   el.classList.toggle('leaving',!(standing||frontL));$('#frFoot').hidden=!lobby;
-  frontPut($('#frTable'),standing,standing?frontRect(T.felt.mat,W,Hh):null,10);
+  frontPut($('#frTable'),standing,standing?frontRect(T.felt.hit,W,Hh):null,10);
   const seated=wait&&FR.stand<.05&&!FR.browse&&!FR.rb.on&&FR.rba.v<=.01&&!FR.seek;
   const leaned=front&&FR.lean>.9,kpUp=T.keypad&&T.keypad.g.position.y>.02;
   // 숙이기 전: 디스플레이와 키판을 한 덩어리로 누르면 숙여서 봄

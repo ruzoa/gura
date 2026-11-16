@@ -34,7 +34,8 @@ function frontBuildStumps(){
   for(let k=0;k<8;k++){
     const SH=1.35,g=new THREE.Group(),m=new THREE.Mesh(new THREE.CylinderGeometry(.55,.66,SH,14),[bark,topM,bark]);m.position.y=SH/2;m.castShadow=m.receiveShadow=true;g.add(m);hull(new THREE.CylinderGeometry(.58,.7,SH+.02,14),m,g);
     g.position.set(0,FLOOR_Y,0);g.rotation.y=k*1.7;g.scale.setScalar(.001);g.visible=false;T.scene.add(g);
-    T.stumps.push({g,a:0,s:0,on:false});
+    const bot=frontBuildBot(g,SH);
+    T.stumps.push({g,a:0,s:0,on:false,bot,bs:0,ani:''});
   }
 }
 function frontStumps(t,dt,lobby,wait){
@@ -48,7 +49,13 @@ function frontStumps(t,dt,lobby,wait){
     const want=k<angs.length;
     if(want){let d=angs[k]-S.a;d=Math.atan2(Math.sin(d),Math.cos(d));S.a=S.s<.02?angs[k]:S.a+d*f}
     S.s+=((want?1:0)-S.s)*f;if(S.s<.003&&!want)S.s=0;
-    S.g.visible=S.s>.01;S.g.scale.setScalar(Math.max(.001,S.s));S.g.position.x=Math.sin(S.a)*5.75;S.g.position.z=Math.cos(S.a)*5.75;
+    const r=5.75+(lobby&&k===0?frontChairPull(t):0);   // 첫 화면: 가만히 있으면 의자가 뒤로 빠졌다 돌아옴 (앉으라는 신호)
+    S.g.visible=S.s>.01;S.g.scale.setScalar(Math.max(.001,S.s));S.g.position.x=Math.sin(S.a)*r;S.g.position.z=Math.cos(S.a)*r;
+    // 봇 자리: 의자 위에 통나무 + 동물 얼굴 종이(투명 테이프). 종이는 탁자 가운데를 봄
+    const p=want&&!lobby?stumpWho(k,wait):null,isBot=!!(p&&p.b);
+    if(isBot){const an=BOT_ANI[([...String(p.n)].reduce((a,c)=>a*31+c.charCodeAt(0)|0,7)>>>0)%BOT_ANI.length];if(S.ani!==an){S.ani=an;S.bot.paper.material.map=botPaperTex(an);S.bot.paper.material.needsUpdate=true}}
+    S.bs+=((isBot?1:0)-S.bs)*f;if(S.bs<.003&&!isBot)S.bs=0;
+    S.bot.g.visible=S.bs>.01;S.bot.g.scale.setScalar(Math.max(.001,S.bs));S.bot.g.rotation.y=S.a+Math.PI-S.g.rotation.y;
   });
 }
 /* 디스플레이: 내 쪽 나무 띠에 박힌 판. 닫히면 등판(원목)이 위로 와서 덮개, 열면 먼 쪽 경첩을 축으로 들려 화면이 나를 향함 */
@@ -230,4 +237,48 @@ function frontInvite(){
   const copy=()=>{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(link).then(ok,()=>sfx('no'));else sfx('no')};
   if(navigator.share&&matchMedia('(pointer:coarse)').matches){navigator.share({title:'탁자하나',text:(V.title||'탁자')+'에 앉으러 오십시오.',url:link}).catch(e=>{if(e&&e.name!=='AbortError')copy()});return}
   copy();
+}
+/* 의자 자리 k에 앉은 사람(대기실은 자리 번호, 게임 중은 사람 순서) */
+function stumpWho(k,wait){const ps=(V&&V.ps)||[];if(!wait)return ps[k]||null;return ps.find((p,i)=>(p.st!=null?p.st:i)===k)||null}
+/* 첫 화면 의자 신호: 아무것도 안 하고 4초가 지나면 7초마다 의자가 뒤로 쓱 빠졌다(0.5초) 잠깐 멈추고 돌아옴(0.6초) */
+['pointerdown','keydown','wheel'].forEach(ev=>window.addEventListener(ev,()=>{FR.actAt=clock()},{passive:true,capture:true}));
+function frontChairPull(t){
+  if(FR.sit||FR.warp||FR.stand<.98||mode!=='lobby')return 0;
+  const idle=t-Math.max(FR.actAt||0,FR.standAt||0);if(idle<4000)return 0;
+  const p=(idle-4000)%7000,A=.6;
+  if(p<500)return A*smooth(p/500);if(p<1300)return A;if(p<1900)return A*(1-smooth((p-1300)/600));return 0;
+}
+/* 펠트: 펠트가 필요한 게임이 시작되면 가운데 점에서 커지고, 대기실·첫 화면으로 돌아오면 점으로 줄어 사라짐 */
+function frontFelt(t,lobby){
+  const fg=T.felt&&T.felt.g;if(!fg)return;
+  const want=!lobby&&!!(V&&V.st&&V.st!=='wait')&&gameFelt(V.cfg&&V.cfg.game)?1:0;
+  if(FR.fa.to!==want&&want)sfx('cloth');
+  const k=smooth(frontTween(FR.fa,want,t,want?700:450)),s=Math.max(.001,k);
+  fg.scale.set(s,1,s);fg.visible=k>.002;
+}
+/* 봇: 통나무(의자 위에 세움) + 동물 얼굴을 그린 종이 + 투명 테이프. 테스트룸(lab-doll.html) '봇 · 통나무' 그대로 */
+const BOT_ANI=['rabbit','bear','cat','fox'],BOT_ANI_C={rabbit:'#f6ecd8',bear:'#b9824f',cat:'#f2c14e',fox:'#f2994a'},BOT_TEX={};
+function botPaperTex(a){
+  if(BOT_TEX[a])return BOT_TEX[a];
+  return BOT_TEX[a]=canvasTex(160,176,(g,w,h)=>{
+    g.fillStyle='#fffdf6';g.fillRect(0,0,w,h);g.fillStyle=BOT_ANI_C[a];g.strokeStyle='#2a2420';g.lineWidth=5;g.lineJoin='round';
+    const cx=w/2,cy=h*.6,r=w*.3;
+    for(const k of[-1,1]){g.beginPath();
+      if(a==='rabbit')g.ellipse(cx+k*r*.45,cy-r*1.45,r*.22,r*.7,k*.12,0,7);
+      else if(a==='bear')g.arc(cx+k*r*.75,cy-r*.75,r*.33,0,7);
+      else{g.moveTo(cx+k*r*.25,cy-r*.85);g.lineTo(cx+k*r*.85,cy-r*(a==='fox'?1.6:1.35));g.lineTo(cx+k*r*.98,cy-r*.3);g.closePath()}
+      g.fill();g.stroke()}
+    g.beginPath();g.arc(cx,cy,r,0,7);g.fill();g.stroke();
+    const s=28;g.fillStyle=g.strokeStyle='#2a2420';g.lineCap='round';g.lineWidth=Math.max(2,s*.09);   // 웃는 얼굴
+    for(const k of[-1,1]){g.beginPath();g.arc(cx+k*s*.42,cy-s*.12,s*.1,0,7);g.fill()}
+    g.beginPath();g.arc(cx,cy+s*.12,s*.26,.15*Math.PI,.85*Math.PI);g.stroke();
+  });
+}
+function frontBuildBot(stump,SH){
+  const g=new THREE.Group();g.position.y=SH;g.scale.setScalar(.001);g.visible=false;stump.add(g);
+  const LH=1.22,log=new THREE.Mesh(new THREE.CylinderGeometry(.3,.32,LH,14),toon({color:0x7b5534}));log.position.y=LH/2;log.castShadow=true;g.add(log);hull(new THREE.CylinderGeometry(.33,.35,LH+.03,14),log,g);
+  const top=new THREE.Mesh(new THREE.CircleGeometry(.3,14),toon({color:0xd9b07a}));top.rotation.x=-Math.PI/2;top.position.y=LH+.002;g.add(top);
+  const paper=new THREE.Mesh(new THREE.PlaneGeometry(.4,.44),toon({map:botPaperTex('rabbit'),rim:0}));paper.position.set(0,.84,.325);paper.rotation.z=.06;g.add(paper);
+  const tape=new THREE.Mesh(new THREE.PlaneGeometry(.2,.075),new THREE.MeshBasicMaterial({color:0xfff3c4,transparent:true,opacity:.55}));tape.position.set(.01,1.055,.328);tape.rotation.z=-.1;g.add(tape);
+  return {g,paper};
 }

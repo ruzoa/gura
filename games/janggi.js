@@ -662,7 +662,7 @@ function drawAll(){
 /* ---------- 3D: 공통 원목 테이블 가운데 장기판 + 팔각 알, 거의 바로 위에서 보는 자기 카메라 ----------
    단위: 월드 그대로. 점 사이 S. 내 쪽 끝 줄이 화면 아래(+z). 잡은 기물은 판 옆(넓은 화면: 내가 잡은 것 오른쪽, 상대가 잡은 것 왼쪽) 또는 앞뒤(좁은 화면) */
 const S=.46,HX=4*S,HZ=4.5*S,BX=HX+.36,BZ=HZ+.36,TOP=.15,PY=TOP+.012,GS=.62;   // PY: 알 바닥(판 윗면·표시 원보다 위)
-const GY=()=>T.felt&&T.felt.mat?T.felt.mat.position.y+.013:.02;   // 잡은 알 바닥: 탁자 천 윗면 위
+const GY=()=>T.felt&&T.felt.mat&&(!T.felt.g||T.felt.g.visible)?T.felt.mat.position.y+.013:.004;   // 잡은 알 바닥: 탁자 천 윗면 위 (펠트가 없으면 나무 윗면 위)
 const PR={1:.165,2:.165,3:.205,4:.205,5:.205,6:.205,7:.25},PHT={1:.075,2:.075,3:.09,4:.09,5:.09,6:.09,7:.105};   // 알 반지름(꼭짓점까지)·두께: 장 > 차·포·마·상 > 사·졸
 const Jg3={on:false,built:false,fail:false,root:null,cam:null,dirty:true,lastR:0,lay:'',layAt:0,d:12,layout:'h',pcs:new Map(),grave:[[],[]],anim:[],flipT:null,mvN:-1,suK:'',ph:''};
 const ease=k=>k<=0?0:k>=1?1:k*k*(3-2*k);
