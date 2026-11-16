@@ -1,6 +1,7 @@
 /* index.html 공통 코드 · 네트워크(PeerJS): 방 열기·참가·관전·재접속·방장 이양·공개 탁자 찾기. 파일 순서는 index.html의 <script src> 순서 */
 /* ================= 네트워크 (PeerJS) ================= */
 function cleanNick(n){return (typeof n==='string'&&n.trim()?n.trim():'손님').slice(0,10)}
+function cleanAv(v){return typeof v==='string'&&/^[0-2]-[0-3]-\d{1,2}(-e)?$/.test(v)?v:''}   // 아바타 값 (core/avatar.js)
 function hostConn(conn){
   if(!H||mode!=='host'){conn.on('open',()=>{try{conn.close()}catch(e){}});return}   // 이미 방을 떠난 방장
   conn.on('open',()=>{net.conns.add(conn)});
@@ -8,20 +9,20 @@ function hostConn(conn){
     if(!H||!d||typeof d!=='object')return;
     net.conns.add(conn);
     if(d.t==='hello'){
-      const nick=cleanNick(d.nick),cid=typeof d.cid==='string'?d.cid.slice(0,40):'';
+      const nick=cleanNick(d.nick),cid=typeof d.cid==='string'?d.cid.slice(0,40):'',av=cleanAv(d.av);
       if(cid&&(H.banned||[]).includes(cid)){net.conns.delete(conn);try{conn.send({t:'kicked'})}catch(e){}setTimeout(()=>{try{conn.close()}catch(e){}},300);return}
       const take=x=>{if(x.conn&&x.conn!==conn){net.conns.delete(x.conn);try{x.conn.close()}catch(e){}}x.conn=conn};
       H.specs=H.specs||[];
       let m=H.members.find(m=>m.conn===conn);
       if(!m&&cid){m=H.members.find(x=>!x.bot&&!x.host&&x.cid===cid);if(m){take(m);m.away=false}}
       if(!m){const sp=H.specs.find(x=>x.conn===conn)||(cid?H.specs.find(x=>x.cid===cid):null);if(sp){take(sp);mark();return}}   // 다시 연결한 관전자
-      if(m){if(H.phase==='wait')m.name=nick}
-      else if(H.phase==='wait'&&!d.sp&&H.members.length<H.cfg.max){H.members.push({name:nick,bot:false,conn,cid,host:false});addLog(`${nick} 입장`,'sys')}
+      if(m){if(H.phase==='wait')m.name=nick;m.av=av}
+      else if(H.phase==='wait'&&!d.sp&&H.members.length<H.cfg.max){H.members.push({name:nick,bot:false,conn,cid,host:false,av});addLog(`${nick} 입장`,'sys')}
       else if(H.phase==='wait'){if(!hostAddSpec(conn,nick,cid))return}
       if(H.phase!=='wait'){
         const pl=cid?H.players.find(x=>x.cid===cid&&!x.host):null;
         if(pl){
-          const back=pl.away||pl.conn!==conn;take(pl);pl.bot=false;pl.away=false;
+          const back=pl.away||pl.conn!==conn;take(pl);pl.bot=false;pl.away=false;if(av)pl.av=av.replace(/-e$/,'');
           if(pl.deserter&&!pl.finished&&pl.dzWhy!=='out'){pl.deserter=false;pl.dzLog=0}   // 항복 처리 전에 돌아오면 탈주 취소
           if(!m)H.members.push({name:pl.name,bot:false,conn,cid,host:false});
           if(back)addLog(`${pl.name} 다시 연결됨`,'sys');
@@ -158,7 +159,7 @@ function createRoom(){
     }
   });
 }
-function guestHello(conn){try{conn.send({t:'hello',nick:myNick(),cid:CID,sp:V&&V.spec?1:0})}catch(e){}}
+function guestHello(conn){try{conn.send({t:'hello',nick:myNick(),cid:CID,sp:V&&V.spec?1:0,av:myAvStr()})}catch(e){}}
 function saveGuest(){if(mode==='guest'&&net.code)store('gura-guest',JSON.stringify({code:net.code,at:Date.now()}))}
 function wireGuestConn(conn){
   conn.on('data',d=>{if(net.conn!==conn)return;if(d&&d.t==='kicked'){guestKicked();return}if(d&&d.t==='cleared'){guestCleared();return}if(d&&d.t==='full'){guestFull();return}if(d&&d.t==='bye'){hostLeft(!!d.nx,cleanNick(d.nxn||''),!!d.hd);return}if(d&&typeof d==='object'&&d.t==='state'&&d.s&&typeof d.s==='object'){if(Date.now()-(net.savedAt||0)>5000){net.savedAt=Date.now();saveGuest()}applyView(d.s)}});

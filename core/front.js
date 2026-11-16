@@ -56,6 +56,7 @@ function frontStumps(t,dt,lobby,wait){
     if(isBot){const an=BOT_ANI[([...String(p.n)].reduce((a,c)=>a*31+c.charCodeAt(0)|0,7)>>>0)%BOT_ANI.length];if(S.ani!==an){S.ani=an;S.bot.paper.material.map=botPaperTex(an);S.bot.paper.material.needsUpdate=true}}
     S.bs+=((isBot?1:0)-S.bs)*f;if(S.bs<.003&&!isBot)S.bs=0;
     S.bot.g.visible=S.bs>.01;S.bot.g.scale.setScalar(Math.max(.001,S.bs));S.bot.g.rotation.y=S.a+Math.PI-S.g.rotation.y;
+    avStump(S,t,dt,isBot?null:p);   // 사람 자리: 의자 위 나무 인형 (core/avatar.js)
   });
 }
 /* 디스플레이: 내 쪽 나무 띠에 박힌 판. 닫히면 등판(원목)이 위로 와서 덮개, 열면 먼 쪽 경첩을 축으로 들려 화면이 나를 향함 */

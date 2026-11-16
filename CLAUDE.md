@@ -13,7 +13,7 @@
 | --- | --- | --- |
 | `index.html` | 화면 틀(HTML)과 스크립트 불러오는 순서만 | |
 | `core/style.css` | 공통 CSS | |
-| `core/*.js` | 공통 코드. 한 스크립트처럼 전역을 같이 쓰고 `index.html`의 순서대로 불러옴: `base`(상수·게임 목록) → `engine`(방장 엔진·첫 차례 주사위 실행부 `firstPick`) → `net`(PeerJS·재접속·방장 이양·관전) → `view`(화면 상태·소리·말풍선) → `render`(2D 화면·입력·메뉴·로비) → `table3d`(3D 테이블·카드 나누기) → `front`(첫 화면·디스플레이·자판) → `front-list`(공개 탁자 목록 판) → `rules-board`(규칙 나무판·설정 판자) → `front-objs`(홀로그램·구멍·시작 버튼·카메라) → `wait`(대기실 이름표) → `boot`(시작, 맨 마지막) | `docs/common.md` |
+| `core/*.js` | 공통 코드. 한 스크립트처럼 전역을 같이 쓰고 `index.html`의 순서대로 불러옴: `base`(상수·게임 목록) → `engine`(방장 엔진·첫 차례 주사위 실행부 `firstPick`) → `net`(PeerJS·재접속·방장 이양·관전) → `view`(화면 상태·소리·말풍선) → `render`(2D 화면·입력·메뉴·로비) → `table3d`(3D 테이블·카드 나누기) → `front`(첫 화면·디스플레이·자판) → `front-list`(공개 탁자 목록 판) → `rules-board`(규칙 나무판·설정 판자) → `front-objs`(홀로그램·구멍·시작 버튼·카메라) → `wait`(대기실 이름표) → `avatar`(의자 위 아바타 인형·아바타 변경) → `boot`(시작, 맨 마지막) | `docs/common.md` |
 | `games/gura.js` | 구라! | `docs/gura.md` |
 | `games/president.js` | 대부호 (계급 카드 교환 연출) | `docs/president.md` |
 | `games/quoridor.js` | 쿼리도 (3D 보드·벽 보관함·첫 차례 주사위) | `docs/quoridor.md` |
@@ -63,7 +63,7 @@
   - 안 되는 곳을 누르면 글 대신 공통 금지 소리 `sfx('no')`를 냅니다. 왜 안 되는지는 화면에 보여야 합니다(초록 점, 빨간 ✕, 빨간 벽 등).
   - 안내 줄에는 꼭 필요한 것만 짧게 남깁니다(진행 단계, 판 시작 안내, 결과, 조커처럼 화면만으로 알 수 없는 규칙). 비면 자리만 남기고 숨깁니다(`:empty{visibility:hidden}` 또는 고정 높이).
 - **안전 영역(노치·홈 바)**: `body.fs` 한 곳에서만 `env(safe-area-inset-*)` 패딩을 줍니다. `html`/`:root`에 또 주면 홈 화면 앱 위쪽에 띠가 두 번 생깁니다.
-- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`, `gura-roomcfg-chess`, `gura-roomcfg-janggi`, `gura-roomcfg-blackjack`, `gura-roomcfg-poker`, `gura-roomcfg-alkkagi`, `gura-roomcfg-blackwhite`, `gura-roomcfg-animal`, `gura-roomcfg-baseball`, `gura-roomcfg-pixel`, `gura-roomcfg-abalone`, `gura-roomcfg-mind`, `gura-roomcfg-bohnanza`, `gura-roomcfg-robo77`, `gura-roomcfg-davinci`, `gura-roomcfg-onecard`, `gura-roomcfg-mia`, `gura-roomcfg-cockroach`, `gura-roomcfg-liardice`, `gura-roomcfg-rummi`). 루미큐브는 그 판의 받침대 배열(`gura-rummi-rack`)도 저장합니다. 더 마인드는 인원별 최고 기록(`gura-mind-best`)도 저장합니다. 숫자야구는 그 판의 숫자 메모(`gura-nb-lamp`)도 저장합니다. 미아는 그 판의 칸 메모(`gura-mia-memo`)도 저장합니다. 오목은 이 밖에 커스텀 규칙 기억(`gura-omok-custom`)과 세부 설정 펼침(`gura-omok-more`)도 저장합니다.
+- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`, `gura-roomcfg-chess`, `gura-roomcfg-janggi`, `gura-roomcfg-blackjack`, `gura-roomcfg-poker`, `gura-roomcfg-alkkagi`, `gura-roomcfg-blackwhite`, `gura-roomcfg-animal`, `gura-roomcfg-baseball`, `gura-roomcfg-pixel`, `gura-roomcfg-abalone`, `gura-roomcfg-mind`, `gura-roomcfg-bohnanza`, `gura-roomcfg-robo77`, `gura-roomcfg-davinci`, `gura-roomcfg-onecard`, `gura-roomcfg-mia`, `gura-roomcfg-cockroach`, `gura-roomcfg-liardice`, `gura-roomcfg-rummi`). 루미큐브는 그 판의 받침대 배열(`gura-rummi-rack`)도 저장합니다. 더 마인드는 인원별 최고 기록(`gura-mind-best`)도 저장합니다. 숫자야구는 그 판의 숫자 메모(`gura-nb-lamp`)도 저장합니다. 미아는 그 판의 칸 메모(`gura-mia-memo`)도 저장합니다. 아바타는 `gura-avatar`에 저장합니다. 오목은 이 밖에 커스텀 규칙 기억(`gura-omok-custom`)과 세부 설정 펼침(`gura-omok-more`)도 저장합니다.
 - **움직임 줄이기**: 기기의 '움직임 줄이기'(`prefers-reduced-motion`) 설정을 보고 게임 움직임을 끄지 않습니다. 시작 연출, 주사위 굴리기, 말·벽 이동, 돌 놓기처럼 게임 진행을 보여 주는 움직임은 설정과 상관없이 모든 기기에서 똑같이 보여야 합니다. `matchMedia('(prefers-reduced-motion…')`로 움직임을 건너뛰는 코드를 새로 넣지 않습니다. (아직 남은 예외: `games/yahtzee.js`의 2D 주사위 CSS. 손볼 때 같이 정리)
 
 ## 모든 모드 공통 원칙

@@ -1,7 +1,7 @@
 /* index.html 공통 코드 · 대기실 자리 이름표·첫 화면 시작. 파일 순서는 index.html의 <script src> 순서 */
 /* ===== 대기실 자리 이름표 (대기실 창 대신) =====
    사람·봇 자리 = 이름표, 빈 자리 = 점선 '+' 이름표. 누르면 작은 메뉴:
-   다른 사람 → 자리 바꾸기·이모티콘 끄기(사람)·(방장) 봇 난이도·선·내보내기 / 빈 자리 → 그 자리로 옮기기(관전 중이면 앉기),  나 → 이모티콘·관전하기 */
+   다른 사람 → 자리 바꾸기·이모티콘 끄기(사람)·(방장) 봇 난이도·선·내보내기 / 빈 자리 → 그 자리로 옮기기(관전 중이면 앉기),  나 → 닉네임·아바타 변경·관전하기 */
 function seatPopClose(){const p=$('#seatPop'),ni=$('#spNick');if(ni&&!ni.dataset.x){ni.dataset.x='1';frontSetNick(ni.value)}if(p){p.hidden=true;p.innerHTML=''}FR.pop=null}   // 닫힐 때 고친 닉네임 저장 (Esc면 취소)
 function seatPopOpen(key,anchor){
   if(!frWaitV())return;
@@ -18,6 +18,7 @@ function seatPopOpen(key,anchor){
     const i=+key.slice(1),p=ps[i];if(!p)return;
     if(i===me){   // 내 이름표 메뉴: 닉네임 바꾸기, 선 플레이어(방장)·관전하기(참가자)
       h+=`<label class="sp-nick"><small>닉네임</small><input id="spNick" maxlength="10" autocomplete="off" enterkeyhint="done" value="${esc(myNick())}"></label>`;
+      h+=`<button type="button" data-sp="avatar">아바타 변경</button>`;
       if(pickF&&isHost)h+=`<button type="button" data-sp="first:${i}">선 플레이어</button>`;
       if(!isHost&&+(V.cfg.spec??4)>0)h+=`<button type="button" data-sp="tospec">관전하기</button>`;
     }else{
@@ -46,6 +47,7 @@ $('#seatPop').addEventListener('click',e=>{
   const b=e.target.closest('[data-sp]');if(!b)return;const a=b.dataset.sp;
   if(a==='emo'){openEmoPad(b);seatPopClose();return}
   if(a==='tospec'){sendAct({t:'spec'});seatPopClose();return}
+  if(a==='avatar'){seatPopClose();avEditOpen();return}
   if(a==='invite'){seatPopClose();frontInvite();return}
   if(a.startsWith('seat:')){sendAct({t:'seat',to:+a.slice(5)});sfx('pick');seatPopClose();return}
   if(a.startsWith('sit:')){sendAct({t:'join',seat:+a.slice(4)});sfx('pick');seatPopClose();return}

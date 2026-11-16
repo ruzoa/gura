@@ -67,6 +67,14 @@
     </div>
     <div class="labels" id="labels"></div>
     <div class="specbar" id="specBar" hidden></div>
+    <div class="avedit" id="avEdit" hidden>
+      <div class="av-panel" role="dialog" aria-label="아바타 변경">
+        <div class="av-row" id="avKind"></div>
+        <div class="av-row" id="avAni"></div>
+        <div class="av-row av-col" id="avCol"></div>
+        <button type="button" class="av-done" id="avDone">완료</button>
+      </div>
+    </div>
     <div class="rulebadges" id="ruleBadges"></div>
     <div class="pilenum" id="pileNum" hidden aria-live="polite"><span class="pn-l">지금</span><b id="pileNumV"></b></div>
     <div class="pilecount" id="pileCount" hidden aria-live="polite"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="12" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 21h10a2 2 0 0 0 2-2V7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b id="pileN">0</b>장</div>
@@ -249,6 +257,7 @@
 <script src="core/rules-board.js"></script>
 <script src="core/front-objs.js"></script>
 <script src="core/wait.js"></script>
+<script src="core/avatar.js"></script>
 <script src="core/boot.js"></script>
 </body>
 </html>

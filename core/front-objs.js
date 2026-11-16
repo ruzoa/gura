@@ -173,6 +173,7 @@ function frontPoses(w,h){
    const c2=new THREE.Vector3(0,.002+(RB.L/2+.08)*Math.cos(P.tilt),DSP.Z+DSP.D*.8-(RB.L/2+.08)*Math.sin(P.tilt)),d2=Math.max((RB.L+.3)*.54/tv,(RB.W/2+.3)/(tv*a));
    _fc.position.copy(c2).addScaledVector(n,d2);_fc.lookAt(c2);_fc.updateMatrixWorld();_fc.updateProjectionMatrix();
    T.rbCam={p:_fc.position.clone(),q:_fc.quaternion.clone(),m:_fc.projectionMatrix.clone()}}
+  avPose(a);
   VW.max=viewLimit();FR.applied=false;frontApplyCam();
 }
 /* 고개 돌리기: 탁자 양옆이 화면에 다 안 보이는 좁은 화면에서, 앉은 눈이 제자리에서 좌우로 고개를 돎(VW.yaw). 양옆이 다 보이면 못 돌림(VW.max=0).
@@ -204,8 +205,8 @@ function frontApplyCam(){
   if(!T.seat||!T.front)return;
   const t=clock(),u=FR.stand,k=u*u*(3-2*u),jolt=t-FR.shakeAt<420?(1-(t-FR.shakeAt)/420):0,rum=FR.rum||0;
   const am=FR.arm?FR.arm.v:0;
-  const l=FR.lean||0;
-  if(k<=0&&!jolt&&!rum&&!am&&l<=0){const vo=viewOn();if(!FR.applied||vo||FR.viewDrawn){FR.applied=!vo;FR.viewDrawn=vo;T.cam.position.copy(T.seat.p);T.cam.quaternion.copy(T.seat.q);if(vo)viewTurn(1);T.cam.projectionMatrix.copy(T.seat.m);T.cam.projectionMatrixInverse.copy(T.seat.m).invert();T.cam.updateMatrixWorld();frontFog()}return}
+  const l=FR.lean||0,avw=T.avCam?avCamW():0;   // avw: 아바타 변경 눈 (core/avatar.js)
+  if(k<=0&&!jolt&&!rum&&!am&&l<=0&&avw<=0){const vo=viewOn();if(!FR.applied||vo||FR.viewDrawn){FR.applied=!vo;FR.viewDrawn=vo;T.cam.position.copy(T.seat.p);T.cam.quaternion.copy(T.seat.q);if(vo)viewTurn(1);T.cam.projectionMatrix.copy(T.seat.m);T.cam.projectionMatrixInverse.copy(T.seat.m).invert();T.cam.updateMatrixWorld();frontFog()}return}
   FR.viewDrawn=false;
   FR.applied=false;
   const ls=l*l*(3-2*l),F=_fpose;   // 앉음 ↔ 서서 봄, 그 위에 숙여서 봄
@@ -215,11 +216,13 @@ function frontApplyCam(){
   const rz=FR.rba&&FR.rba.v>.01,ZC=rz?T.rbCam:T.plCam,pz=FR.pla&&ZC?smooth(rz?FR.rba.v:FR.pla.v)*ls:0;   // 목록 판·규칙 판이 올라오면 판으로 확대
   if(pz>0){T.cam.position.lerp(ZC.p,pz);T.cam.quaternion.slerp(ZC.q,pz)}
   if(am){const a=am*am*(3-2*am);T.cam.position.z+=.9*a;T.cam.position.y+=.55*a}   // 떠나려고 의자를 뺌
+  if(avw>0){T.cam.position.lerp(T.avCam.p,avw);T.cam.quaternion.slerp(T.avCam.q,avw)}   // 아바타 변경: 같은 각도로 내 의자 쪽으로
   const s=jolt*.12+rum*.012;   // 눈은 조금만 흔들림 (탁자가 더 흔들림)
   if(s){T.cam.position.x+=Math.sin(t/23)*s;T.cam.position.y+=Math.cos(t/17)*s*.7}
-  viewTurn((1-k)*(1-ls)*(1-pz));
+  viewTurn((1-k)*(1-ls)*(1-pz)*(1-avw));
   const a=F.m.elements,b=T.lean.m.elements,e=_m4.elements;for(let i=0;i<16;i++)e[i]=a[i]+(b[i]-a[i])*ls;
   if(pz>0){const c2=ZC.m.elements;for(let i=0;i<16;i++)e[i]+=(c2[i]-e[i])*pz}
+  if(avw>0){const c3=T.avCam.m.elements;for(let i=0;i<16;i++)e[i]+=(c3[i]-e[i])*avw}
   T.cam.projectionMatrix.copy(_m4);T.cam.projectionMatrixInverse.copy(_m4).invert();T.cam.updateMatrixWorld();frontFog();
 }
 function frontFog(){if(T.scene&&T.scene.fog){const d=T.cam.position.length();T.scene.fog.near=d+5;T.scene.fog.far=d+22}}
@@ -354,7 +357,7 @@ function frontUpdate(t,dt){
   {const st=$('#stage'),sit=!lobby&&FR.stand>.04;if(st.classList.contains('frsit')!==sit)st.classList.toggle('frsit',sit)}
   {const st=$('#stage'),fw=frTableUI();if(st.classList.contains('frwait')!==fw)st.classList.toggle('frwait',fw)}   // 3D 대기실: 게임 CSS가 이름표를 숨겨도 대기실에서는 보이게   // 앉는 동안은 창을 잠깐 숨김
   // 천
-  frontStumps(t,dt,lobby,wait);frontFelt(t,lobby);
+  avTick(t);frontStumps(t,dt,lobby,wait);frontFelt(t,lobby);
   // 디스플레이: 첫 화면·타임머신·대기실에서 열림, 게임이 시작되면 접혀 덮개가 됨
   const padOut=[T.menuPad,T.hostPad,T.guestPad,T.sitPad].some(P=>P&&P.a.v>.01)||(FR.ka&&FR.ka.v>.01)||(FR.pla&&FR.pla.v>.01)||(FR.rba&&FR.rba.v>.01);
   const ow=(lobby&&FR.sit)||!!FR.warp||wait||padOut?1:0;   // 자판이 다 들어간 뒤에 덮개가 닫힘 (안 그러면 키가 탁자 위로 뚫고 나옴)
