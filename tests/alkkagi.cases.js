@@ -352,6 +352,8 @@ function playOutA(over,lvs,np){
   while(H.phase!=='over'&&guard++<30000){NOW+=250;engineTick();ticks++;
     if(H.ak.st.some(q=>!Number.isFinite(q.x+q.y+q.z))){fail('alkkagi NaN position');break}}
   if(H.phase!=='over'){fail('alkkagi stuck shots='+H.ak.cnt+' np='+np);return ticks}
+  if(H.ak.ob&&H.ak.it.length!==np*H.ak.obn)fail('alkkagi items placed '+H.ak.it.length+' of '+np*H.ak.obn);
+  if(H.ak.ob)globalThis.akItemShots=(globalThis.akItemShots||0)+H.ak.cnt;
   const rk=H.players.map(p=>p.rank),w=H.ak.res.w;
   if(rk.some(r=>!Number.isInteger(r)||r<1||r>np))fail('alkkagi ranks '+rk);
   else if(w>=0&&(rk[w]!==1||rk.filter(r=>r===1).length!==1))fail('alkkagi winner rank '+rk+' w='+w);
@@ -370,3 +372,56 @@ function playOutA(over,lvs,np){
   return ticks;
 }
 globalThis.playOutA=playOutA;
+
+/* ---------- 물건 놓기 ---------- */
+{const st0=[at(0,1,0),at(0,-1.6,1)],IT=T.IT;
+ // 블랙홀: 곧장 지나가는 알은 빨려 들어 떨어진 것과 같음, 구멍이 커짐, 멈춘 알은 안 당김
+ {const r=T.simulate([at(0,1,0),at(.9,-1.6,1)],{i:0,vx:0,vz:-3,p:.3},()=>.5,[{k:'bh',x:0,z:0,r:IT.bh.rc,s:1}]);
+  eq(r.fin[0].o,1,'blackhole swallows');eq(r.fin[0].g,1,'swallowed gone');ok(r.it[0].r>IT.bh.rc,'blackhole grows');ok(r.ev.some(e=>e[1]==='h'&&e[3]===0),'swallow event');ok(r.of[0]>0,'swallow time');ok(!r.tr[1],'resting stone not pulled')}
+ // 비껴 지나가면 휨 (블랙홀 쪽으로)
+ {const a=T.simulate([at(.45,1.5,0)],{i:0,vx:0,vz:-5,p:.4},()=>.5,[{k:'bh',x:0,z:0,r:IT.bh.rc,s:1}]),b=T.simulate([at(.45,1.5,0)],{i:0,vx:0,vz:-5,p:.4},()=>.5,[]);
+  ok(a.fin[0].o||a.fin[0].x<b.fin[0].x-.05,'blackhole bends '+a.fin[0].x.toFixed(2)+' vs '+b.fin[0].x.toFixed(2))}
+ // 웜홀: 들어간 알이 다른 쪽에서 같은 방향으로 나옴
+ {const r=T.simulate([at(-1,1.2,0)],{i:0,vx:0,vz:-4.5,p:.45},()=>.5,[{k:'wh',x:-1,z:.4,x2:1,z2:.4,s:1}]);
+  ok(r.fin[0].x>.8&&r.fin[0].z<.4,'wormhole teleports '+r.fin[0].x.toFixed(2)+','+r.fin[0].z.toFixed(2));ok(r.ev.some(e=>e[1]==='p'),'warp event')}
+ // 벽돌: 정면으로 치면 튕겨 나옴, 세게 뜬 알은 넘어감(점프대)
+ {const r=T.simulate([at(0,1,0)],{i:0,vx:0,vz:-4,p:.4},()=>.5,[{k:'br',x:0,z:0,a:0,s:1}]);
+  ok(r.fin[0].z>.1,'brick blocks '+r.fin[0].z.toFixed(2));ok(r.ev.some(e=>e[1]==='k'),'brick event')}
+ {const r=T.simulate([at(0,1.3,0)],{i:0,vx:0,vz:-6,p:.6},()=>.5,[{k:'jp',x:0,z:.8,s:1},{k:'br',x:0,z:0,a:0,s:1}]);
+  ok(r.fin[0].z<-.2,'jump over brick '+r.fin[0].z.toFixed(2));ok(r.ev.some(e=>e[1]==='j'),'jump event')}
+ // 탱탱볼: 부딪힌 알이 더 세게 나옴
+ {const r=T.simulate([at(0,.6,0)],{i:0,vx:0,vz:-3.5,p:.35},()=>.5,[{k:'tb',x:0,z:0,s:1}]);ok(r.fin[0].z>1,'bumper bounces '+r.fin[0].z.toFixed(2));ok(r.ev.some(e=>e[1]==='u'),'bumper event')}
+ // 얼음은 멀리, 모래는 짧게
+ {const sp={i:0,vx:0,vz:-2.5,p:.25},b=T.simulate([at(0,1,0)],sp,()=>.5,[]),ic=T.simulate([at(0,1,0)],sp,()=>.5,[{k:'ic',x:0,z:.6,s:1}]),sd=T.simulate([at(0,1,0)],sp,()=>.5,[{k:'sd',x:0,z:.6,s:1}]);
+  ok(ic.fin[0].z<b.fin[0].z-.1,'ice slides further');ok(sd.fin[0].z>b.fin[0].z+.1,'sand stops sooner')}
+ // 폭탄: 닿으면 터져 둘레 알을 밀어냄, 사라짐
+ {const r=T.simulate([at(0,1,0),at(.3,-.1,1),at(-.35,0,1)],{i:0,vx:0,vz:-3,p:.3},()=>.5,[{k:'bm',x:0,z:.2,s:1}]);
+  eq(r.it[0].u,1,'bomb used');ok(r.fin[1].x>.4&&r.fin[2].x<-.45,'bomb pushes');ok(r.ev.some(e=>e[1]==='x'),'boom event')}
+ // 놓을 수 있는 자리
+ {const A={jg:0,st:[at(0,0,0)],it:[{k:'tb',x:1,z:1,s:0}]};
+  ok(!T.canPut(A,{k:'bh',x:.1,z:0,r:IT.bh.rc}),'no blackhole on stone');ok(T.canPut(A,{k:'bh',x:.6,z:0,r:IT.bh.rc}),'blackhole free spot');
+  ok(T.canPut(A,{k:'ic',x:0,z:0}),'ice under stone ok');ok(!T.canPut(A,{k:'jp',x:1.05,z:1,s:0}),'no overlap items');
+  ok(!T.canPut(A,{k:'wh',x:-1,z:-1,x2:-1,z2:-.5}),'wormhole ends apart');ok(T.canPut(A,{k:'wh',x:-1,z:-1,x2:-1,z2:.2}),'wormhole ok');
+  ok(!T.canPut(A,{k:'br',x:2.2,z:0,a:0}),'brick inside board');ok(T.canPut(A,{k:'br',x:-1,z:1,a:.5}),'brick ok')}
+}
+/* 엔진: 알 놓기 → 고르기(선착순) → 놓기(선부터) → 튕기기 */
+{mkRoom({pickfirst:1,stones:2,ob:1,obn:1});
+ const A=H.ak;eq(A.ph,'pick','pick after stones');eq(A.of.length,3,'offered n+1');ok(A.ofs.every(x=>x<0),'none picked');
+ AK.engine.act(1,{t:'pick',k:0});eq(A.ofs[0],1,'second picks first-come');
+ AK.engine.act(0,{t:'pick',k:0});eq(A.ofs[0],1,'taken stays');eq(A.ph,'pick','still picking');
+ {const s=snapFor(0);eq(s.t,0,'picker turn sent');ok(s.ak.of.length===3,'offer sent')}
+ AK.engine.act(1,{t:'pick',k:1});eq(A.ofs[1],-1,'only one each');
+ AK.engine.act(0,{t:'pick',k:2});eq(A.ph,'iput','put after pick');eq(H.turn,0,'first puts first');
+ AK.engine.act(1,{t:'iput',x:0,z:0});eq(A.it.length,0,'not your turn to put');
+ const p0=T.itemPlan(A,0,A.of[2]);ok(p0,'plan item');AK.engine.act(0,{t:'iput',...p0});eq(A.it.length,1,'item put');eq(H.turn,1,'next puts');
+ const p1=T.itemPlan(A,1,A.of[0]);AK.engine.act(1,{t:'iput',...p1});eq(A.it.length,2,'two items');eq(A.ph,'aim','shoot after put');eq(H.turn,0,'first shoots');}
+/* 시간 초과: 고르기·놓기를 대신 */
+{mkRoom({pickfirst:1,stones:1,ob:1,obn:2,turn:10});
+ const A=H.ak;eq(A.of.length,5,'offered 2x2+1');NOW=H.deadline+1;engineTick();eq(A.ph,'iput','timeout picks');ok(A.inv[0].length===2&&A.inv[1].length===2,'each two');
+ for(let k=0;k<4;k++){NOW=H.deadline+1;engineTick()}eq(A.ph,'aim','timeout puts');eq(A.it.length,4,'four items')}
+/* 장기 모드: 바로 고르기 */
+{mkRoom({md:2,ob:1});eq(H.ak.ph,'pick','janggi starts with pick')}
+/* 설정 판자: 물건 놓기 스위치는 바둑·장기에만, 켜면 물건 수 */
+{const ks=c=>AK.boardSet({...cfgFor('alkkagi'),...c}).map(x=>x.k);
+ if(typeof rbRuleItem==='function')ok(ks({md:0,ob:0}).includes('ob')&&!ks({md:0,ob:0}).includes('obn'),'board ob switch');if(typeof rbRuleItem==='function')ok(ks({md:2,ob:1}).includes('obn'),'board obn when on');if(typeof rbRuleItem==='function')ok(!ks({md:1,ob:1}).includes('ob'),'no ob in omok');
+ eq(AK.modeLabel({md:0,ob:1}),'바둑 · 물건','mode label');eq(AK.modeLabel({md:1,ob:1}),'오목','omok label no items')}

@@ -98,17 +98,95 @@ function octHit(a,b){
   if(n){cx/=n;cz/=n}else{const ha=a.rv*OCT_C;cx=a.x+bx*(ha-best/2);cz=a.z+bz*(ha-best/2)}
   return {p:best,ux:bx,uz:bz,cx,cz};
 }
+/* ---------- 물건 놓기 (바둑·장기 모드, 규칙 ob) ----------
+   물건 종류 k: bh 블랙홀(움직이는 알을 끌어당기고 가운데 구멍에 빠지면 떨어진 것과 같음, 삼킬 때마다 커짐) · wh 웜홀(입구·출구 한 쌍, 양쪽 다 들어가면 다른 쪽으로 같은 속도로 나옴)
+   br 벽돌(움직이지 않는 낮은 직사각형, 세게 쳐서 뜬 알은 넘어감) · tb 탱탱볼(고정 범퍼: 부딪힌 알을 더 세게 튕겨 냄) · ic 얼음판(마찰이 거의 없음) · sd 모래밭(마찰이 큼)
+   jp 점프대(지나가는 알을 띄움) · bm 폭탄(알이 닿으면 터져 둘레 알을 밀어내고 사라짐, 곁의 폭탄도 같이 터짐)
+   판 위 물건 {k, x, z, s 놓은 자리, o 고르기 목록 번호, r 블랙홀 구멍 반지름, n 삼킨 수, a 벽돌 방향, x2·z2 웜홀 다른 쪽, u 터진 폭탄} */
+const OB_K=['bh','wh','br','tb','ic','sd','jp','bm'];
+const OB_NM={bh:'블랙홀',wh:'웜홀',br:'벽돌',tb:'탱탱볼',ic:'얼음판',sd:'모래밭',jp:'점프대',bm:'폭탄'};
+const IT={bh:{rc:.13,R:.8,G:.8,grow:.03,rmax:.27},wh:{r:.15,sep:.9},br:{L:.3,W:.075,H:.09,e:.45},tb:{r:.12,e:1.25,vmin:3,vmax:9},ic:{r:.5,f:.12},sd:{r:.42,f:4},jp:{r:.14,k:.75,vmax:5},bm:{r:.11,R:1,v:7.5,vy:2.6}};   // 크기·세기 (쳐 보고 맞출 값)
+const OB_ZONE={ic:1,sd:1};   // 바닥에 까는 물건 (알이 위에 있어도 놓을 수 있음)
+const bhR=o=>IT.bh.R+((o.r||IT.bh.rc)-IT.bh.rc)*3;   // 블랙홀이 끌어당기는 범위 (구멍이 커지면 같이 넓어짐)
+const itFp=o=>o.k==='bh'?(o.r||IT.bh.rc)+.08:o.k==='br'?IT.br.L:IT[o.k].r;   // 물건끼리 겹침을 재는 반지름
+const itPts=o=>o.k==='wh'?[[o.x,o.z],[o.x2,o.z2]]:[[o.x,o.z]];
+/* 벽돌(가운데 x,z, 방향 a)에서 점까지 거리 */
+function brDist(o,x,z){const c=Math.cos(o.a||0),s=Math.sin(o.a||0),dx=x-o.x,dz=z-o.z,lx=dx*c+dz*s,lz=-dx*s+dz*c;return Math.hypot(Math.max(0,Math.abs(lx)-IT.br.L),Math.max(0,Math.abs(lz)-IT.br.W))}
+/* 물건 하나를 놓을 수 있는지 (A: 판 상태 {st, it, jg}). 판 안쪽, 판 위 알과 안 겹침(바닥 물건은 괜찮음), 다른 물건과 안 겹침(바닥 물건끼리·서 있는 물건끼리), 웜홀 두 쪽은 멀리 */
+function canPut(A,o){
+  if(!o||!OB_K.includes(o.k)||!Number.isFinite(o.x)||!Number.isFinite(o.z))return false;
+  if(o.k==='wh'&&!(Number.isFinite(o.x2)&&Number.isFinite(o.z2)&&Math.hypot(o.x2-o.x,o.z2-o.z)>=IT.wh.sep))return false;
+  if(o.k==='br'&&!Number.isFinite(o.a))return false;
+  useBoard(A.jg);
+  const fp=itFp(o),M=.06,inB=(x,z,m)=>Math.abs(x)<=BD.x-m-M&&Math.abs(z)<=BD.z-m-M;
+  if(o.k==='br'){const c=Math.cos(o.a),s=Math.sin(o.a),L=IT.br.L,W=IT.br.W;for(const [u,v] of [[L,W],[L,-W],[-L,W],[-L,-W]])if(!inB(o.x+u*c-v*s,o.z+u*s+v*c,0))return false}
+  else if(!itPts(o).every(([x,z])=>inB(x,z,o.k==='bh'?(o.r||IT.bh.rc)+.06:fp)))return false;
+  if(!OB_ZONE[o.k])for(const q of A.st){if(q.u||q.o||q.g)continue;const rv=geomOf(q.t).rv;
+    if(o.k==='br'){if(brDist(o,q.x,q.z)<rv+.03)return false;continue}
+    const need=o.k==='bh'?(o.r||IT.bh.rc)+rv+.06:fp+rv+.03;
+    if(itPts(o).some(([x,z])=>Math.hypot(q.x-x,q.z-z)<need))return false}
+  for(const p of A.it||[]){if(!!OB_ZONE[p.k]!==!!OB_ZONE[o.k])continue;const f=fp+itFp(p)+.03;
+    for(const [x,z] of itPts(o))for(const [px,pz] of itPts(p))if(Math.hypot(x-px,z-pz)<f)return false}
+  return true;
+}
+/* 웜홀 첫 구멍 자리만 볼 때 (화면이 둘째 구멍을 고르기 전): 판 안쪽, 알·서 있는 물건과 안 겹침 */
+function endFree(A,x,z){
+  useBoard(A.jg);const r=IT.wh.r;if(!(Math.abs(x)<=BD.x-r-.06&&Math.abs(z)<=BD.z-r-.06))return false;
+  for(const q of A.st){if(q.u||q.o||q.g)continue;if(Math.hypot(q.x-x,q.z-z)<r+geomOf(q.t).rv+.03)return false}
+  for(const p of A.it||[]){if(OB_ZONE[p.k])continue;for(const [px,pz] of itPts(p))if(Math.hypot(x-px,z-pz)<r+itFp(p)+.03)return false}
+  return true;
+}
 const halfH=q=>{const t=tiltOf(q);return q.h*Math.cos(t)+q.r*Math.sin(t)};   // 기울어진 알의 반높이 (가장자리로 서면 높아짐)
 /* 한 번 튕기기: st(알 목록 {x,y,z,s,o,g, t 장기 알 종류, w 돈 각도})에서 shot.i번 알을 (vx,vz)로. 기울기 (ax,az): +x·+z 쪽 가장자리가 올라간 각도
    알마다 크기·무게(geomOf)가 다를 수 있음: 부딪힘은 무게 비율로 나눠 받음. 비껴 부딪히면 마찰로 돎(wy, 장기 알만 자취에 각도를 남김)
-   돌려줌: fin 끝난 자리, tr 움직인 알의 자취 {번호: [시작 장, x,y,z,ax,az(,w)(1000배 정수)…]}, k 한 장의 값 수(5, 장기 알이 있으면 6), nf 장 수, ev 소리 [[ms, 종류, 세기]], of 떨어진 시각 {번호: ms}, dur 길이(ms) */
-function simulate(st,shot,rnd){
+   its: 판 위 물건(물건 놓기). 물건이 낀 일은 ev에 물건 번호도 [ms, 종류, 세기, 물건 번호] (h 블랙홀이 삼킴, p 웜홀, k 벽돌, u 탱탱볼, j 점프대, x 폭탄)
+   돌려줌: fin 끝난 자리, tr 움직인 알의 자취 {번호: [시작 장, x,y,z,ax,az(,w)(1000배 정수)…]}, k 한 장의 값 수(5, 장기 알이 있으면 6), nf 장 수, ev 소리 [[ms, 종류, 세기]], of 떨어진 시각 {번호: ms}, dur 길이(ms), it 끝난 물건(블랙홀 크기·터진 폭탄) */
+function simulate(st,shot,rnd,its){
   rnd=rnd||Math.random;
   const P=PHY,dt=P.dt,S=st.map(s=>({...geomOf(s.t),x:s.x,y:s.y,z:s.z,o:s.o?1:0,g:s.g?1:0,s:s.s,t:s.t||0,w:s.w||0,wy:0,vx:0,vy:0,vz:0,ax:0,az:0,bx:0,bz:0,aw:0,still:0}));
   const SPIN=S.some(q=>q.t),K=SPIN?6:5;   // 장기 알: 도는 각도도 자취에
   const ev=[],frames=[],every=Math.round(1/(P.fps*dt)),of={};   // of: 판에서 떨어진 시각(ms) {번호: ms} (화면이 남은 알 수를 그 순간에 줄임)
   const rec=()=>frames.push(S.map(q=>SPIN?[q.x,q.y,q.z,q.ax,q.az,q.w]:[q.x,q.y,q.z,q.ax,q.az]));
   const push=(k,v,step)=>{if(ev.length<60)ev.push([Math.round(step*dt*1000),k,Math.round(v*100)/100])};
+  /* 물건 */
+  const IS=(its||[]).map(o=>({...o})),ITM=IS.length>0,BHS=IS.some(o=>o.k==='bh'),ZN=IS.some(o=>OB_ZONE[o.k]);
+  const pushI=(k,v,step,ii)=>{if(ev.length<120)ev.push([Math.round(step*dt*1000),k,Math.round(v*100)/100,ii])};
+  const low=(q,h)=>q.y-halfH(q)<TOP+h;   // 알 아랫면이 판 윗면에서 h보다 낮음 (뜬 알은 서 있는 물건을 넘어감)
+  const zoneMul=(x,z)=>{let m=1;for(const o of IS){if(o.k==='ic'&&Math.hypot(x-o.x,z-o.z)<IT.ic.r)m=Math.min(m,IT.ic.f);else if(o.k==='sd'&&Math.hypot(x-o.x,z-o.z)<IT.sd.r)m=Math.max(m,IT.sd.f)}return m};
+  const bhPull=q=>{for(const o of IS){if(o.k!=='bh')continue;const dx=o.x-q.x,dz=o.z-q.z,d=Math.hypot(dx,dz),R=bhR(o);if(d>=R||d<1e-6)continue;   // 블랙홀: 가까울수록 세게 (움직이는 알만. 마찰보다 약한 곳에 멈춘 알은 그대로)
+    const dc=Math.max(.1,d),a=IT.bh.G*(o.r/IT.bh.rc)/(dc*dc)*(1-d/R)*dt;q.vx+=dx/d*a;q.vz+=dz/d*a}};
+  const boom=(ii,step)=>{const o=IS[ii];if(o.u)return;o.u=1;pushI('x',1,step,ii);   // 폭탄: 둘레 알을 밖으로 밀고 띄움, 곁의 폭탄도 터짐
+    for(const b of S){if(b.g)continue;const dx=b.x-o.x,dz=b.z-o.z,d=Math.hypot(dx,dz);if(d>=IT.bm.R)continue;const f=1-d/IT.bm.R,ux=d>1e-6?dx/d:Math.cos(rnd()*6.28),uz=d>1e-6?dz/d:Math.sin(rnd()*6.28);
+      b.vx+=ux*IT.bm.v*f;b.vz+=uz*IT.bm.v*f;b.vy+=IT.bm.vy*f;b.y+=.004;b.bx+=(rnd()-.5)*24*f;b.bz+=(rnd()-.5)*24*f;b.aw=1;b.still=0}
+    IS.forEach((p,j)=>{if(p.k==='bm'&&!p.u&&Math.hypot(p.x-o.x,p.z-o.z)<IT.bm.R*.8)boom(j,step)})};
+  const itemStep=(q,step)=>{   // 알 하나가 물건에 닿았는지 (판 위에서만). 블랙홀에 빠지면 true
+    if(!onBoardXZ(q.x,q.z)||q.y<TOP-.05)return false;
+    for(let ii=0;ii<IS.length;ii++){const o=IS[ii];if(o.u)continue;
+      const k=o.k,dx=q.x-o.x,dz=q.z-o.z,d=Math.hypot(dx,dz);
+      if(k==='bh'){if(d<o.r&&low(q,.06)){const i=S.indexOf(q);if(!q.o)of[i]=Math.round(step*dt*1000);
+          q.o=1;q.g=1;q.aw=0;q.vx=q.vy=q.vz=0;q.wy=0;q.x=o.x;q.z=o.z;q.y=-2;o.r=Math.min(IT.bh.rmax,o.r+IT.bh.grow);o.n=(o.n||0)+1;pushI('h',1,step,ii);return true}}
+      else if(k==='wh'){for(const e of [0,1]){const px=e?o.x2:o.x,pz=e?o.z2:o.z,de=Math.hypot(q.x-px,q.z-pz),id=ii*2+e;
+          if(q.wl===id){if(de>IT.wh.r+q.r)q.wl=-1;continue}
+          if(de<IT.wh.r&&low(q,.05)){const tx=e?o.x:o.x2,tz=e?o.z:o.z2;q.x=tx+(q.x-px);q.z=tz+(q.z-pz);q.wl=ii*2+(1-e);pushI('p',Math.hypot(q.vx,q.vz),step,ii);break}}}
+      else if(k==='br'){if(!low(q,IT.br.H))continue;
+        const c=Math.cos(o.a),s=Math.sin(o.a),lx=dx*c+dz*s,lz=-dx*s+dz*c,L=IT.br.L,W=IT.br.W,cx=Math.max(-L,Math.min(L,lx)),cz=Math.max(-W,Math.min(W,lz));
+        let nx=lx-cx,nz=lz-cz,dd=Math.hypot(nx,nz),pen;if(dd>=q.r)continue;
+        if(dd<1e-6){const px=L-Math.abs(lx),pz=W-Math.abs(lz);if(px<pz){nx=Math.sign(lx)||1;nz=0;pen=px+q.r}else{nx=0;nz=Math.sign(lz)||1;pen=pz+q.r}}
+        else{nx/=dd;nz/=dd;pen=q.r-dd}
+        const wx=nx*c-nz*s,wz=nx*s+nz*c,vn=q.vx*wx+q.vz*wz;q.x+=wx*pen;q.z+=wz*pen;
+        if(vn<0){q.vx-=(1+IT.br.e)*vn*wx;q.vz-=(1+IT.br.e)*vn*wz;if(-vn>.5)pushI('k',-vn,step,ii)}}
+      else if(k==='tb'){if(!low(q,2*IT.tb.r))continue;const rs=q.r+IT.tb.r;if(d>=rs||d<1e-9)continue;
+        const nx=dx/d,nz=dz/d;q.x=o.x+nx*rs;q.z=o.z+nz*rs;const vn=q.vx*nx+q.vz*nz;
+        if(vn<0){const out=Math.min(IT.tb.vmax,Math.max(IT.tb.vmin,-vn*IT.tb.e));q.vx+=(out-vn)*nx;q.vz+=(out-vn)*nz;pushI('u',out,step,ii)}}
+      else if(k==='jp'){if(q.jl===ii){if(d>IT.jp.r+q.r)q.jl=-1;continue}
+        if(d<IT.jp.r&&low(q,.03)){const sp=Math.hypot(q.vx,q.vz);if(sp>.6){q.vy=Math.min(IT.jp.vmax,sp*IT.jp.k);q.y+=.01;q.jl=ii;pushI('j',sp,step,ii)}}}
+      else if(k==='bm'){if(d<IT.bm.r+q.r&&low(q,2*IT.bm.r))boom(ii,step)}
+    }
+    return false;
+  };
+  if(ITM)for(const q of S){q.wl=-1;q.jl=-1;IS.forEach((o,ii)=>{   // 웜홀·점프대 위에 멈춰 있던 알은 거기서 출발해도 바로 빨려 들거나 뜨지 않음
+    if(o.k==='wh')[0,1].forEach(e=>{if(Math.hypot(q.x-(e?o.x2:o.x),q.z-(e?o.z2:o.z))<IT.wh.r+q.r)q.wl=ii*2+e});
+    if(o.k==='jp'&&Math.hypot(q.x-o.x,q.z-o.z)<IT.jp.r+q.r)q.jl=ii})}
   const q0=S[shot.i];q0.vx=shot.vx;q0.vz=shot.vz;q0.aw=1;if(q0.t&&shot.wy)q0.wy=shot.wy;
   // 손가락으로 튕긴 알은 살짝 기우뚱 (앞이 숙거나 들림, 세게 칠수록 크게)
   {const sp=Math.hypot(shot.vx,shot.vz)||1,ux=shot.vx/sp,uz=shot.vz/sp,k=(rnd()*2-1)*(1.5+6*(shot.p||0));q0.bx=ux*k+(rnd()-.5)*2;q0.bz=uz*k+(rnd()-.5)*2}
@@ -118,9 +196,10 @@ function simulate(st,shot,rnd){
   for(let step=1;step<=maxS;step++){
     for(const q of S){
       if(q.g||!q.aw)continue;
+      if(BHS)bhPull(q);
       const he=halfH(q),gy=groundAt(q.x,q.z),onG=q.y-he<=gy+.015&&q.vy<=.3;   // 기울기가 줄어 반높이가 낮아져도 바닥에 닿은 채로 봄 (그러지 않으면 공중에서 계속 돎)
       if(onG){
-        const sp=Math.hypot(q.vx,q.vz),dec=(gy>=TOP-1e-6?P.aB:P.aF)*dt;
+        const sp=Math.hypot(q.vx,q.vz),dec=(gy>=TOP-1e-6?P.aB*(ZN?zoneMul(q.x,q.z):1):P.aF)*dt;
         if(q.t&&q.wy&&sp>1e-6){   // 도는 장기 알은 앞 가장자리가 움직이는 쪽(컬링처럼)으로 조금 휨: 속도에 수직, 크기 ∝ 회전 × 속도 (방향만 바꾸고 빠르기는 그대로)
           const k=P.kc*q.wy*dt,nx=q.vx+k*q.vz,nz=q.vz-k*q.vx,nl=Math.hypot(nx,nz);q.vx=nx*sp/nl;q.vz=nz*sp/nl}
         if(sp<=dec){q.vx=q.vz=0}else{q.vx-=q.vx/sp*dec;q.vz-=q.vz/sp*dec}
@@ -138,6 +217,7 @@ function simulate(st,shot,rnd){
         const vin=-q.vy;q.y=gy2+he2;
         if(q.vy<0){q.vy=vin>1.2?vin*P.eG:0;if(vin>.6)push(gy2>=TOP-1e-6?'b':'f',vin,step)}
       }
+      if(ITM&&itemStep(q,step))continue;
       // 판 옆면: 판 윗면보다 낮은 알은 판 안으로 못 들어감 (떨어지는 알이 판 모서리에서 밀려남)
       if(q.y-he2<TOP-.003){
         const ox=BD.x+q.r-Math.abs(q.x),oz=BD.z+q.r-Math.abs(q.z);
@@ -225,7 +305,7 @@ function simulate(st,shot,rnd){
     const out=[f0-1];for(let f=f0-1;f<=f1;f++)for(const v of frames[f][i])out.push(Math.round(v*1000));
     tr[i]=out;
   });
-  return {fin:S.map(q=>({x:q.x,y:q.y,z:q.z,s:q.s,o:q.o,g:q.g,t:q.t,w:Math.round(q.w*1000)/1000})),tr,k:K,nf,ev,of,dur:Math.round((nf-1)/P.fps*1000)};
+  return {fin:S.map(q=>({x:q.x,y:q.y,z:q.z,s:q.s,o:q.o,g:q.g,t:q.t,w:Math.round(q.w*1000)/1000})),tr,k:K,nf,ev,of,dur:Math.round((nf-1)/P.fps*1000),it:IS.map(o=>{const n={...o};if(n.k==='bh')n.r=Math.round(n.r*1000)/1000;return n})};
 }
 /* 자리 방향 (월드 xz): 0번 자리가 화면 아래이고 시계 방향으로 왼쪽·위·오른쪽. 두 명이면 아래·위(마주 보기), 세 명이면 아래·왼쪽·위 */
 const SIDES=[[0,1],[-1,0],[0,-1],[1,0]];
@@ -373,7 +453,7 @@ function shotCands(A,seat,lv){
 }
 function shotScore(A,seat,c){   // 떨어뜨린 상대 알 +10, 떨어진 내 알 −12, 튕긴 알이 판 끝 가까이 멈추면 조금 −
   if(A.om)return omScore(A,seat,c);
-  const v=speedOf(c.p),r=simulate(A.st,{i:c.i,vx:Math.cos(c.a)*v,vz:Math.sin(c.a)*v,p:c.p},()=>.5);
+  const v=speedOf(c.p),r=simulate(A.st,{i:c.i,vx:Math.cos(c.a)*v,vz:Math.sin(c.a)*v,p:c.p},()=>.5,A.it);
   let sc=0;r.fin.forEach((q,k)=>{const was=A.st[k];if(was.o||!q.o)return;sc+=was.s===seat?-12:10});
   const f=r.fin[c.i];if(!f.o)sc-=2*Math.max(0,Math.max(Math.abs(f.x),Math.abs(f.z))-(BW-.5));
   return sc;
@@ -437,36 +517,39 @@ function botPlan(A,seat,rnd){
 }
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 알을 튕겨 다른 사람의 알을 모두 판 밖으로 떨어뜨립니다. 내 알이 모두 떨어지면 탈락하고, 마지막까지 남은 사람이 <b>승리</b>합니다. 2~4명이 할 수 있습니다</li><li><b>알 놓기</b> : 먼저 선(흑)이 내 쪽의 줄이 만나는 점에 알을 하나 놓고, 이어서 다른 사람이 차례로 하나씩 놓습니다. 이렇게 번갈아 모두 놓으면 알까기를 시작합니다. 2명이면 내 쪽 반(가운데 줄 제외), 3~4명이면 내 쪽 삼각형(대각선 제외)에만 놓을 수 있습니다. 누른 점에 미리 보기가 뜨고, [놓기]를 누르거나 같은 점을 한 번 더 누르면 놓습니다(설정의 ‘두 번 눌러 놓기’를 끄면 같은 점을 다시 누를 때 취소됩니다). 놓을 수 없는 곳에는 빨간 빗금이 보이고, 경계에는 차단기가 내려옵니다</li><li><b>진행</b> : 선부터 차례로 내 알 하나씩 튕깁니다. 판 밖으로 떨어진 알은 다시 쓰지 못하고, 내 알이 떨어져도 마찬가지입니다</li><li><b>튕기기</b> : 내 알을 누른 채 뒤로 당겼다 놓습니다. 알 뒤에 내 손이 나타나 당길수록 진해지고 세게 나갑니다. 끝까지 당기면 더 세지지 않습니다. 조금만 당기고 놓으면 취소됩니다. 가장자리 알처럼 뒤로 당길 자리가 없으면 내 알을 짧게 눌러 고릅니다. 손이 나타나면 판 어디서든 누르고 끌어 그 알을 당길 수 있습니다(누른 점에서 끈 만큼). 빈 곳을 짧게 누르거나 같은 알을 다시 누르면 내려놓습니다</li><li><b>손 떨림</b> : 손은 당기는 동안 계속 떨리고, 세게 당길수록 크게 떨립니다. 놓는 순간 손이 가리키던 쪽으로 나가므로 살살 치면 거의 똑바로, 세게 치면 빗나가기 쉽습니다</li><li><b>뜨는 알</b> : 바둑알은 납작해서 세게 부딪히면 위로 튀어 오르기도 합니다</li><li><b>한 번 더</b> : 탁자 설정에서 켜면, 다른 사람의 알을 떨어뜨리고 튕긴 내 알이 판에 남았을 때 한 번 더 튕깁니다</li><li><b>끝</b> : 한 명만 남으면 끝납니다. 남은 사람들의 마지막 알이 함께 떨어지면 무승부입니다. 탈락한 순서가 늦을수록 순위가 높습니다</li><li><b>제한 시간</b> : 튕길 차례에 제한 시간이 지나면 차례가 넘어가고, 놓을 차례에 지나면 아무 자리에 대신 놓습니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다. 항복·탈주한 사람의 알은 판에서 사라집니다</li><li><b>다음 판</b> : 결과 화면에서 바로 시작하면 진 사람(4명이면 가장 먼저 탈락한 사람)이 선(먼저 놓고 먼저 튕김)이 되고, 비기면 서로 바꿉니다. 첫 판은 탁자 설정의 선 플레이어(선택·무작위)로 정합니다</li><li><b>게임 모드</b> : 탁자 설정에서 바둑(위 규칙)·오목·장기 중에서 고릅니다</li><li><b>오목 모드</b> : 게임 모드에서 오목을 고르면(2명), 판 위에 내 돌 다섯 개를 한 줄로 먼저 세우는 사람이 <b>승리</b>합니다<ul><li><b>진행</b> : 선(흑)부터 번갈아, 내 차례에 <b>돌을 놓거나</b> 판 위의 내 돌 하나를 <b>튕깁니다</b>. 돌은 얼마든지 놓을 수 있고, 판 어디든 다른 돌과 겹치지 않는 점이면 놓을 수 있습니다. 빈 점을 누르면 미리 보기가 뜨고 [놓기]를 누르거나 같은 점을 한 번 더 누르면 놓고, 내 돌을 누른 채 당겼다 놓으면 튕깁니다</li><li><b>떨어진 돌</b> : 판에서 떨어진 돌은 그냥 사라집니다. 가져오는 일은 없습니다</li><li><b>판정</b> : 돌이 모두 멈춘 뒤, 줄이 만나는 점마다 그 점을 가리는(반 칸 안에서 가장 가까운) 돌이 그 점에 있다고 봅니다. 가로·세로·대각선으로 다섯 개 이상 이어지면 오목입니다. 상대가 튕겨서 생긴 내 오목도 내 승리입니다</li><li><b>한 번 더</b> : 탁자 설정의 ‘떨어뜨리면 한 번 더’를 켜면, 상대 돌을 떨어뜨렸을 때 한 번 더 둡니다(튕긴 돌이 함께 떨어져도)</li><li><b>동시 오목</b> : 두 사람의 오목이 함께 생기면 튕긴 사람이 집니다</li><li><b>제한 시간</b> : 시간이 지나면 차례를 넘깁니다</li><li><b>무승부</b> : 돌을 놓을 수 있는 점이 하나도 없으면 무승부입니다</li></ul></li><li><b>장기 모드</b> : 게임 모드에서 장기를 고르면(2명), 장기판에 장기 상차림(마상마상)으로 알 16개씩 놓고 시작합니다. 선이 초(초록), 다음 사람이 한(빨강)입니다<ul><li><b>알 크기·무게</b> : 장이 가장 크고, 차·포·마·상, 사·졸 순으로 작습니다. 무게는 크기(부피)에 비례해서, 같은 힘으로 튕기면 무거운 알은 느리게 짧게 나가고 가벼운 알은 빠르게 멀리 나갑니다. 무거운 알은 맞아도 잘 밀리지 않습니다</li><li><b>도는 알</b> : 비껴 부딪히면 알이 돕니다(나가는 방향은 그대로)</li><li><b>끝</b> : 상대 알을 모두 떨어뜨리면 승리합니다. 탁자 설정의 ‘장 떨어지면 패배’를 켜면 장이 먼저 떨어진 쪽이 지고, 두 장이 같은 순간에 떨어지면 튕긴 사람이 집니다</li><li><b>놓기</b> : 알을 놓는 단계는 없고 바로 튕깁니다. 알 개수는 정하지 않습니다</li></ul></li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 내 알을 튕겨 다른 사람의 알을 모두 판 밖으로 떨어뜨립니다. 내 알이 모두 떨어지면 탈락하고, 마지막까지 남은 사람이 <b>승리</b>합니다. 2~4명이 할 수 있습니다</li><li><b>알 놓기</b> : 먼저 선(흑)이 내 쪽의 줄이 만나는 점에 알을 하나 놓고, 이어서 다른 사람이 차례로 하나씩 놓습니다. 이렇게 번갈아 모두 놓으면 알까기를 시작합니다. 2명이면 내 쪽 반(가운데 줄 제외), 3~4명이면 내 쪽 삼각형(대각선 제외)에만 놓을 수 있습니다. 누른 점에 미리 보기가 뜨고, [놓기]를 누르거나 같은 점을 한 번 더 누르면 놓습니다(설정의 ‘두 번 눌러 놓기’를 끄면 같은 점을 다시 누를 때 취소됩니다). 놓을 수 없는 곳에는 빨간 빗금이 보이고, 경계에는 차단기가 내려옵니다</li><li><b>진행</b> : 선부터 차례로 내 알 하나씩 튕깁니다. 판 밖으로 떨어진 알은 다시 쓰지 못하고, 내 알이 떨어져도 마찬가지입니다</li><li><b>튕기기</b> : 내 알을 누른 채 뒤로 당겼다 놓습니다. 알 뒤에 내 손이 나타나 당길수록 진해지고 세게 나갑니다. 끝까지 당기면 더 세지지 않습니다. 조금만 당기고 놓으면 취소됩니다. 가장자리 알처럼 뒤로 당길 자리가 없으면 내 알을 짧게 눌러 고릅니다. 손이 나타나면 판 어디서든 누르고 끌어 그 알을 당길 수 있습니다(누른 점에서 끈 만큼). 빈 곳을 짧게 누르거나 같은 알을 다시 누르면 내려놓습니다</li><li><b>손 떨림</b> : 손은 당기는 동안 계속 떨리고, 세게 당길수록 크게 떨립니다. 놓는 순간 손이 가리키던 쪽으로 나가므로 살살 치면 거의 똑바로, 세게 치면 빗나가기 쉽습니다</li><li><b>뜨는 알</b> : 바둑알은 납작해서 세게 부딪히면 위로 튀어 오르기도 합니다</li><li><b>한 번 더</b> : 탁자 설정에서 켜면, 다른 사람의 알을 떨어뜨리고 튕긴 내 알이 판에 남았을 때 한 번 더 튕깁니다</li><li><b>끝</b> : 한 명만 남으면 끝납니다. 남은 사람들의 마지막 알이 함께 떨어지면 무승부입니다. 탈락한 순서가 늦을수록 순위가 높습니다</li><li><b>제한 시간</b> : 튕길 차례에 제한 시간이 지나면 차례가 넘어가고, 놓을 차례에 지나면 아무 자리에 대신 놓습니다. 연결이 끊겨도 시간은 흐르고, 45초 안에 돌아오지 않으면 탈주로 처리합니다. 항복·탈주한 사람의 알은 판에서 사라집니다</li><li><b>다음 판</b> : 결과 화면에서 바로 시작하면 진 사람(4명이면 가장 먼저 탈락한 사람)이 선(먼저 놓고 먼저 튕김)이 되고, 비기면 서로 바꿉니다. 첫 판은 탁자 설정의 선 플레이어(선택·무작위)로 정합니다</li><li><b>게임 모드</b> : 탁자 설정에서 바둑(위 규칙)·오목·장기 중에서 고릅니다</li><li><b>물건 놓기</b> : 탁자 설정에서 켜면(바둑·장기 모드) 알을 놓은 뒤(장기 모드는 바로) 물건을 고르고 판에 놓은 다음 튕깁니다<ul><li><b>고르기</b> : 판 가운데에 물건이 (사람 수 × 물건 수 + 1)개 떠오릅니다. 모두 함께, 먼저 누른 사람이 가져갑니다. 시간이 지나면 남은 것 중 아무것이나 가져갑니다</li><li><b>놓기</b> : 선부터 한 명씩 한 개씩 놓습니다. 판을 누르면 미리 보기가 뜨고, [놓기]를 누르거나 미리 보기를 한 번 더 누르면 놓습니다. 벽돌은 미리 보기를 누른 채 끌어 방향을 돌리고, 웜홀은 구멍 두 개를 차례로 놓습니다. 알·다른 물건과 겹치거나 판 가장자리에 너무 가까우면 미리 보기가 빨갛고 놓을 수 없습니다(얼음판·모래밭은 알 위에도 깔 수 있음)</li><li><b>블랙홀</b> : 움직이는 알을 끌어당깁니다. 가운데 구멍에 빠진 알은 판에서 떨어진 것과 같고, 삼킬 때마다 블랙홀이 조금씩 커집니다. 멈춰 있는 알은 당기지 않습니다</li><li><b>웜홀</b> : 구멍 두 개가 한 쌍입니다. 어느 쪽으로 들어가도 다른 쪽에서 같은 빠르기·방향으로 나옵니다</li><li><b>벽돌</b> : 움직이지 않는 낮은 벽입니다. 알이 부딪히면 튕겨 나오고, 세게 쳐서 뜬 알은 넘어갑니다</li><li><b>탱탱볼</b> : 박혀 있는 공입니다. 부딪힌 알을 더 세게 튕겨 냅니다</li><li><b>얼음판</b> : 그 위에서는 알이 거의 멈추지 않고 미끄러집니다</li><li><b>모래밭</b> : 그 위에서는 알이 금방 멈춥니다</li><li><b>점프대</b> : 지나가는 알을 띄워 줍니다. 뜬 알은 벽돌·탱탱볼·폭탄을 넘어갑니다</li><li><b>폭탄</b> : 알이 닿으면 터져서 둘레의 알을 모두 밀어내고 사라집니다. 가까운 폭탄도 같이 터집니다</li><li><b>다음 판</b> : 바로 시작하면 물건을 새로 고릅니다</li></ul></li><li><b>오목 모드</b> : 게임 모드에서 오목을 고르면(2명), 판 위에 내 돌 다섯 개를 한 줄로 먼저 세우는 사람이 <b>승리</b>합니다<ul><li><b>진행</b> : 선(흑)부터 번갈아, 내 차례에 <b>돌을 놓거나</b> 판 위의 내 돌 하나를 <b>튕깁니다</b>. 돌은 얼마든지 놓을 수 있고, 판 어디든 다른 돌과 겹치지 않는 점이면 놓을 수 있습니다. 빈 점을 누르면 미리 보기가 뜨고 [놓기]를 누르거나 같은 점을 한 번 더 누르면 놓고, 내 돌을 누른 채 당겼다 놓으면 튕깁니다</li><li><b>떨어진 돌</b> : 판에서 떨어진 돌은 그냥 사라집니다. 가져오는 일은 없습니다</li><li><b>판정</b> : 돌이 모두 멈춘 뒤, 줄이 만나는 점마다 그 점을 가리는(반 칸 안에서 가장 가까운) 돌이 그 점에 있다고 봅니다. 가로·세로·대각선으로 다섯 개 이상 이어지면 오목입니다. 상대가 튕겨서 생긴 내 오목도 내 승리입니다</li><li><b>한 번 더</b> : 탁자 설정의 ‘떨어뜨리면 한 번 더’를 켜면, 상대 돌을 떨어뜨렸을 때 한 번 더 둡니다(튕긴 돌이 함께 떨어져도)</li><li><b>동시 오목</b> : 두 사람의 오목이 함께 생기면 튕긴 사람이 집니다</li><li><b>제한 시간</b> : 시간이 지나면 차례를 넘깁니다</li><li><b>무승부</b> : 돌을 놓을 수 있는 점이 하나도 없으면 무승부입니다</li></ul></li><li><b>장기 모드</b> : 게임 모드에서 장기를 고르면(2명), 장기판에 장기 상차림(마상마상)으로 알 16개씩 놓고 시작합니다. 선이 초(초록), 다음 사람이 한(빨강)입니다<ul><li><b>알 크기·무게</b> : 장이 가장 크고, 차·포·마·상, 사·졸 순으로 작습니다. 무게는 크기(부피)에 비례해서, 같은 힘으로 튕기면 무거운 알은 느리게 짧게 나가고 가벼운 알은 빠르게 멀리 나갑니다. 무거운 알은 맞아도 잘 밀리지 않습니다</li><li><b>도는 알</b> : 비껴 부딪히면 알이 돕니다(나가는 방향은 그대로)</li><li><b>끝</b> : 상대 알을 모두 떨어뜨리면 승리합니다. 탁자 설정의 ‘장 떨어지면 패배’를 켜면 장이 먼저 떨어진 쪽이 지고, 두 장이 같은 순간에 떨어지면 튕긴 사람이 집니다</li><li><b>놓기</b> : 알을 놓는 단계는 없고 바로 튕깁니다. 알 개수는 정하지 않습니다</li></ul></li></ol>';
 G.modeDesc=['마지막까지 남은 사람이 이김','마지막까지 남은 사람이 이김'];
-G.defaults={max:2,turn:30,stones:5,again:1,pickfirst:0,omok:0,md:0,jang:0};
+G.defaults={max:2,turn:30,stones:5,again:1,pickfirst:0,omok:0,md:0,jang:0,ob:0,obn:1};
 /* 방 설정: 게임 모드(바둑·오목·장기)·알 개수·제한 시간은 설정 판자에서 G.boardSet으로 직접 그림(lever). 알 개수는 바둑 모드에만 */
 const MD_NAME=['바둑','오목','장기'];
 G.roomSet=[
   {k:'md',label:'게임 모드',unit:'',lo:0,hi:2,step:1,lever:1,desc:'바둑: 바둑알로 상대 알을 모두 떨어뜨리면 이깁니다(2~4명). 오목: 돌을 놓거나 튕겨 오목을 먼저 만들면 이깁니다(2명). 장기: 장기판에 장기 상차림으로 시작하고, 알마다 크기·무게가 다릅니다(2명)'},
   {k:'stones',label:'알 개수',unit:'개',lo:1,hi:10,step:1,lever:1,desc:'한 사람이 가지고 시작하는 알 수입니다 (바둑 모드)'},
-  {k:'turn',label:'제한 시간',unit:'초',lo:10,hi:120,step:5,lever:1,desc:'시간이 지나면 차례가 넘어갑니다'}];
+  {k:'turn',label:'제한 시간',unit:'초',lo:10,hi:120,step:5,lever:1,desc:'시간이 지나면 차례가 넘어갑니다'},
+  {k:'obn',label:'물건 수',unit:'개',lo:1,hi:3,step:1,lever:1,desc:'물건 놓기에서 한 사람이 고르는 물건 수입니다'}];
 G.ruleSet=[
   {k:'omok',label:'오목 모드',hidden:true,desc:''},   // 예전 설정(오목 스위치)을 읽으려고 남겨 둠. 지금은 md로 정함
   {k:'again',label:'떨어뜨리면 한 번 더',desc:'다른 사람의 알을 떨어뜨리고 튕긴 내 알이 판에 남으면 한 번 더 튕깁니다 (오목 모드는 상대 돌을 떨어뜨리기만 하면)'},
   {k:'jang',label:'장 떨어지면 패배',desc:'장기 모드: 장이 먼저 떨어진 쪽이 집니다. 끄면 알이 모두 떨어진 쪽이 집니다'},
+  {k:'ob',label:'물건 놓기',desc:'바둑·장기 모드: 알을 놓은 뒤 블랙홀·웜홀·벽돌·탱탱볼·얼음판·모래밭·점프대·폭탄 중에서 선착순으로 물건을 고르고, 선부터 한 명씩 판에 놓습니다'},
   {k:'pickfirst',pick:1,label:'선 플레이어',desc:'선택: 방장이 대기실에서 선(먼저 튕길 사람)을 고릅니다. 무작위: 랜덤으로 정합니다'}];
 const nStones=c=>Math.max(1,Math.min(10,Math.round(+c.stones||5)));
 const ruleOf=k=>G.ruleSet.find(d=>d.k===k);
 /* 설정 판자 항목: 게임 모드 → (바둑) 알 개수 → 제한 시간 → 한 번 더 → (장기) 장 떨어지면 패배 → 선 플레이어 */
-G.modeLabel=c=>MD_NAME[mdOf(c)]||'';   // 홀로그램 모드 줄
+const obOn=c=>mdOf(c)!==1&&!!+c.ob;   // 물건 놓기 (오목 모드에는 없음)
+G.modeLabel=c=>(MD_NAME[mdOf(c)]||'')+(obOn(c)?' · 물건':'');   // 홀로그램 모드 줄
 G.boardSet=c=>{
   const md=mdOf(c),rs=roomSetOf(G,c),num=k=>{const d=rs.find(x=>x.k===k),v=+(c[k]??G.defaults[k]);return {kind:'num',...d,v,diff:false}};
   const rule=k=>{const d=ruleOf(k);return {...rbRuleItem(d,c),diff:(+c[k]?1:0)!==(+G.defaults[k]?1:0)}};
   return [{kind:'choice',k:'md',label:'게임 모드',opts:MD_NAME,desc:rs.find(x=>x.k==='md').desc,v:md,diff:md!==0,act:o=>'ak:md:'+o},
-    ...(md===0?[num('stones')]:[]),num('turn'),rule('again'),...(md===2?[rule('jang')]:[]),rule('pickfirst')];
+    ...(md===0?[num('stones')]:[]),num('turn'),rule('again'),...(md===2?[rule('jang')]:[]),...(md!==1?[rule('ob'),...(+c.ob?[num('obn')]:[])]:[]),rule('pickfirst')];
 };
 /* WebGL이 없을 때의 탁자 설정 창 (2D): 게임 모드 버튼 셋 + 숫자 칸 + 스위치 */
 G.settingsHTML=(c,{stepRow})=>{
   const md=mdOf(c),rs=roomSetOf(G,c),row=k=>{const d=rs.find(x=>x.k===k);return d?stepRow(d):''};
   const tog=k=>{const d=ruleOf(k),on=!!(+c[k]);return `<div class="stp tg"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="sw${on?' on':''}" role="switch" aria-checked="${on}" aria-label="${d.label}" data-act="tog:${k}"><i></i></button></div></div>`};
   const mrow=`<div class="rs-seg"><div class="rs-h"><b>게임 모드</b><small>${rs.find(x=>x.k==='md').desc}</small></div><div class="segrow" role="radiogroup" aria-label="게임 모드">${MD_NAME.map((t,v)=>`<button class="btn ${md===v?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${md===v}" data-act="ak:md:${v}">${t}</button>`).join('')}</div></div>`;
-  return `<div class="rs-grid">${['max','spec'].map(row).join('')}</div>${mrow}<div class="rs-grid">${(md===0?['stones','turn']:['turn']).map(row).join('')}</div><div class="rulehead">게임 규칙</div><div class="rs-grid tgs">${tog('again')}${md===2?tog('jang'):''}${pickRowHTML(ruleOf('pickfirst'),c)}</div>`;
+  return `<div class="rs-grid">${['max','spec'].map(row).join('')}</div>${mrow}<div class="rs-grid">${(md===0?['stones','turn']:['turn']).concat(md!==1&&+c.ob?['obn']:[]).map(row).join('')}</div><div class="rulehead">게임 규칙</div><div class="rs-grid tgs">${tog('again')}${md===2?tog('jang'):''}${md!==1?tog('ob'):''}${pickRowHTML(ruleOf('pickfirst'),c)}</div>`;
 };
 /* 게임 모드 바꾸기 (방장, 대기실): 오목·장기는 2명까지라 앉은 사람이 많으면 금지 소리 */
 G.panelAct=a=>{
@@ -479,8 +562,8 @@ G.panelAct=a=>{
   if(!nc){sfx('no');lastPanelHtml='';mark();return true}
   H.cfg=nc;saveRoomCfg(H.cfg);sfx('tick');lastPanelHtml='';mark();return true;
 };
-const cfgModeTxt=c=>{const md=mdOf(c);return md===1?'오목 모드':md===2?`장기 모드${+c.jang?' · 장 떨어지면 패배':''}`:`알 ${nStones(c)}개`};
-G.cfgChips=c=>`<span class="chip">${mdOf(c)?`<b>${cfgModeTxt(c)}</b>`:`알 <b>${nStones(c)}개</b>`}</span><span class="chip">제한 시간 <b>${+c.turn||30}초</b></span><span class="chip">한 번 더 <b>${+c.again?'켜기':'끄기'}</b></span><span class="chip">선 <b>${+c.pickfirst?'선택':'무작위'}</b></span>`;
+const cfgModeTxt=c=>{const md=mdOf(c),ob=obOn(c)?` · 물건 ${Math.max(1,Math.min(3,+c.obn||1))}개`:'';return md===1?'오목 모드':md===2?`장기 모드${+c.jang?' · 장 떨어지면 패배':''}${ob}`:`알 ${nStones(c)}개${ob}`};
+G.cfgChips=c=>`<span class="chip">${mdOf(c)?`<b>${cfgModeTxt(c)}</b>`:`알 <b>${nStones(c)}개</b>`}</span>${obOn(c)&&!mdOf(c)?`<span class="chip">물건 <b>${Math.max(1,Math.min(3,+c.obn||1))}개</b></span>`:''}<span class="chip">제한 시간 <b>${+c.turn||30}초</b></span><span class="chip">한 번 더 <b>${+c.again?'켜기':'끄기'}</b></span><span class="chip">선 <b>${+c.pickfirst?'선택':'무작위'}</b></span>`;
 G.cfgSum=c=>`${cfgModeTxt(c)} · 제한 시간 ${+c.turn||30}초 · 한 번 더 ${+c.again?'켜기':'끄기'} · 선 ${+c.pickfirst?'선택':'무작위'}`;
 G.roomSub=()=>'2~4명 보드게임';
 G.pubExtra=()=>({});
@@ -514,7 +597,7 @@ function pickFirst(again){
 }
 function startTurn(i,ph){
   const A=H.ak,t=clock();
-  A.ph=ph||'aim';A.aim=null;A.bp=null;H.turn=i;H.graceUntil=0;
+  A.ph=ph||'aim';A.aim=null;A.bp=null;A.ig=null;H.turn=i;H.graceUntil=0;
   A.hold=A.ph==='place'&&H.players[i]&&H.players[i].bot?i:-1;   // 놓을 알을 집어 듦 (봇은 차례가 오면 바로)
   H.deadline=t+(+H.cfg.turn||30)*1000;
   H.botActAt=H.players[i]&&H.players[i].bot?t+rand(700,1400):0;
@@ -560,11 +643,13 @@ function doShot(seat,i,a,p,j){   // j: 그중 손 떨림 몫 (장기 알 처음 
   p=Math.max(PMIN,Math.min(1,p));
   useBoard(A.jg);
   const v=shotSpeed(s,p),before=Array.from({length:A.np},(_,k)=>aliveOf(A,k));
-  const r=simulate(simSt(A.st),{i,vx:Math.cos(a)*v,vz:Math.sin(a)*v,p,wy:shotSpin(s,v,j)});
+  const it0=A.it&&A.it.length?A.it.map(o=>({...o})):null;
+  const r=simulate(simSt(A.st),{i,vx:Math.cos(a)*v,vz:Math.sin(a)*v,p,wy:shotSpin(s,v,j)},null,A.it);
+  if(it0)A.it=r.it;
   A.st=r.fin.map((q,k)=>{const o=A.st[k];if(o.u)return o;const n={x:q.x,y:q.y,z:q.z,s:q.s,o:o.o||q.o?1:0,g:o.g||q.g?1:0};if(o.t){n.t=o.t;n.w=q.w}return n});
   const after=before.map((_,k)=>aliveOf(A,k)),kn=before.reduce((n,b,k)=>k===seat?n:n+b-after[k],0),own=before[seat]-after[seat];   // 다른 사람 알 떨어진 수, 내 알 떨어진 수
   A.cnt++;A.sid++;
-  A.sh={id:A.sid,by:seat,i,a,p,tr:r.tr,k:r.k,nf:r.nf,ev:r.ev,of:r.of,dur:r.dur,t0:clock()};
+  A.sh={id:A.sid,by:seat,i,a,p,tr:r.tr,k:r.k,nf:r.nf,ev:r.ev,of:r.of,dur:r.dur,t0:clock(),it0};
   A.ph='roll';A.until=clock()+r.dur+450;A.aim=null;A.bp=null;H.botActAt=0;
   A.ag=+H.cfg.again&&kn>0&&(A.om||!A.st[i].o)?1:0;   // 한 번 더: 다른 사람 알을 떨어뜨리고 튕긴 알이 판에 남음 (오목 모드는 상대 돌을 떨어뜨리기만 하면)
   A.next=A.ag?seat:turnAfter(A,seat);
@@ -572,6 +657,7 @@ function doShot(seat,i,a,p,j){   // j: 그중 손 떨림 몫 (장기 알 처음 
   const nm=H.players[seat].name,parts=[];
   if(A.om){if(kn)parts.push(`상대 돌 ${kn}개 떨어뜨림`);if(own)parts.push(`내 돌 ${own}개 떨어짐`)}
   else{if(kn)parts.push(`${kn}알 까기`);if(own)parts.push(`내 알 ${own}개 떨어짐`)}
+  {const ex=(r.ev||[]).filter(e=>e[1]==='x').length;if(ex)parts.push(`폭탄${ex>1?' '+ex+'개':''} 펑`)}
   if(A.jg)for(const q of A.st.filter((q,k)=>q.t===7&&q.o&&r.of[k]!=null))parts.push(`${CNAME_JG[A.co[q.s]]} 장 떨어짐`);
   A.lg=[`${A.cnt}. ${nm} ${parts.length?parts.join(' · '):A.om?'튕김':'빗나감'}`,kn?'fin':''];   // 기록은 알이 다 멈춘 뒤에 (굴러가는 동안 기록이 결과를 먼저 알려 주지 않게)
   mark();
@@ -597,9 +683,91 @@ function doPlace(seat,c,r){
   const [x,z]=gridXZ(c,r);A.st[i]={x,y:TOP+SH,z,s:seat,o:0,g:0};A.pc=(A.pc||0)+1;
   H.seatNote[seat]='';
   const nx=nextUnplaced(A,seat);
-  if(nx<0){addLog('알을 모두 놓았습니다. 알까기를 시작합니다.','sys');startTurn(A.A);return true}
+  if(nx<0){afterStones();return true}
   startTurn(nx,'place');
   return true;
+}
+/* 알을 다 놓았으면: 물건 놓기면 물건 고르기, 아니면 선부터 튕김 */
+function afterStones(){
+  const A=H.ak;
+  if(A.ob){addLog('알을 모두 놓았습니다.','sys');startPick();return}
+  addLog('알을 모두 놓았습니다. 알까기를 시작합니다.','sys');startTurn(H.players[A.A].finished?nextAlive(A,A.A):A.A);
+}
+/* ----- 물건 놓기: 고르기(모두 함께, 선착순) → 놓기(선부터 한 명씩 한 개씩) → 튕기기 ----- */
+const obPicks=(A,seat)=>A.ofs?A.ofs.filter(x=>x===seat).length:0;
+const obNeed=(A,seat)=>!!H.players[seat]&&!H.players[seat].finished&&obPicks(A,seat)<A.obn;
+function obFirst(A,test){for(let k=0;k<A.np;k++){const j=(A.A+k)%A.np;if(test(j))return j}return -1}
+function startPick(){
+  const A=H.ak,live=H.players.slice(0,A.np).filter(p=>!p.finished).length,n=live*A.obn+1,pool=[];
+  while(pool.length<n){const b=OB_K.slice();for(let i=b.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[b[i],b[j]]=[b[j],b[i]]}pool.push(...b)}   // 종류가 모자라면(인원 × 개수가 많으면) 한 벌 더
+  A.of=pool.slice(0,n);A.ofs=Array(n).fill(-1);A.inv=null;A.ph='pick';A.aim=null;A.bp=null;A.ig=null;
+  const t=clock();H.deadline=t+(+H.cfg.turn||30)*1000;H.graceUntil=0;H.botActAt=0;
+  A.bt=H.players.slice(0,A.np).map(p=>p.bot?t+rand(900,2600):0);   // 봇이 집는 시각
+  H.turn=obFirst(A,j=>obNeed(A,j));
+  mark();
+}
+function doPick(seat,k){
+  const A=H.ak;
+  if(A.ph!=='pick'||!Number.isInteger(k)||k<0||k>=A.of.length||A.ofs[k]!==-1||!obNeed(A,seat))return false;
+  A.ofs[k]=seat;addLog(`${H.players[seat].name} ${OB_NM[A.of[k]]} 고름`);
+  afterPick();return true;
+}
+function pickAny(seat){const A=H.ak,free=A.ofs.map((x,k)=>x<0?k:-1).filter(k=>k>=0);return free.length?doPick(seat,free[Math.random()*free.length|0]):false}
+function afterPick(){
+  const A=H.ak;if(A.ph!=='pick')return;
+  const f=obFirst(A,j=>obNeed(A,j));
+  if(f>=0){H.turn=f;mark();return}
+  A.inv=Array.from({length:A.np},(_,s)=>H.players[s].finished?[]:A.of.map((k,i)=>A.ofs[i]===s?i:-1).filter(i=>i>=0));   // 놓을 물건 (고르기 목록 번호)
+  A.bt=null;
+  const nx=obFirst(A,j=>!H.players[j].finished&&A.inv[j].length>0);
+  if(nx<0){goShoot();return}
+  addLog('물건을 놓습니다.','sys');startTurn(nx,'iput');
+}
+function goShoot(){const A=H.ak;addLog('알까기를 시작합니다.','sys');startTurn(H.players[A.A].finished?nextAlive(A,A.A):A.A)}
+function nextInv(A,seat){for(let k=1;k<=A.np;k++){const j=(seat+k)%A.np;if(!H.players[j].finished&&A.inv[j]&&A.inv[j].length)return j}return -1}
+/* 물건 하나 놓기: a {x,z, a 벽돌 방향, x2·z2 웜홀 다른 쪽} */
+function doPut(seat,a){
+  const A=H.ak;if(A.ph!=='iput'||!A.inv||!A.inv[seat]||!A.inv[seat].length)return false;
+  const oi=A.inv[seat][0],k=A.of[oi],r3=v=>Math.round(+v*1000)/1000;
+  const o={k,x:r3(a.x),z:r3(a.z),s:seat,o:oi};
+  if(k==='bh'){o.r=IT.bh.rc;o.n=0}
+  if(k==='br')o.a=r3(a.a);
+  if(k==='wh'){o.x2=r3(a.x2);o.z2=r3(a.z2)}
+  if(!canPut(A,o))return false;
+  A.it.push(o);A.inv[seat].shift();A.ig=null;H.seatNote[seat]='';
+  addLog(`${H.players[seat].name} ${OB_NM[k]} 놓음`);
+  const nx=nextInv(A,seat);
+  if(nx<0){goShoot();return true}
+  startTurn(nx,'iput');return true;
+}
+function autoPut(i){
+  const A=H.ak;if(!A.inv||!A.inv[i]||!A.inv[i].length){resumeAfterOut(i);return}
+  const b=itemPlan(A,i,A.of[A.inv[i][0]]);
+  if(b&&doPut(i,b))return;
+  A.inv[i].shift();   // 놓을 곳이 없으면(거의 없음) 그 물건은 버림
+  const nx=nextInv(A,i);if(nx<0)goShoot();else startTurn(nx,'iput');
+}
+/* 봇·시간 초과: 놓을 자리를 무작위 후보 중 점수로 고름 (블랙홀·폭탄·얼음은 상대 알 근처, 모래·벽돌은 내 알 곁, 웜홀 한쪽은 가장자리 가까이) */
+function itemPlan(A,seat,k,rnd){
+  rnd=rnd||Math.random;useBoard(A.jg);
+  const live=A.st.filter(q=>!q.u&&!q.o&&!q.g),opp=live.filter(q=>q.s!==seat),own=live.filter(q=>q.s===seat);
+  const W={bh:[1,-1.3],ic:[.8,-.8],bm:[1,-1.2],sd:[-.6,1],tb:[.3,-.3],jp:[0,0],br:[-.2,.6],wh:[.5,-.5]}[k]||[0,0];
+  const near=(L,x,z)=>L.reduce((n,q)=>n+Math.max(0,1-Math.hypot(q.x-x,q.z-z)/1.1),0);
+  const rp=()=>[(rnd()*2-1)*(BD.x-.2),(rnd()*2-1)*(BD.z-.2)];
+  let best=null,bs=-1e9;
+  for(let n=0;n<320;n++){
+    const [x,z]=rp(),o={k,x,z};
+    if(k==='bh')o.r=IT.bh.rc;
+    if(k==='br'){const t=opp.length&&own.length&&rnd()<.6?own[rnd()*own.length|0]:null;
+      if(t){const g=opp.reduce((b,q)=>Math.hypot(q.x-t.x,q.z-t.z)<Math.hypot(b.x-t.x,b.z-t.z)?q:b,opp[0]),d=Math.atan2(g.z-t.z,g.x-t.x),off=.32+rnd()*.12;o.x=t.x+Math.cos(d)*off;o.z=t.z+Math.sin(d)*off;o.a=d+Math.PI/2+(rnd()-.5)*.4}   // 내 알 앞을 막음
+      else o.a=rnd()*Math.PI}
+    if(k==='wh'){const [x2,z2]=rp();o.x2=x2;o.z2=z2}
+    if(!canPut(A,o))continue;
+    let sc=W[0]*near(opp,o.x,o.z)+W[1]*near(own,o.x,o.z)+rnd()*.35;
+    if(k==='wh')sc+=Math.max(Math.abs(o.x2)/BD.x,Math.abs(o.z2)/BD.z);
+    if(sc>bs){bs=sc;best=o}
+  }
+  return best;
 }
 function autoPlace(i){
   const p=H.players[i],b=placePlan(H.ak,i,null,p&&p.bot&&typeof botLv==='function'?botLv(p):1);
@@ -608,9 +776,11 @@ function autoPlace(i){
 function flushLog(){const A=H.ak;if(A&&A.lg){addLog(A.lg[0],A.lg[1]);A.lg=null}}
 /* 차례인 사람이 탈락·항복해서 차례가 비면 다음 사람으로 (놓기 중이면 다음에 놓을 사람, 다 놓았으면 선부터 튕김) */
 function resumeAfterOut(seat){
-  const A=H.ak;if(!A||H.phase!=='play'||H.turn!==seat||A.ph==='roll')return;
-  if(A.ph==='place'){const nx=nextUnplaced(A,seat);if(nx>=0){startTurn(nx,'place');return}
-    addLog('알을 모두 놓았습니다. 알까기를 시작합니다.','sys');startTurn(H.players[A.A].finished?nextAlive(A,A.A):A.A);return}
+  const A=H.ak;if(!A||H.phase!=='play')return;
+  if(A.ph==='pick'){afterPick();return}   // 고르기는 모두 함께라 차례와 상관없음
+  if(H.turn!==seat||A.ph==='roll')return;
+  if(A.ph==='place'){const nx=nextUnplaced(A,seat);if(nx>=0){startTurn(nx,'place');return}afterStones();return}
+  if(A.ph==='iput'){const nx=nextInv(A,seat);if(nx>=0)startTurn(nx,'iput');else goShoot();return}
   startTurn(nextAlive(A,seat));
 }
 function afterShot(){
@@ -638,12 +808,18 @@ function doSurrender(seat){
   flushLog();
   const why=H.players[seat].deserter?'desert':'surrender';
   A.st.forEach(q=>{if(q.s===seat&&q.u){q.u=0;q.o=1;q.g=1;q.y=-9}});   // 아직 못 놓은 알은 치움
+  if(A.inv&&A.inv[seat])A.inv[seat]=[];   // 못 놓은 물건도
   if(eliminate([seat],why))return;
   resumeAfterOut(seat);
 }
 /* 제한 시간이 지나면 차례를 넘김. 봇(과 탈주해서 봇이 맡은 자리)은 바로 둠. 연결이 끊겨 기다리는 사람도 다른 사람과 똑같이 넘어감 */
 function timeout(){
   const i=H.turn,p=H.players[i],A=H.ak;
+  if(A.ph==='pick'){   // 아직 못 고른 사람은 아무 물건이나
+    for(let s=0;s<A.np&&A.ph==='pick';s++){const q=H.players[s];if(!obNeed(A,s))continue;if(!(q.bot&&!awayHuman(q)))addLog(`${q.name} 시간 초과로 아무 물건이나 고릅니다.`,'sys');while(A.ph==='pick'&&obNeed(A,s)&&pickAny(s));}
+    if(A.ph==='pick')afterPick();
+    return}
+  if(A.ph==='iput'){if(!(p.bot&&!awayHuman(p)))addLog(`${p.name} 시간 초과로 아무 자리에 놓습니다.`,'sys');autoPut(i);return}
   if(A.ph==='place'){if(!(p.bot&&!awayHuman(p)))addLog(`${p.name} 시간 초과로 아무 자리에 놓습니다.`,'sys');autoPlace(i);return}   // 놓기는 넘기지 않고 대신 놓음
   if(p.bot&&!awayHuman(p)){botShootNow(i);return}
   addLog(`${p.name} 시간 초과로 차례를 넘깁니다.`,'sys');
@@ -668,11 +844,11 @@ function botStep(i,t){
   if(!doShot(i,b.i,b.fa,b.p,b.fa-b.a))startTurn(turnAfter(A,i));
 }
 /* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
-G._test={geomOf,JM,jShotK,shotSpin,SPREAD,octHit,octVerts,JSET,jgSetup,useBoard,BD,shotSpeed,mdOf,omGrid,omFive,omThreats,omLines,omTargets,omPlacePlan,omCands,omScore,omFull,simulate,reserves,shotCands,shotScore,botPick,placePlan,canPlace,gridXZ,botPlan,speedOf,groundAt,doShot,doSurrender,timeout,pickFirst,aliveOf,sideOfSeat,ownPt,freeAt,PHY,TOP,SH,SR,BW,PITCH,NL};
+G._test={OB_K,IT,canPut,endFree,itemPlan,doPut,doPick,bhR,brDist,geomOf,JM,jShotK,shotSpin,SPREAD,octHit,octVerts,JSET,jgSetup,useBoard,BD,shotSpeed,mdOf,omGrid,omFive,omThreats,omLines,omTargets,omPlacePlan,omCands,omScore,omFull,simulate,reserves,shotCands,shotScore,botPick,placePlan,canPlace,gridXZ,botPlan,speedOf,groundAt,doShot,doSurrender,timeout,pickFirst,aliveOf,sideOfSeat,ownPt,freeAt,PHY,TOP,SH,SR,BW,PITCH,NL};
 G.engine={
   /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
   start(){
-    const again=H.phase==='over',md=mdOf(H.cfg),om=md===1?1:0,jg=md===2?1:0,np=Math.min(H.players.length,md?OM_MAX:4),n=om?0:jg?JSET.length:nStones(H.cfg);
+    const again=H.phase==='over',md=mdOf(H.cfg),om=md===1?1:0,jg=md===2?1:0,ob=!om&&+H.cfg.ob?1:0,obn=Math.max(1,Math.min(3,Math.round(+H.cfg.obn||1))),np=Math.min(H.players.length,md?OM_MAX:4),n=om?0:jg?JSET.length:nStones(H.cfg);
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,known:{}});
     H.players.forEach((p,i)=>{
       p.finished=false;p.rank=null;p.surrendered=false;
@@ -681,16 +857,24 @@ G.engine={
     const Af=pickFirst(again);
     H.akGid=(H.akGid||0)+1;
     const co=Array(np).fill(0);co[Af]=1;for(let k=1,c=2;k<np;k++)co[(Af+k)%np]=c++;   // 선이 흑(1), 이어서 시계 방향으로 백(2)·적(3)·청(4)
-    H.ak={gid:H.akGid,n,np,om,jg,jl:jg&&+H.cfg.jang?1:0,A:Af,co,st:om?[]:jg?jgSetup():reserves(n,np),ph:om||jg?'aim':'place',pc:0,sid:0,sh:null,aim:null,bp:null,res:null,cnt:0,next:Af,until:0,ag:0};
+    H.ak={gid:H.akGid,n,np,om,jg,jl:jg&&+H.cfg.jang?1:0,A:Af,co,st:om?[]:jg?jgSetup():reserves(n,np),ph:om||jg?'aim':'place',pc:0,sid:0,sh:null,aim:null,bp:null,res:null,cnt:0,next:Af,until:0,ag:0,ob,obn,it:[],of:null,ofs:null,inv:null,ig:null,bt:null};
     useBoard(jg);
     addLog(om?`${H.players[Af].name}님이 흑으로 먼저 둡니다. (오목 모드)`:jg?`${H.players[Af].name}님이 초로 먼저 튕깁니다. (장기 모드${H.ak.jl?', 장 떨어지면 패배':''})`:np>2?`${H.players[Af].name}님이 흑으로 먼저 놓고 먼저 튕깁니다. (알 ${n}개씩 차례로 놓기)`:`${H.players[Af].name}님이 흑으로 먼저 놓고 먼저 튕깁니다. (알 ${n}개씩 번갈아 놓기)`,'sys');
     startTurn(Af,om||jg?'aim':'place');
+    if(jg&&ob)startPick();   // 장기 모드는 상차림이 정해져 있어 바로 물건 고르기
   },
   act(seat,a){
     if(a.t==='surrender'){doSurrender(seat);return}
     const A=H.ak;
+    if(a.t==='pick'){if(A&&H.phase==='play'&&seat>=0&&seat<A.np)doPick(seat,+a.k);return}   // 고르기는 모두 함께 (차례 없음)
     if(!A||H.phase!=='play'||seat<0||seat>=A.np||H.turn!==seat)return;
     if(a.t==='place'){doPlace(seat,a.c,a.r);return}
+    if(a.t==='iput'){doPut(seat,a);return}
+    if(a.t==='ig'){   // 놓을 물건 미리 보기 (다른 사람에게도 보임)
+      if(A.ph!=='iput')return;
+      const f=v=>Number.isFinite(+v)?Math.round(+v*1000)/1000:null,g=a.on&&f(a.x)!=null&&f(a.z)!=null?{s:seat,x:f(a.x),z:f(a.z),a:f(a.a)||0}:null;
+      if(g&&f(a.x2)!=null&&f(a.z2)!=null){g.x2=f(a.x2);g.z2=f(a.z2)}
+      A.ig=g;mark();return}
     if(a.t==='hold'){if(A.ph==='place'){const h=a.on?seat:-1;if(A.hold!==h){A.hold=h;mark()}}return}
     if(A.ph!=='aim')return;
     if(a.t==='aim'){   // 당기는 중 (화살표를 상대에게도 보여 줌). i<0이면 내려놓음
@@ -707,21 +891,28 @@ G.engine={
     if(!A||H.phase!=='play')return;
     useBoard(A.jg);
     if(A.ph==='roll'){if(t>=A.until)afterShot();return}
+    if(A.ph==='pick'){   // 모두 함께 고름: 봇은 저마다 정한 시각에 아무 물건이나
+      if(t>=H.deadline){timeout();return}
+      for(let s=0;s<A.np&&A.ph==='pick';s++){const p=H.players[s];if(!p.bot||!A.bt||!A.bt[s]||t<A.bt[s]||!obNeed(A,s)||(p.away&&t<p.awayAt+AWAY_WAIT))continue;
+        A.bt[s]=t+rand(500,1400);pickAny(s)}
+      return}
     const cur=H.players[H.turn];if(!cur)return;
     if(t>=H.deadline){timeout();return}
     if(cur.bot&&H.botActAt&&A.ph==='aim'&&!A.bp&&t<H.botActAt&&!(cur.away&&t<cur.awayAt+AWAY_WAIT)){const lv=botLvA(cur);if(BLV[lv])botThink(H.turn,lv)}   // 당기기 전 쉬는 동안 미리 생각
-    if(cur.bot&&H.botActAt&&t>=H.botActAt&&!(cur.away&&t<cur.awayAt+AWAY_WAIT)){if(A.ph==='place')autoPlace(H.turn);else botStep(H.turn,t)}
+    if(cur.bot&&H.botActAt&&t>=H.botActAt&&!(cur.away&&t<cur.awayAt+AWAY_WAIT)){if(A.ph==='place')autoPlace(H.turn);else if(A.ph==='iput')autoPut(H.turn);else botStep(H.turn,t)}
   },
   snap(s,you,t){
     const A=H.ak,r3=v=>Math.round(v*1000)/1000;
     const sh=A.sh?{id:A.sh.id,by:A.sh.by,i:A.sh.i,a:Math.round(A.sh.a*1000)/1000,p:Math.round(A.sh.p*1000)/1000,age:Math.max(0,Math.round(t-A.sh.t0))}:null;
-    if(sh&&sh.age<A.sh.dur+4000){sh.tr=A.sh.tr;sh.k=A.sh.k;sh.nf=A.sh.nf;sh.ev=A.sh.ev;sh.of=A.sh.of;sh.dur=A.sh.dur}   // 자취는 연출 중인 동안만 보냄 (가볍게)
+    if(sh&&sh.age<A.sh.dur+4000){sh.tr=A.sh.tr;sh.k=A.sh.k;sh.nf=A.sh.nf;sh.ev=A.sh.ev;sh.of=A.sh.of;sh.dur=A.sh.dur;if(A.sh.it0)sh.it0=A.sh.it0}   // 자취는 연출 중인 동안만 보냄 (가볍게)
     s.ak={gid:A.gid,n:A.n,np:A.np,A:A.A,co:A.co.slice(),st:A.st.map(q=>q.t?[r3(q.x),r3(q.y),r3(q.z),q.s,q.o?1:0,q.g?1:0,q.u?1:0,q.t,r3(q.w||0)]:[r3(q.x),r3(q.y),r3(q.z),q.s,q.o?1:0,q.g?1:0,q.u?1:0]),jg:A.jg?1:0,jl:A.jl?1:0,ph:A.ph,sid:A.sid,sh,aim:A.aim?{...A.aim}:null,res:A.res?{...A.res,ln:A.res.ln?A.res.ln.map(v=>v.slice()):undefined}:null,cnt:A.cnt,ag:+H.cfg.again?1:0,om:A.om?1:0,hd:A.ph==='place'?(A.hold??-1):-1};
+    if(A.ob){Object.assign(s.ak,{ob:1,obn:A.obn,it:A.it,of:A.of,ofs:A.ofs,inv:A.inv,ig:A.ig});
+      if(A.ph==='pick'&&H.phase==='play'&&you>=0&&you<A.np&&obNeed(A,you))s.t=you}   // 고르기: 아직 다 못 고른 사람에게는 자기 차례
     s.gr=0;
-    if(H.phase==='play'&&(A.ph==='aim'||A.ph==='place'))s.dl=Math.max(0,Math.round(H.deadline-t));
+    if(H.phase==='play'&&(A.ph==='aim'||A.ph==='place'||A.ph==='pick'||A.ph==='iput'))s.dl=Math.max(0,Math.round(H.deadline-t));
     else{s.dl=0;if(H.phase==='play')delete s.t}   // 알이 굴러가는 동안은 아무 차례도 아님 (시간 표시 없음)
   },
-  restore(ms){const A=H.ak;if(!A||!ms)return;if(A.until)A.until+=ms;if(A.sh)A.sh.t0+=ms;if(A.bp)A.bp.t0+=ms},   // 시작 연출 동안·방장이 꺼져 있던 동안은 멈춤
+  restore(ms){const A=H.ak;if(!A||!ms)return;if(A.until)A.until+=ms;if(A.sh)A.sh.t0+=ms;if(A.bp)A.bp.t0+=ms;if(A.bt)A.bt=A.bt.map(v=>v?v+ms:0)},   // 시작 연출 동안·방장이 꺼져 있던 동안은 멈춤
   emoPhase:ph=>ph==='play'||ph==='over'
 };
 
@@ -742,7 +933,7 @@ const unrotXZ=(X,Y)=>{const [sx,sz]=mySide();return [sz*X+sx*Y,-sx*X+sz*Y]};   /
 const sideAng=()=>{const [sx,sz]=mySide();return Math.atan2(sx,sz)};   // 월드 방향 각도에 더하면 화면 각도
 function buildS(o){
   useBoard(o.jg);
-  return {gid:o.gid,n:o.n,np:o.np||2,A:o.A,co:o.co,st:o.st.map(a=>{const q={x:a[0],y:a[1],z:a[2],s:a[3],o:a[4],g:a[5],u:a[6]};if(a[7]){q.t=a[7];q.w=a[8]||0}return q}),ph:o.ph,sid:o.sid,sh:o.sh,aim:o.aim,res:o.res,cnt:o.cnt,ag:o.ag,om:o.om||0,jg:o.jg||0,jl:o.jl||0,hd:o.hd??-1};
+  return {gid:o.gid,n:o.n,np:o.np||2,A:o.A,co:o.co,st:o.st.map(a=>{const q={x:a[0],y:a[1],z:a[2],s:a[3],o:a[4],g:a[5],u:a[6]};if(a[7]){q.t=a[7];q.w=a[8]||0}return q}),ph:o.ph,sid:o.sid,sh:o.sh,aim:o.aim,res:o.res,cnt:o.cnt,ag:o.ag,om:o.om||0,jg:o.jg||0,jl:o.jl||0,hd:o.hd??-1,ob:o.ob||0,obn:o.obn||1,it:o.it||[],of:o.of||null,ofs:o.ofs||null,inv:o.inv||null,ig:o.ig||null};
 }
 /* ----- 장기 모드 그림: 알 윗면(상아빛 + 팔각 테 + 한자, 초 청록·한 붉은 글씨)과 판 무늬는 장기 모드(games/janggi.js)와 같게 ----- */
 const JINK=['#17684f','#b5241b'];   // 초·한 글씨 색
@@ -787,6 +978,11 @@ function sndMax(){tone(150,.16,{type:'sawtooth',vol:.04,slide:120});hiss(.12,{fr
 function sndPickUp(){hiss(.025,{freq:2800,q:3,vol:.08})}   // 알을 짚음
 function sndBowl(){for(let k=0;k<3;k++)hiss(.022,{freq:2400+Math.random()*1600,q:5,vol:.09*(.6+Math.random()*.4),at:k*.034+Math.random()*.015})}   // 통 속 돌이 자르륵 (오목 바둑통 소리)
 function sndNo(){sfx('no')}
+function sndSuck(){tone(560,.55,{type:'sine',vol:.1,slide:55});hiss(.45,{freq:1000,sweep:120,q:2,vol:.08})}   // 블랙홀이 삼킴: 우우웅 내려감
+function sndWarp(){tone(320,.16,{type:'sine',vol:.07,slide:1500});tone(1500,.16,{type:'triangle',vol:.04,slide:320,at:.12})}   // 웜홀: 슝
+function sndBoing(v){const k=Math.min(1,v/7);tone(210,.26,{type:'sine',vol:.08+.08*k,path:[[.05,560],[.24,300]]})}   // 탱탱볼: 뽀잉
+function sndSpring(){tone(250,.2,{type:'triangle',vol:.08,slide:950});hiss(.05,{freq:3000,vol:.04})}   // 점프대: 통
+function sndBoom(){hiss(.7,{freq:600,sweep:70,q:.6,ftype:'lowpass',vol:.4});tone(75,.55,{type:'sine',vol:.28,slide:32})}   // 폭탄: 펑
 
 /* ----- 당기기 (3D·2D 같은 계산: 월드 좌표의 당긴 벡터) ----- */
 function pickStone(x,z){   // 누른 곳에서 가까운 내 알 (알이 작아도 손가락으로 집기 쉽게 .45 안)
@@ -828,9 +1024,72 @@ function confirmGH(){   // 미리 보기 자리에 놓음 ([놓기] 버튼·스�
   if(!GH||!myPlaceNow()){sndNo();return}
   const g=GH;GH=null;sendAct({t:'place',c:g.c,r:g.r});Ak3.dirty=true;G.buttons();
 }
+/* ----- 물건 놓기 (화면): 고르기는 떠 있는 물건을 누름, 놓기는 판을 누르면 미리 보기 → 미리 보기를 한 번 더 누르거나 [놓기] -----
+   벽돌은 미리 보기를 누른 채 끌어 방향을 돌림(손가락 쪽으로 길게), 웜홀은 첫 구멍을 놓은 뒤 둘째 구멍 (첫 구멍을 다시 누르면 들어 올림) */
+let IG=null,IW1=null,ROT=null,PEND=null;   // 내 미리 보기 {x,z,a}, 웜홀 첫 구멍 {x,z}, 벽돌 돌리기, 누르고 결과를 기다리는 고르기
+const seatOk=i=>i>=0&&i<npOf();
+const putSeat=()=>OS&&OS.ph==='iput'&&V&&V.st==='play'&&Number.isInteger(V.t)?V.t:-1;
+const putKind=seat=>OS&&OS.inv&&OS.inv[seat]&&OS.inv[seat].length&&OS.of?OS.of[OS.inv[seat][0]]:null;
+const picksOf=seat=>OS&&OS.ofs?OS.ofs.filter(x=>x===seat).length:0;
+const myPickNow=()=>{const me=myIdx();return !!(V&&V.ak&&V.st==='play'&&OS&&OS.ph==='pick'&&OS.of&&!introWait()&&seatOk(me)&&!(V.ps[me]&&V.ps[me].f)&&picksOf(me)<(OS.obn||1))};
+const myPutNow=()=>!!(V&&V.ak&&V.st==='play'&&OS&&OS.ph==='iput'&&V.t===myIdx()&&!introWait()&&putKind(myIdx()));
+function igItem(){
+  const k=putKind(myIdx());if(!k||!IG)return null;
+  const o={k,x:IG.x,z:IG.z};if(k==='bh')o.r=IT.bh.rc;if(k==='br')o.a=IG.a||0;
+  if(k==='wh'){if(!IW1)return null;o.x=IW1.x;o.z=IW1.z;o.x2=IG.x;o.z2=IG.z}
+  return o;
+}
+function igOk(){const k=putKind(myIdx());if(!k||!IG)return false;return k==='wh'&&!IW1?endFree(OS,IG.x,IG.z):canPut(OS,igItem())}
+function sendIg(){
+  const k=putKind(myIdx()),a={t:'ig',on:1};
+  if(k==='wh'&&IW1){a.x=IW1.x;a.z=IW1.z;if(IG){a.x2=IG.x;a.z2=IG.z}}
+  else if(IG){a.x=IG.x;a.z=IG.z;a.a=Math.round((IG.a||0)*1000)/1000}
+  else{sendAct({t:'ig',on:0});return}
+  sendAct(a);
+}
+const obRedraw=()=>{Ak3.dirty=true;draw2D();G.buttons();drawHint()};
+const brickAng0=()=>fwdAng()+Math.PI/2;   // 처음 벽돌 방향: 내 화면에서 가로
+function itemTap(x,z){
+  if(!myPutNow()){sndNo();return}
+  const k=putKind(myIdx());
+  if(k==='wh'&&IW1&&Math.hypot(x-IW1.x,z-IW1.z)<.2&&!(IG&&Math.hypot(x-IG.x,z-IG.z)<.2)){IW1=null;IG=null;sndPickUp();sendIg();obRedraw();return}   // 첫 구멍을 다시 누르면 들어 올림
+  if(IG&&Math.hypot(x-IG.x,z-IG.z)<.2){
+    if(typeof dblTap!=='undefined'&&!dblTap){IG=null;sndPickUp();sendIg();obRedraw();return}   // 두 번 눌러 놓기를 끄면 같은 곳을 다시 누를 때 취소 (알 놓기와 같음)
+    confirmIG();return}
+  if(!IG)sndPickUp();
+  IG={x:Math.round(x*1000)/1000,z:Math.round(z*1000)/1000,a:IG?IG.a:k==='br'?brickAng0():0};
+  sendIg();obRedraw();
+}
+function confirmIG(){
+  if(!myPutNow()||!IG){sndNo();return}
+  const k=putKind(myIdx());
+  if(k==='wh'&&!IW1){if(!endFree(OS,IG.x,IG.z)){sndNo();return}IW1={x:IG.x,z:IG.z};IG=null;sndTap(2);sendIg();obRedraw();return}
+  if(!igOk()){sndNo();return}
+  const o=igItem();sendAct({t:'iput',x:o.x,z:o.z,a:o.a,x2:o.x2,z2:o.z2});IG=null;IW1=null;obRedraw();
+}
+/* 고르기: 떠 있는 물건 자리 (내 화면 가로로 한두 줄, 판 가운데) */
+function tokRow(i){
+  const n=OS.of.length,cols=n>7?Math.ceil(n/2):n,rows=Math.ceil(n/cols),row=Math.floor(i/cols),col=i%cols,inRow=row<rows-1?cols:n-cols*(rows-1);
+  const sp=Math.min(.6,(2*Math.min(BD.x,BD.z)-.5)/Math.max(1,cols)),X=(col-(inRow-1)/2)*sp,Y=(row-(rows-1)/2)*sp*1.1;
+  return unrotXZ(X,Y);
+}
+/* 고른 물건: 주인 쪽 판 바깥 (놓기 전 알 자리처럼) */
+function trayAt(seat,j,n){const [sx,sz]=sideOfSeat(seat,npOf()),d=(sz?BD.z:BD.x)+.3,x=1.25+(j-(n-1)/2)*.42;return [sz*x+sx*d,-sx*x+sz*d]}   // 이름 칸을 비켜 주인 쪽에서 오른쪽
+const picksList=seat=>OS.of.map((k,i)=>OS.ofs[i]===seat?i:-1).filter(i=>i>=0);
+function pickTap(x,z){
+  if(!myPickNow()){sndNo();return}
+  let best=-1,bd=.3;
+  OS.of.forEach((k,i)=>{if(OS.ofs[i]>=0)return;const [px,pz]=tokRow(i),d=Math.hypot(px-x,pz-z);if(d<bd){bd=d;best=i}});
+  if(best<0)return;
+  PEND={k:best,t:clock()};sendAct({t:'pick',k:best});sndPickUp();
+}
 function dragStart(x,z){
   if(!OS||!V||V.st!=='play')return false;
   const me=myIdx();if(me<0)return false;
+  if(OS.ph==='pick'){pickTap(x,z);return false}
+  if(OS.ph==='iput'){
+    if(myPutNow()&&IG&&putKind(me)==='br'&&Math.hypot(x-IG.x,z-IG.z)<.3){ROT={x0:x,z0:z,mv:false};return true}   // 벽돌 미리 보기를 누른 채 끌면 돌림
+    itemTap(x,z);return false}
   if(OS.ph==='place'){placeTap(x,z);return false}
   const i=pickStone(x,z);
   if(i<0){
@@ -844,6 +1103,8 @@ function dragStart(x,z){
   return true;
 }
 function dragMove(x,z){
+  if(ROT){if(!ROT.mv&&Math.hypot(x-ROT.x0,z-ROT.z0)>TAPD)ROT.mv=true;
+    if(ROT.mv&&IG&&Math.hypot(x-IG.x,z-IG.z)>.05){IG.a=Math.round(Math.atan2(z-IG.z,x-IG.x)*1000)/1000;obRedraw()}return}
   if(!drag)return;
   drag.px=x-drag.x0;drag.pz=z-drag.z0;drag.L=Math.hypot(drag.px,drag.pz);
   const p=Math.min(1,drag.L/MAXD),over=drag.L>MAXD;
@@ -863,6 +1124,7 @@ function sendAim(force){
   sendAct({t:'aim',i:drag.i,a,p:drag.p,w:drag.over?1:0});
 }
 function dragEnd(cancel){
+  if(ROT){const r=ROT;ROT=null;if(cancel)return;if(!r.mv)itemTap(r.x0,r.z0);else sendIg();return}
   if(!drag)return;
   const d=drag;drag=null;Ak3.dirty=true;draw2D();
   if(!cancel&&d.L<TAPD&&myTurnNow()){   // 누르기: 알이면 고르기(같은 알이면 내려놓기), 빈 곳이면 내려놓기
@@ -1005,8 +1267,37 @@ function boardSvg(){
   for(const a of HOSHI)for(const b of HOSHI)out.push(`<circle cx="${(a-c0)*PITCH}" cy="${(b-c0)*PITCH}" r=".03" fill="#4b3319"/>`);
   return out.join('');
 }
+/* 물건 그림 (2D): 화면 좌표 X,Y, 크기 sc(판 위 1), 벽돌 방향 a(월드), 블랙홀 구멍 r, 주인 own(-1 없음), op 진하기, bad 놓을 수 없음 */
+function itSvg(k,x,z,o){
+  o=o||{};const [X,Y]=w2s(x,z),sc=o.sc||1,op=o.op!=null?o.op:1,out=[];
+  const ring=r=>o.own>=0?`<circle r="${r}" fill="none" stroke="${HCOL[Math.max(0,handCol(o.own))%HCOL.length]}" stroke-width=".022"/>`:'';
+  if(k==='bh'){const r=o.r||IT.bh.rc;out.push(o.sc?'':`<circle r="${bhR({r})}" fill="none" stroke="#7a4cc0" stroke-width=".012" stroke-dasharray=".05 .04" opacity=".55"/>`,`<circle r="${r*2.1}" fill="url(#akBh)"/><circle r="${r}" fill="#050308" stroke="#ffe2a0" stroke-width=".012"/>`,ring(r*2.1+.02))}
+  else if(k==='wh')out.push(`<circle r="${IT.wh.r}" fill="url(#akWh)" stroke="#8f7cff" stroke-width=".03"/>`,ring(IT.wh.r+.03));
+  else if(k==='br'){const a=o.a||0,[ux,uy]=w2s(Math.cos(a),Math.sin(a)),deg=Math.atan2(uy,ux)*180/Math.PI;out.push(`<g transform="rotate(${deg.toFixed(1)})"><rect x="${-IT.br.L}" y="${-IT.br.W}" width="${2*IT.br.L}" height="${2*IT.br.W}" rx=".01" fill="#b3452c" stroke="#3b2a1f" stroke-width=".015"/><line x1="${-IT.br.L}" y1="0" x2="${IT.br.L}" y2="0" stroke="#e2cfae" stroke-width=".01"/>${o.own>=0?`<rect x="${-IT.br.L-.03}" y="${-IT.br.W-.03}" width="${2*IT.br.L+.06}" height="${2*IT.br.W+.06}" rx=".03" fill="none" stroke="${HCOL[Math.max(0,handCol(o.own))%HCOL.length]}" stroke-width=".02"/>`:''}</g>`)}
+  else if(k==='tb')out.push(`<circle r="${IT.tb.r}" fill="#ff5c8a" stroke="#3b2a1f" stroke-width=".015"/><ellipse rx="${IT.tb.r}" ry="${IT.tb.r*.25}" fill="none" stroke="#fff1d6" stroke-width=".02"/><circle cx="${-IT.tb.r*.35}" cy="${-IT.tb.r*.35}" r="${IT.tb.r*.22}" fill="#fff" opacity=".6"/>`,ring(IT.tb.r+.03));
+  else if(k==='ic')out.push(`<circle r="${IT.ic.r}" fill="rgba(170,220,255,.6)" stroke="rgba(255,255,255,.85)" stroke-width=".015"/><path d="M-.2 -.15 L.05 .05 L.25 -.05 M-.05 .2 L.08 .05" stroke="#fff" stroke-width=".012" fill="none"/>`,ring(IT.ic.r));
+  else if(k==='sd')out.push(`<circle r="${IT.sd.r}" fill="#d6ad62" stroke="rgba(59,42,31,.45)" stroke-width=".012"/><circle r="${IT.sd.r*.62}" fill="none" stroke="rgba(120,85,40,.45)" stroke-width=".014" stroke-dasharray=".02 .03"/><circle r="${IT.sd.r*.3}" fill="none" stroke="rgba(120,85,40,.45)" stroke-width=".014" stroke-dasharray=".02 .03"/>`,ring(IT.sd.r));
+  else if(k==='jp')out.push(`<circle r="${IT.jp.r}" fill="#3a3f46"/><circle r="${IT.jp.r*.8}" fill="#f2c230" stroke="#3b2a1f" stroke-width=".012"/><circle r="${IT.jp.r*.4}" fill="none" stroke="#3b2a1f" stroke-width=".01"/>`,ring(IT.jp.r+.03));
+  else if(k==='bm')out.push(`<circle r="${IT.bm.r}" fill="#2a2a30" stroke="#0c0c0e" stroke-width=".012"/><path d="M0 ${-IT.bm.r} q.02 -.05 .05 -.06" stroke="#8a6a3a" stroke-width=".014" fill="none"/><circle cx=".05" cy="${-IT.bm.r-.06}" r=".022" fill="#ffb030"/>`,ring(IT.bm.r+.03));
+  if(o.bad)out.unshift(`<circle r="${k==='br'?IT.br.L+.04:k==='bh'?IT.bh.rc*2.1:TOKR[k]+.03}" fill="#d6281e" opacity=".42"/>`);
+  return `<g transform="translate(${X.toFixed(3)} ${Y.toFixed(3)}) scale(${sc.toFixed(3)})"${op<1?` opacity="${op}"`:''}>${out.join('')}</g>`;
+}
+function items2D(top){   // top: 떠 있는 것(고르기 물건·미리 보기)만, 아니면 판 위 물건과 주인 쪽 물건
+  if(!OS||!OS.ob||!OS.of)return '';
+  const out=[],its=itemsNow(clock()),placed={};its.forEach((o,ii)=>{placed[o.o]=ii});
+  if(!top){
+    its.forEach(o=>{if(o.u)return;out.push(itSvg(o.k,o.x,o.z,{r:o.r,a:o.a,own:o.s}));if(o.k==='wh')out.push(itSvg('wh',o.x2,o.z2,{own:o.s}))});
+    if(OS.ph==='pick'||OS.ph==='iput'){const ps=putSeat(),cur=ps>=0&&OS.inv&&OS.inv[ps]&&OS.inv[ps][0];
+      OS.of.forEach((k,i)=>{const ow=OS.ofs[i];if(ow<0||placed[i]!=null)return;const L=picksList(ow),[x,z]=trayAt(ow,L.indexOf(i),L.length);out.push(itSvg(k,x,z,{sc:(TOK_R/TOKR[k])*(OS.ph==='iput'&&cur===i?1.25:1),own:ow,a:fwdAng()+Math.PI/2}))})}
+    return out.join('');
+  }
+  if(OS.ph==='pick'&&V.st==='play')OS.of.forEach((k,i)=>{if(OS.ofs[i]>=0)return;const [x,z]=tokRow(i),[X,Y]=w2s(x,z);out.push(`<circle cx="${X}" cy="${Y+.03}" r="${TOK_R+.02}" fill="#000" opacity=".18"/>`+itSvg(k,x,z,{sc:TOK_R/TOKR[k],a:fwdAng()+Math.PI/2})+`<text x="${X}" y="${Y+TOK_R+.11}" font-size=".1" text-anchor="middle" fill="#3b2a1f" font-weight="700" stroke="#fffaf0" stroke-width=".025" paint-order="stroke">${OB_NM[k]}</text>`)});
+  const gn=ghostNow();
+  if(gn){out.push(itSvg(gn.k,gn.x,gn.z,{a:gn.a,op:.55,bad:gn.mine&&gn.bad&&!(gn.k==='wh'&&gn.x2!=null)}));if(gn.x2!=null)out.push(itSvg('wh',gn.x2,gn.z2,{op:.55,bad:gn.mine&&gn.bad}))}
+  return out.join('');
+}
 function stones2D(pos){
-  const out=[],t=clock(),np=npOf(),me=myIdx();
+  const out=[items2D(false)],t=clock(),np=npOf(),me=myIdx();
   pos.forEach((q,i)=>{
     const s=OS.st[i];if(!s||q.y<-.5)return;
     const gm=geomOf(s.t),c=stC(OS.co[s.s]),[X,Y]=w2s(q.x,q.z),h=Math.max(0,q.y-(groundAt(q.x,q.z)+gm.h)),k=stoneScale(q.y,gm.h);
@@ -1043,6 +1334,7 @@ function stones2D(pos){
     if(GH){const [x,z]=gridXZ(GH.c,GH.r),[X,Y]=w2s(x,z),c=stC(OS.co[me]);out.push(`<circle cx="${X}" cy="${Y}" r="${SR}" fill="${c.f}" stroke="${c.s}" stroke-width=".02" opacity=".5"/>`)}}
   if(myTurnNow()&&!drag&&!Ak3.shot&&!FLK)OS.st.forEach((s,i)=>{if(s.s===me&&!s.o&&!s.u){const [X,Y]=w2s(pos[i].x,pos[i].z);out.push(`<circle cx="${X}" cy="${Y}" r="${geomOf(s.t).rv*(s.t?1.25:1.45)}" fill="none" stroke="#f2b632" stroke-width=".03" opacity=".85"/>`)}});
   if(drag&&drag.rel){const [X,Y]=w2s(drag.x0,drag.z0);out.push(`<circle cx="${X}" cy="${Y}" r="${SR*.9}" fill="none" stroke="#f2b632" stroke-width=".03" opacity=".85"/><circle cx="${X}" cy="${Y}" r="${SR*.28}" fill="#f2b632" opacity=".85"/>`)}   // 상대좌표로 당길 때 누른 점
+  out.push(items2D(true));
   const hd=handNow(t,pos);
   if(hd){
     const r=handCanvas(hd.p,hd.fl,hd.seat,hd.op);if(r.changed||!HAND.url)HAND.url=r.cv.toDataURL();
@@ -1098,6 +1390,8 @@ function hintText(){
     const r=OS.res;if(!r)return '게임이 끝났습니다.';
     return r.w<0?'무승부입니다.':`${nm(r.w)} 승리${r.why==='surrender'?' (항복)':r.why==='desert'?' (탈주)':r.why==='both'?' (동시 오목: 튕긴 사람 패배)':r.why==='jang'?' (장 떨어짐)':OS.om?' (오목)':''}`;
   }
+  if(OS.ph==='pick'&&!introWait())return '물건 고르기';
+  if(OS.ph==='iput'&&!introWait()){const k=putKind(V.t);if(k)return `물건 놓기 · ${OB_NM[k]}${k==='wh'?(V.t===myIdx()&&IW1?' 2/2':' 1/2'):''}`}
   if(OS.ph==='place'&&!introWait()&&!OS.om)return `알 놓기 ${OS.st.filter(q=>!q.u).length+1}/${OS.st.length}`;   // 놓기 단계 (몇 번째 알인지)
   return '';
 }
@@ -1281,6 +1575,170 @@ function ak3Stones(){
   Ak3.blobs=OS.st.map(()=>{const b=new THREE.Mesh(Ak3.blobGeo,new THREE.MeshBasicMaterial({color:0x1a120c,transparent:true,opacity:.28,depthWrite:false}));b.rotation.x=-Math.PI/2;b.renderOrder=2;Ak3.root.add(b);return b});
   Ak3.rings=OS.st.map(()=>{const r=new THREE.Mesh(Ak3.ringGeo,Ak3.ringM);r.rotation.x=-Math.PI/2;r.visible=false;r.renderOrder=3;Ak3.root.add(r);return r});
 }
+/* ----- 물건 (3D) -----
+   판 위 물건(Ak3.itB[고르기 번호]), 고르기·놓기 동안의 작은 물건(Ak3.tok[고르기 번호]: 판 가운데 떠 있다가 → 고른 사람 쪽 판 바깥 → 놓으면 판으로 날아가고 판 물건이 나타남),
+   놓을 자리 미리 보기(Ak3.gh, 놓을 수 없으면 빨간 원), 효과(폭탄 불꽃·웜홀 빛). 놓은 사람 색(손 색) 고리 */
+const ITX={};
+function itTex(n){
+  if(ITX[n])return ITX[n];
+  const spiral=(g,c,arms,r0,r1,turn,col,lw)=>{g.strokeStyle=col;g.lineWidth=lw;g.lineCap='round';for(let k=0;k<arms;k++){g.beginPath();for(let t=0;t<=1.001;t+=.04){const r=c*(r0+(r1-r0)*t),a=k*Math.PI*2/arms+t*turn,x=c+Math.cos(a)*r,y=c+Math.sin(a)*r;t?g.lineTo(x,y):g.moveTo(x,y)}g.stroke()}};
+  const disc=(g,c,gr)=>{g.fillStyle=gr;g.beginPath();g.arc(c,c,c,0,Math.PI*2);g.fill()};
+  const D={
+    bh:(g,w)=>{const c=w/2;g.clearRect(0,0,w,w);const gr=g.createRadialGradient(c,c,c*.44,c,c,c);gr.addColorStop(0,'rgba(255,200,95,1)');gr.addColorStop(.35,'rgba(214,92,200,.85)');gr.addColorStop(1,'rgba(70,30,140,0)');disc(g,c,gr);
+      spiral(g,c,5,.48,.98,2.6,'rgba(40,10,60,.45)',w*.035);g.fillStyle='#050308';g.beginPath();g.arc(c,c,c*.476,0,Math.PI*2);g.fill();g.strokeStyle='rgba(255,226,160,.95)';g.lineWidth=w*.014;g.beginPath();g.arc(c,c,c*.49,0,Math.PI*2);g.stroke()},
+    wh:(g,w)=>{const c=w/2;g.clearRect(0,0,w,w);const gr=g.createRadialGradient(c,c,0,c,c,c);gr.addColorStop(0,'#0b0820');gr.addColorStop(.45,'#3b2a9a');gr.addColorStop(.85,'#5fd0f4');gr.addColorStop(1,'rgba(95,208,244,0)');disc(g,c,gr);spiral(g,c,4,.1,.9,3.4,'rgba(200,245,255,.55)',w*.03)},
+    ic:(g,w)=>{const c=w/2;g.clearRect(0,0,w,w);const gr=g.createRadialGradient(c,c,0,c,c,c);gr.addColorStop(0,'rgba(214,240,255,.85)');gr.addColorStop(.88,'rgba(160,214,248,.8)');gr.addColorStop(1,'rgba(160,214,248,0)');disc(g,c,gr);
+      let s2=7;const r=()=>{s2=(s2*16807)%2147483647;return s2/2147483647};g.strokeStyle='rgba(255,255,255,.85)';g.lineWidth=w*.008;for(let k=0;k<9;k++){let a=r()*6.28,x=c+Math.cos(a)*c*.2*r(),y=c+Math.sin(a)*c*.2*r();g.beginPath();g.moveTo(x,y);for(let j=0;j<5;j++){a+=(r()-.5)*1.2;x+=Math.cos(a)*c*.15;y+=Math.sin(a)*c*.15;g.lineTo(x,y)}g.stroke()}
+      g.strokeStyle='rgba(255,255,255,.5)';g.lineWidth=w*.03;for(let k=0;k<3;k++){g.beginPath();g.moveTo(c*.5+k*c*.3,c*.4);g.lineTo(c*.3+k*c*.3,c*.75);g.stroke()}},
+    sd:(g,w)=>{const c=w/2;g.clearRect(0,0,w,w);const gr=g.createRadialGradient(c,c,0,c,c,c);gr.addColorStop(0,'rgba(236,212,152,.97)');gr.addColorStop(.85,'rgba(224,196,132,.92)');gr.addColorStop(1,'rgba(224,196,132,0)');disc(g,c,gr);
+      let s2=3;const r=()=>{s2=(s2*16807)%2147483647;return s2/2147483647};for(let k=0;k<420;k++){const a=r()*6.28,d=Math.sqrt(r())*c*.92;g.fillStyle=r()<.5?'rgba(150,112,58,.45)':'rgba(255,246,214,.6)';g.fillRect(c+Math.cos(a)*d,c+Math.sin(a)*d,w*.012,w*.012)}
+      g.strokeStyle='rgba(170,130,70,.35)';g.lineWidth=w*.01;for(let k=0;k<4;k++){g.beginPath();g.arc(c,c*1.9,c*(.9+k*.18),Math.PI*1.25,Math.PI*1.75);g.stroke()}},
+    br:(g,w,h)=>{g.fillStyle='#e2cfae';g.fillRect(0,0,w,h);const bw=w/4,bh=h/2;for(let r=0;r<2;r++)for(let k=-1;k<5;k++){const x=k*bw+(r?bw/2:0);g.fillStyle=(k+r)%2?'#b3452c':'#a63c26';g.fillRect(x+3,r*bh+3,bw-6,bh-6)}}
+  };
+  ITX[n]=canvasTex(n==='br'?128:256,n==='br'?32:256,D[n]);return ITX[n];
+}
+const TOKR={bh:.27,wh:.15,br:.3,tb:.12,ic:.5,sd:.42,jp:.14,bm:.12};   // 작은 물건 크기를 맞출 때 쓰는 반지름
+const TOK_R=.19;
+/* 물건 한 개(웜홀은 구멍 하나) 그림. 무리 g의 원점이 판 윗면. o.ghost면 반투명 */
+function itUnit(k){
+  const g=new THREE.Group(),ink=MAT.ink||(MAT.ink=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide})),u=g.userData;u.k=k;
+  const flat=(tex,r,y,ro)=>{const m=new THREE.Mesh(new THREE.CircleGeometry(1,48),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.scale.setScalar(r);m.position.y=y;m.renderOrder=ro;g.add(m);return m};
+  const solid=(geo,mat,y,e)=>{const m=new THREE.Mesh(geo,mat),o=new THREE.Mesh(geo,ink);m.position.y=y;o.position.y=y;o.scale.setScalar(e||1.08);m.castShadow=true;g.add(m,o);return m};
+  if(k==='bh'){u.spin=flat(itTex('bh'),IT.bh.rc*2.1,.005,2);
+    const ring=new THREE.Mesh(new THREE.RingGeometry(.975,1,72),new THREE.MeshBasicMaterial({color:0x7a4cc0,transparent:true,opacity:.35,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.0035;ring.renderOrder=1;g.add(ring);u.reach=ring}
+  else if(k==='wh'){u.spin=flat(itTex('wh'),IT.wh.r,.005,2);const t=new THREE.Mesh(new THREE.TorusGeometry(IT.wh.r*.96,.02,8,40),new THREE.MeshBasicMaterial({color:0x8f7cff}));t.rotation.x=-Math.PI/2;t.position.y=.012;g.add(t)}
+  else if(k==='ic'||k==='sd'){const r=IT[k].r;flat(itTex(k),r,k==='ic'?.0042:.0041,1);   // 바닥 물건: 가장자리에 옅은 먹선
+    const e=new THREE.Mesh(new THREE.RingGeometry(r*.97,r*.97+.012,64),new THREE.MeshBasicMaterial({color:GFX_INK,transparent:true,opacity:.45,depthWrite:false}));e.rotation.x=-Math.PI/2;e.position.y=.0043;e.renderOrder=1;g.add(e)}
+  else if(k==='br'){const L=IT.br.L,W=IT.br.W,Hh=IT.br.H,tx=itTex('br'),geo=new THREE.BoxGeometry(2*L,Hh,2*W),m=new THREE.Mesh(geo,toon({map:tx,rim:.1})),o=new THREE.Mesh(geo,ink);
+    m.position.y=o.position.y=Hh/2;o.scale.set(1+.02/L,1+.03/Hh,1+.03/W);m.castShadow=true;g.add(m,o)}
+  else if(k==='tb'){const r=IT.tb.r;u.body=solid(new THREE.SphereGeometry(r,24,16),toon({color:0xff5c8a,rim:.3}),r,1.07);
+    const band=new THREE.Mesh(new THREE.TorusGeometry(r*1.005,r*.12,8,32),toon({color:0xfff1d6,rim:.1}));band.rotation.x=Math.PI/2;u.body.add(band)}
+  else if(k==='jp'){const r=IT.jp.r;solid(new THREE.CylinderGeometry(r,r*1.05,.03,28),toon({color:0x3a3f46,rim:.1}),.015);
+    const coil=toon({color:0xb9c0c8,rim:.2});for(let j=0;j<2;j++){const t=new THREE.Mesh(new THREE.TorusGeometry(r*.55,.012,6,24),coil);t.rotation.x=Math.PI/2;t.position.y=.04+j*.018;g.add(t)}
+    u.body=solid(new THREE.CylinderGeometry(r*.92,r*.92,.02,28),toon({color:0xf2c230,rim:.2}),.075,1.1)}
+  else if(k==='bm'){const r=IT.bm.r;solid(new THREE.SphereGeometry(r,22,16),toon({color:0x2a2a30,rim:.35}),r,1.07);
+    const f=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.07,8),toon({color:0x8a6a3a}));f.position.set(0,2*r+.025,0);f.rotation.z=.3;g.add(f);
+    u.spark=new THREE.Mesh(new THREE.SphereGeometry(.024,10,8),new THREE.MeshBasicMaterial({color:0xffb030}));u.spark.position.set(-.012,2*r+.06,0);g.add(u.spark)}
+  // 놓은 사람 색 (손 색): 둘레의 가는 고리, 벽돌은 윗면 띠. 블랙홀 고리는 구멍과 함께 커짐(u.ownK)
+  {const om=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.9,depthWrite:false});let own;
+   if(k==='br'){own=new THREE.Mesh(new THREE.PlaneGeometry(2*IT.br.L*.86,IT.br.W*.7),om);own.rotation.x=-Math.PI/2;own.position.y=IT.br.H+.003}
+   else{const r=k==='bh'?IT.bh.rc*2.1:TOKR[k];own=new THREE.Mesh(new THREE.RingGeometry(r+.012,r+.034,56),om);own.rotation.x=-Math.PI/2;own.position.y=.0045;own.renderOrder=2;u.ownK=k==='bh'}
+   own.visible=false;g.add(own);u.own=own}
+  return g;
+}
+/* 판 위 물건 (웜홀은 구멍 둘) */
+function itBoard(o){
+  const g=new THREE.Group();g.userData={k:o.k,units:[]};
+  for(let e=0;e<(o.k==='wh'?2:1);e++){const u=itUnit(o.k);g.add(u);g.userData.units.push(u)}
+  return g;
+}
+function itGhost(k){
+  const g=itBoard({k});
+  g.traverse(m=>{if(!m.isMesh)return;if(m.material.side===THREE.BackSide){m.visible=false;return}m.material=m.material.clone();m.material.transparent=true;m.material.opacity=Math.min(m.material.opacity,.7);m.material.depthWrite=false;m.castShadow=false});
+  const bad=new THREE.Mesh(new THREE.CircleGeometry(1,40),new THREE.MeshBasicMaterial({color:0xd6281e,transparent:true,opacity:.42,depthWrite:false}));bad.rotation.x=-Math.PI/2;bad.position.y=.006;bad.renderOrder=3;
+  g.userData.bad=[bad,bad.clone()];g.userData.units.forEach((u,e)=>u.add(g.userData.bad[e]));
+  g.renderOrder=5;return g;
+}
+const ownCol=seat=>new THREE.Color(HCOL[Math.max(0,handCol(seat))%HCOL.length]);
+/* 지금 보일 물건 상태: 튕긴 자취를 재생하는 동안은 그 일(삼킴·폭발)이 일어나기 전 모습 */
+function itemsNow(now){
+  if(!OS||!OS.it)return [];
+  const S=Ak3.shot;if(!S||!S.sh.it0)return OS.it;
+  const e=now-S.t0,ev=S.sh.ev||[];
+  return OS.it.map((o,i)=>{const b=S.sh.it0[i];if(!b)return o;let r=b.r,u=b.u;
+    for(const x of ev){if(x[3]!==i||x[0]>e)continue;if(x[1]==='h')r=Math.min(IT.bh.rmax,(r||IT.bh.rc)+IT.bh.grow);else if(x[1]==='x')u=1}
+    return {...o,r,u}});
+}
+const FX=[];   // 효과 {k, ii 물건 번호, t0}
+function itFx(k,ii,now){FX.push({k,ii,t0:now});if(FX.length>24)FX.shift()}
+const FLY_MS=480;   // 놓은 물건이 판으로 날아가는 시간
+function ak3Items(now){
+  const R=Ak3.root,on=!!(OS&&OS.ob&&OS.of),key=on?OS.gid+'|'+OS.of.join(','):'';
+  if(key!==Ak3.obKey){
+    for(const t of Ak3.tok||[])R.remove(t.g);for(const k in Ak3.itB||{})R.remove(Ak3.itB[k].g);
+    Ak3.obKey=key;Ak3.tok=[];Ak3.itB={};Ak3.obFresh=true;
+    if(on)Ak3.tok=OS.of.map(k=>{const g=itUnit(k);if(g.userData.reach)g.userData.reach.visible=false;g.traverse(m=>{m.castShadow=false});g.visible=false;R.add(g);return {g,k,p:null,sc:0}});   // 떠 있는 작은 물건은 그림자 없이
+  }
+  if(!Ak3.gh)Ak3.gh={k:'',g:null};
+  if(!on){if(Ak3.gh.g)Ak3.gh.g.visible=false;if(Ak3.tl)Ak3.tl.hidden=true;return}
+  const dt=Math.min(.1,Math.max(0,(now-(Ak3.itT||now))/1000));Ak3.itT=now;
+  const its=itemsNow(now),placed={};its.forEach((o,ii)=>{placed[o.o]=ii});
+  // 판 위 물건: 새로 놓인 것은 작은 물건이 날아간 뒤에 나타남 (처음 볼 때 이미 있던 것은 바로)
+  its.forEach((o,ii)=>{
+    let b=Ak3.itB[o.o];
+    if(!b){const g=itBoard(o);R.add(g);b=Ak3.itB[o.o]={g,t0:Ak3.obFresh?now-FLY_MS:now,snd:Ak3.obFresh};
+      g.userData.units.forEach(u=>{u.userData.own.visible=true;u.userData.own.material.color.copy(ownCol(o.s))})}
+    const g=b.g,u0=g.userData.units;g.visible=now-b.t0>=FLY_MS*.85&&!o.u;
+    if(!b.snd&&g.visible){b.snd=1;sndTap(2.6)}
+    g.position.set(0,TOP,0);
+    u0.forEach((u,e)=>{const x=e?o.x2:o.x,z=e?o.z2:o.z;u.position.set(x,0,z);const d=u.userData;
+      if(o.k==='br')u.rotation.y=-(o.a||0);
+      if(d.spin)d.spin.rotation.z=(o.k==='bh'?-1:1)*now/(o.k==='bh'?700:450);
+      if(o.k==='bh'){const r=o.r||IT.bh.rc;d.spin.scale.setScalar(r*2.1);d.reach.scale.setScalar(bhR(o));d.own.scale.setScalar(r/IT.bh.rc)}
+      if(d.spark){d.spark.scale.setScalar(.7+.5*Math.abs(Math.sin(now/70+ii)));}
+      // 부딪힘 효과: 커졌다 돌아옴
+      let pk=0;for(const f of FX)if(f.ii===ii&&now-f.t0<400)pk=Math.max(pk,1-(now-f.t0)/400);
+      if(d.body)d.body.scale.set(1+.25*pk,1-.2*pk*(o.k==='tb'?1:0)+(o.k==='jp'?pk*.8:0),1+.25*pk);
+      if(o.k==='jp'&&d.body)d.body.position.y=.075+pk*.05;
+      if(o.k==='bh'&&d.spin){const s2=(o.r||IT.bh.rc)*2.1*(1+.35*pk);d.spin.scale.setScalar(s2)}
+      if(o.k==='wh'&&d.spin)d.spin.scale.setScalar(IT.wh.r*(1+.5*pk));
+    });
+  });
+  for(const k in Ak3.itB)if(placed[k]==null)Ak3.itB[k].g.visible=false;
+  // 작은 물건: 고르기 중이면 판 가운데 위, 고른 뒤에는 주인 쪽, 놓으면 판으로
+  const ps=putSeat(),cur=ps>=0&&OS.inv&&OS.inv[ps]&&OS.inv[ps][0],bob=Math.sin(now/300)*.02;
+  Ak3.tok.forEach((t,i)=>{
+    let tgt=null,sc=TOK_R/TOKR[t.k],own=-1;
+    const ow=OS.ofs[i],ii=placed[i];
+    if(ii!=null){const o=its[ii],b=Ak3.itB[i];if(b&&now-b.t0<FLY_MS){tgt=[o.x,TOP,o.z];sc=1;own=o.s}}
+    else if(ow>=0&&(OS.ph==='pick'||OS.ph==='iput')){const L=picksList(ow),[x,z]=trayAt(ow,L.indexOf(i),L.length);tgt=[x,FELT_Y+.01+(OS.ph==='iput'&&cur===i?LIFT+bob:0),z];own=ow}
+    else if(ow<0&&OS.ph==='pick'){const [x,z]=tokRow(i);tgt=[x,TOP+.3+bob*(i%2?1:-1),z]}
+    const g=t.g;
+    if(!tgt){if(t.p&&t.sc>.02){t.sc+=(0-t.sc)*Math.min(1,dt*10);g.scale.setScalar(t.sc)}else{g.visible=false;t.p=null}return}
+    if(!t.p){t.p=tgt.slice();t.sc=sc}
+    const k=Math.min(1,dt*(ii!=null?12:8));for(let j=0;j<3;j++)t.p[j]+=(tgt[j]-t.p[j])*k;t.sc+=(sc-t.sc)*k;
+    if(ii!=null){const b=Ak3.itB[i],x=Math.min(1,(now-b.t0)/FLY_MS);t.p[1]=tgt[1]+Math.sin(Math.PI*x)*.5}
+    g.visible=true;g.position.set(...t.p);g.scale.setScalar(t.sc);g.rotation.y=ow<0?now/1400+i:0;
+    const d=g.userData;d.own.visible=own>=0;if(own>=0)d.own.material.color.copy(ownCol(own));
+    if(d.spin)d.spin.rotation.z=now/600;if(t.k==='bh'&&d.spin)d.spin.scale.setScalar(IT.bh.rc*2.1);
+  });
+  Ak3.obFresh=false;
+  // 미리 보기
+  const gn=ghostNow(),G2=Ak3.gh;
+  if(gn&&G2.k!==gn.k){if(G2.g)R.remove(G2.g);G2.g=itGhost(gn.k);G2.k=gn.k;R.add(G2.g)}
+  if(G2.g)G2.g.visible=!!gn;
+  if(gn){const u=G2.g.userData.units;G2.g.position.set(0,TOP,0);
+    u.forEach((x,e)=>{const has=e===0||gn.x2!=null;x.visible=has;if(!has)return;x.position.set(e?gn.x2:gn.x,.002,e?gn.z2:gn.z);if(gn.k==='br')x.rotation.y=-(gn.a||0);
+      const bad=G2.g.userData.bad[e];bad.visible=!!gn.mine&&(gn.k!=='wh'||e===(gn.x2!=null?1:0))&&gn.bad;bad.scale.setScalar(gn.k==='br'?IT.br.L+.04:gn.k==='bh'?IT.bh.rc*2.1:TOKR[gn.k]+.03);
+      if(x.userData.reach)x.userData.reach.scale.setScalar(bhR({r:IT.bh.rc}));if(x.userData.spin)x.userData.spin.rotation.z=now/600})}
+  // 폭탄 불꽃·웜홀 빛
+  if(!Ak3.boom){const m=new THREE.Mesh(new THREE.RingGeometry(.7,1,48),new THREE.MeshBasicMaterial({color:0xffa030,transparent:true,depthWrite:false,side:THREE.DoubleSide}));m.rotation.x=-Math.PI/2;m.renderOrder=7;
+    const f=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),new THREE.MeshBasicMaterial({color:0xfff0a0,transparent:true,depthWrite:false}));f.renderOrder=7;const g=new THREE.Group();g.add(m,f);g.visible=false;R.add(g);Ak3.boom={g,m,f}}
+  {const B=Ak3.boom,fx=FX.filter(f=>f.k==='x'&&now-f.t0<650).pop();B.g.visible=!!fx&&!!its[fx&&fx.ii];
+    if(B.g.visible){const o=its[fx.ii],x=(now-fx.t0)/650;B.g.position.set(o.x,TOP+.02,o.z);B.m.scale.setScalar(.15+IT.bm.R*ease(x));B.m.material.opacity=.9*(1-x);B.f.scale.setScalar(.25*(1-x)+.05);B.f.material.opacity=1-x}}
+  tokLabels();
+}
+function ghostNow(){
+  const ps=putSeat();if(ps<0)return null;const k=putKind(ps);if(!k)return null;
+  if(ps===myIdx()){if(!myPutNow())return null;
+    if(k==='wh'){if(!IW1&&!IG)return null;const a=IW1||IG,b=IW1?IG:null;return {k,x:a.x,z:a.z,x2:b?b.x:null,z2:b?b.z:null,bad:!igOk(),mine:1}}
+    if(!IG)return null;return {k,x:IG.x,z:IG.z,a:IG.a||0,bad:!igOk(),mine:1}}
+  const g=OS.ig;if(!g||g.s!==ps)return null;
+  return {k,x:g.x,z:g.z,a:g.a||0,x2:g.x2??null,z2:g.z2??null,bad:false,mine:0};
+}
+/* 고르기 동안 떠 있는 물건 아래 이름 (화면 글자) */
+function tokLabels(){
+  let box=Ak3.tl;
+  const on=!!(OS&&OS.ph==='pick'&&OS.of&&V.st==='play'&&!introWait()&&Ak3.vcam);
+  if(!box){box=Ak3.tl=document.createElement('div');box.className='ak-tls';elAk.appendChild(box)}
+  box.hidden=!on;if(!on)return;
+  const r=T.r.domElement.getBoundingClientRect(),er=elAk.getBoundingClientRect(),v=Ak3.v3||(Ak3.v3=new THREE.Vector3()),key=[];
+  const items=OS.of.map((k,i)=>{if(OS.ofs[i]>=0)return null;const [x,z]=tokRow(i);v.set(x,TOP+.3,z).project(Ak3.vcam);
+    const px=Math.round(r.left-er.left+(v.x+1)/2*r.width),py=Math.round(r.top-er.top+(1-v.y)/2*r.height);key.push(i,px,py);return {i,k,px,py}});
+  const ks=key.join(',');if(ks===box.dataset.k)return;box.dataset.k=ks;
+  const sc=Math.abs(new THREE.Vector3(TOK_R,TOP+.3,0).project(Ak3.vcam).x-new THREE.Vector3(0,TOP+.3,0).project(Ak3.vcam).x)*r.width/2;
+  box.innerHTML=items.filter(Boolean).map(o=>`<span style="left:${o.px}px;top:${Math.round(o.py+sc+4)}px">${OB_NM[o.k]}</span>`).join('');
+}
 /* ----- 오목 모드 바둑통 (games/omok.js의 통과 같은 모양·크기) -----
    사람마다 통 하나(Ak3.bowls[자리]), 내 통은 내 쪽 오른쪽. 넓은 화면(h)은 판 옆, 좁은 화면(v)은 판 위아래 모서리. 2D는 판 아래 펠트에 작게.
    통은 그림일 뿐(늘 가득, 규칙과 상관없음). 돌을 놓으면 통에서 판으로 날아감 */
@@ -1348,18 +1806,18 @@ function ak3Layout(t){
   if(t-Ak3.layAt<100&&Ak3.lay)return false;
   Ak3.layAt=t;
   const st=$('#stage'),W=st.clientWidth,Hh=st.clientHeight;if(!W||!Hh||!V||!V.ak)return false;
-  const B=tvBox(elAk,'ak'),[sx,sz]=mySide(),np=npOf(),om=OS&&OS.om?1:0,key=[W,Hh,B.R,sx,sz,np,om,OS&&OS.jg?1:0].join(',');
+  const B=tvBox(elAk,'ak'),[sx,sz]=mySide(),np=npOf(),om=OS&&OS.om?1:0,jo=OS&&OS.jg&&OS.ob?.6:.03,key=[W,Hh,B.R,sx,sz,np,om,OS&&OS.jg?1:0,jo].join(',');
   if(key===Ak3.lay)return false;
   Ak3.lay=key;
   const fw=B.fw,fh=B.fh,fy=B.cy-fh/2;
   let s=Math.min(fw/(2*(BW+.08)),fh/(2*(BW+.45)));
   if(np>2){const full=Math.min(fw/(2*(BW+.45)),fh/(2*(BW+.45))),peek=Math.min(fw/(2*(BW+.3)),fh/(2*(BW+.45)));s=full<peek*.93?peek:full}   // 3~4명: 양옆 놓기 전 알 줄. 좁은 화면은 알 반쯤만 보이게 해서 판을 크게
-  if(OS&&OS.jg)s=Math.min(fw/(2*(JBX+.03)),fh/(2*(JBZ+.03)));   // 장기 모드: 장기판 끝까지 (둘레는 아주 조금)
+  if(OS&&OS.jg)s=Math.min(fw/(2*(JBX+.03)),fh/(2*(JBZ+jo)));   // 장기 모드: 장기판 끝까지 (둘레는 아주 조금, 물건 놓기면 판 바깥 물건 자리까지)
   if(om){const ext=2*(BW+BGAP+2*BR),sV=Math.min(fw/(2*(BW+.08)),fh/ext),sH=Math.min(fw/ext,fh/(2*(BW+.1)));Ak3.bl=sH>sV?'h':'v';s=Math.max(sV,sH)*.97}   // 오목 모드: 바둑통까지 (넓은 화면은 판 옆, 좁은 화면은 판 위아래)
   const cam=Ak3.cam,f=Math.tan(cam.fov*Math.PI/360),d=(Hh/2)/(s*f);
   cam.aspect=W/Hh;cam.position.set(0,TOP+d,0);cam.up.set(-sx,0,-sz);cam.lookAt(0,TOP,0);
   cam.setViewOffset(W,Hh,0,-((fy+fh/2)-Hh/2),W,Hh);cam.updateProjectionMatrix();cam.updateMatrixWorld();
-  {const hv=(OS&&OS.jg?JBZ+.03:om?(Ak3.bl==='v'?2*(BW+BGAP+2*BR)/2:BW+.1):BW+.45)*s,cy=fy+fh/2;chipsAt(cy-hv,cy+hv)}
+  {const hv=(OS&&OS.jg?JBZ+jo:om?(Ak3.bl==='v'?2*(BW+BGAP+2*BR)/2:BW+.1):BW+.45)*s,cy=fy+fh/2;chipsAt(cy-hv,cy+hv)}
   Ak3.d=d;Ak3.dirty=true;
   return true;
 }
@@ -1373,7 +1831,8 @@ function curPos(now){
     for(const k in S.sh.tr){
       const tr=S.sh.tr[k],i=+k,f0=tr[0],m=(tr.length-1)/K,l=Math.max(0,Math.min(m-1,f-f0)),a=Math.floor(l),b=Math.min(m-1,a+1),w=l-a;
       if(!base[i])continue;
-      const g=j=>tr[1+a*K+j]/1000*(1-w)+tr[1+b*K+j]/1000*w;
+      const jump=Math.hypot(tr[1+b*K]-tr[1+a*K],tr[3+b*K]-tr[3+a*K])>600,ww=jump?(w<.5?0:1):w;   // 웜홀로 건너뛴 장은 이어 그리지 않음
+      const g=j=>tr[1+a*K+j]/1000*(1-ww)+tr[1+b*K+j]/1000*ww;
       base[i]={x:g(0),y:g(1),z:g(2),ax:g(3),az:g(4),w:K>5?g(5):base[i].w};
     }
   }
@@ -1434,6 +1893,7 @@ function ak3Place(now){
    const gh=Ak3.ghost;gh.g.visible=on&&!!GH;
    if(gh.g.visible){const [x,z]=gridXZ(GH.c,GH.r);gh.g.position.set(x,TOP+SH,z);gh.mat.color.setHex(stC(OS.co[me]).h)}}
   ak3Bowls(pos);
+  ak3Items(now);
   {const M=OS.om&&V.st!=='wait'&&!IN.on3d?omMarks(pos):{on:[]},used=[0,0];
    Ak3.omOn.forEach(a=>a.forEach(m=>{m.visible=false}));
    for(const [c,r,sd] of M.on){const col=OS.co[sd]===1?0:1,pool=Ak3.omOn[col],ix=used[col]++;let m=pool[ix];if(!m){m=Ak3.omMake(col);pool[ix]=m}const [x,z]=gridXZ(c,r);m.position.set(x,TOP+.0035,z);m.visible=true}
@@ -1458,7 +1918,8 @@ function shotSounds(now){
   const e=now-S.t0,ev=S.sh.ev||[];
   if(!S.flick){S.flick=1;if(!(Ak3.flickAt&&now-Ak3.flickAt<1500)&&e<400)sndFlick()}   // 내가 튕긴 소리는 놓을 때 이미 냄
   if(e<0)return;   // 손가락이 닿기 전
-  while(S.ei<ev.length&&ev[S.ei][0]<=e){const [,k,v]=ev[S.ei++];if(e-ev[S.ei-1][0]>300)continue;if(k==='c')sndClack(v);else if(k==='b')sndTap(v);else if(k==='f')sndDrop(v);else sndWall(v)}
+  while(S.ei<ev.length&&ev[S.ei][0]<=e){const [,k,v,ii]=ev[S.ei++];if(ii!=null)itFx(k,ii,now);if(e-ev[S.ei-1][0]>300)continue;
+    if(k==='c')sndClack(v);else if(k==='b')sndTap(v);else if(k==='f')sndDrop(v);else if(k==='h')sndSuck();else if(k==='p')sndWarp();else if(k==='u')sndBoing(v);else if(k==='j')sndSpring();else if(k==='x')sndBoom();else sndWall(v)}
   if(e>=S.sh.dur+60){Ak3.shot=null;Ak3.dirty=true;drawAll()}
 }
 function ak3Render(t){
@@ -1467,7 +1928,7 @@ function ak3Render(t){
   ak3Stones();
   shotSounds(t);
   const intro=IN.on3d&&introStep(t);
-  const busy=!!(Ak3.shot||intro||drag||FLK||(OS&&OS.aim&&OS.ph==='aim')||myTurnNow()||myPlaceNow()||(OS&&OS.hd>=0)||gateTimes(Ak3.bar,t).busy||(OS&&OS.ph==='place')||(Ak3.pl&&Ak3.pl.some(Boolean)));   // 움직이는 것이 없으면 가끔만 그림
+  const busy=!!(Ak3.shot||intro||drag||FLK||(OS&&OS.aim&&OS.ph==='aim')||myTurnNow()||myPlaceNow()||(OS&&OS.hd>=0)||gateTimes(Ak3.bar,t).busy||(OS&&OS.ph==='place')||(Ak3.pl&&Ak3.pl.some(Boolean))||!!(OS&&OS.ob&&V.st==='play'));   // 물건이 있으면 늘 그림 (블랙홀이 돎)   // 움직이는 것이 없으면 가끔만 그림
   if(!busy&&!Ak3.dirty&&t-Ak3.lastR<400)return;
   ak3Place(t);
   const fog=T.scene.fog,fn=fog?fog.near:0,ff=fog?fog.far:0;
@@ -1608,10 +2069,15 @@ G.preView=()=>{
   if(pv&&pv.gid===OS.gid&&pv.st){Ak3.pl=Ak3.pl||[];Ak3.plSnd=Ak3.plSnd||{};OS.st.forEach((q,i)=>{const o=pv.st[i];
     if(OS.om){if(o)return;const [bx,bz]=bowlXZ(q.s);Ak3.pl[i]={x:bx,y:BOWL_Y,z:bz,t0:clock()};Ak3.plSnd[i]=0;return}
     if(o&&o[6]&&!q.u){Ak3.pl[i]={x:o[0],y:o[1]+(Ak3.hi.cur===i?LIFT:0),z:o[2],t0:clock()};if(Ak3.hi.cur===i)Ak3.hi={cur:-1,prev:-1,t0:0};Ak3.plSnd[i]=0}})}
+  if(!myPutNow()){IG=null;IW1=null;ROT=null}
+  if(PEND&&OS.ofs&&OS.ofs[PEND.k]!=null&&OS.ofs[PEND.k]>=0){if(OS.ofs[PEND.k]!==myIdx())sndNo();PEND=null}   // 먼저 가져간 사람이 있으면 금지 소리
+  if(PEND&&(OS.ph!=='pick'||clock()-PEND.t>3000))PEND=null;
+  if(pv&&pv.ofs&&OS.ofs&&pv.gid===OS.gid&&OS.ofs.some((x,i)=>x>=0&&pv.ofs[i]<0&&x!==myIdx()))sndBowl();   // 다른 사람이 집음
+  if(pv&&pv.ph!=='pick'&&OS.ph==='pick'&&V.st==='play'){say('물건 고르기');sfx('turn')}
   if(!myPlaceNow())GH=null;
   else if(GH&&!canPlace(OS,myIdx(),GH.c,GH.r))setGH(null);
   G.buttons();
-  if(pv&&pv.ph==='place'&&OS.ph==='aim'&&V.st==='play'&&!OS.om){say('알까기를 시작합니다.');sfx('turn')}
+  if(pv&&(pv.ph==='place'||pv.ph==='iput'||pv.ph==='pick')&&OS.ph==='aim'&&V.st==='play'&&!OS.om){say('알까기를 시작합니다.');sfx('turn')}
   // 한 번 더: 굴러가기가 끝나고 같은 사람 차례가 다시 오면
   if(pv&&pv.ph==='roll'&&OS.ph==='aim'&&V.st==='play'&&OS.sh&&V.t===OS.sh.by&&!OS.om)say(V.t===myIdx()?'한 번 더':`${nm(V.t)} 한 번 더`);
   Ak3.dirty=true;
@@ -1641,7 +2107,7 @@ G.overRank=p=>{
 G.no3D=true;
 G.buttons=()=>{   // 튕기기는 버튼 없이 당겼다 놓음. 알을 놓을 수 있는 동안만 [놓기] (오목과 같음: 미리 보기를 고르면 켜짐)
   $('#btnPass').hidden=true;$('#btnGura').hidden=true;
-  const play=$('#btnPlay'),me=myIdx(),show=!!(V&&V.ak&&V.st==='play'&&OS&&me>=0&&me<npOf()&&(OS.om||OS.ph==='place')),can=show&&!!GH&&myPlaceNow();
+  const play=$('#btnPlay'),me=myIdx(),put=!!(OS&&OS.ph==='iput'&&V&&V.t===me),show=!!(V&&V.ak&&V.st==='play'&&OS&&me>=0&&me<npOf()&&(OS.om||OS.ph==='place'||put)),can=show&&(put?!!IG&&myPutNow()&&igOk():!!GH&&myPlaceNow());
   play.hidden=!show;play.disabled=!can;play.classList.toggle('ready',can);
   if(show){if($('#playMain').textContent!=='놓기')$('#playMain').textContent='놓기';const sub=keyLabel(KEYS.play);if($('#playSub').textContent!==sub)$('#playSub').textContent=sub}
 };
@@ -1649,7 +2115,7 @@ G.buttons=()=>{   // 튕기기는 버튼 없이 당겼다 놓음. 알을 놓을 
 G.live=()=>{
   if(IN.on)introTick();
   if(!V||!V.ak||!OS)return;
-  const t=clock(),run=V.st==='play'&&(OS.ph==='aim'||OS.ph==='place')&&!introWait()&&Number.isInteger(V.t);
+  const t=clock(),run=V.st==='play'&&(OS.ph==='aim'||OS.ph==='place'||OS.ph==='pick'||OS.ph==='iput')&&!introWait()&&Number.isInteger(V.t);
   if(Ak3.pl)Ak3.pl.forEach((a,i)=>{if(a&&!Ak3.plSnd[i]&&t-a.t0>=PL_MS*.7){Ak3.plSnd[i]=1;sndTap(2.4)}});   // 놓은 알이 판에 툭
     const left=run?Math.max(0,V.deadAt-t):0,txt=run?String(Math.ceil(left/1000)):'';
   if(elBar)elAk.querySelectorAll('.ak-bar [data-ct],.ak-mebar [data-ct]').forEach(el=>{const i=+el.dataset.ct,s=run&&V.t===i?txt:'';if(el.textContent!==s)el.textContent=s;
@@ -1660,9 +2126,10 @@ G.live=()=>{
   if(!Ak3.on){
     if(Ak3.shot){shotSounds(t)}
     if(Ak3.shot||drag||FLK||(OS.aim&&OS.ph==='aim')||myTurnNow()||(Ak3.pl&&Ak3.pl.some(Boolean)))draw2D();
+    else if(OS.ob&&(OS.ph==='pick'||OS.ph==='iput')&&t-(Ak3.d2At||0)>250){Ak3.d2At=t;draw2D()}
   }
 };
-G.play=()=>confirmGH();
+G.play=()=>{if(OS&&OS.ph==='iput')confirmIG();else confirmGH()};
 G.pass=()=>{};
 G.keyPhase=st=>st==='play';
 G.onKey=()=>false;
@@ -1688,7 +2155,7 @@ G.leave=()=>{
   introEnd();drag=null;SEL=-1;
   $('#stage').classList.remove('ak','ak-over','ak3d','ak2d','ak-intro');
   if(T.stacks)for(const arr of T.stacks.values())arr.forEach(c=>{c.visible=true});
-  if(Ak3.root)Ak3.root.visible=false;Ak3.on=false;Ak3.shot=null;
+  if(Ak3.root)Ak3.root.visible=false;Ak3.on=false;Ak3.shot=null;if(Ak3.tl)Ak3.tl.hidden=true;IG=null;IW1=null;ROT=null;PEND=null;
   $('#btnPass').hidden=false;$('#btnPlay').hidden=false;
   if(elAk){elAk.hidden=true;lastBar='';lastHint=''}
 };
@@ -1748,11 +2215,14 @@ G.init=()=>{
 .stage.ak3d #ak.wide .ak-row{position:absolute;left:16px;top:8px;width:auto;max-width:30%;justify-content:flex-start}
 .stage.ak3d #ak.wide .ak-bar{min-height:0}
 .stage.ak3d .specbar:not([hidden])~#ak.wide .ak-bar{margin-top:30px}
+#ak .ak-tls{position:absolute;inset:0;pointer-events:none;z-index:1}
+#ak .ak-tls[hidden]{display:none}
+#ak .ak-tls span{position:absolute;transform:translateX(-50%);font-size:12px;font-weight:700;color:#3b2a1f;background:rgba(255,250,240,.88);border-radius:99px;padding:1px 7px;white-space:nowrap}
 @media (max-width:699px){#ak{padding-bottom:112px}#ak .ak-mebar{bottom:70px;max-width:calc(100% - 24px)}}
 `;
   document.head.appendChild(css);
   elAk=document.createElement('div');elAk.id='ak';elAk.hidden=true;
-  elAk.innerHTML=`<div class="ak-bar"></div><div class="ak-mebar"></div><div class="ak-row"><div class="ak-hint" aria-live="polite"></div></div><div class="ak-bd"><svg viewBox="${-VX} ${-VY} ${2*VX} ${2*VY}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="알까기 판"><defs><pattern id="akHatch" width=".23" height=".23" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".075" height=".23" fill="#d6281e"/><animateTransform attributeName="patternTransform" type="translate" from="0 0" to=".23 0" dur="2.6s" repeatCount="indefinite" additive="sum"/></pattern><pattern id="akBar" width=".15" height=".15" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".15" height=".15" fill="#f2c230"/><rect width=".075" height=".15" fill="#1d1b19"/></pattern></defs><g id="akB"></g><g id="akS"></g></svg></div>`;
+  elAk.innerHTML=`<div class="ak-bar"></div><div class="ak-mebar"></div><div class="ak-row"><div class="ak-hint" aria-live="polite"></div></div><div class="ak-bd"><svg viewBox="${-VX} ${-VY} ${2*VX} ${2*VY}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="알까기 판"><defs><pattern id="akHatch" width=".23" height=".23" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".075" height=".23" fill="#d6281e"/><animateTransform attributeName="patternTransform" type="translate" from="0 0" to=".23 0" dur="2.6s" repeatCount="indefinite" additive="sum"/></pattern><pattern id="akBar" width=".15" height=".15" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".15" height=".15" fill="#f2c230"/><rect width=".075" height=".15" fill="#1d1b19"/></pattern><radialGradient id="akBh"><stop offset=".45" stop-color="#ffc85f"/><stop offset=".7" stop-color="#d65cc8" stop-opacity=".85"/><stop offset="1" stop-color="#46208c" stop-opacity="0"/></radialGradient><radialGradient id="akWh"><stop offset="0" stop-color="#0b0820"/><stop offset=".5" stop-color="#3b2a9a"/><stop offset="1" stop-color="#5fd0f4"/></radialGradient></defs><g id="akB"></g><g id="akS"></g></svg></div>`;
   $('#stage').insertBefore(elAk,$('#fx'));
   elSvg=elAk.querySelector('svg');elMain=elSvg;elBar=elAk.querySelector('.ak-bar');elBarMe=elAk.querySelector('.ak-mebar');elHint=elAk.querySelector('.ak-hint');
   // 당기기: 3D(캔버스)와 2D(SVG) 모두 누르기 → 끌기 → 놓기. 누른 채 화면 밖으로 끌어도 이어짐
@@ -1761,18 +2231,18 @@ G.init=()=>{
     el.addEventListener('pointerdown',e=>{
       if(!ok()||G!==GAMES.alkkagi||(e.button!=null&&e.button>0))return;
       const w=toW(e);if(!w)return;
-      if(dragStart(w[0],w[1])&&drag){pid=e.pointerId;try{el.setPointerCapture(pid)}catch(_){}e.preventDefault()}
+      if(dragStart(w[0],w[1])&&(drag||ROT)){pid=e.pointerId;try{el.setPointerCapture(pid)}catch(_){}e.preventDefault()}
     });
-    el.addEventListener('pointermove',e=>{if(drag&&e.pointerId===pid){const w=toW(e);if(w)dragMove(w[0],w[1])}});
+    el.addEventListener('pointermove',e=>{if((drag||ROT)&&e.pointerId===pid){const w=toW(e);if(w)dragMove(w[0],w[1])}});
     const up=cancel=>e=>{if(e.pointerId!==pid)return;pid=null;try{el.releasePointerCapture(e.pointerId)}catch(_){}dragEnd(cancel)};
     el.addEventListener('pointerup',up(false));el.addEventListener('pointercancel',up(true));
   };
   bind($('#cv'),e=>Ak3.on&&ak3World(e),()=>Ak3.on&&!!OS);
   bind(elSvg,e=>s2w(e),()=>!Ak3.on&&!!OS);
-  document.addEventListener('keydown',e=>{if(e.code!=='Escape'||!elAk||elAk.hidden)return;if(drag)dragEnd(true);else if(selOk()){setSel(-1);sndPickUp()}else if(GH){setGH(null);sndPickUp()}});
+  document.addEventListener('keydown',e=>{if(e.code!=='Escape'||!elAk||elAk.hidden)return;if(drag)dragEnd(true);else if(selOk()){setSel(-1);sndPickUp()}else if(GH){setGH(null);sndPickUp()}else if(IG||IW1){if(IG)IG=null;else IW1=null;sndPickUp();sendIg();obRedraw()}});
   window.addEventListener('resize',()=>{Ak3.lay='';fit2D()});
 };
-G._ak3={Ak3,IN,introEnd,handCanvas,get FLK(){return FLK},get OS(){return OS},get drag(){return drag},dragStart,dragMove,dragEnd,curPos};   // 화면 검사용
+G._ak3={Ak3,IN,introEnd,handCanvas,tokRow,trayAt,get IG(){return IG},confirmIG,itemTap,get FLK(){return FLK},get OS(){return OS},get drag(){return drag},dragStart,dragMove,dragEnd,curPos};   // 화면 검사용
 
 (window.GAMES=window.GAMES||{}).alkkagi=G;
 })();
