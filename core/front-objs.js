@@ -5,18 +5,24 @@ function holoMat(color,map){
     uniforms:{uC:{value:new THREE.Color(color)},uMap:{value:map||null},uR:{value:new THREE.Color(HOLO_C)},uA:{value:0},uT:GFX_U.time},
     defines:map?{USE_HMAP:''}:{},
     vertexShader:'varying vec2 vUv;varying vec3 vN;varying vec3 vV;varying float vY;void main(){vUv=uv;vec4 w=modelMatrix*vec4(position,1.0);vY=w.y;vec4 mv=viewMatrix*w;vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
-    fragmentShader:'uniform vec3 uC;uniform vec3 uR;uniform float uA;uniform float uT;uniform sampler2D uMap;varying vec2 vUv;varying vec3 vN;varying vec3 vV;varying float vY;void main(){vec3 b=uC;\n#ifdef USE_HMAP\nvec4 tx=texture2D(uMap,vUv);b*=tx.rgb;\n#endif\nfloat f=1.0-abs(dot(normalize(vN),normalize(vV)));vec3 col=mix(b,uR,0.28)+uR*pow(f,2.0)*0.85;float sc=0.88+0.12*sin(vY*90.0-uT*4.0);gl_FragColor=vec4(col,uA*(0.58+0.42*pow(f,1.5))*sc);}'});
+    fragmentShader:'uniform vec3 uC;uniform vec3 uR;uniform float uA;uniform float uT;uniform sampler2D uMap;varying vec2 vUv;varying vec3 vN;varying vec3 vV;varying float vY;void main(){vec3 b=uC;\n#ifdef USE_HMAP\nvec4 tx=texture2D(uMap,vUv);if(tx.a<0.5)discard;b*=tx.rgb;\n#endif\nfloat f=1.0-abs(dot(normalize(vN),normalize(vV)));vec3 col=mix(b,uR,0.28)+uR*pow(f,2.0)*0.85;float sc=0.88+0.12*sin(vY*90.0-uT*4.0);gl_FragColor=vec4(col,uA*(0.58+0.42*pow(f,1.5))*sc);}'});
 }
 /* 홀로그램 카드: 앞면·뒷면 그림을 따로 (돌 때 뒤쪽에서 앞면 글자가 거꾸로 비치지 않게). mk는 재질 만드는 함수(재질 목록에 넣음) */
 const HOLO_GEO={};
-function holoCard(mk,face,back,w=.4,h=.58){const e=mk(0xffffff),k='card'+w+'x'+h;return new THREE.Mesh(HOLO_GEO[k]||(HOLO_GEO[k]=new THREE.BoxGeometry(w,h,.012)),[e,e,e,e,mk(0xffffff,face),mk(0xffffff,back||T.back.map)])}
+function holoCard(mk,face,back,w=.4,h=.58){   // 모서리가 둥근 얇은 판 두 장(앞·뒤). 둥근 정도는 카드 그림(rr 8/60)과 같게
+  const key='card'+w+'x'+h;let geo=HOLO_GEO[key];
+  if(!geo){const r=w*8/60,x=-w/2,y=-h/2,sh=new THREE.Shape();
+    sh.moveTo(x+r,y);sh.lineTo(x+w-r,y);sh.quadraticCurveTo(x+w,y,x+w,y+r);sh.lineTo(x+w,y+h-r);sh.quadraticCurveTo(x+w,y+h,x+w-r,y+h);sh.lineTo(x+r,y+h);sh.quadraticCurveTo(x,y+h,x,y+h-r);sh.lineTo(x,y+r);sh.quadraticCurveTo(x,y,x+r,y);
+    geo=HOLO_GEO[key]=new THREE.ShapeGeometry(sh,6);const P=geo.attributes.position,U=geo.attributes.uv;for(let i=0;i<P.count;i++)U.setXY(i,(P.getX(i)+w/2)/w,(P.getY(i)+h/2)/h)}
+  const g=new THREE.Group(),f=new THREE.Mesh(geo,mk(0xffffff,face)),b=new THREE.Mesh(geo,mk(0xffffff,back||T.back.map));
+  f.position.z=.004;b.position.z=-.004;b.rotation.y=Math.PI;g.add(f,b);return g}
 /* 게임의 진짜 카드 앞면 그림 (글꼴이 늦게 오면 다시 그림) */
 function holoFace(gm,id,w=128,h=186,draw){const f=draw||((g,W,H)=>gm.drawFace(g,W,H,id)),tex=canvasTex(w,h,f);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{f(tex.image.getContext('2d'),w,h);tex.needsUpdate=true});return tex}
 function frontHoloPiece(id){
   const g=new THREE.Group(),mats=[];
   const add=(geo,mat,x=0,y=0,z=0,rx=0,ry=0,rz=0,sy=1)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.rotation.set(rx,ry,rz);m.scale.y=sy;m.renderOrder=41;g.add(m);for(const q of [].concat(mat))if(!mats.includes(q))mats.push(q);return m};
   const mk=(c,map)=>{const m=holoMat(c,map);mats.push(m);return m};
-  const card=(gid,cid,x,y,z,rx,ry,rz)=>{const m=holoCard(mk,GAMES[gid]?holoFace(GAMES[gid],cid):T.back.map);m.position.set(x,y,z);m.rotation.set(rx,ry,rz);m.renderOrder=41;g.add(m);return m};
+  const card=(gid,cid,x,y,z,rx,ry,rz,sc=1)=>{const m=holoCard(mk,GAMES[gid]?holoFace(GAMES[gid],cid):T.back.map);m.position.set(x,y,z);m.rotation.set(rx,ry,rz);m.scale.setScalar(sc);m.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(m);return m};
   const chip=(c,x,y,z)=>add(HOLO_GEO.chip||(HOLO_GEO.chip=new THREE.CylinderGeometry(.12,.12,.045,20)),c,x,y,z);
   if(id==='gura'){card('gura',0,-.12,0,.02,0,.22,.16);card('gura',12,.12,.02,-.02,0,-.22,-.12)}   // ㄱ·ㄹ 카드 두 장 (이름의 초성), 뒷면은 진짜 카드 뒷면
   else if(id==='president'){   // 가장 센 숫자 2♠ 카드 위에 작은 왕관
@@ -28,21 +34,18 @@ function frontHoloPiece(id){
     const dt=canvasTex(128,128,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.fillStyle='#cc3a2e';for(const [a,b] of [[32,32],[96,32],[64,64],[32,96],[96,96]]){x.beginPath();x.arc(a,b,13,0,7);x.fill()}}),dm=holoMat(0xffffff,dt);
     add(new THREE.CylinderGeometry(.2,.16,.42,24,1,true),holoMat(0x8a4a2a),-.1,-.04,0,0,0,-.5);
     add(new THREE.BoxGeometry(.17,.17,.17),dm,.14,-.16,.06,.4,.7,.2);add(new THREE.BoxGeometry(.17,.17,.17),dm,.3,-.17,-.08,.9,.2,.5);add(new THREE.BoxGeometry(.17,.17,.17),dm,.04,.16,.02,.3,1.1,.8)}
-  else if(id==='omok'){   // 판 조각 위 흑 넷과 한쪽 끝을 막는 백 하나
-    const S=.13,gt=canvasTex(256,144,(x,w,h)=>{x.fillStyle='#e8cf9a';x.fillRect(0,0,w,h);x.strokeStyle='#6b4a22';x.lineWidth=3;const u=w/.78;
-      for(let k=-3;k<=3;k++){const px=w/2+k*S*u;x.beginPath();x.moveTo(px,0);x.lineTo(px,h);x.stroke()}for(let k=-1;k<=1;k++){const py=h/2+k*S*u;x.beginPath();x.moveTo(0,py);x.lineTo(w,py);x.stroke()}});
-    add(new THREE.BoxGeometry(.78,.02,.44),[mk(0xc9a46a),mk(0xc9a46a),mk(0xffffff,gt),mk(0xc9a46a),mk(0xc9a46a),mk(0xc9a46a)],0,-.12,0);
-    const sg=HOLO_GEO.stone||(HOLO_GEO.stone=new THREE.SphereGeometry(.062,18,10)),bk=mk(0x1c1c1c),wt=mk(0xfbf8f0);
-    for(let k=0;k<4;k++)add(sg,bk,(k-2)*S,-.09,0,0,0,0,.55);add(sg,wt,2*S,-.09,0,0,0,0,.55)}
+  else if(id==='omok'){   // 판 없이 돌만: 포월(浦月, 렌주 간접주형 7) = 흑 천원, 백 오른쪽 위 마늘모, 흑 오른쪽 아래 마늘모. 줄 끝이 나를 향해도 겹치지 않게 앞으로 기울임
+    const S=.25,sg=HOLO_GEO.stone||(HOLO_GEO.stone=new THREE.SphereGeometry(.11,20,12)),bk=mk(0x1a1a1a),wt=mk(0xfbf8f0),o=new THREE.Group();
+    for(const [x,z,m] of [[-S/2,0,bk],[S/2,-S,wt],[S/2,S,bk]]){const st=new THREE.Mesh(sg,m);st.position.set(x,0,z);st.scale.y=.5;st.renderOrder=41;o.add(st)}
+    o.rotation.x=.55;o.position.y=-.04;g.add(o)}
   else if(id==='chess'&&GAMES.chess&&GAMES.chess.holoPiece){   // 게임 속 나이트 그대로 (반투명)
     const m=holoMat(0xf3e8d2),k=GAMES.chess.holoPiece(m);k.scale.setScalar(.44);k.position.y=-.2;k.rotation.y=-.6;k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k);mats.push(m)}
   else if(id==='janggi'&&GAMES.janggi&&GAMES.janggi.holoPiece){   // 楚 장 알과 漢 차 알 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.janggi.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else if(id==='blackjack'){   // A♠와 J♠(블랙잭) 두 장, 칩 하나
     card('blackjack',0,-.09,.04,-.02,0,0,.13);card('blackjack',40,.08,.01,.02,0,0,-.09);chip(mk(0xcc3a2e),.2,-.27,.1)}
-  else if(id==='poker'){   // 칩 기둥 셋과 엎은 카드 두 장 (손패)
-    const wt=mk(0xf6f3ea);[[0xcc3a2e,6,-.13,-.06],[0x2e7d4f,4,.13,-.08],[0x2a2a2a,3,0,.1]].forEach(([c,n,x,z])=>{const m=mk(c);for(let k=0;k<n;k++)chip(k%2?wt:m,x,-.24+k*.05,z)});
-    card(null,0,-.1,-.2,.26,-1.15,0,.18);card(null,0,.1,-.19,.27,-1.15,0,-.12)}
+  else if(id==='poker'){   // 로열 스트레이트 플러시 ♥10·J·Q·K·A, 왼쪽 위 글자가 다 보이게 오른쪽으로 펼친 부채꼴 (id = 숫자×4 + 무늬, ♥=1)
+    [9,10,11,12,0].forEach((rk,i)=>{const a=(2-i)*.26,m=card('poker',rk*4+1,0,0,0,0,0,a,.8);m.position.set(-Math.sin(a)*.36,Math.cos(a)*.36-.42,(i-2)*.008)})}
   else if(id==='alkkagi'&&GAMES.alkkagi&&GAMES.alkkagi.holoPiece){   // 풀차징된 손과 흑돌 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.alkkagi.holoPiece(c=>{const m=holoMat(c);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else if(id==='blackwhite'&&GAMES.blackwhite&&GAMES.blackwhite.holoPiece){   // 엎은 흑 타일과 숫자가 보이는 백 타일 (게임이 모양을 정하고 재질은 여기서)
@@ -51,11 +54,11 @@ function frontHoloPiece(id){
     const k=GAMES.baseball.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else if(id==='pixel'&&GAMES.pixel&&GAMES.pixel.holoPiece){   // 도트 말과 그 위를 지나는 슬라이더 둘
     const k=GAMES.pixel.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
-  else if(id==='mind'&&GAMES.mind&&GAMES.mind.holoPiece){   // 엎은 카드와 숫자 카드 (게임이 모양을 정하고 재질은 여기서)
+  else if(id==='mind'&&GAMES.mind&&GAMES.mind.holoPiece){   // 오름차순 카드 세 장 계단과 표창 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.mind.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
-  else if(id==='robo77'&&GAMES.robo77&&GAMES.robo77.holoPiece){   // 엎은 카드와 77 카드 (게임이 모양을 정하고 재질은 여기서)
+  else if(id==='robo77'&&GAMES.robo77&&GAMES.robo77.holoPiece){   // 공중의 합계 77과 76 카드 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.robo77.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
-  else if(id==='onecard'&&GAMES.onecard&&GAMES.onecard.holoPiece){   // 엎은 카드와 A 카드 (게임이 모양을 정하고 재질은 여기서)
+  else if(id==='onecard'&&GAMES.onecard&&GAMES.onecard.holoPiece){   // 별무늬 +4 카드 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.onecard.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else if(id==='mia'&&GAMES.mia&&GAMES.mia.holoPiece){   // 세운 탈출구 코인과 흐린 말 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.mia.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}

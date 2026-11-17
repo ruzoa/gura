@@ -521,11 +521,12 @@ G.leave=()=>{
   $('#btnPass').hidden=false;
   $('#btnPass').firstChild.nodeValue='패스';
 };
+/* 대기실 홀로그램의 대표 말: 오름차순 카드 세 장을 계단처럼(낮은 수부터 차례로) + 작은 표창 */
 G.holoPiece=mkM=>{
-  const g=new THREE.Group(),tx=canvasTex(128,186,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.fillStyle='#34404f';x.font='700 76px "IBM Plex Mono", monospace';x.textAlign='center';x.textBaseline='middle';x.fillText('37',w/2,h/2)});
-  const a=new THREE.Mesh(new THREE.BoxGeometry(.4,.58,.012),mkM(0xffffff,T.back.map));a.position.set(-.13,.0,-.03);a.rotation.z=.16;g.add(a);
-  const b=new THREE.Mesh(new THREE.BoxGeometry(.4,.58,.012),mkM(0xffffff,tx));b.position.set(.09,.03,.01);b.rotation.z=-.1;g.add(b);
-  g.rotation.set(-.3,.2,0);return g;
+  const g=new THREE.Group();
+  [[11,-.2,-.16,.03],[36,0,-.04,0],[80,.2,.08,-.03]].forEach(([id,x,y,z],i)=>{const c=holoCard(mkM,holoFace(G,id));c.position.set(x,y,z);c.rotation.z=-.06;c.scale.setScalar(.7);g.add(c)});
+  const st=new THREE.Mesh(new THREE.ExtrudeGeometry(starShape(.13,.045),{depth:.03,bevelEnabled:false}),mkM(0xb9c2cc));st.position.set(-.2,.2,.04);st.rotation.z=.3;g.add(st);
+  return g;
 };
 G.init=()=>{
   const css=document.createElement('style');

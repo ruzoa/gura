@@ -547,11 +547,10 @@ G.leave=()=>{
   const st=$('#stage');st.classList.remove('ocg');st.style.removeProperty('--ocB');
   const ps=$('#btnPass');delete ps.dataset.oc;ps.innerHTML=`패스<small>${esc(keyLabel(KEYS.pass))}</small>`;ps.hidden=false;
 };
+/* 대기실 홀로그램의 대표 말: 원카드에만 있는 별무늬 +4 카드 한 장 */
 G.holoPiece=mkM=>{
-  const g=new THREE.Group(),tx=canvasTex(128,186,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.fillStyle='#34404f';x.font='700 96px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('A',w/2,h/2)});
-  const a=new THREE.Mesh(new THREE.BoxGeometry(.4,.58,.012),mkM(0xffffff,T.back.map));a.position.set(-.13,0,-.03);a.rotation.z=.16;g.add(a);
-  const b=new THREE.Mesh(new THREE.BoxGeometry(.4,.58,.012),mkM(0xffffff,tx));b.position.set(.09,.03,.01);b.rotation.z=-.1;g.add(b);
-  g.rotation.set(-.3,.2,0);return g;
+  const g=new THREE.Group(),c=holoCard(mkM,holoFace(G,56));c.rotation.z=-.06;g.add(c);
+  return g;
 };
 G.init=()=>{
   const css=document.createElement('style');

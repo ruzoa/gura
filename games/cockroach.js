@@ -632,10 +632,10 @@ G.leave=()=>{
   const st=$('#stage');st.classList.remove('cpg');st.style.removeProperty('--cpB');
   $('#btnPass').disabled=false;
 };
+/* 대기실 홀로그램의 대표 말: 엎은 카드와 벌레 카드 */
 G.holoPiece=mkM=>{
-  const g=new THREE.Group(),tx=canvasTex(128,186,(x,w,h)=>G.drawFace(x,w,h,0));
-  const a=new THREE.Mesh(new THREE.BoxGeometry(.4,.58,.012),mkM(0xffffff,T.back.map));a.position.set(-.13,0,-.03);a.rotation.z=.16;g.add(a);
-  const b=new THREE.Mesh(new THREE.BoxGeometry(.4,.58,.012),mkM(0xffffff,tx));b.position.set(.09,.03,.01);b.rotation.z=-.1;g.add(b);
+  const g=new THREE.Group(),a=holoCard(mkM,T.back.map),b=holoCard(mkM,holoFace(G,0));
+  a.position.set(-.13,0,-.03);a.rotation.z=.16;g.add(a);b.position.set(.09,.03,.01);b.rotation.z=-.1;g.add(b);
   g.rotation.set(-.3,.2,0);return g;
 };
 G.init=()=>{

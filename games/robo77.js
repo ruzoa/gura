@@ -462,11 +462,14 @@ G.leave=()=>{
   $('#btnPass').hidden=false;
   removeMine();
 };
+/* 대기실 홀로그램의 대표 말: 공중에 뜬 합계 77(게임 속 합계 홀로그램처럼) 아래 76 카드 한 장 */
 G.holoPiece=mkM=>{
-  const g=new THREE.Group(),tx=canvasTex(128,186,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.fillStyle='#34404f';x.font='700 76px "IBM Plex Mono", monospace';x.textAlign='center';x.textBaseline='middle';x.fillText('77',w/2,h/2)});
-  const a=new THREE.Mesh(new THREE.BoxGeometry(.4,.58,.012),mkM(0xffffff,T.back.map));a.position.set(-.13,0,-.03);a.rotation.z=.16;g.add(a);
-  const b=new THREE.Mesh(new THREE.BoxGeometry(.4,.58,.012),mkM(0xffffff,tx));b.position.set(.09,.03,.01);b.rotation.z=-.1;g.add(b);
-  g.rotation.set(-.3,.2,0);return g;
+  const g=new THREE.Group(),id=DECK.findIndex(c=>c.top);
+  const c=holoCard(mkM,holoFace(G,id));c.position.set(0,-.14,0);c.rotation.z=-.08;c.scale.setScalar(.72);g.add(c);
+  const tx=holoFace(null,0,256,128,(x,w,h)=>{x.clearRect(0,0,w,h);x.fillStyle='#e0402e';x.font='700 118px "IBM Plex Mono", monospace';x.textAlign='center';x.textBaseline='middle';x.fillText('77',w/2,h/2+6)});
+  const pg=new THREE.PlaneGeometry(.6,.3),m=mkM(0xffffff,tx);
+  for(const r of [0,Math.PI]){const p=new THREE.Mesh(pg,m);p.rotation.y=r;p.position.y=.3;g.add(p)}   // 앞·뒤 두 장: 돌아도 거꾸로 안 보임
+  return g;
 };
 G.init=()=>{
   const css=document.createElement('style');
