@@ -78,6 +78,7 @@ function beanImg(t){
 const meterTxt=t=>BEANS[t].m.map(x=>x||'-').join(' ');
 Object.assign(G,{labelOf:id=>BEANS[typ(id)].n,cmpCard:(a,b)=>typ(a)-typ(b)||a-b});
 G.cardHTML=(id,extra)=>{const t=typ(id),b=BEANS[t];return `<button type="button" class="card bn-c ${extra||''}" data-id="${id}" style="--rc:${b.col};--tc:${b.tx||'#fffcf5'}" aria-label="${b.n}"><span class="bn-nm">${b.n}</span><span class="bn-be">${beanImg(t)}</span><span class="bn-mt">${meterTxt(t)}</span></button>`};
+G.faceKey=id=>typ(id);   // 같은 콩은 3D 앞면 하나를 같이 씀 (카드마다 만들면 100장 넘게 쌓임)
 G.drawFace=function(g,w,h,id){
   const t=typ(id),b=BEANS[t],k=w/60;
   g.clearRect(0,0,w,h);g.save();rr(g,0,0,w,h,8*k);g.clip();g.fillStyle='#fffcf5';g.fillRect(0,0,w,h);g.fillStyle=b.col;g.fillRect(0,0,w,20*k);g.restore();

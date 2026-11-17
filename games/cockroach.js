@@ -87,6 +87,7 @@ function drawBug(g,k){
   }
   g.restore();
 }
+G.faceKey=id=>kindOf(id);   // 같은 벌레는 3D 앞면 하나를 같이 씀
 G.drawFace=function(g,w,h,id){
   const k=kindOf(id),K=KINDS[k],s=w/60;
   g.clearRect(0,0,w,h);

@@ -756,7 +756,7 @@ function showView(v,focus=true){
   if(v==='create'&&FR.ok)v='main';   // 첫 화면에서는 천 꾸러미가 상차리기
   lobbyView=v;
   document.querySelectorAll('#lobby .view').forEach(el=>{el.hidden=el.dataset.view!==v});
-  if(FR.ok&&mode==='lobby')$('#lobby').hidden=v==='main';   // 첫 화면: 로비 창 없이 탁자 하나 (찾아가기·설정 창만 위에 뜸)
+  if(FR.ok&&mode==='lobby')$('#lobby').hidden=v==='main';   // 첫 화면: 로비 창 없이 탁자 하나 (참여하기·설정 창만 위에 뜸)
   const nk=myNick();$('#nickShow').textContent=nk;document.querySelectorAll('.nickShow2').forEach(e=>e.textContent=nk);
   if(v==='join'&&mode==='lobby'&&!roomScan)refreshRooms();
   if(!focus)return;

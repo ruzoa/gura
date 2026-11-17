@@ -587,20 +587,23 @@ function withInk(geo,mat,inkGeo,inkMat){
   const o=new THREE.Mesh(inkGeo,inkMat||new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide}));g.add(o);g.userData.ink=o;g.userData.body=m;return g;
 }
 const MAT={};
+let PAWN_GEO=null;   // 말은 모두 같은 모양이라 도형(몸·먹선 3쌍)을 같이 씀: 떠난 사람 말을 다음 판에 다시 만들 때 쌓이지 않게
 function pawnGroup(col,ghost){
   const g=new THREE.Group(),key=col+(ghost?'g':'');
   if(!MAT[key])MAT[key]=ghost?new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.45,depthWrite:false}):toon({color:col,rim:.25});
   const m=MAT[key],ink=ghost?null:new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide});
   const add=(geo,y,inkGeo)=>{const o=new THREE.Mesh(geo,m);o.position.y=y;o.castShadow=!ghost;g.add(o);if(ink){const h=new THREE.Mesh(inkGeo,ink);h.position.y=y;g.add(h)}};
-  add(new THREE.CylinderGeometry(.33*U,.38*U,.3*U,28),.15*U,new THREE.CylinderGeometry(.36*U,.41*U,.33*U,28));
-  add(new THREE.CylinderGeometry(.15*U,.2*U,.36*U,20),.46*U,new THREE.CylinderGeometry(.18*U,.23*U,.36*U,20));
-  add(new THREE.SphereGeometry(.27*U,24,16),.8*U,new THREE.SphereGeometry(.3*U,24,16));
+  if(!PAWN_GEO)PAWN_GEO=[[new THREE.CylinderGeometry(.33*U,.38*U,.3*U,28),new THREE.CylinderGeometry(.36*U,.41*U,.33*U,28)],[new THREE.CylinderGeometry(.15*U,.2*U,.36*U,20),new THREE.CylinderGeometry(.18*U,.23*U,.36*U,20)],[new THREE.SphereGeometry(.27*U,24,16),new THREE.SphereGeometry(.3*U,24,16)]];
+  add(PAWN_GEO[0][0],.15*U,PAWN_GEO[0][1]);
+  add(PAWN_GEO[1][0],.46*U,PAWN_GEO[1][1]);
+  add(PAWN_GEO[2][0],.8*U,PAWN_GEO[2][1]);
   return g;
 }
 function wallMat(i){const k='w'+i;if(!MAT[k])MAT[k]=toon({color:PCOL[i%4],rim:.2});return MAT[k]}
+let WALL_GEO=null;   // 벽은 모두 같은 모양이라 도형(몸·먹선)을 같이 씀: 벽마다 새로 만들면 새 판마다 쌓임
 function wallMesh(i){
-  const geo=new THREE.BoxGeometry(WLEN*U,WHT*U,WTH*U),ink=new THREE.BoxGeometry(WLEN*U+.035,WHT*U+.03,WTH*U+.035);
-  return withInk(geo,wallMat(i),ink);
+  if(!WALL_GEO)WALL_GEO=[new THREE.BoxGeometry(WLEN*U,WHT*U,WTH*U),new THREE.BoxGeometry(WLEN*U+.035,WHT*U+.03,WTH*U+.035)];
+  return withInk(WALL_GEO[0],wallMat(i),WALL_GEO[1]);
 }
 function q3Build(){
   if(Q3.built||Q3.fail)return Q3.built;

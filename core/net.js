@@ -1,6 +1,7 @@
 /* index.html 공통 코드 · 네트워크(PeerJS): 방 열기·참가·관전·재접속·방장 이양·공개 탁자 찾기. 파일 순서는 index.html의 <script src> 순서 */
 /* ================= 네트워크 (PeerJS) ================= */
 function cleanNick(n){return (typeof n==='string'&&n.trim()?n.trim():'손님').slice(0,10)}
+function cleanTitle(t){return (typeof t==='string'?t.trim():'').slice(0,20)||'공개 탁자'}   // 탁자 이름은 20자까지 (닉네임용 10자 제한을 쓰면 공개 탁자 목록에서 이름이 잘림)
 function cleanAv(v){return typeof v==='string'&&/^[0-2]-\d{1,2}-\d{1,2}(-\d{1,2})?(-p[0-9a-z]{4,8})?(-e)?$/.test(v)?v:''}   // 아바타 값 (core/avatar.js)
 function hostConn(conn){
   if(!H||mode!=='host'){conn.on('open',()=>{try{conn.close()}catch(e){}});return}   // 이미 방을 떠난 방장
@@ -246,7 +247,7 @@ function scanRooms(cb){
   peer.on('open',()=>{
     for(let k=0;k<PUB_SLOTS;k++){
       const c=peer.connect(PUB_PREFIX+k,{reliable:true});
-      c.on('data',d=>{if(d&&d.t==='room'&&/^[a-z0-9]{4}$/.test(d.code||'')){rooms.set(d.code,{code:d.code,title:cleanNick(d.title||'')||'공개 탁자',host:d.host?cleanNick(d.host):'',n:+d.n||0,max:+d.max||0,ph:String(d.ph||''),fast:+d.fast?1:0,g:GAMES[d.g]?d.g:'gura',maxn:+d.maxn||14,jk:+d.jk||0,wl:+d.wl||0,sp:+d.sp||0,spm:d.spm==null?8:+d.spm||0})}});
+      c.on('data',d=>{if(d&&d.t==='room'&&/^[a-z0-9]{4}$/.test(d.code||'')){rooms.set(d.code,{code:d.code,title:cleanTitle(d.title),host:d.host?cleanNick(d.host):'',n:+d.n||0,max:+d.max||0,ph:String(d.ph||''),fast:+d.fast?1:0,g:GAMES[d.g]?d.g:'gura',maxn:+d.maxn||14,jk:+d.jk||0,wl:+d.wl||0,sp:+d.sp||0,spm:d.spm==null?8:+d.spm||0})}});
     }
     setTimeout(finish,3500);
   });

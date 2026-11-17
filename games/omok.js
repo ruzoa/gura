@@ -681,13 +681,15 @@ function withInk(geo,mat,inkGeo){
   const g=new THREE.Group(),m=new THREE.Mesh(geo,mat);m.castShadow=true;m.receiveShadow=true;g.add(m);
   const o=new THREE.Mesh(inkGeo,new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide}));g.add(o);g.userData.ink=o;g.userData.body=m;return g;
 }
-const MAT={};
+const MAT={},STONE_GEO={};
+/* 같은 크기 돌은 도형(몸·먹선)을 같이 씀: 돌마다 새로 만들면 판을 거듭할수록 쌓임 */
+function stoneGeo(r){const k=r.toFixed(4);return STONE_GEO[k]||(STONE_GEO[k]=[new THREE.SphereGeometry(r,26,16),new THREE.SphereGeometry(r*1.07,26,16)])}
 function stoneMesh(col,ghost){
   const key='s'+col+(ghost?'g':'');
   if(!MAT[key])MAT[key]=ghost?new THREE.MeshBasicMaterial({color:col===1?0x222226:0xf7f2e8,transparent:true,opacity:.55,depthWrite:false}):toon({color:col===1?0x26262a:0xf4efe3,rim:col===1?.35:.12});
-  const g=new THREE.Group(),r=pitchOf(OS?OS.n:15)*.46;
-  const geo=new THREE.SphereGeometry(r,26,16),m=new THREE.Mesh(geo,MAT[key]);m.scale.y=.52;m.castShadow=!ghost;m.receiveShadow=!ghost;g.add(m);
-  if(!ghost){const o=new THREE.Mesh(new THREE.SphereGeometry(r*1.07,26,16),new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide}));o.scale.y=.56;g.add(o);g.userData.ink=o}
+  const g=new THREE.Group(),r=pitchOf(OS?OS.n:15)*.46,[geo,inkGeo]=stoneGeo(r);
+  const m=new THREE.Mesh(geo,MAT[key]);m.scale.y=.52;m.castShadow=!ghost;m.receiveShadow=!ghost;g.add(m);
+  if(!ghost){if(!MAT.ink)MAT.ink=new THREE.MeshBasicMaterial({color:GFX_INK,side:THREE.BackSide});const o=new THREE.Mesh(inkGeo,MAT.ink);o.scale.y=.56;g.add(o);g.userData.ink=o}
   g.userData.r=r;g.userData.col=col;g.userData.n=OS?OS.n:15;
   return g;
 }

@@ -739,7 +739,7 @@ function cardStep(e,now){
   const ph=(1-c.f)*Math.PI,guard=Math.abs(Math.sin(ph))*CW*c.s*.5+Math.abs(Math.sin(c.tl))*CH*c.s*.5+.02;
   c.y=Math.max(A.y+(Bt.y-A.y)*q+Math.sin(k*Math.PI)*w.lift,guard);
   cardApply(e);
-  if(k>=1){e.tw=null;if(Bt.die){killCard(e.g);if(Bt.keep)e.gone=true;else V3.cards.delete(e.key)}}   // keep: 폴드한 카드는 사라져도 목록에 남겨 다시 만들지 않음
+  if(k>=1){e.tw=null;if(Bt.die){dropCard(e);if(Bt.keep)e.gone=true;else V3.cards.delete(e.key)}}   // keep: 폴드한 카드는 사라져도 목록에 남겨 다시 만들지 않음
 }
 /* ---------- 펠트 무늬·덱·딜러 버튼 ---------- */
 function feltTex(){
@@ -813,8 +813,10 @@ function btnPos(i){
   return {x:S.x+tx*.48*sd+S.ux*.2,z:S.z+tz*.48*sd+S.uz*.2};
 }
 /* 링: 차례 시간(지금 차례인 사람의 베팅 칸 둘레, 줄어듦)과 첫 딜러·차례 표시(카드 자리 둘레) */
+const RING_GEO=new Map();   // 같은 크기 고리는 도형을 같이 씀 (두드릴 때마다·판마다 새로 만들면 쌓임)
 function ringMesh(r0,r1,col,op){
-  const m=new THREE.Mesh(new THREE.RingGeometry(r0,r1,48),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false}));
+  const k=r0+'|'+r1;let geo=RING_GEO.get(k);if(!geo){geo=new THREE.RingGeometry(r0,r1,48);RING_GEO.set(k,geo)}
+  const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false}));
   m.rotation.x=-Math.PI/2;return m;
 }
 function spotRing(i){
@@ -825,7 +827,7 @@ function spotRing(i){
 }
 /* 차례 시간은 3D 고리 대신: 다른 사람은 이름표 테두리(공통), 나는 버튼 줄 위 바 게이지(timeBar) */
 function clear3D(){
-  for(const e of V3.cards.values())killCard(e.g);V3.cards.clear();
+  for(const e of V3.cards.values())dropCard(e);V3.cards.clear();
   for(const f of V3.flights)killG(f.obj);V3.flights=[];
   for(const P of V3.piles.values())killG(P.g);V3.piles.clear();
   killG(V3.bank);V3.bank=null;killG(V3.pot);V3.pot=null;V3.potAmt=-1;V3.potPend=0;
@@ -836,10 +838,10 @@ function clear3D(){
   useFelt(false);
 }
 /* 쇼다운: 이긴 사람의 5장을 살짝 들어 올리고 금색 테두리 (카드 뒤에 조금 큰 판) */
-let GLOW_MAT=null;
+let GLOW_MAT=null,GLOW_GEO=null;   // 재질·도형 모두 하나를 같이 씀
 function glow(e,on){
   if(!on&&!e.glow)return;
-  if(!e.glow){GLOW_MAT=GLOW_MAT||new THREE.MeshBasicMaterial({color:0xf2b632});const m=new THREE.Mesh(new THREE.PlaneGeometry(.62*1.14,.9*1.1),GLOW_MAT);m.position.z=-.006;e.g.add(m);e.glow=m}
+  if(!e.glow){GLOW_MAT=GLOW_MAT||new THREE.MeshBasicMaterial({color:0xf2b632});GLOW_GEO=GLOW_GEO||new THREE.PlaneGeometry(.62*1.14,.9*1.1);const m=new THREE.Mesh(GLOW_GEO,GLOW_MAT);m.position.z=-.006;e.g.add(m);e.glow=m}
   e.glow.visible=on;
 }
 function liftSet(B){
@@ -866,7 +868,7 @@ function sync3(v){
   for(const [key,e] of V3.cards){   // 지난 판 카드는 엎어서 덱으로
     if(e.gone&&!want.has(key)){V3.cards.delete(key);continue}
     if(want.has(key)||e.dying)continue;
-    if(!e.launched){killCard(e.g);V3.cards.delete(key);continue}
+    if(!e.launched){dropCard(e);V3.cards.delete(key);continue}
     e.dying=true;
     cardSet(e,{x:dk.x,y:.3,z:dk.z,ry:0,s:.4,f:0,tl:0,die:true},460,.3);
   }
@@ -915,6 +917,8 @@ function frame3(now){
    마우스를 올리거나 손가락을 대면 내 쪽 아래 모서리가 휘어 올라가 숫자가 보이고, 카드 위 공중에 무늬와 숫자가 뜸.
    휘기: 카드 판을 잘게 나눠 앞면 아래 끝(엎으면 내 쪽 모서리)에서 PEEK_L 안쪽을 모서리와 나란히 둥글게 말아 올림 */
 const PEEK_L=.34,PEEK_A=2.1,PEEK_MS=200,PU={x:0,y:-1},PEEK_D=.45;   // PU: 말리는 방향(앞면 아래쪽), PEEK_D: 카드 가운데에서 아래 모서리까지
+/* 카드 지우기: 내 카드에 붙인 휘는 판(bendable)은 그 카드만의 도형이라 같이 버림 (안 버리면 판마다 쌓임) */
+function dropCard(e){if(e.bend!=null)for(let j=0;j<3;j++)e.g.children[j].geometry.dispose();killCard(e.g)}
 function bendable(e){
   const ch=e.g.children;
   for(let j=0;j<3;j++){const o=ch[j].geometry.parameters,geo=new THREE.PlaneGeometry(o.width,o.height,8,12);geo.userData.base=Float32Array.from(geo.attributes.position.array);ch[j].geometry=geo;ch[j].frustumCulled=false}

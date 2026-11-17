@@ -64,7 +64,7 @@ function saveRoomCfg(c){const g=gameOf(c.game),o={};for(const d of roomSetOf(g,c
 let roomSetOpen=false;
 const PEER_PREFIX='gura-cardgame-room-';
 const ALPH='abcdefghjkmnpqrstuvwxyz23456789';
-const genCode=()=>String(Math.random()*10000|0).padStart(4,'0');   // 탁자 번호는 숫자 4자리(디스플레이 키판으로 입력). 예전 영문 번호도 찾아가기는 됨
+const genCode=()=>String(Math.random()*10000|0).padStart(4,'0');   // 탁자 번호는 숫자 4자리(디스플레이 키판으로 입력). 예전 영문 번호도 참여하기는 됨
 function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
 function unstore(k){try{localStorage.removeItem(k)}catch(e){}}
 /* 이 브라우저를 구분하는 id: 새로고침 뒤 다시 들어와도 같은 자리를 돌려받는 데 씀 */

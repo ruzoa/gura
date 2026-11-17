@@ -268,7 +268,7 @@ function frontCreate(){
   if(!FR.ok||mode!=='lobby'||FR.warp||FR.spread||net.peer)return;
   FR.word='';FR.spread=true;sfx('btnGo');createRoom();
 }
-/* 첫 자판: 상차리기 = 탁자를 차림, 찾아가기 = 숫자 키판으로 바꿈. 누르면 디스플레이에 이름이 플립으로 뜨고 바로 작동 */
+/* 첫 자판: 상차리기 = 탁자를 차림, 참여하기 = 숫자 키판으로 바꿈. 누르면 디스플레이에 이름이 플립으로 뜨고 바로 작동 */
 function frontMenu(k){
   if(!FR.ok||mode!=='lobby'||FR.warp||FR.spread||net.peer||FR.kmode!=='menu')return;
   const t=clock(),m=T.menuPad.keys.find(x=>x.userData.k===k);if(m)m.userData.downAt=t;FR.sit=true;
@@ -276,7 +276,7 @@ function frontMenu(k){
   if(k==='rules'){sfx('key');frontWord('규칙',1200);setTimeout(()=>frontRules('list'),140);return}   // 첫 자판이 들어가고 같은 틈에서 규칙 나무판(게임 목록)
   sfx('key');frontWord('참여하기',1200);FR.kmode='num';FR.backAt=0;FR.leanOn=true;FR.keyAt=t;
 }
-/* 키판: 숫자 4자리를 넣고 엔터면 찾아감. ← 지우기, 엔터 = 찾아가기, 돋보기 = 공개 탁자 목록 판, 주사위 = 아무 탁자나 */
+/* 키판: 숫자 4자리를 넣고 엔터면 찾아감. ← 지우기, 엔터 = 참여하기, 돋보기 = 공개 탁자 목록 판, 주사위 = 아무 탁자나 */
 function frontKey(k){
   if(!frGoOk())return;
   const t=clock();FR.keyAt=t;FR.leanOn=true;FR.sit=true;
@@ -506,7 +506,7 @@ function frontLayout(lobby,wait,host,t){
   const tt=$('#frTitle');tt.hidden=!showTitle;
   if(showTitle){_v3.set(0,0,-4.9).project(T.cam);const far=(1-_v3.y)/2*Hh;tt.style.top=Math.max(64,Math.min(far*.46,Hh*.3))+'px';tt.style.opacity=k;tt.style.marginTop=(-(1-k)*60)+'px'}
   const standing=lobby&&!FR.sit&&FR.stand>.98&&!FR.warp&&!net.peer;   // 첫 화면: 탁자만
-  const frontL=lobby&&FR.sit&&FR.stand<.05&&!FR.warp&&!FR.spread&&!net.peer,front=frontL||(frSeek()&&FR.stand<.05&&!FR.warp);   // 앉아서 찾아가기를 고름 (대기실에서 찾아가는 중 포함)
+  const frontL=lobby&&FR.sit&&FR.stand<.05&&!FR.warp&&!FR.spread&&!net.peer,front=frontL||(frSeek()&&FR.stand<.05&&!FR.warp);   // 앉아서 참여하기를 고름 (대기실에서 찾아가는 중 포함)
   el.classList.toggle('leaving',!(standing||frontL));$('#frFoot').hidden=!lobby;
   frontPut($('#frTable'),standing,standing?frontRect(T.felt.hit,W,Hh):null,10);
   const seated=wait&&FR.stand<.05&&!FR.browse&&!FR.rb.on&&FR.rba.v<=.01&&!FR.seek;
@@ -548,7 +548,7 @@ function frontLayout(lobby,wait,host,t){
   {const tOn=rbUp&&FR.rb.mode==='game'&&FR.rb.pg===rbNSet()&&!FR.rb.chg,el=$('#frRbTitle');   // 첫 규칙 판자 맨 위 게임 이름 → 게임 고르기
    if(tOn){const [l,t2]=rbScreen(RB.CW*.12,50,W,Hh),[r,b]=rbScreen(RB.CW*.88,190,W,Hh);frontPut(el,true,{l,t:t2,r,b},0,60,40)}else frontPut(el,false,null,0)}
   rbLayoutSet(rbUp&&FR.rb.mode==='game'&&!!FR.rb.set&&FR.rb.pg<rbNSet()&&!FR.rb.chg,W,Hh);if(!rbUp)rbTag(null);
-  st.classList.toggle('rbopen',FR.rba.v>.01||(!!FR.seek&&(FR.pla.v>.01||FR.ka.v>.01||FR.lean>.05)));   // 규칙 판·찾아가기(목록 판·키판)를 보는 동안 이름표·홀로그램 글씨 숨김
+  st.classList.toggle('rbopen',FR.rba.v>.01||(!!FR.seek&&(FR.pla.v>.01||FR.ka.v>.01||FR.lean>.05)));   // 규칙 판·참여하기(목록 판·키판)를 보는 동안 이름표·홀로그램 글씨 숨김
   $('#frPad').classList.toggle('off',!pick&&!leaned&&!rbUp);
   // 홀로그램 글씨: 위에서부터 탁자 이름, 게임 이름, 게임 모드 (그 아래가 게임 말). 모드는 지금 고른 게임만(넘겨 보는 중이면 자리만)
   const ht=$('#holoTag'),hOn=wait&&(FR.holoGlow||0)>.05&&!roomSetOpen&&FR.rba.v<=.01;

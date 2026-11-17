@@ -29,6 +29,7 @@ const isDouble=x=>x>0&&x<=LIMIT&&x%11===0;
 const costs=x=>isDouble(x)||x>=LIMIT;
 Object.assign(G,{labelOf,cmpCard:(a,b)=>a-b});
 G.cardHTML=(id,extra)=>{const t=labelOf(id),c=DECK[id];return `<button type="button" class="card rb-c${t.length>2?' rb-w':''}${c.k!=='n'?' rb-s':''} ${extra||''}" data-id="${id}" style="--rc:${cardCol(id)}" aria-label="${t}"><span class="cn">${t}</span><span class="big">${t}</span><span class="cn2" aria-hidden="true">${t}</span></button>`};
+G.faceKey=id=>JSON.stringify(DECK[id]);   // 같은 카드는 3D 앞면 하나를 같이 씀
 G.drawFace=function(g,w,h,id){
   const RC=cardCol(id),k=w/60,t=labelOf(id),c=DECK[id];
   g.clearRect(0,0,w,h);g.save();rr(g,0,0,w,h,8*k);g.clip();g.fillStyle=c.k==='n'&&!c.dbl&&!c.top?'#fffcf5':RC;g.fillRect(0,0,w,h);g.fillStyle=RC;g.fillRect(0,0,w,3*k);g.restore();

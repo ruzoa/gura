@@ -2,7 +2,7 @@
 /* ===== 첫 화면·대기실: 탁자 하나 =====
    로비 창 대신 들판의 탁자 하나에서 시작합니다.
    · 첫 화면: 서서 탁자(펠트가 깔림)와 둘레의 나무 기둥 의자만 봄. 탁자를 누르면 다가가 앉음(FR.sit)
-   · 앉으면: 내 앞 덮개가 열려 디스플레이·키판(찾아가기)이 올라오고, 가운데 구멍에서 상차리기 버튼이 올라옴.
+   · 앉으면: 내 앞 덮개가 열려 디스플레이·키판(참여하기)이 올라오고, 가운데 구멍에서 상차리기 버튼이 올라옴.
      디스플레이·키판을 누르면 숙여서 봄. 탁자 밖을 두 번 누르거나 Esc면 일어섬
    · 찾아가면 앉은 채로 타임머신(탁자가 떨리고 해·하늘·안개) → 도착하면 그 탁자, 못 가면 덜컹 + 디스플레이에 없음·만석·끊김
    · 대기실: 상차리기 버튼이 들어간 구멍에서 투사기가 올라와 홀로그램(위에서부터 탁자 이름·게임 이름·게임 말), 디스플레이(번호·눈·자물쇠),
@@ -13,8 +13,8 @@ const FR_WORD=new Set(['없음','만석','끊김']);
 const HOLO_C=0xffa04a,HOLO_LINE=0xffe2b8,HOLO_BAD=0xff4d6d;   // 주황빛 (못 하는 게임은 붉은 분홍)
 const FR_KEYS=['1','2','3','4','5','search','dice','6','7','8','9','0','←','enter'];   // 키판 두 줄: 윗줄 1~5·돋보기(공개 탁자 목록)·주사위(아무 탁자나), 아랫줄 6~0·지우기(뒤로)·엔터
 const FR_KEY_NAME={'←':'지우기 (뒤로)',enter:'참여하기',search:'공개 탁자 목록',dice:'아무 탁자나 앉기'};
-const FR_MENU=['create','join','rules'],FR_HOST=['rules','rset','go'],FR_GUEST=['rules','rset','go'];   // 첫 자판(지금은 쓰지 않음: 앉으면 바로 상을 차림), 대기실 자판(게임 규칙·탁자 설정·다른 탁자 찾아가기). 봇 추가는 빈 자리 메뉴, 관전하기는 내 이름표 메뉴, 앉기는 빈 자리 메뉴
-/* 다른 탁자 찾아가기(FR.seek): 대기실에 앉은 채로 공개 탁자 목록 판·숫자 키판을 씀. 실제로 출발할 때만 지금 탁자를 떠남 */
+const FR_MENU=['create','join','rules'],FR_HOST=['rules','rset','go'],FR_GUEST=['rules','rset','go'];   // 첫 자판(지금은 쓰지 않음: 앉으면 바로 상을 차림), 대기실 자판(게임 규칙·탁자 설정·다른 탁자 참여하기). 봇 추가는 빈 자리 메뉴, 관전하기는 내 이름표 메뉴, 앉기는 빈 자리 메뉴
+/* 다른 탁자 참여하기(FR.seek): 대기실에 앉은 채로 공개 탁자 목록 판·숫자 키판을 씀. 실제로 출발할 때만 지금 탁자를 떠남 */
 const frSeek=()=>!!(FR.seek&&frTableUI());
 const frGoOk=()=>!!(FR.ok&&!FR.warp&&!FR.spread&&((mode==='lobby'&&!net.peer)||frSeek()));
 const FR_ROWS=7;   // 공개 탁자 목록 판: 한 쪽에 7줄
@@ -123,7 +123,7 @@ function frontBuildPad(TG,list,o){
   list.forEach((k,i)=>{const b=document.createElement('button');b.type='button';b.className='fr-hot off fr-key';b.id=o.id+i;b.setAttribute('aria-label',PAD_NAME[k]);b.title=PAD_NAME[k];b.addEventListener('click',()=>o.on(k));$('#front').insertBefore(b,$('#frFoot'))});
   return {g,keys,id:o.id,a:{v:0,to:0,from:0,t0:0,ms:0}};
 }
-const PAD_NAME={create:'상차리기',join:'참여하기',bot:'봇 추가',clear:'상치우기 (꾹 누르기)',spec:'관전하기',sit:'참여하기',rules:'게임 규칙',rset:'탁자 설정·규칙',leave:'탁자 떠나기 (두 번 누르기)',go:'다른 탁자 찾아가기'};
+const PAD_NAME={create:'상차리기',join:'참여하기',bot:'봇 추가',clear:'상치우기 (꾹 누르기)',spec:'관전하기',sit:'참여하기',rules:'게임 규칙',rset:'탁자 설정·규칙',leave:'탁자 떠나기 (두 번 누르기)',go:'다른 탁자 참여하기'};
 const PAD_COL={create:['#f2b632',0xd99a1e]};
 function padIcon(g,k){   // 192×128 칸에 그림 (상·의자 그림은 사용자 스케치: 둥근 상판 + 기둥 + 발판, 나이테 보이는 나무 기둥)
   const ink='#3b2a1f',bg=g.fillStyle;g.strokeStyle=g.fillStyle=ink;g.lineCap='round';g.lineJoin='round';
@@ -140,7 +140,7 @@ function padIcon(g,k){   // 192×128 칸에 그림 (상·의자 그림은 사용
   if(k==='create'){table();mark(96,26,18,true)}
   else if(k==='clear'){table();mark(96,42,22,false)}
   else if(k==='join'||k==='sit'){L(11,122,24,146,24,146,104,122,104);L(11,40,64,116,64);L(11,92,40,118,64,92,88)}
-  else if(k==='go'){L(11,70,24,46,24,46,104,70,104);L(11,76,64,152,64);L(11,128,40,152,64,128,88)}   // 다른 탁자 찾아가기([→): 문틀을 나서 밖으로
+  else if(k==='go'){L(11,70,24,46,24,46,104,70,104);L(11,76,64,152,64);L(11,128,40,152,64,128,88)}   // 다른 탁자 참여하기([→): 문틀을 나서 밖으로
   else if(k==='leave'){L(11,122,24,146,24,146,104,122,104);L(11,40,64,116,64);L(11,64,40,38,64,64,88)}   // 참여하기(→])와 같은 문틀, 화살표 방향만 반대(←]): 문 밖으로 나감
   else if(k==='rset'){   // 탁자 설정: 톱니바퀴
     g.save();g.translate(96,64);g.lineWidth=12;
@@ -175,7 +175,7 @@ function frontWaitKey(k){
   if(k==='sit'){sfx('key');sendAct({t:'join'});return}
   if(k==='rset'){sfx('key');setTimeout(()=>frontRules(V.cfg.game||'gura',{set:true}),140);return}   // 설정 판자 → 지금 게임의 규칙 판자
   if(k==='rules'){sfx('key');setTimeout(()=>frontRules('list'),140);return}   // 게임 목록 규칙 판자 (모든 게임)
-  if(k==='go'){sfx('key');frontWord('찾아가기',1200);FR.seek=true;FR.kmode='menu';FR.buf='';FR.pub=null;frontList(true);return}   // 자판이 들어가고 같은 틈에서 공개 탁자 목록 판
+  if(k==='go'){sfx('key');frontWord('참여하기',1200);FR.seek=true;FR.kmode='menu';FR.buf='';FR.pub=null;frontList(true);return}   // 자판이 들어가고 같은 틈에서 공개 탁자 목록 판
   if(k==='leave'){   // 한 번 누르면 디스플레이에 '떠나기', 2.5초 안에 한 번 더 누르면 떠남 
     if(FR.leaveAt&&t-FR.leaveAt<2500){FR.leaveAt=0;FR.word='';sfx('key');frontLeave();return}
     FR.leaveAt=t;frontWord('떠나기',2500);return}   // 키는 그대로 두고 디스플레이만 바뀜 (탁자 밖을 누를 때처럼 일어서지 않음)
@@ -214,7 +214,7 @@ function guestCleared(){
   document.querySelectorAll('#labels .wseat').forEach((el,i)=>{el.style.animationDelay=(i*60)+'ms';el.classList.add('drop')});
   setTimeout(()=>{FR.clearing=0;if(mode!=='guest')return;leaveRoom();FR.sit=true;FR.kmode='menu';FR.clearAt=clock();sfx('warpFail')},CLEAR_SUCK+150);
 }
-/* 찾아가기 끝: 목록 판·키판이 들어가고 대기실 자판이 다시 나옴 */
+/* 참여하기 끝: 목록 판·키판이 들어가고 대기실 자판이 다시 나옴 */
 function frontSeekEnd(){FR.seek=false;FR.list=false;FR.kmode='menu';FR.buf='';FR.pub=null;FR.backAt=0;FR.leanOn=false}
 /* 찾아가며 출발: 지금 탁자를 떠나되 앉은 채로 (방장이면 다른 사람에게 넘어감) */
 function frontSeekLeave(){if(!frSeek())return;frontSeekEnd();leaveRoom();FR.sit=true}

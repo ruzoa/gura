@@ -53,7 +53,7 @@ function backTex(){return canvasTex(512,744,(g,w,h)=>{
   g.restore();
 })}
 function faceMat(id){
-  const gm=G,fk=gm.id+':'+id;   // 같은 id라도 게임마다 그림이 다름
+  const gm=G,fk=gm.id+':'+(gm.faceKey?gm.faceKey(id):id);   // 같은 id라도 게임마다 그림이 다름. 같은 그림이 여러 장인 게임은 faceKey로 그림 하나를 같이 씀 (장마다 만들면 그림이 카드 수만큼 쌓임)
   if(T.faces.has(fk))return T.faces.get(fk);
   const tex=canvasTex(256,372,(g,w,h)=>gm.drawFace(g,w,h,id));
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{gm.drawFace(tex.image.getContext('2d'),256,372,id);tex.needsUpdate=true});

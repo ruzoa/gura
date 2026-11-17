@@ -20,6 +20,7 @@ G.cardHTML=()=>'';   // 손패 부채는 쓰지 않음 (카드는 모두 테이�
 G.labelOf=id=>RK[rkOf(id)];G.cmpCard=(a,b)=>a-b;
 Object.assign(G,{score,isBJ,valOf});
 /* 3D 카드 앞면 (60×88 카드를 256×372로 확대) */
+G.faceKey=id=>id%52;   // 여러 벌을 섞어 써도 같은 그림은 3D 앞면 하나를 같이 씀
 G.drawFace=function(g,w,h,id){
   const RC=SUIT_COL[suitOf(id)],k=w/60,lab=RK[rkOf(id)],su=SUITS[suitOf(id)];
   g.clearRect(0,0,w,h);
@@ -783,10 +784,15 @@ function buildRoot(){
 }
 function stackH(m,frac,base){const h=Math.max(.004,frac*.34);m.scale.y=h;m.position.y=base+h/2;m.visible=frac>0}
 /* 베팅한 칩 공간 동그라미: 걸기 전 점선(흰색) → 걸면 실선(내 칸은 금색). 베팅할 칩 공간에는 표시가 없고(투명한 누르는 자리만), 더블할 수 있을 때만 금색 점선 고리 */
+const RING_GEO=new Map();   // 같은 크기 고리는 도형을 같이 씀: 베팅 상태가 바뀔 때마다 고리를 다시 만드는데, 그때마다 도형을 새로 만들면 판을 거듭할수록 쌓임
+function ringGeos(r0,r1,dashed){
+  const k=r0+'|'+r1+'|'+(dashed?1:0);let a=RING_GEO.get(k);
+  if(!a){const N=dashed?14:1,seg=Math.PI*2/N;a=[];for(let j=0;j<N;j++)a.push(new THREE.RingGeometry(r0,r1,dashed?8:48,1,j*seg,dashed?seg*.55:Math.PI*2));RING_GEO.set(k,a)}
+  return a;
+}
 function ringMesh(r0,r1,col,op,dashed){
   const g=new THREE.Group(),mat=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false});
-  const N=dashed?14:1,seg=Math.PI*2/N;
-  for(let j=0;j<N;j++){const m=new THREE.Mesh(new THREE.RingGeometry(r0,r1,dashed?8:48,1,j*seg,dashed?seg*.55:Math.PI*2),mat);m.rotation.x=-Math.PI/2;g.add(m)}
+  for(const geo of ringGeos(r0,r1,dashed)){const m=new THREE.Mesh(geo,mat);m.rotation.x=-Math.PI/2;g.add(m)}
   g.userData.mat=mat;return g;
 }
 function syncRings(B){

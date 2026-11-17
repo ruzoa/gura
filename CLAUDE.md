@@ -1,6 +1,6 @@
 # 탁자하나 (A table) — 게임 모음 (구라! · 대부호 · 쿼리도 · 야추다이스 · 오목 · 체스 · 장기 · 블랙잭 · 포커 · 알까기 · 흑과백 · 동물장기 · 숫자야구 · 픽셀 · 아발론 · 더 마인드 · 보난자 · 로보77 · 다빈치코드 · 원카드 · 미아 · 바퀴벌레 포커 · 구라! 다이스 · 루미큐브)
 
-사이트 이름은 **탁자하나**(영어 A table), 로비 메뉴는 **상차리기**(방 만들기)·**참여하기**(방 들어가기), 링크 미리보기 문구는 "그저 탁자 하나"입니다. 구라!는 그 안의 게임 하나입니다.
+사이트 이름은 **탁자하나**(영어 A table), 로비 메뉴는 **상차리기**(방 만들기)·**참여하기**(방 들어가기), 링크 미리보기 문구는 "그저 탁자 하나"입니다. 다른 탁자로 가는 기능은 어디서나 **참여하기**로 부르고(대기실 '다른 탁자 참여하기', 목록 판 '번호로 참여하기') '찾아가기'라는 이름은 쓰지 않습니다. 구라!는 그 안의 게임 하나입니다.
 화면에서 방은 **탁자**로 부릅니다: 탁자 이름, 탁자 번호(4자리 코드), 공개 탁자·비공개 탁자, 탁자 목록, 아무 탁자나 앉기, 번호로 참여하기, 탁자 설정, 탁자 떠나기. **방장**과 **대기실**은 그대로 씁니다. 코드 안의 이름(`room`, `H.code`, `gura-` 저장 키, PeerJS 이름표)은 바꾸지 않습니다.
 
 친구들과 브라우저에서 하는 온라인 게임 모음입니다. 모든 게임이 같은 3D 탁자 위에서 열립니다. GitHub Pages로 배포하고 빌드 과정은 없습니다.
@@ -63,7 +63,7 @@
   - 안 되는 곳을 누르면 글 대신 공통 금지 소리 `sfx('no')`를 냅니다. 왜 안 되는지는 화면에 보여야 합니다(초록 점, 빨간 ✕, 빨간 벽 등).
   - 안내 줄에는 꼭 필요한 것만 짧게 남깁니다(진행 단계, 판 시작 안내, 결과, 조커처럼 화면만으로 알 수 없는 규칙). 비면 자리만 남기고 숨깁니다(`:empty{visibility:hidden}` 또는 고정 높이).
 - **안전 영역(노치·홈 바)**: `body.fs` 한 곳에서만 `env(safe-area-inset-*)` 패딩을 줍니다. `html`/`:root`에 또 주면 홈 화면 앱 위쪽에 띠가 두 번 생깁니다.
-- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`, `gura-roomcfg-chess`, `gura-roomcfg-janggi`, `gura-roomcfg-blackjack`, `gura-roomcfg-poker`, `gura-roomcfg-alkkagi`, `gura-roomcfg-blackwhite`, `gura-roomcfg-animal`, `gura-roomcfg-baseball`, `gura-roomcfg-pixel`, `gura-roomcfg-abalone`, `gura-roomcfg-mind`, `gura-roomcfg-bohnanza`, `gura-roomcfg-robo77`, `gura-roomcfg-davinci`, `gura-roomcfg-onecard`, `gura-roomcfg-mia`, `gura-roomcfg-cockroach`, `gura-roomcfg-liardice`, `gura-roomcfg-rummi`). 루미큐브는 그 판의 받침대 배열(`gura-rummi-rack`)도 저장합니다. 더 마인드는 인원별 최고 기록(`gura-mind-best`)도 저장합니다. 숫자야구는 그 판의 숫자 메모(`gura-nb-lamp`)도 저장합니다. 미아는 그 판의 칸 메모(`gura-mia-memo`)도 저장합니다. 아바타는 `gura-avatar`(모양)·`gura-avatar-paint`(칠한 그림)에 저장합니다. 오목은 이 밖에 커스텀 규칙 기억(`gura-omok-custom`)과 세부 설정 펼침(`gura-omok-more`)도 저장합니다.
+- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`, `gura-roomcfg-chess`, `gura-roomcfg-janggi`, `gura-roomcfg-blackjack`, `gura-roomcfg-poker`, `gura-roomcfg-alkkagi`, `gura-roomcfg-blackwhite`, `gura-roomcfg-animal`, `gura-roomcfg-baseball`, `gura-roomcfg-pixel`, `gura-roomcfg-abalone`, `gura-roomcfg-mind`, `gura-roomcfg-bohnanza`, `gura-roomcfg-robo77`, `gura-roomcfg-davinci`, `gura-roomcfg-onecard`, `gura-roomcfg-mia`, `gura-roomcfg-cockroach`, `gura-roomcfg-liardice`, `gura-roomcfg-rummi`). 루미큐브는 그 판의 받침대 배열(`gura-rummi-rack`)도 저장합니다. 더 마인드는 인원별 최고 기록(`gura-mind-best`)도 저장합니다. 숫자야구는 그 판의 숫자 메모(`gura-nb-lamp`)도 저장합니다. 미아는 그 판의 칸 메모(`gura-mia-memo`)도 저장합니다. 아바타는 `gura-avatar`(모양)·`gura-avatar-paint`(칠한 그림)에 저장합니다. 오목과 대부호는 이 밖에 커스텀 규칙 기억(`gura-omok-custom`, `gura-president-custom`)과 세부 설정 펼침(`gura-omok-more`, `gura-president-more`)도 저장합니다.
 - **움직임 줄이기**: 기기의 '움직임 줄이기'(`prefers-reduced-motion`) 설정을 보고 게임 움직임을 끄지 않습니다. 시작 연출, 주사위 굴리기, 말·벽 이동, 돌 놓기처럼 게임 진행을 보여 주는 움직임은 설정과 상관없이 모든 기기에서 똑같이 보여야 합니다. `matchMedia('(prefers-reduced-motion…')`로 움직임을 건너뛰는 코드를 새로 넣지 않습니다. (아직 남은 예외: `games/yahtzee.js`의 2D 주사위 CSS. 손볼 때 같이 정리)
 
 ## 모든 모드 공통 원칙
@@ -130,4 +130,5 @@
 - **three.js가 없어도 파일 맨 위 코드는 돌아가게**: 맨 위에서 바로 만드는 `new THREE.…`은 `window.THREE?…:null`로 막음. 한 줄이 오류 나면 그 파일의 나머지가 통째로 안 붙음(`core/front-objs.js` 고개 돌리기).
 - **설정 장치는 두 가지만**: 양쪽 다 이름이 있는 선택(클래식/빠른, 자유/렌주, 대부호/대빈민)은 플립 칸, 한쪽이 '없음'인 켜기·끄기는 스위치(홈이 파이고 동그란 손잡이, 켜지면 홈이 밝아짐). 새 게임의 설정 항목(`G.boardSet`)은 `kind:'choice'`·`'tog'`로만 만들고 따로 레버를 만들지 않습니다.
 - **큰 데이터는 상태에 싣지 않음**: 상태(`snapFor`)는 바뀔 때마다 모두에게 다시 가므로 그림 같은 큰 값은 번호만 싣고, 내용은 바뀔 때 한 번만 따로 보내 받은 쪽이 번호로 기억합니다(아바타 색칠 `avp`).
+- **같은 모양은 도형·그림을 같이 쓰고, 따로 만든 것은 지울 때 버림**: 화면에서 뺀 물체의 도형·그림은 `dispose()` 전까지 남아 쌓입니다. 같은 모양은 보관함의 도형 하나를 같이 쓰고(오목 `stoneGeo`, 쿼리도 `WALL_GEO`, 블랙잭·포커 `RING_GEO`), 물체마다 따로 만든 도형은 지울 때 버리며(포커 `dropCard`), 같은 그림이 여러 장인 카드는 `G.faceKey`로 앞면을 같이 씁니다(블랙잭·보난자·바퀴벌레 포커·로보77).
 - **배포는 몇 분 걸림**: "적용이 안 됐다"면 먼저 사이트의 파일이 바뀌었는지 확인합니다.
