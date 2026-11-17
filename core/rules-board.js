@@ -154,6 +154,7 @@ function rbSetItems(c0){   // c0: 이 방 설정으로 계산(없으면 지금 �
   const D={max:4,spec:4,...g.defaults},skip=new Set(['max','spec','rounds','chips','turn','grace','tm','inc','stones']);
   const off=(k,v)=>!skip.has(k)&&D[k]!=null&&+D[k]!==+v;
   const common=new Set(COMMON_SET.map(d=>d.k));
+  det.push({kind:'choice',k:'game',label:'게임',opts:GAME_IDS.map(id=>gameOf(id).name),desc:'다른 게임으로 바꿉니다. 지금 인원으로 할 수 없는 게임은 건너뜁니다.',v:Math.max(0,GAME_IDS.indexOf(c.game||'gura')),diff:false});   // 게임 설정 맨 위: 게임 고르기 (방장)
   if(!g.noFast){const v=+c.fast?1:0;det.push({kind:'choice',k:'fast',label:'게임 모드',opts:OPT_LABEL.fast,desc:(g.modeDesc||MODE_DESC).map((d,i)=>`${OPT_LABEL.fast[i]}: ${d}`).join('<br>'),v,diff:!!v,act:o=>'mode'+o})}
   for(const d of roomSetOf(g,c))if(!d.lever){   // 최대 인원도 여기(탁자 설정 판자)에서 바꿈
     const v=+(c[d.k]??0);(common.has(d.k)?main:det).push({kind:'num',...d,v,diff:off(d.k,v)})}
@@ -362,6 +363,10 @@ function rbSetAct(k,a){
   const it=rbItem(k);if(!it)return;
   if(mode!=='host'||!H||H.phase!=='wait'){sfx('no');return}
   FR.rb.press={k,a,at:clock()};
+  if(k==='game'){   // 게임: 지금 인원으로 할 수 있는 다음·이전 게임으로 (처음·끝은 이어 돎)
+    const n=GAME_IDS.length,d=a==='next'?1:n-1;
+    for(let s2=1;s2<n;s2++){const id=GAME_IDS[(it.v+d*s2)%n];if(frontCanPlay(id)){hostSetGame(id);sfx('flap');return true}}
+    sfx('no');return}
   if(it.kind==='num'){const v=it.v,nv=v+(a==='inc'?it.step:-it.step);if((a==='dec'&&v<=rbLo(it))||(a==='inc'&&v>=it.hi)){sfx('no');return false}setRoomCfg(k,nv);sfx('flap');return true}
   if(it.kind==='tog'){rbRun(it.act(it.v?0:1));sfx('lock');return}
   if(a==='prev'||a==='next'){   // 처음·끝은 이어 돎. 눌렀는데 값이 그대로면(커스텀이 묶음과 같아 되돌아옴 등) 한 칸 더 넘김
