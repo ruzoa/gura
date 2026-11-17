@@ -767,6 +767,13 @@ function itemPlan(A,seat,k,rnd){
     if(k==='wh')sc+=Math.max(Math.abs(o.x2)/BD.x,Math.abs(o.z2)/BD.z);
     if(sc>bs){bs=sc;best=o}
   }
+  if(!best){   // 판이 붐벼 무작위로 못 찾으면 판 전체를 촘촘히 훑음 (벽돌은 방향 넷, 웜홀은 둘째 구멍도 훑음)
+    const pts=[];for(let x=-BD.x+.15;x<=BD.x-.15;x+=.08)for(let z=-BD.z+.15;z<=BD.z-.15;z+=.08)pts.push([x,z]);
+    for(const [x,z] of pts){
+      if(k==='wh'){if(!endFree(A,x,z))continue;for(const [x2,z2] of pts){const o={k,x,z,x2,z2};if(canPut(A,o))return o}continue}
+      for(const a of k==='br'?[0,Math.PI/4,Math.PI/2,3*Math.PI/4]:[0]){const o={k,x,z,a};if(k==='bh')o.r=IT.bh.rc;if(canPut(A,o))return o}
+    }
+  }
   return best;
 }
 function autoPlace(i){
@@ -1639,6 +1646,8 @@ function itGhost(k){
   g.userData.bad=[bad,bad.clone()];g.userData.units.forEach((u,e)=>u.add(g.userData.bad[e]));
   g.renderOrder=5;return g;
 }
+/* 판에서 뺀 물건 그림의 도형·재질을 버림 (같이 쓰는 그림 ITX·먹 재질 MAT.ink는 남김) */
+function itDrop(g){if(!g)return;Ak3.root.remove(g);g.traverse(m=>{if(!m.isMesh)return;m.geometry.dispose();if(m.material!==MAT.ink)m.material.dispose()})}
 const ownCol=seat=>new THREE.Color(HCOL[Math.max(0,handCol(seat))%HCOL.length]);
 /* 지금 보일 물건 상태: 튕긴 자취를 재생하는 동안은 그 일(삼킴·폭발)이 일어나기 전 모습 */
 function itemsNow(now){
@@ -1655,7 +1664,7 @@ const FLY_MS=480;   // 놓은 물건이 판으로 날아가는 시간
 function ak3Items(now){
   const R=Ak3.root,on=!!(OS&&OS.ob&&OS.of),key=on?OS.gid+'|'+OS.of.join(','):'';
   if(key!==Ak3.obKey){
-    for(const t of Ak3.tok||[])R.remove(t.g);for(const k in Ak3.itB||{})R.remove(Ak3.itB[k].g);
+    for(const t of Ak3.tok||[])itDrop(t.g);for(const k in Ak3.itB||{})itDrop(Ak3.itB[k].g);
     Ak3.obKey=key;Ak3.tok=[];Ak3.itB={};Ak3.obFresh=true;
     if(on)Ak3.tok=OS.of.map(k=>{const g=itUnit(k);if(g.userData.reach)g.userData.reach.visible=false;g.traverse(m=>{m.castShadow=false});g.visible=false;R.add(g);return {g,k,p:null,sc:0}});   // 떠 있는 작은 물건은 그림자 없이
   }
@@ -1705,7 +1714,7 @@ function ak3Items(now){
   Ak3.obFresh=false;
   // 미리 보기
   const gn=ghostNow(),G2=Ak3.gh;
-  if(gn&&G2.k!==gn.k){if(G2.g)R.remove(G2.g);G2.g=itGhost(gn.k);G2.k=gn.k;R.add(G2.g)}
+  if(gn&&G2.k!==gn.k){itDrop(G2.g);G2.g=itGhost(gn.k);G2.k=gn.k;R.add(G2.g)}
   if(G2.g)G2.g.visible=!!gn;
   if(gn){const u=G2.g.userData.units;G2.g.position.set(0,TOP,0);
     u.forEach((x,e)=>{const has=e===0||gn.x2!=null;x.visible=has;if(!has)return;x.position.set(e?gn.x2:gn.x,.002,e?gn.z2:gn.z);if(gn.k==='br')x.rotation.y=-(gn.a||0);
