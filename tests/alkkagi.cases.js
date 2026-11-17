@@ -404,21 +404,35 @@ globalThis.playOutA=playOutA;
   ok(!T.canPut(A,{k:'wh',x:-1,z:-1,x2:-1,z2:-.5}),'wormhole ends apart');ok(T.canPut(A,{k:'wh',x:-1,z:-1,x2:-1,z2:.2}),'wormhole ok');
   ok(!T.canPut(A,{k:'br',x:2.2,z:0,a:0}),'brick inside board');ok(T.canPut(A,{k:'br',x:-1,z:1,a:.5}),'brick ok')}
 }
-/* 엔진: 알 놓기 → 고르기(선착순) → 놓기(선부터) → 튕기기 */
+/* 엔진: 알 놓기 → 고르기(카운트다운 뒤 선착순, 반응 시간) → 놓기(모두 동시에) → 튕기기 */
 {mkRoom({pickfirst:1,stones:2,ob:1,obn:1});
  const A=H.ak;eq(A.ph,'pick','pick after stones');eq(A.of.length,3,'offered n+1');ok(A.ofs.every(x=>x<0),'none picked');
- AK.engine.act(1,{t:'pick',k:0});eq(A.ofs[0],1,'second picks first-come');
- AK.engine.act(0,{t:'pick',k:0});eq(A.ofs[0],1,'taken stays');eq(A.ph,'pick','still picking');
- {const s=snapFor(0);eq(s.t,0,'picker turn sent');ok(s.ak.of.length===3,'offer sent')}
- AK.engine.act(1,{t:'pick',k:1});eq(A.ofs[1],-1,'only one each');
- AK.engine.act(0,{t:'pick',k:2});eq(A.ph,'iput','put after pick');eq(H.turn,0,'first puts first');
- AK.engine.act(1,{t:'iput',x:0,z:0});eq(A.it.length,0,'not your turn to put');
- const p0=T.itemPlan(A,0,A.of[2]);ok(p0,'plan item');AK.engine.act(0,{t:'iput',...p0});eq(A.it.length,1,'item put');eq(H.turn,1,'next puts');
- const p1=T.itemPlan(A,1,A.of[0]);AK.engine.act(1,{t:'iput',...p1});eq(A.it.length,2,'two items');eq(A.ph,'aim','shoot after put');eq(H.turn,0,'first shoots');}
+ AK.engine.act(0,{t:'pick',k:0,rt:0});NOW+=500;engineTick();eq(A.ofs[0],-1,'no pick before countdown');
+ NOW=A.go+600;AK.engine.act(0,{t:'pick',k:0,rt:400});NOW+=50;AK.engine.act(1,{t:'pick',k:0,rt:250});NOW+=300;engineTick();
+ eq(A.ofs[0],1,'faster reaction wins');
+ {const s=snapFor(0);eq(s.t,0,'picker turn sent');ok(s.ak.of.length===3,'offer sent');ok(s.ak.cd<0,'countdown passed')}
+ AK.engine.act(1,{t:'pick',k:1,rt:300});NOW+=300;engineTick();eq(A.ofs[1],-1,'only one each');
+ AK.engine.act(0,{t:'pick',k:2,rt:900});NOW+=300;engineTick();eq(A.ph,'iput','put after pick');
+ const p1=T.itemPlan(A,1,A.ok[A.inv[1][0]]);AK.engine.act(1,{t:'iput',...p1});eq(A.it.length,0,'no put before countdown');
+ NOW=A.go+10;AK.engine.act(1,{t:'iput',...p1});eq(A.it.length,1,'second puts first (simultaneous)');
+ AK.engine.act(0,{t:'iput',x:p1.x,z:p1.z,a:p1.a,x2:p1.x2,z2:p1.z2});
+ if(!T.canPut(A,{k:A.ok[A.inv[0][0]],x:p1.x,z:p1.z,a:p1.a||0,x2:p1.x2,z2:p1.z2,r:.13}))eq(A.it.length,1,'taken spot refused');
+ if(A.ph==='iput'){const p0=T.itemPlan(A,0,A.ok[A.inv[0][0]]);AK.engine.act(0,{t:'iput',...p0})}
+ eq(A.it.length,2,'two items');eq(A.ph,'aim','shoot after put');eq(H.turn,0,'first shoots');}
+/* '?': 고른 사람만 속을 봄, 놓으면 모두 봄 */
+{mkRoom({pickfirst:1,stones:1,ob:1,obn:1});const A=H.ak;A.of=['qm','br','sd'];A.ok=[null,'br','sd'];
+ NOW=A.go+100;AK.engine.act(0,{t:'pick',k:0,rt:50});NOW+=300;engineTick();eq(A.ofs[0],0,'picked ?');ok(T.OB_K.includes(A.ok[0]),'? resolved '+A.ok[0]);
+ eq(snapFor(1).ak.ok[0],null,'? hidden from other');eq(snapFor(0).ak.ok[0],A.ok[0],'? shown to picker');
+ AK.engine.act(1,{t:'pick',k:1,rt:50});NOW+=300;engineTick();NOW=A.go+10;
+ for(let k=0;k<4&&A.ph==='iput';k++){NOW=H.deadline+1;engineTick()}
+ eq(A.it.length,2,'auto put both');eq(snapFor(1).ak.ok[0],A.ok[0],'? shown after put');ok(A.it.some(o=>o.o===0&&o.k===A.ok[0]),'? placed as its item')}
+/* 희귀도: 전설은 한 판에 하나까지, 일반이 가장 자주 */
+{const cnt=[0,0,0];for(let k=0;k<400;k++){const d=T.obDraw(13);ok(d.filter(x=>T.OB_RAR[x]===2).length<=1,'one legend max');d.forEach(x=>cnt[T.OB_RAR[x]]++)}
+ ok(cnt[0]>cnt[1]&&cnt[1]>cnt[2],'rarity order '+cnt)}
 /* 시간 초과: 고르기·놓기를 대신 */
 {mkRoom({pickfirst:1,stones:1,ob:1,obn:2,turn:10});
  const A=H.ak;eq(A.of.length,5,'offered 2x2+1');NOW=H.deadline+1;engineTick();eq(A.ph,'iput','timeout picks');ok(A.inv[0].length===2&&A.inv[1].length===2,'each two');
- for(let k=0;k<4;k++){NOW=H.deadline+1;engineTick()}eq(A.ph,'aim','timeout puts');eq(A.it.length,4,'four items')}
+ NOW=H.deadline+1;engineTick();eq(A.ph,'aim','timeout puts');eq(A.it.length,4,'four items')}
 /* 장기 모드: 바로 고르기 */
 {mkRoom({md:2,ob:1});eq(H.ak.ph,'pick','janggi starts with pick')}
 /* 설정 판자: 물건 놓기 스위치는 바둑·장기에만, 켜면 물건 수 */
