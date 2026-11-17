@@ -582,15 +582,15 @@ function pieceMesh(i){
 function memoTex(k){
   return MAT['m'+k]||(MAT['m'+k]=new THREE.MeshBasicMaterial({transparent:true,depthWrite:false,map:canvasTex(64,64,(c,w,h)=>{c.clearRect(0,0,w,h);c.strokeStyle=c.fillStyle='#46321e';c.lineWidth=7;c.lineCap='round';if(k===1){c.beginPath();c.moveTo(20,20);c.lineTo(44,44);c.moveTo(44,20);c.lineTo(20,44);c.stroke()}else{c.beginPath();c.arc(32,32,11,0,7);c.fill()}})}));
 }
-/* 대기실 홀로그램의 대표 말: 탈출구 코인과 흐린 말, 그 사이 벽 하나 */
+/* 대기실 홀로그램의 대표 말: 세운 탈출구 코인(달리는 사람 + ])과 그 앞의 흐린 말 */
 G.holoPiece=mkM=>{
-  const g=new THREE.Group();
-  const cn=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.05,28),mkM(new THREE.Color(SEAT_C[0]).getHex()));cn.rotation.x=Math.PI/2;cn.position.set(.24,.02,0);g.add(cn);
-  const dr=new THREE.Mesh(new THREE.BoxGeometry(.13,.24,.02),mkM(0xf2e6c4));dr.position.set(.24,.02,.04);g.add(dr);
-  const w=new THREE.Mesh(new THREE.BoxGeometry(.05,.34,.3),mkM(0x9a6a3a));w.position.set(-.04,-.14,0);g.add(w);
-  const b=new THREE.Mesh(new THREE.SphereGeometry(.09,16,12),mkM(new THREE.Color(SEAT_C[1]).getHex()));b.position.set(-.26,-.02,0);g.add(b);
-  const p=new THREE.Mesh(new THREE.CylinderGeometry(.07,.12,.2,16),mkM(new THREE.Color(SEAT_C[1]).getHex()));p.position.set(-.26,-.2,0);g.add(p);
-  g.rotation.set(-.2,.45,.05);return g;
+  const g=new THREE.Group(),hex=COIN_C[0],fc=holoFace(null,0,128,128,(c,w)=>drawExit(c,w,hex)),sd=mkM(new THREE.Color(hex).getHex());
+  const cn=new THREE.Mesh(new THREE.CylinderGeometry(.26,.26,.05,36),[sd,mkM(0xffffff,fc),mkM(0xffffff,fc)]);cn.rotation.y=Math.PI/2;
+  const cw=new THREE.Group();cw.add(cn);cw.rotation.x=Math.PI/2;cw.position.set(.1,.04,-.04);g.add(cw);
+  const pm=mkM(new THREE.Color(SEAT_C[1]).getHex());
+  const b=new THREE.Mesh(new THREE.CylinderGeometry(.09,.13,.17,18),pm);b.position.set(-.2,-.2,.12);g.add(b);
+  const h=new THREE.Mesh(new THREE.SphereGeometry(.085,16,12),pm);h.position.set(-.2,-.04,.12);g.add(h);
+  return g;
 };
 /* 10면체(오각 사다리꼴면체): 위 꼭짓점·아래 꼭짓점과 가운데 고리 10점으로 된 연 모양 면 10개. 면마다 숫자 0~9 */
 const DIE_R=.3,DIE_H=.33,DIE_E=DIE_H*(1-Math.cos(Math.PI/5))/(1+Math.cos(Math.PI/5));

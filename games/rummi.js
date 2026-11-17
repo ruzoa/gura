@@ -1055,13 +1055,13 @@ G.leave=()=>{
   $('#btnPass').hidden=false;
   if(elRm){elRm.hidden=true;lastBar='';lastHint='';last2d=''}
 };
-/* 대기실 홀로그램의 대표 말: 세운 타일 셋 */
+/* 대기실 홀로그램의 대표 말: 이어지는 숫자 5·6·7(파랑)과 별 조커, 비스듬히 누움 */
 G.holoPiece=mkM=>{
-  const g=new THREE.Group();
-  [0xd2362b,0x2563c4,0xe3891b].forEach((c,i)=>{
-    const t=new THREE.Mesh(new THREE.BoxGeometry(.2,.28,.05),mkM(0xf6eeda));t.position.set((i-1)*.23,0,0);g.add(t);
-    const d=new THREE.Mesh(new THREE.BoxGeometry(.09,.13,.02),mkM(c));d.position.set((i-1)*.23,.02,.035);g.add(d)});
-  g.rotation.set(-.25,.3,0);return g;
+  const g=new THREE.Group(),body=mkM(0xf6eeda),geo=new THREE.BoxGeometry(.18,.256,.05);
+  [26+4,26+5,26+6,JK].forEach((id,i)=>{
+    const t=new THREE.Mesh(geo,[body,body,body,body,mkM(0xffffff,holoFace(null,0,128,182,(c,w,h)=>drawFace(c,w,h,id,0))),body]);
+    t.position.set((i-1.5)*.2,0,0);g.add(t)});
+  g.rotation.x=-.75;g.position.y=-.08;return g;
 };
 G.init=()=>{
   const css=document.createElement('style');

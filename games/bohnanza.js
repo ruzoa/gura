@@ -799,9 +799,15 @@ G.leave=()=>{
   $('#btnPlay').hidden=false;$('#btnPlay').disabled=false;
   $('#btnPass').hidden=false;$('#btnPass').disabled=false;$('#btnPass').firstChild.nodeValue='패스';
 };
+/* 대기실 홀로그램의 대표 말: 강낭콩 카드와 거기서 튀어나온 강낭콩 (공통 frontHoloPiece가 재질 만드는 함수를 줌) */
 G.holoPiece=mkM=>{
-  const g=new THREE.Group(),m=mkM(0xffffff),a=new THREE.Mesh(new THREE.SphereGeometry(.17,20,14),m),b=new THREE.Mesh(new THREE.SphereGeometry(.17,20,14),m);
-  a.position.set(-.11,.02,0);a.scale.set(1.15,.85,.8);b.position.set(.12,-.03,0);b.scale.set(1.05,.8,.8);g.add(a,b);g.rotation.z=.25;return g;
+  const g=new THREE.Group(),KID=BEANS.findIndex(b=>b.n==='강낭콩'),id=TYPE.indexOf(KID);
+  const c=holoCard(mkM,holoFace(G,id));c.position.set(-.06,-.04,0);c.rotation.z=.08;g.add(c);
+  const geo=new THREE.SphereGeometry(.1,24,16),P=geo.attributes.position;   // 콩팥 모양: 길쭉한 알을 휘고 안쪽 가운데를 오목하게
+  for(let k=0;k<P.count;k++){let x=P.getX(k)*1.55,y=P.getY(k)*.95,z=P.getZ(k)*.8;if(y>0)y*=1-.5*Math.exp(-x*x/.004);y+=1.6*x*x;P.setXYZ(k,x,y,z)}
+  geo.computeVertexNormals();
+  const b=new THREE.Mesh(geo,mkM(new THREE.Color(BEANS[KID].col).getHex()));b.rotation.z=.3;b.position.set(.2,.08,.1);g.add(b);
+  return g;
 };
 G.init=()=>{
   const css=document.createElement('style');
