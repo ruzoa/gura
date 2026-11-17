@@ -34,9 +34,12 @@ function frontHoloPiece(id){
     const dt=canvasTex(128,128,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h);x.fillStyle='#cc3a2e';for(const [a,b] of [[32,32],[96,32],[64,64],[32,96],[96,96]]){x.beginPath();x.arc(a,b,13,0,7);x.fill()}}),dm=holoMat(0xffffff,dt);
     add(new THREE.CylinderGeometry(.2,.16,.42,24,1,true),holoMat(0x8a4a2a),-.1,-.04,0,0,0,-.5);
     add(new THREE.BoxGeometry(.17,.17,.17),dm,.14,-.16,.06,.4,.7,.2);add(new THREE.BoxGeometry(.17,.17,.17),dm,.3,-.17,-.08,.9,.2,.5);add(new THREE.BoxGeometry(.17,.17,.17),dm,.04,.16,.02,.3,1.1,.8)}
-  else if(id==='omok'){   // 판 없이 돌만: 포월(浦月, 렌주 간접주형 7) = 흑 천원, 백 오른쪽 위 마늘모, 흑 오른쪽 아래 마늘모. 줄 끝이 나를 향해도 겹치지 않게 앞으로 기울임
+  else if(id==='omok'){   // 판 없이 돌과 선만: 포월(浦月, 렌주 간접주형 7) = 흑 천원, 백 오른쪽 위 마늘모, 흑 오른쪽 아래 마늘모. 줄 끝이 나를 향해도 겹치지 않게 앞으로 기울임
     const S=.25,sg=HOLO_GEO.stone||(HOLO_GEO.stone=new THREE.SphereGeometry(.11,20,12)),bk=mk(0x1a1a1a),wt=mk(0xfbf8f0),o=new THREE.Group();
     for(const [x,z,m] of [[-S/2,0,bk],[S/2,-S,wt],[S/2,S,bk]]){const st=new THREE.Mesh(sg,m);st.position.set(x,0,z);st.scale.y=.5;st.renderOrder=41;o.add(st)}
+    const lm=mk(0xf3d29a),lh=HOLO_GEO.olineH||(HOLO_GEO.olineH=new THREE.BoxGeometry(S*3.6,.008,.008)),lv=HOLO_GEO.olineV||(HOLO_GEO.olineV=new THREE.BoxGeometry(.008,.008,S*2.8));   // 판 없이 선만: 돌이 놓인 교차점이 보이게 가로 3줄·세로 4줄 (돌 밑을 지남)
+    for(let k=-1;k<=1;k++){const a=new THREE.Mesh(lh,lm);a.position.set(0,-.002,k*S);a.renderOrder=40;o.add(a)}
+    for(let k=0;k<4;k++){const b=new THREE.Mesh(lv,lm);b.position.set((k-1.5)*S,-.002,0);b.renderOrder=40;o.add(b)}
     o.rotation.x=.55;o.position.y=-.04;g.add(o)}
   else if(id==='chess'&&GAMES.chess&&GAMES.chess.holoPiece){   // 게임 속 나이트 그대로 (반투명)
     const m=holoMat(0xf3e8d2),k=GAMES.chess.holoPiece(m);k.scale.setScalar(.44);k.position.y=-.2;k.rotation.y=-.6;k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k);mats.push(m)}
@@ -58,7 +61,7 @@ function frontHoloPiece(id){
     const k=GAMES.mind.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else if(id==='robo77'&&GAMES.robo77&&GAMES.robo77.holoPiece){   // 공중의 합계 77과 76 카드 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.robo77.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
-  else if(id==='onecard'&&GAMES.onecard&&GAMES.onecard.holoPiece){   // 별무늬 +4 카드 (게임이 모양을 정하고 재질은 여기서)
+  else if(id==='onecard'&&GAMES.onecard&&GAMES.onecard.holoPiece){   // 별무늬 +4 카드와 돌리기 카드 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.onecard.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}
   else if(id==='mia'&&GAMES.mia&&GAMES.mia.holoPiece){   // 세운 탈출구 코인과 흐린 말 (게임이 모양을 정하고 재질은 여기서)
     const k=GAMES.mia.holoPiece((c,map)=>{const m=holoMat(c,map);mats.push(m);return m});k.traverse(o=>{if(o.isMesh)o.renderOrder=41});g.add(k)}

@@ -547,9 +547,10 @@ G.leave=()=>{
   const st=$('#stage');st.classList.remove('ocg');st.style.removeProperty('--ocB');
   const ps=$('#btnPass');delete ps.dataset.oc;ps.innerHTML=`패스<small>${esc(keyLabel(KEYS.pass))}</small>`;ps.hidden=false;
 };
-/* 대기실 홀로그램의 대표 말: 원카드에만 있는 별무늬 +4 카드 한 장 */
+/* 대기실 홀로그램의 대표 말: 원카드에만 있는 별무늬 +4 카드와 돌리기(⇄) 카드 */
 G.holoPiece=mkM=>{
-  const g=new THREE.Group(),c=holoCard(mkM,holoFace(G,56));c.rotation.z=-.06;g.add(c);
+  const g=new THREE.Group(),r=holoCard(mkM,holoFace(G,44)),f=holoCard(mkM,holoFace(G,56));
+  r.position.set(-.12,.02,-.02);r.rotation.z=.15;g.add(r);f.position.set(.11,-.01,.02);f.rotation.z=-.1;g.add(f);
   return g;
 };
 G.init=()=>{
