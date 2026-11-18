@@ -394,9 +394,11 @@ globalThis.playOutA=playOutA;
  // 얼음은 멀리, 모래는 짧게
  {const sp={i:0,vx:0,vz:-2.5,p:.25},b=T.simulate([at(0,1,0)],sp,()=>.5,[]),ic=T.simulate([at(0,1,0)],sp,()=>.5,[{k:'ic',x:0,z:.6,s:1}]),sd=T.simulate([at(0,1,0)],sp,()=>.5,[{k:'sd',x:0,z:.6,s:1}]);
   ok(ic.fin[0].z<b.fin[0].z-.1,'ice slides further');ok(sd.fin[0].z>b.fin[0].z+.1,'sand stops sooner')}
- // 폭탄: 닿으면 터져 둘레 알을 밀어냄, 사라짐
- {const r=T.simulate([at(0,1,0),at(.3,-.1,1),at(-.35,0,1)],{i:0,vx:0,vz:-3,p:.3},()=>.5,[{k:'bm',x:0,z:.2,s:1}]);
-  eq(r.it[0].u,1,'bomb used');ok(r.fin[1].x>.4&&r.fin[2].x<-.45,'bomb pushes');ok(r.ev.some(e=>e[1]==='x'),'boom event')}
+ // 폭탄: 일회용 범퍼. 넓은 범위에 닿은 알을 세게 튕겨 내고 사라짐, 둘레의 다른 알은 그대로
+ {const r=T.simulate([at(0,.9,0),at(.9,-.1,1)],{i:0,vx:0,vz:-3,p:.3},()=>.5,[{k:'bm',x:0,z:.2,s:1}]);
+  eq(r.it[0].u,1,'bomb used');ok(r.fin[0].z>1.5||r.fin[0].o,'bomb bounces hard '+r.fin[0].z.toFixed(2));ok(Math.abs(r.fin[1].x-.9)<.01,'others stay');ok(r.ev.some(e=>e[1]==='x'),'boom event');
+  const nb=T.simulate([at(0,.9,0)],{i:0,vx:0,vz:-3,p:.3},()=>.5,[{k:'tb',x:0,z:.2,s:1}]);ok(r.fin[0].z>nb.fin[0].z,'bomb stronger than bumper')}
+ {const A={jg:0,st:[at(0,0,0)],it:[]};ok(!T.canPut(A,{k:'bm',x:.4,z:0}),'no stone in bomb range');ok(T.canPut(A,{k:'bm',x:.6,z:0}),'bomb ok')}
  // 놓을 수 있는 자리
  {const A={jg:0,st:[at(0,0,0)],it:[{k:'tb',x:1,z:1,s:0}]};
   ok(!T.canPut(A,{k:'bh',x:.1,z:0,r:IT.bh.rc}),'no blackhole on stone');ok(T.canPut(A,{k:'bh',x:.6,z:0,r:IT.bh.rc}),'blackhole free spot');
@@ -456,11 +458,14 @@ globalThis.playOutA=playOutA;
  {mkRoom({pickfirst:1,stones:2,ob:1,obn:1});const A=H.ak;A.ph='aim';H.turn=0;A.inv=[[],[]];
   const q=A.st.find(q=>q.s===0&&!q.u);A.st.forEach(o=>{if(o!==q&&!o.u){o.x=-1.8;o.z=o.s?-1.8:1.8}});q.x=0;q.z=1;A.it=[{k:'rb',x:0,z:.3,s:1,o:0}];
   AK.engine.act(0,{t:'shoot',i:A.st.indexOf(q),a:-Math.PI/2,p:.4,j:0});eq(A.it[0].u,1,'box broken');ok(A.it.length===2&&A.it[1].s===0&&A.it[1].k!=='rb','box spawned '+JSON.stringify(A.it[1]))}
- // 지우개: 다른 물건을 다 놓은 뒤, 상대 물건만
+ // 지우개: 놓기 시간에 지울 물건이 생기면 바로 (다른 사람이 아직 놓는 중이어도), 상대 물건만
  {mkRoom({pickfirst:1,stones:1,ob:1,obn:1});const A=H.ak;A.of=['er','tb','sd'];A.ok=['er','tb','sd'];
   NOW=A.go+100;AK.engine.act(0,{t:'pick',k:0,rt:10});AK.engine.act(1,{t:'pick',k:1,rt:20});NOW+=300;engineTick();eq(A.ph,'iput','put phase');NOW=A.go+10;
-  eq(T.doErase(0,0),false,'eraser waits');const p1=T.itemPlan(A,1,'tb');AK.engine.act(1,{t:'iput',...p1});ok(T.obEraseReady(A),'ready after others');
-  AK.engine.act(0,{t:'erase',i:0});eq(A.it.length,0,'erased');eq(A.ph,'aim','shoot after erase')}
+  A.ofs[2]=1;A.inv[1]=[1,2];   // 상대는 물건 둘
+  eq(T.doErase(0,0),false,'nothing to erase yet');eq(A.inv[0].length,1,'eraser waits');
+  AK.engine.act(1,{t:'iput',...T.itemPlan(A,1,'tb')});ok(!T.obEraseReady(A),'other still placing');
+  AK.engine.act(0,{t:'erase',i:0});eq(A.it.length,0,'erased during put');eq(A.inv[0].length,0,'eraser used');eq(A.ph,'iput','other still placing');
+  AK.engine.act(1,{t:'iput',...T.itemPlan(A,1,'sd')});eq(A.ph,'aim','shoot after all')}
  {mkRoom({pickfirst:1,stones:1,ob:1,obn:1});const A=H.ak;A.of=['er','er','tb'];A.ok=['er','er','tb'];
   NOW=A.go+100;AK.engine.act(0,{t:'pick',k:0,rt:10});AK.engine.act(1,{t:'pick',k:1,rt:20});NOW+=300;engineTick();eq(A.ph,'aim','no targets: erasers vanish')}
 }
