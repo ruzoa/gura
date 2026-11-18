@@ -489,4 +489,21 @@ globalThis.playOutA=playOutA;
  {const A={jg:0,st:[at(0,0,0)],it:[]};ok(!T.canPut(A,{k:'fn',x:-.6,z:0,a:0}),'no fan blowing at stone');ok(T.canPut(A,{k:'fn',x:-.6,z:.8,a:0}),'fan ok');
   ok(!T.canPut(A,{k:'gt',x:-.4,z:0,a:0}),'no gate over stone');ok(T.canPut(A,{k:'gt',x:-.4,z:.5,a:0}),'gate ok');
   ok(!T.canPut(A,{k:'rt',x:.3,z:0,a:0}),'no rotor over stone');ok(T.canPut(A,{k:'rt',x:1,z:1,a:0}),'rotor ok')}
+ // 점검: 바람에 밀린 알이 막히면(다른 알·모래) 끝없이 계산하지 않음
+ {const fan={k:'fn',x:-1.2,z:0,a:0,s:1},blk=T.simulate([at(1.5,1.5,0),at(-.6,0,1),at(-.28,0,1)],{i:0,vx:0,vz:-.01,p:.01,ht:0},()=>.5,[fan]);
+  ok(blk.dur<4000,'blocked in wind ends soon '+blk.dur);
+  const sd=T.simulate([at(1.5,1.5,0),at(-.4,0,1)],{i:0,vx:0,vz:-.01,p:.01,ht:0},()=>.5,[fan,{k:'sd',x:-.4,z:0,s:1}]);ok(sd.dur<4000,'stuck in sand under wind ends soon '+sd.dur)}
+ // 점검: 바람 띠 안에는 바닥 물건만
+ {const A={jg:0,st:[],it:[{k:'fn',x:-1.2,z:0,a:0,s:0}]};ok(!T.canPut(A,{k:'tb',x:-.4,z:0}),'no bumper in wind');ok(!T.canPut(A,{k:'gt',x:-.4,z:-.5,a:Math.PI/2}),'no gate across wind');
+  ok(T.canPut(A,{k:'ic',x:-.4,z:0}),'ice in wind ok');ok(T.canPut(A,{k:'tb',x:-.4,z:.7}),'bumper beside wind ok');
+  const B={jg:0,st:[],it:[{k:'br',x:0,z:0,a:0,s:0}]};ok(!T.canPut(B,{k:'fn',x:-1,z:0,a:0}),'no fan blowing on brick');ok(T.canPut(B,{k:'fn',x:-1,z:0,a:Math.PI/2}),'fan turned away ok')}
+ // 점검: 차단기 막대가 닿지 않는 곳에 멈춘 알은 붙잡지 않음
+ {const g={k:'gt',x:-.4,z:0,a:0,s:1,t0:0},rr=T.geomOf(0).r||.2,q=at(0,rr+IT.gt.W+.002,1),r=T.simulate([at(1.5,1.5,0),q],{i:0,vx:0,vz:-.01,p:.01,ht:4500},()=>.5,[g]);ok(r.dur<2000,'stone beside gate not held '+r.dur)}
 }
+/* 점검: 지우개는 물건 번호로 지움 (다른 지우개가 먼저 지워 순서가 바뀌어도) · 쉬움 봇은 막힌 길로 치지 않음 */
+{mkRoom({pickfirst:1,stones:1,ob:1,obn:1},['가','나','다']);const A=H.ak;A.ph='iput';A.go=NOW-10;H.deadline=NOW+20000;
+ A.of=['er','er','tb','sd'];A.ok=A.of.slice();A.ofs=[0,1,2,2];A.inv=[[0],[1],[]];
+ A.it=[{k:'tb',x:1,z:1,s:2,o:2},{k:'sd',x:-1,z:-1,s:2,o:3}];
+ AK.engine.act(0,{t:'erase',i:0,o:2});eq(A.it.length,1,'first eraser');eq(A.it[0].o,3,'bumper erased');
+ AK.engine.act(1,{t:'erase',i:1,o:2});eq(A.it.length,1,'stale target refused');AK.engine.act(1,{t:'erase',i:0,o:3});eq(A.it.length,0,'erased by id')}
+{const A={jg:0,st:[at(0,1,0),at(0,-1,1)],it:[{k:'br',x:0,z:0,a:0,s:1}]};ok(T.pathBlocked(A,A.st[0],A.st[1]),'brick blocks path');A.it[0].x=1.2;ok(!T.pathBlocked(A,A.st[0],A.st[1]),'clear path')}
