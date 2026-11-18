@@ -464,3 +464,24 @@ globalThis.playOutA=playOutA;
  {mkRoom({pickfirst:1,stones:1,ob:1,obn:1});const A=H.ak;A.of=['er','er','tb'];A.ok=['er','er','tb'];
   NOW=A.go+100;AK.engine.act(0,{t:'pick',k:0,rt:10});AK.engine.act(1,{t:'pick',k:1,rt:20});NOW+=300;engineTick();eq(A.ph,'aim','no targets: erasers vanish')}
 }
+/* 3단계 물건: 선풍기·차단기·회전판 */
+{const IT=T.IT;
+ // 선풍기: 바람 띠에 들어간 알은 띠 밖까지 밀려 나감 (치지 않아도)
+ {const fan={k:'fn',x:-1,z:0,a:0,s:1},r=T.simulate([at(-.6,1,0),at(-.3,0,1)],{i:0,vx:0,vz:-.01,p:.01,ht:0},()=>.5,[fan]);
+  ok(r.fin[1].x>-1+IT.fn.r+IT.fn.L-.01||r.fin[1].o,'wind pushes resting stone out '+r.fin[1].x.toFixed(2));ok(!T.inWind(fan,r.fin[1].x,r.fin[1].z)||r.fin[1].o,'not in wind after')}
+ // 차단기: 내려가 있으면 막고, 올라가 있으면 지나감
+ {const g={k:'gt',x:-.4,z:0,a:0,s:1,t0:0};
+  const dn=T.simulate([at(0,1,0)],{i:0,vx:0,vz:-4,p:.4,ht:100},()=>.5,[g]),up=T.simulate([at(0,1,0)],{i:0,vx:0,vz:-4,p:.4,ht:4300},()=>.5,[g]);
+  ok(dn.fin[0].z>0,'gate down blocks '+dn.fin[0].z.toFixed(2));ok(up.fin[0].z<-.1,'gate up passes '+up.fin[0].z.toFixed(2));
+  eq(T.gateTh(g,100),0,'gate down at start');ok(Math.abs(T.gateTh(g,5000)-Math.PI/2)<1e-6,'gate up mid')}
+ // 차단기가 내려오는 자리의 알은 옆으로 밀려남
+ {const g={k:'gt',x:-.4,z:0,a:0,s:1,t0:0},r=T.simulate([at(1.5,1.5,0),at(0,0,1)],{i:0,vx:0,vz:-.01,p:.01,ht:7000},()=>.5,[g]);
+  ok(T.gateDist(g,r.fin[1].x,r.fin[1].z)>=r.fin[1].z*0+.1,'stone pushed from gate '+T.gateDist(g,r.fin[1].x,r.fin[1].z).toFixed(2))}
+ // 회전판: 원 안의 알은 밖으로, 지나가는 알은 튕김
+ {const rt={k:'rt',x:0,z:0,a:0,dir:1,s:1,t0:0},r=T.simulate([at(1.5,1.5,0),at(.2,.1,1)],{i:0,vx:0,vz:-.01,p:.01,ht:0},()=>.5,[rt]);
+  ok(Math.hypot(r.fin[1].x,r.fin[1].z)>IT.rt.L||r.fin[1].o,'rotor clears circle '+Math.hypot(r.fin[1].x,r.fin[1].z).toFixed(2))}
+ // 놓기: 선풍기 바람 안·차단기 막대 자리·회전 원 안에 알이 있으면 못 놓음
+ {const A={jg:0,st:[at(0,0,0)],it:[]};ok(!T.canPut(A,{k:'fn',x:-.6,z:0,a:0}),'no fan blowing at stone');ok(T.canPut(A,{k:'fn',x:-.6,z:.8,a:0}),'fan ok');
+  ok(!T.canPut(A,{k:'gt',x:-.4,z:0,a:0}),'no gate over stone');ok(T.canPut(A,{k:'gt',x:-.4,z:.5,a:0}),'gate ok');
+  ok(!T.canPut(A,{k:'rt',x:.3,z:0,a:0}),'no rotor over stone');ok(T.canPut(A,{k:'rt',x:1,z:1,a:0}),'rotor ok')}
+}
