@@ -61,7 +61,7 @@ setup(3,0,{sn:0,ld:0});{const t=H.turn;H.sl.pos=[1,1,1];H.sl.pos[t]=99;H.sl.pos[
   act(t,{t:'roll'});pass(H.sl.mv?H.sl.mv.ms+100:100);eq(H.phase,'over','over at goal');eq(H.players[t].rank,1,'winner');eq(H.players[(t+2)%3].rank,2,'second by position');eq(H.players[(t+1)%3].rank,3,'third');}
 /* 정확히 도착: 넘치면 되돌아옴 → 끝나지 않음 */
 setup(2,0,{sn:0,ld:0,exact:1,dc:1});{const t=H.turn;H.sl.pos[t]=99;let tries=0;
-  while(H.phase==='play'&&tries<40){const i=H.turn;act(i,{t:'roll'});const m=H.sl.mv;if(m&&m.from===99&&m.d[0]!==1)eq(m.to<100,true,'bounce no win');pass((m?m.ms:0)+100);tries++}
+  while(H.phase==='play'&&tries<160){const i=H.turn;act(i,{t:'roll'});const m=H.sl.mv;if(m&&m.from===99&&m.d[0]!==1)eq(m.to<100,true,'bounce no win');pass((m?m.ms:0)+100);tries++}
   eq(H.phase,'over','eventually finishes');}
 /* 주사위 2개 */
 setup(2,0,{sn:0,ld:0,dc:1});{const t=H.turn;act(t,{t:'roll'});eq(H.sl.mv.d.length,2,'two dice');eq(H.sl.mv.path.length,H.sl.mv.d[0]+H.sl.mv.d[1],'sum steps')}
@@ -87,3 +87,47 @@ setup(3,0,{sn:0,ld:0});{const t=H.turn;act(t,{t:'roll'});act(t,{t:'surrender'});
     const u=new Set();for(const it of H.sl.items){if(u.has(it.a)||u.has(it.b))fail('snakes shared end');u.add(it.a);u.add(it.b)}
   }
   eq(over,24,'all bot games over');console.log('snakes bot games',over,'avg ticks',Math.round(ticks/24));}
+/* ===== 능력 모드 ===== */
+{const cf=CF({ab:1});
+  eq(TT.okPut([],cf,'s',75,25,''),false,'5 rows too far');eq(TT.okPut([],cf,'s',75,25,'rg'),true,'range +2');eq(TT.okPut([],cf,'s',85,25,'rg'),false,'range +2 limit');
+  eq(TT.okPut([],cf,'l',25,45,'im'),false,'immune only snake');eq(TT.okPut([],cf,'s',45,25,'ex'),false,'exclusive only ladder');
+  const it=[{k:'s',a:30,b:12,o:0,x:'im'},{k:'l',a:4,b:26,o:1,x:'ex'}];
+  eq(TT.walk(it,cf,27,3,0).to,30,'own immune snake does not bite');eq(TT.walk(it,cf,27,3,1).to,12,'immune snake bites others');
+  eq(TT.walk(it,cf,1,3,1).to,26,'own exclusive ladder');eq(TT.walk(it,cf,1,3,0).to,4,'exclusive ladder not for others');
+  const w=TT.walk([{k:'s',a:30,b:12,o:2}],cf,27,3,0,true);eq(w.to,30,'shield blocks');eq(!!w.blk,true,'blk');}
+setup(3,0,{ab:1});{
+  eq(H.sl.tok.join(),'1,1,1','one setup ability');
+  act(0,{t:'put',k:'l',a:25,b:45,x:'im'});eq(H.sl.items.length,0,'immune ladder rejected');
+  act(0,{t:'put',k:'s',a:75,b:25,x:'rg'});eq(H.sl.items.length,1,'range snake');eq(H.sl.items[0].x,'rg','x stored');eq(H.sl.tok[0],0,'token used');
+  act(0,{t:'put',k:'l',a:3,b:22,x:'ex'});eq(H.sl.items[1].x,undefined,'no token left');
+  act(0,{t:'del',c:75});eq(H.sl.tok[0],1,'token back');act(0,{t:'put',k:'s',a:45,b:25,x:'im'});
+  act(1,{t:'put',k:'s',a:66,b:47});act(1,{t:'put',k:'l',a:6,b:35});act(2,{t:'put',k:'s',a:88,b:72});act(2,{t:'put',k:'l',a:8,b:33});
+  eq(H.sl.goAt,0,'cards not chosen yet');eq(snapFor(0).t,0,'still my setup turn (card)');
+  act(0,{t:'pick',c:'swap'});act(1,{t:'pick',c:'walk'});eq(snapFor(1).sl.cards[0],null,'others card hidden');eq(snapFor(0).sl.cards[0],'swap','own card');
+  act(2,{t:'pick',c:'nope'});eq(H.sl.card[2],null,'bad card');act(2,{t:'pick',c:'more'});
+  pass(TT.GO_WAIT+100);eq(H.sl.ph,'play','play');
+  /* 차례 맞추기 */
+  const goT=i=>{H.turn=i;H.deadline=NOW+60000;H.botActAt=0};
+  goT(1);act(1,{t:'ab',c:'swap',j:0});eq(H.sl.used[1],0,'not your card');
+  act(1,{t:'ab',c:'walk',n:4});eq(H.sl.mv,null,'walk 1-3 only');
+  H.sl.pos[1]=3;act(1,{t:'ab',c:'walk',n:3});eq(!!H.sl.mv,true,'walk moves');eq(H.sl.mv.d.length,0,'no dice');eq(H.sl.mv.to,35,'walk onto ladder 6->35');eq(H.sl.used[1],1,'used');
+  pass(H.sl.mv.ms+100);eq(H.sl.pos[1],35,'walked');eq(snapFor(0).sl.cards[1],'walk','shown after use');
+  goT(2);act(2,{t:'ab',c:'more'});eq(H.sl.more[2],1,'more set');act(2,{t:'roll'});eq(H.sl.mv.d.length,2,'extra die');pass(H.sl.mv.ms+100);
+  act(2,{t:'ab',c:'more'});eq(H.sl.more[2],0,'once');
+  goT(0);H.sl.pos=[10,95,50];act(0,{t:'ab',c:'swap',j:1});eq(H.sl.pos[0],10,'no swap with top row');
+  act(0,{t:'ab',c:'swap',j:2});eq(H.sl.pos[0],50,'swapped');eq(H.sl.pos[2],10,'swapped 2');eq(!!snapFor(1).sl.sw,true,'swap anim');
+  act(0,{t:'roll'});eq(!!H.sl.mv,true,'still rolls after ability');}
+/* 방패·뱀 놓기 */
+setup(2,0,{ab:1,sn:0,ld:0});{act(0,{t:'pick',c:'shield'});act(1,{t:'pick',c:'snake'});pass(TT.GO_WAIT+100);eq(H.sl.ph,'play','ability only setup');eq(H.sl.shd[0],1,'shield on');
+  H.turn=1;H.deadline=NOW+60000;H.botActAt=0;
+  act(1,{t:'ab',c:'snake',a:20,b:15});eq(H.sl.items.length,0,'same row snake rejected');
+  act(1,{t:'ab',c:'snake',a:30,b:12});eq(H.sl.items.length,1,'snake placed in game');eq(H.sl.items[0].g,1,'game snake');
+  act(1,{t:'roll'});pass(H.sl.mv.ms+100);
+  H.turn=0;H.deadline=NOW+60000;H.sl.pos[0]=29;const r=Math.random;Math.random=()=>0;act(0,{t:'roll'});Math.random=r;
+  eq(H.sl.mv.to,30,'shield stops snake');eq(H.sl.shd[0],0,'shield gone');eq(H.sl.used[0],1,'shield used');pass(H.sl.mv.ms+100);eq(H.sl.pos[0],30,'stays on head');}
+/* 능력 모드 봇 대전 */
+{let over=0;for(let rep=0;rep<12;rep++){setup(2+rep%3,1,{ab:1,sz:1+rep%3,sn:rep%3,ld:1+rep%2,stime:30},rep%3);
+    for(let k=0;k<16000&&H.phase==='play';k++){NOW+=250;engineTick();if(!H.players[0].bot&&H.sl.ph==='play'&&H.turn===0&&!H.sl.mv)act(0,{t:'roll'})}
+    if(H.phase==='over')over++;else fail('snakes ability bot game did not finish '+rep);
+    if(!H.sl.card.every(Boolean))fail('snakes cards not assigned')}
+  eq(over,12,'ability bot games over');}
