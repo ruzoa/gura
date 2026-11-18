@@ -1,0 +1,47 @@
+rules_version = '2';
+// 탁자하나 로그인·도토리 보안 규칙 (core/auth.js와 같은 값). Firebase 콘솔 → Firestore → 규칙에 그대로 붙여 넣습니다.
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function mine(uid) { return request.auth != null && request.auth.uid == uid; }
+    function kst(t) { return (t + duration.value(9, 'h')).date(); }   // 하루는 한국 시각 자정에 바뀜
+
+    // 내 PeerJS 번호: 방장이 읽어서 '로그인한 사람'인지 확인 (본인만 씀, 누구나 읽음)
+    match /peers/{uid} {
+      allow read: if true;
+      allow write: if mine(uid)
+        && request.resource.data.keys().hasOnly(['peer', 'at'])
+        && request.resource.data.peer is string && request.resource.data.peer.size() <= 80
+        && request.resource.data.at == request.time;
+    }
+
+    // 계정: 닉네임·아바타·칠한 그림·도토리 (본인만 읽고 씀)
+    match /users/{uid} {
+      function ok(d) {
+        return d.keys().hasOnly(['nick', 'av', 'paint', 'acorn', 'dayN', 'at'])
+          && d.nick is string && d.nick.size() <= 10
+          && d.av is string && d.av.size() <= 40
+          && d.paint is string && d.paint.size() <= 60000
+          && d.acorn is int && d.dayN is int && d.at is timestamp;
+      }
+      allow read: if mine(uid);
+      allow create: if mine(uid) && ok(request.resource.data)
+        && request.resource.data.acorn == 0 && request.resource.data.dayN == 0
+        && request.resource.data.at == request.time;
+      allow update: if mine(uid) && ok(request.resource.data) && (
+        // 닉네임·아바타만 바꿈: 도토리는 그대로
+        (request.resource.data.acorn == resource.data.acorn
+          && request.resource.data.dayN == resource.data.dayN
+          && request.resource.data.at == resource.data.at)
+        ||
+        // 도토리 받기: 한 번에 1~2개, 받은 뒤 1분이 지나야, 하루 30개까지
+        (request.resource.data.at == request.time
+          && request.time > resource.data.at + duration.value(60, 's')
+          && request.resource.data.acorn - resource.data.acorn >= 1
+          && request.resource.data.acorn - resource.data.acorn <= 2
+          && request.resource.data.dayN == (kst(request.time) == kst(resource.data.at) ? resource.data.dayN : 0)
+                                           + (request.resource.data.acorn - resource.data.acorn)
+          && request.resource.data.dayN <= 30)
+      );
+    }
+  }
+}

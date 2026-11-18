@@ -20,6 +20,7 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;
 const store=()=>null;
 let mode='host',lastPanelHtml='';
 const myNick=()=>'나';
+const myTagNick=()=>'나';   // 로그인(core/auth.js)이 꺼져 있을 때와 같음
 const sfx=()=>{};
 function flush(){flushQueued=false}
 globalThis.queueMicrotask=()=>{};

@@ -3,6 +3,7 @@
 function applyView(s){
   PV=V;const t=clock();
   V={...s,graceAt:t+(+s.gr||0),deadAt:t+(+s.dl||0),dealAt:s.dk?t+(+s.dk):0};
+  auGameEnd(PV,V);   // 판이 끝나면 도토리 (core/auth.js)
   useGame(s.cfg&&s.cfg.game);
   dealCheck(V);
   const mine=myHand();const hs=new Set(mine);for(const id of [...sel])if(!hs.has(id))sel.delete(id);

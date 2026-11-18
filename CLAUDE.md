@@ -13,7 +13,8 @@
 | --- | --- | --- |
 | `index.html` | 화면 틀(HTML)과 스크립트 불러오는 순서만 | |
 | `core/style.css` | 공통 CSS | |
-| `core/*.js` | 공통 코드. 한 스크립트처럼 전역을 같이 쓰고 `index.html`의 순서대로 불러옴: `base`(상수·게임 목록) → `engine`(방장 엔진·첫 차례 주사위 실행부 `firstPick`) → `net`(PeerJS·재접속·방장 이양·관전) → `view`(화면 상태·소리·말풍선) → `render`(2D 화면·입력·메뉴·로비) → `table3d`(3D 테이블·카드 나누기) → `front`(첫 화면·디스플레이·자판) → `front-list`(공개 탁자 목록 판) → `rules-board`(규칙 나무판·설정 판자) → `front-objs`(홀로그램·구멍·시작 버튼·카메라) → `wait`(대기실 이름표) → `avatar`(의자 위 아바타 인형·아바타 변경) → `boot`(시작, 맨 마지막) | `docs/common.md` |
+| `core/*.js` | 공통 코드. 한 스크립트처럼 전역을 같이 쓰고 `index.html`의 순서대로 불러옴: `base`(상수·게임 목록) → `engine`(방장 엔진·첫 차례 주사위 실행부 `firstPick`) → `net`(PeerJS·재접속·방장 이양·관전) → `view`(화면 상태·소리·말풍선) → `render`(2D 화면·입력·메뉴·로비) → `table3d`(3D 테이블·카드 나누기) → `front`(첫 화면·디스플레이·자판) → `front-list`(공개 탁자 목록 판) → `rules-board`(규칙 나무판·설정 판자) → `front-objs`(홀로그램·구멍·시작 버튼·카메라) → `wait`(대기실 이름표) → `avatar`(의자 위 아바타 인형·아바타 변경) → `auth`(구글 로그인·게스트 g. 표시·도토리) → `pouch`(대기실 복주머니) → `boot`(시작, 맨 마지막) | `docs/common.md` |
+| `core/auth.js`, `core/pouch.js`, `firebase/firestore.rules` | 로그인·도토리 (`FB_CONF`가 비면 꺼짐) | `docs/login.md` |
 | `games/gura.js` | 구라! | `docs/gura.md` |
 | `games/president.js` | 대부호 (계급 카드 교환 연출) | `docs/president.md` |
 | `games/quoridor.js` | 쿼리도 (3D 보드·벽 보관함·첫 차례 주사위) | `docs/quoridor.md` |
@@ -63,7 +64,7 @@
   - 안 되는 곳을 누르면 글 대신 공통 금지 소리 `sfx('no')`를 냅니다. 왜 안 되는지는 화면에 보여야 합니다(초록 점, 빨간 ✕, 빨간 벽 등).
   - 안내 줄에는 꼭 필요한 것만 짧게 남깁니다(진행 단계, 판 시작 안내, 결과, 조커처럼 화면만으로 알 수 없는 규칙). 비면 자리만 남기고 숨깁니다(`:empty{visibility:hidden}` 또는 고정 높이).
 - **안전 영역(노치·홈 바)**: `body.fs` 한 곳에서만 `env(safe-area-inset-*)` 패딩을 줍니다. `html`/`:root`에 또 주면 홈 화면 앱 위쪽에 띠가 두 번 생깁니다.
-- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`, `gura-roomcfg-chess`, `gura-roomcfg-janggi`, `gura-roomcfg-blackjack`, `gura-roomcfg-poker`, `gura-roomcfg-alkkagi`, `gura-roomcfg-blackwhite`, `gura-roomcfg-animal`, `gura-roomcfg-baseball`, `gura-roomcfg-pixel`, `gura-roomcfg-abalone`, `gura-roomcfg-mind`, `gura-roomcfg-bohnanza`, `gura-roomcfg-robo77`, `gura-roomcfg-davinci`, `gura-roomcfg-onecard`, `gura-roomcfg-mia`, `gura-roomcfg-cockroach`, `gura-roomcfg-liardice`, `gura-roomcfg-rummi`). 루미큐브는 그 판의 받침대 배열(`gura-rummi-rack`)도 저장합니다. 더 마인드는 인원별 최고 기록(`gura-mind-best`)도 저장합니다. 숫자야구는 그 판의 숫자 메모(`gura-nb-lamp`)도 저장합니다. 미아는 그 판의 칸 메모(`gura-mia-memo`)도 저장합니다. 아바타는 `gura-avatar`(모양)·`gura-avatar-paint`(칠한 그림)에 저장합니다. 오목과 대부호는 이 밖에 커스텀 규칙 기억(`gura-omok-custom`, `gura-president-custom`)과 세부 설정 펼침(`gura-omok-more`, `gura-president-more`)도 저장합니다.
+- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`, `gura-roomcfg-chess`, `gura-roomcfg-janggi`, `gura-roomcfg-blackjack`, `gura-roomcfg-poker`, `gura-roomcfg-alkkagi`, `gura-roomcfg-blackwhite`, `gura-roomcfg-animal`, `gura-roomcfg-baseball`, `gura-roomcfg-pixel`, `gura-roomcfg-abalone`, `gura-roomcfg-mind`, `gura-roomcfg-bohnanza`, `gura-roomcfg-robo77`, `gura-roomcfg-davinci`, `gura-roomcfg-onecard`, `gura-roomcfg-mia`, `gura-roomcfg-cockroach`, `gura-roomcfg-liardice`, `gura-roomcfg-rummi`). 루미큐브는 그 판의 받침대 배열(`gura-rummi-rack`)도 저장합니다. 더 마인드는 인원별 최고 기록(`gura-mind-best`)도 저장합니다. 숫자야구는 그 판의 숫자 메모(`gura-nb-lamp`)도 저장합니다. 미아는 그 판의 칸 메모(`gura-mia-memo`)도 저장합니다. 아바타는 `gura-avatar`(모양)·`gura-avatar-paint`(칠한 그림)에 저장합니다. 로그인한 적이 있으면 `gura-login`. 오목과 대부호는 이 밖에 커스텀 규칙 기억(`gura-omok-custom`, `gura-president-custom`)과 세부 설정 펼침(`gura-omok-more`, `gura-president-more`)도 저장합니다.
 - **움직임 줄이기**: 기기의 '움직임 줄이기'(`prefers-reduced-motion`) 설정을 보고 게임 움직임을 끄지 않습니다. 시작 연출, 주사위 굴리기, 말·벽 이동, 돌 놓기처럼 게임 진행을 보여 주는 움직임은 설정과 상관없이 모든 기기에서 똑같이 보여야 합니다. `matchMedia('(prefers-reduced-motion…')`로 움직임을 건너뛰는 코드를 새로 넣지 않습니다. (아직 남은 예외: `games/yahtzee.js`의 2D 주사위 CSS. 손볼 때 같이 정리)
 
 ## 모든 모드 공통 원칙
@@ -99,7 +100,7 @@
 - **누르면 고르고, 다시 누르면 되돌림**.
 - **끌기와 누르기를 나눔**: 끌기는 실제로 움직일 때부터 붙잡고(`setPointerCapture`), 끌고 난 뒤의 click은 누르기로 치지 않음(고개 돌리기 `VW.movedAt`).
 - **2D 버튼은 3D 위 투명 누르는 자리보다 위층**: 디스플레이·자판의 투명 누르는 자리(`.front`, z 4)가 이름표·이모티콘 버튼을 덮지 않게(대기실 `.labels` z 5).
-- **움직이는 칸을 비킬 때는 고정 자리를 기준으로**: 이름표가 지금 위치를 따라 비키면 그 칸이 움직일 때 튀고, 비키지 않으면 겹칩니다. 평소 자리를 기준으로 한 번만 비킵니다(`HOLO_TAG_Y`).
+- **움직이는 칸을 비킬 때는 고정 자리를 기준으로**: 이름표가 지금 위치를 따라 비키면 그 칸이 움직일 때 튀고, 비키지 않으면 겹칩니다. 평소 자리를 기준으로 한 번만 비킵니다(`HOLO_TAG_Y`). 흔들리는 물건에 붙는 2D 칸도 물건이 아니라 고정 점에 붙임(흔들리면 눌리지 않음, 복주머니 꼬리표).
 - **누르는 2D 칸은 매초 다시 만들지 않음**: 시간은 글자만 바꾸고, '바깥 누르면 닫기'는 이벤트에 표시를 남겨 판단(체스 `e.chPop`).
 - **카드·말 위에는 글자를 얹지 않음**: 남의 것은 이름표나 그 물건 옆 빈 펠트(블랙잭 합계 표), 공용은 옆 빈 펠트. 내 이름표(왼쪽 아래 `#me`)에는 이모티콘과 닉네임만 두고 추가 정보는 넣지 않음(내 합계·칩 같은 것은 판 위 물건 옆으로). 예외: 로보77의 불 3개(사용자가 정함).
 - **탁자 위 자리는 화면 비율로 옮기지 않음**: 좁은 화면은 양옆 자리가 잘리고 잘린 사람 이름표는 화면 끝에(블랙잭). 포커는 이름표도 자리에 고정하고 고개를 돌려 봄.

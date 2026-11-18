@@ -22,7 +22,7 @@ const PL_CW=832,PL_CH=1092,PL_Y0=72,PL_STEP=122,PL_RH=108,PL_DOTY=24,PL_BTNY=101
 const DSP={W:1.7,D:.55,Th:.05,Z:3.85};   // 대기실에 펠트가 없어 안쪽으로 크게 (예전 1.5 × .5, 경첩 3.9). 화면 비율은 캔버스(640×208)와 맞춤, 왼쪽 시작 버튼과 겹치지 않게   // 디스플레이: 폭, 깊이, 두께, 경첩(먼 쪽 끝) 위치
 function frontBuild(){
   const TG=T.tableG;
-  frontBuildStumps();frontBuildDisplay(TG);frontBuildHolo(TG);frontBuildStart(TG);
+  frontBuildStumps();frontBuildDisplay(TG);frontBuildHolo(TG);frontBuildStart(TG);pouchBuild(TG);
   FR.flaps=[0,1,2,3].map(()=>({ch:' ',to:' ',until:0,next:0}));
   frontDrawBoard(true);
 }
@@ -228,8 +228,8 @@ function frontGoHome(){if(!FR.ok||mode!=='lobby'||net.peer)return;FR.sit=true;fr
 function frontSetNick(v){
   v=String(v||'').trim().slice(0,10)||'나';if(v===myNick())return;
   $('#inNick').value=v;saveNick();frontNick();const s=$('#nickShow');if(s)s.textContent=v;document.querySelectorAll('.nickShow2').forEach(e=>e.textContent=v);
-  if(mode==='host'&&H&&H.phase==='wait'){const m=H.members.find(x=>x.host);if(m){if(H.firstName===m.name)H.firstName=v;m.name=v;mark()}}
-  else if(mode==='guest'&&net.conn&&net.conn.open&&V&&V.st==='wait')guestHello(net.conn);
+  auProfSave({nick:myNick()});   // 로그인했으면 계정에도 (core/auth.js)
+  auSelf();
 }
 /* 친구 초대: 휴대폰은 공유 창, 아니면 초대 링크 복사(디스플레이에 '복사') */
 function frontInvite(){

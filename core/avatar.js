@@ -28,8 +28,8 @@ function avMine(){
   if(d&&d.length<=AV_PMAX&&d.startsWith('data:image/png;base64,')){AV.pdata=d;AV.pid=avHash(d);AV.hasPaint=true;avpPut(AV.pid,d);const im=new Image();im.onload=()=>{avPaintCv().getContext('2d').drawImage(im,0,0,AV_TW,AV_TW);AV.ver++};im.src=d}
   return v;
 }
-function avSave(v){store('gura-avatar',`${v.k}-${v.a}-${v.c}-${v.h}`)}
-function myAvStr(){const v=avMine();return `${v.k}-${v.a}-${v.c}-${v.h}${AV.pid?'-p'+AV.pid:''}${AV.edit?'-e':''}`}
+function avSave(v){const s=`${v.k}-${v.a}-${v.c}-${v.h}`;store('gura-avatar',s);if(typeof auProfSave==='function')auProfSave({av:s})}   // 로그인했으면 계정에도 (core/auth.js)
+function myAvStr(){const v=avMine();if(auLocked())return `${v.k}-${v.a}-${v.c}-0${AV.edit?'-e':''}`;return `${v.k}-${v.a}-${v.c}-${v.h}${AV.pid?'-p'+AV.pid:''}${AV.edit?'-e':''}`}   // 게스트(로그인이 켜져 있을 때)는 장식·칠한 그림을 보내지 않음
 /* 내 값을 모두에게: 방장은 자기 자리에 적고, 참가자는 대기실에서 hello를 다시 보냄(닉네임 바꾸기와 같은 길) */
 function avHostSync(){
   if(mode!=='host'||!H)return;const s=myAvStr();let ch=false;
@@ -187,9 +187,9 @@ function avTex(k,a,ci,pid){   // 남의 인형 그림: 바탕 + (받아 둔) 칠
 }
 function avPaintCv(){if(!AV.paint){AV.paint=document.createElement('canvas');AV.paint.width=AV.paint.height=AV_TW}return AV.paint}
 function avMyTex(){   // 내 인형 그림: 바꾸는 동안 바로바로 다시 그림
-  const v=avMine(),key=v.k+'-'+v.a+'-'+v.c+'-'+AV.ver;
+  const v=avMine(),lk=auLocked(),key=v.k+'-'+v.a+'-'+v.c+'-'+AV.ver+(lk?'L':'');
   if(!AV.myTex){const c=document.createElement('canvas');c.width=c.height=AV_TW;AV.myTex=avMkTex(c);AV.myKey=''}
-  if(AV.myKey!==key){AV.myKey=key;const g=AV.myTex.image.getContext('2d');avBaseDraw(g,v.k,v.a,v.c);if(AV.hasPaint)g.drawImage(avPaintCv(),0,0);AV.myTex.needsUpdate=true}
+  if(AV.myKey!==key){AV.myKey=key;const g=AV.myTex.image.getContext('2d');avBaseDraw(g,v.k,v.a,v.c);if(AV.hasPaint&&!lk)g.drawImage(avPaintCv(),0,0);AV.myTex.needsUpdate=true}
   return AV.myTex;
 }
 function avDoll(){
@@ -204,7 +204,7 @@ function avStump(S,t,dt,p){
   const D=S.av||(S.av=avDoll());
   const me=!!(p&&V&&V.ps&&p===V.ps[myIdx()]),w=avCamW();
   avFlag(S,t,!!(p&&!p.b&&p.hs&&!me));
-  const v=p&&!p.b?(me?Object.assign({},avMine(),{e:AV.edit}):avParse(p.av)):null;
+  const v=p&&!p.b?(me?Object.assign({},avMine(),{e:AV.edit},auLocked()?{h:0}:{}):avParse(p.av)):null;
   const show=!!v&&(!me||w>.001);
   if(v&&show){
     const key=v.k+'-'+(v.k===1?v.a:0)+'-'+v.h+(p.cr?'c':'');
@@ -290,16 +290,18 @@ function avPaintDone(){   // 칠한 그림을 PNG로: 너무 크면 줄여서 (�
     let c=avPaintCv();if(sz!==AV_TW){c=document.createElement('canvas');c.width=c.height=sz;c.getContext('2d').drawImage(avPaintCv(),0,0,sz,sz)}
     d=c.toDataURL('image/png');if(d.length<=AV_PMAX)break}
   if(d.length>AV_PMAX)d='';
-  AV.pdata=d;AV.pid=d?avHash(d):'';store('gura-avatar-paint',d);if(d)avpPut(AV.pid,d);
+  AV.pdata=d;AV.pid=d?avHash(d):'';store('gura-avatar-paint',d);if(d)avpPut(AV.pid,d);auProfSave({paint:d});
 }
 /* ---- 아바타 변경 판: 모양(종류·동물·장식) / 색칠(채우기·붓·지우개·처음으로 + 색) ---- */
 function avPanelDraw(){
   const v=avMine(),chip=(arr,on,k)=>arr.map((t,i)=>`<button type="button" data-av="${k}:${i}"${i===on?' class="on"':''}>${t}</button>`).join('');
-  let h=`<div class="av-row av-tabs">${chip(['모양','색칠'],AV.tab,'tab')}</div>`;
+  const lk=auLocked(),LOCK='<svg class="av-lock" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="8" rx="1.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';   // 게스트: 장식·색칠은 잠김 → 누르면 로그인 꼬리표 (core/auth.js)
+  if(lk&&AV.tab===1)AV.tab=0;
+  let h=`<div class="av-row av-tabs">${lk?chip(['모양'],AV.tab,'tab')+`<button type="button" class="av-locked" data-av="lock">색칠${LOCK}</button>`:chip(['모양','색칠'],AV.tab,'tab')}</div>`;
   if(AV.tab===0){
     h+=`<div class="av-row">${chip(AV_KIND,v.k,'k')}</div>`;
     if(v.k===1)h+=`<div class="av-row av-g5">${chip(AV_ANI,v.a,'a')}</div>`;
-    h+=`<div class="av-row av-g5">${chip(AV_HAT,v.h,'h')}</div>`;
+    h+=lk?`<div class="av-row"><button type="button" class="av-locked av-wide" data-av="lock">장식${LOCK}</button></div>`:`<div class="av-row av-g5">${chip(AV_HAT,v.h,'h')}</div>`;
   }else{
     const tl=[['fill','채우기'],['brush','붓'],['erase','지우개']];
     h+=`<div class="av-row">${tl.map(([k,t])=>`<button type="button" data-av="t:${k}"${AV.tool===k?' class="on"':''}>${t}</button>`).join('')}<button type="button" data-av="reset">처음으로</button></div>`;
@@ -320,6 +322,7 @@ $('#avEdit').addEventListener('click',e=>{
   const b=e.target.closest('[data-av]');if(!b)return;
   const [k,x]=b.dataset.av.split(':'),v=avMine();
   if(k==='done'){avEditClose();return}
+  if(k==='lock'){e.acHit=true;auTagOpen('av');return}
   if(k==='tab')AV.tab=+x;
   else if(k==='t')AV.tool=x;
   else if(k==='reset'){if(AV.hasPaint){avPaintCv().getContext('2d').clearRect(0,0,AV_TW,AV_TW);AV.hasPaint=false;AV.dirty=true;AV.ver++}}

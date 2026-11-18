@@ -77,7 +77,7 @@ function waitSeatsHTML(){
   for(let k=0;k<Math.max(max,ps.length);k++){
     const i=at.indexOf(k),p=i>=0?ps[i]:null;
     if(p){const sub=p.hs?'방장':p.b?(G.oneBotLv?'봇':`봇 · ${botLvNames(G)[p.lv??1]}`):p.aw?'연결 끊김':'';
-      h+=`<div class="seat wseat${i===me?' mine':''}${p.b?' bot lv'+(p.lv??1):''}" data-w="${k}"><button type="button" data-seat="s${i}" aria-label="${esc(p.n)}${i===me?' (나)':''}">${i===fi?'<i class="fsel">선</i>':''}<span class="nm">${G.nameTag?G.nameTag(p,i):''}${esc(p.n)}</span>${sub?`<small>${esc(sub)}</small>`:''}</button>${i===me?'<button type="button" class="wemo" aria-label="이모티콘" title="이모티콘">😊</button>':''}</div>`}
+      h+=`<div class="seat wseat${i===me?' mine':''}${p.b?' bot lv'+(p.lv??1):''}" data-w="${k}"><button type="button" data-seat="s${i}" aria-label="${esc(p.n)}${i===me?' (나)':''}">${i===fi?'<i class="fsel">선</i>':''}<span class="nm">${G.nameTag?G.nameTag(p,i):''}${nmH(p.n)}</span>${sub?`<small>${esc(sub)}</small>`:''}</button>${i===me?'<button type="button" class="wemo" aria-label="이모티콘" title="이모티콘">😊</button>':''}</div>`}
     else h+=`<div class="seat wseat empty sitok" data-w="${k}"><button type="button" data-seat="e${k}" aria-label="빈 자리">${CHAIR_SVG}</button></div>`;   // 빈 자리: 빈 의자 점선 그림 (앉아 있으면 눌러서 옮기고, 관전 중이면 눌러서 앉음)
   }
   return h;

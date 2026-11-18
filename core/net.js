@@ -1,6 +1,6 @@
 /* index.html 공통 코드 · 네트워크(PeerJS): 방 열기·참가·관전·재접속·방장 이양·공개 탁자 찾기. 파일 순서는 index.html의 <script src> 순서 */
 /* ================= 네트워크 (PeerJS) ================= */
-function cleanNick(n){return (typeof n==='string'&&n.trim()?n.trim():'손님').slice(0,10)}
+function cleanNick(n){n=typeof n==='string'?n.trim().replace(/^g\./i,'').trim():'';return (n||'손님').slice(0,10)}   // 'g.'로 시작하는 이름은 게스트 표시와 헷갈려서 뗌 (core/auth.js)
 function cleanTitle(t){return (typeof t==='string'?t.trim():'').slice(0,20)||'공개 탁자'}   // 탁자 이름은 20자까지 (닉네임용 10자 제한을 쓰면 공개 탁자 목록에서 이름이 잘림)
 function cleanAv(v){return typeof v==='string'&&/^[0-2]-\d{1,2}-\d{1,2}(-\d{1,2})?(-p[0-9a-z]{4,8})?(-e)?$/.test(v)?v:''}   // 아바타 값 (core/avatar.js)
 function hostConn(conn){
@@ -10,7 +10,9 @@ function hostConn(conn){
     if(!H||!d||typeof d!=='object')return;
     net.conns.add(conn);
     if(d.t==='hello'){
-      const nick=cleanNick(d.nick),cid=typeof d.cid==='string'?d.cid.slice(0,40):'',av=cleanAv(d.av);
+      const raw=cleanNick(d.nick),uid=auUidOf(d),cid=typeof d.cid==='string'?d.cid.slice(0,40):'',av=cleanAv(d.av);
+      if(conn.__uid!==uid){conn.__uid=uid;conn.__lg=''}conn.__nick=raw;
+      const nick=auTag(raw,!!uid&&conn.__lg===uid);   // 게스트는 g. (로그인 확인이 끝나면 방장이 뗌: core/auth.js)
       if(cid&&(H.banned||[]).includes(cid)){net.conns.delete(conn);try{conn.send({t:'kicked'})}catch(e){}setTimeout(()=>{try{conn.close()}catch(e){}},300);return}
       const take=x=>{if(x.conn&&x.conn!==conn){net.conns.delete(x.conn);try{x.conn.close()}catch(e){}}x.conn=conn};
       H.specs=H.specs||[];
@@ -29,6 +31,7 @@ function hostConn(conn){
           if(back)addLog(`${pl.name} 다시 연결됨`,'sys');
         }else if(!m){if(!hostAddSpec(conn,nick,cid))return}
       }
+      if(uid&&conn.__lg!==uid)auHostVerify(conn,uid);
       avpSendAll(conn);mark();return;
     }
     if(d.t==='avp'){avpHostGot(conn,d);return}   // 칠한 아바타 그림 (core/avatar.js)
@@ -161,7 +164,7 @@ function createRoom(){
     }
   });
 }
-function guestHello(conn){try{conn.send({t:'hello',nick:myNick(),cid:CID,sp:V&&V.spec?1:0,av:myAvStr()});avpSendMine(conn)}catch(e){}}
+function guestHello(conn){auPeer();try{conn.send({t:'hello',nick:myNick(),cid:CID,sp:V&&V.spec?1:0,av:myAvStr(),uid:AU.user?AU.user.uid:undefined});avpSendMine(conn)}catch(e){}}
 function saveGuest(){if(mode==='guest'&&net.code)store('gura-guest',JSON.stringify({code:net.code,at:Date.now()}))}
 function wireGuestConn(conn){
   conn.on('data',d=>{if(net.conn!==conn)return;if(d&&d.t==='avp'){avpPut(d.id,d.d);return}if(d&&d.t==='kicked'){guestKicked();return}if(d&&d.t==='cleared'){guestCleared();return}if(d&&d.t==='full'){guestFull();return}if(d&&d.t==='bye'){hostLeft(!!d.nx,cleanNick(d.nxn||''),!!d.hd);return}if(d&&typeof d==='object'&&d.t==='state'&&d.s&&typeof d.s==='object'){if(Date.now()-(net.savedAt||0)>5000){net.savedAt=Date.now();saveGuest()}applyView(d.s)}});
@@ -311,7 +314,7 @@ function hostLeft(amNext,nxName,hand){
 }
 function becomeHost(why){
   if(mode!=='guest'||!V||!net.code)return;
-  const code=net.code,last=V,meI=myIdx(),myName=meI>=0&&last.ps[meI]?last.ps[meI].n:myNick();
+  const code=net.code,last=V,meI=myIdx(),myName=meI>=0&&last.ps[meI]?last.ps[meI].n:myTagNick();
   // 연결을 닫기 전에 먼저 상태를 바꿈: conn.close()가 바로 'close'를 내보내 guestReconnect()가 다시 돌면 재접속 상태가 남아 알림이 안 사라짐
   const oldConn=net.conn;net.conn=null;mode='promoting';
   if(net.retry){clearTimeout(net.retry.timer);net.retry=null}
@@ -394,7 +397,7 @@ document.addEventListener('visibilitychange',()=>{
   if(mode==='guest'&&!net.retry&&!(net.conn&&net.conn.open))guestReconnect();
 });
 function enterRoom(){$('#lobby').hidden=true}
-function myNick(){return ($('#inNick').value.trim()||'나').slice(0,10)}
+function myNick(){return ($('#inNick').value.trim().replace(/^g\./i,'').trim()||'나').slice(0,10)}
 function saveNick(){store('gura-nick',myNick())}
 function roomLink(code){return location.origin+location.pathname+'?room='+code.toUpperCase()}
 

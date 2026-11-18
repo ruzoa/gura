@@ -44,6 +44,8 @@
     <canvas id="cv"></canvas>
     <div class="dim" id="dim"></div>
     <div class="nogl" id="nogl" hidden>3D 화면을 불러오지 못했습니다.</div>
+    <div class="ac-tag" id="acTag" role="dialog" aria-label="도토리·로그인" hidden></div>
+    <div class="ac-plus" id="acPlus" aria-hidden="true" hidden></div>
     <div class="front" id="front" hidden>
       <h1 class="fr-title" id="frTitle">탁자하나</h1>
       <div class="fr-pad off" id="frPad" aria-hidden="true"></div>
@@ -53,6 +55,7 @@
       <button type="button" class="fr-hot off" id="frBoard" aria-label="참여하기 · 탁자 번호" title="참여하기"></button>
       <button type="button" class="fr-hot off" id="frEye" aria-label="탁자 번호 가리기·보이기" title="번호 가리기"></button>
       <button type="button" class="fr-hot off" id="frLock" aria-label="공개·비공개 바꾸기" title="공개·비공개"></button>
+      <button type="button" class="fr-hot off" id="frPouch" aria-label="도토리 주머니" title="도토리 주머니"></button>
       <button type="button" class="fr-hot off" id="frStart" aria-label="게임 시작 (누르고 있기)" title="누르고 있으면 시작"></button>
       <button type="button" class="fr-hot off" id="frHolo" aria-label="게임 고르기" title="게임 고르기"></button>
       <button type="button" class="fr-hot off" id="frPick" aria-label="이 게임으로" title="이 게임으로"></button>
@@ -253,6 +256,8 @@
 <script src="core/front-objs.js"></script>
 <script src="core/wait.js"></script>
 <script src="core/avatar.js"></script>
+<script src="core/auth.js"></script>
+<script src="core/pouch.js"></script>
 <script src="core/boot.js"></script>
 </body>
 </html>

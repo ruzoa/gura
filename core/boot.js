@@ -5,6 +5,7 @@ for(const id of GAME_IDS)if(GAMES[id]!==G)GAMES[id].leave();
 G.enter();
 init3D();
 frontStart();
+auStart();   // 로그인한 적이 있으면 되살림 (core/auth.js)
 if(!FR.ok)$('#lobby').hidden=false;   // 3D가 없으면 2D 로비 (HTML에서는 처음부터 숨겨 둠)
 requestAnimationFrame(frame);
 requestAnimationFrame(()=>document.body.classList.remove('booting'));   // 첫 3D 장면을 그린 뒤에 보임

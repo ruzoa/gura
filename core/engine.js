@@ -9,7 +9,7 @@ function addLog(txt,cls=''){H.logSeq=(H.logSeq||0)+1;H.log.unshift([txt,cls,H.lo
 
 function hostNew(online,code,title){
   const gid=GAME_IDS[cfg.gi]||'gura';store('gura-game',gid);
-  H={online,code,title,cfg:{...cfgFor(gid),fast:cfg.fast&&!gameOf(gid).noFast?1:0,pub:cfg.pub?1:0},phase:'wait',members:[{name:myNick(),bot:false,conn:null,host:true}],specs:[],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
+  H={online,code,title,cfg:{...cfgFor(gid),fast:cfg.fast&&!gameOf(gid).noFast?1:0,pub:cfg.pub?1:0},phase:'wait',members:[{name:myTagNick(),bot:false,conn:null,host:true}],specs:[],players:[],log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,turn:0};
 }
 /* 대기실 자리 번호: 사람·봇마다 m.seat(0~최대 인원-1, 서로 다름). 없거나 겹치거나 범위 밖이면 빈 자리 중 가장 앞 번호로. 게임이 시작되면 자리 번호 순서대로 앉음 */
 function fixSeats(){
