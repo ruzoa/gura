@@ -352,7 +352,7 @@ function playOutA(over,lvs,np){
   while(H.phase!=='over'&&guard++<30000){NOW+=250;engineTick();ticks++;
     if(H.ak.st.some(q=>!Number.isFinite(q.x+q.y+q.z))){fail('alkkagi NaN position');break}}
   if(H.phase!=='over'){fail('alkkagi stuck shots='+H.ak.cnt+' np='+np);return ticks}
-  if(H.ak.ob&&H.ak.it.length!==np*H.ak.obn)fail('alkkagi items placed '+H.ak.it.length+' of '+np*H.ak.obn);
+  if(H.ak.ob&&(!H.ak.inv||H.ak.inv.some(L=>L.length)))fail('alkkagi items left '+JSON.stringify(H.ak.inv));
   if(H.ak.ob)globalThis.akItemShots=(globalThis.akItemShots||0)+H.ak.cnt;
   const rk=H.players.map(p=>p.rank),w=H.ak.res.w;
   if(rk.some(r=>!Number.isInteger(r)||r<1||r>np))fail('alkkagi ranks '+rk);
@@ -406,7 +406,7 @@ globalThis.playOutA=playOutA;
 }
 /* 엔진: 알 놓기 → 고르기(카운트다운 뒤 선착순, 반응 시간) → 놓기(모두 동시에) → 튕기기 */
 {mkRoom({pickfirst:1,stones:2,ob:1,obn:1});
- const A=H.ak;eq(A.ph,'pick','pick after stones');eq(A.of.length,3,'offered n+1');ok(A.ofs.every(x=>x<0),'none picked');
+ const A=H.ak;eq(A.ph,'pick','pick after stones');eq(A.of.length,3,'offered n+1');A.of=['tb','sd','jp'];A.ok=['tb','sd','jp'];ok(A.ofs.every(x=>x<0),'none picked');
  AK.engine.act(0,{t:'pick',k:0,rt:0});NOW+=500;engineTick();eq(A.ofs[0],-1,'no pick before countdown');
  NOW=A.go+600;AK.engine.act(0,{t:'pick',k:0,rt:400});NOW+=50;AK.engine.act(1,{t:'pick',k:0,rt:250});NOW+=300;engineTick();
  eq(A.ofs[0],1,'faster reaction wins');
@@ -421,7 +421,7 @@ globalThis.playOutA=playOutA;
  eq(A.it.length,2,'two items');eq(A.ph,'aim','shoot after put');eq(H.turn,0,'first shoots');}
 /* '?': 고른 사람만 속을 봄, 놓으면 모두 봄 */
 {mkRoom({pickfirst:1,stones:1,ob:1,obn:1});const A=H.ak;A.of=['qm','br','sd'];A.ok=[null,'br','sd'];
- NOW=A.go+100;AK.engine.act(0,{t:'pick',k:0,rt:50});NOW+=300;engineTick();eq(A.ofs[0],0,'picked ?');ok(T.OB_K.includes(A.ok[0]),'? resolved '+A.ok[0]);
+ NOW=A.go+100;AK.engine.act(0,{t:'pick',k:0,rt:50});NOW+=300;engineTick();eq(A.ofs[0],0,'picked ?');ok(T.OB_K.includes(A.ok[0])||A.ok[0]==='er','? resolved '+A.ok[0]);if(A.ok[0]==='er')A.ok[0]='tb';   // 지우개가 나오면 이 검사에서는 탱탱볼로
  eq(snapFor(1).ak.ok[0],null,'? hidden from other');eq(snapFor(0).ak.ok[0],A.ok[0],'? shown to picker');
  AK.engine.act(1,{t:'pick',k:1,rt:50});NOW+=300;engineTick();NOW=A.go+10;
  for(let k=0;k<4&&A.ph==='iput';k++){NOW=H.deadline+1;engineTick()}
@@ -431,7 +431,7 @@ globalThis.playOutA=playOutA;
  ok(cnt[0]>cnt[1]&&cnt[1]>cnt[2],'rarity order '+cnt)}
 /* 시간 초과: 고르기·놓기를 대신 */
 {mkRoom({pickfirst:1,stones:1,ob:1,obn:2,turn:10});
- const A=H.ak;eq(A.of.length,5,'offered 2x2+1');NOW=H.deadline+1;engineTick();eq(A.ph,'iput','timeout picks');ok(A.inv[0].length===2&&A.inv[1].length===2,'each two');
+ const A=H.ak;eq(A.of.length,5,'offered 2x2+1');A.of=['tb','sd','jp','ic','br'];A.ok=A.of.slice();NOW=H.deadline+1;engineTick();eq(A.ph,'iput','timeout picks');ok(A.inv[0].length===2&&A.inv[1].length===2,'each two');
  NOW=H.deadline+1;engineTick();eq(A.ph,'aim','timeout puts');eq(A.it.length,4,'four items')}
 /* 장기 모드: 바로 고르기 */
 {mkRoom({md:2,ob:1});eq(H.ak.ph,'pick','janggi starts with pick')}
@@ -439,3 +439,28 @@ globalThis.playOutA=playOutA;
 {const ks=c=>AK.boardSet({...cfgFor('alkkagi'),...c}).map(x=>x.k);
  if(typeof rbRuleItem==='function')ok(ks({md:0,ob:0}).includes('ob')&&!ks({md:0,ob:0}).includes('obn'),'board ob switch');if(typeof rbRuleItem==='function')ok(ks({md:2,ob:1}).includes('obn'),'board obn when on');if(typeof rbRuleItem==='function')ok(!ks({md:1,ob:1}).includes('ob'),'no ob in omok');
  eq(AK.modeLabel({md:0,ob:1}),'바둑 · 물건','mode label');eq(AK.modeLabel({md:1,ob:1}),'오목','omok label no items')}
+/* 2단계 물건: 유리·끈끈이·랜덤박스·배신자의 길·지우개 */
+{const IT=T.IT;
+ // 유리: 살살 맞으면 튕겨 나오고 깨짐, 세게 맞으면 깨고 지나감(느려짐)
+ {const r=T.simulate([at(0,.6,0)],{i:0,vx:0,vz:-2.6,p:.25},()=>.5,[{k:'gl',x:0,z:0,a:0,s:1}]);eq(r.it[0].u,1,'glass breaks slow');ok(r.fin[0].z>.05,'slow bounces '+r.fin[0].z.toFixed(2));ok(r.ev.some(e=>e[1]==='g'),'glass event')}
+ {const a=T.simulate([at(0,1,0)],{i:0,vx:0,vz:-7,p:.7},()=>.5,[{k:'gl',x:0,z:0,a:0,s:1}]),b=T.simulate([at(0,1,0)],{i:0,vx:0,vz:-7,p:.7},()=>.5,[]);
+  eq(a.it[0].u,1,'glass breaks fast');ok(a.fin[0].z<-.2&&a.fin[0].z>b.fin[0].z+.2,'fast passes slower '+a.fin[0].z.toFixed(2)+' vs '+b.fin[0].z.toFixed(2))}
+ // 끈끈이: 빠른 알이 더 많이 느려짐 (모래와 반대)
+ {const run=(v,its)=>T.simulate([at(0,1.6,0)],{i:0,vx:0,vz:-v,p:.3},()=>.5,its).fin[0].z;
+  const g=[{k:'gu',x:0,z:.6,s:1}],dF=run(7,[])-run(7,g),dS=run(3,[])-run(3,g);ok(dF<-.3,'glue slows fast '+dF.toFixed(2));ok(Math.abs(dF)>Math.abs(dS),'glue hurts fast more '+dF.toFixed(2)+' '+dS.toFixed(2))}
+ // 배신자의 길: 2명은 상대 알이 됨, 뜬 알·장은 그대로
+ {const r=T.simulate([at(0,1,0),at(1.5,-1.6,1)],{i:0,vx:0,vz:-3.5,p:.35,by:0,nx:1},()=>.5,[{k:'tr',x:0,z:.3,a:0,s:1}]);eq(r.fin[0].s,1,'betray flips owner');eq(r.sw.length,1,'switch recorded');ok(r.ev.some(e=>e[1]==='v'),'flip event')}
+ {const r=T.simulate([at(.6,1,1)],{i:0,vx:0,vz:-3.5,p:.35,by:0,nx:1},()=>.5,[{k:'tr',x:.6,z:.3,a:0,s:1}]);eq(r.fin[0].s,0,'other stone becomes shooter')}
+ {const r=T.simulate([at(0,1,0)],{i:0,vx:0,vz:-3.5,p:.35,by:0,nx:2},()=>.5,[{k:'tr',x:0,z:.3,a:0,s:1}]);eq(r.fin[0].s,2,'own stone goes to next (3-4p)')}
+ // 랜덤박스: 엔진 doShot에서 깨진 자리에 물건, 주인은 깬 사람
+ {mkRoom({pickfirst:1,stones:2,ob:1,obn:1});const A=H.ak;A.ph='aim';H.turn=0;A.inv=[[],[]];
+  const q=A.st.find(q=>q.s===0&&!q.u);A.st.forEach(o=>{if(o!==q&&!o.u){o.x=-1.8;o.z=o.s?-1.8:1.8}});q.x=0;q.z=1;A.it=[{k:'rb',x:0,z:.3,s:1,o:0}];
+  AK.engine.act(0,{t:'shoot',i:A.st.indexOf(q),a:-Math.PI/2,p:.4,j:0});eq(A.it[0].u,1,'box broken');ok(A.it.length===2&&A.it[1].s===0&&A.it[1].k!=='rb','box spawned '+JSON.stringify(A.it[1]))}
+ // 지우개: 다른 물건을 다 놓은 뒤, 상대 물건만
+ {mkRoom({pickfirst:1,stones:1,ob:1,obn:1});const A=H.ak;A.of=['er','tb','sd'];A.ok=['er','tb','sd'];
+  NOW=A.go+100;AK.engine.act(0,{t:'pick',k:0,rt:10});AK.engine.act(1,{t:'pick',k:1,rt:20});NOW+=300;engineTick();eq(A.ph,'iput','put phase');NOW=A.go+10;
+  eq(T.doErase(0,0),false,'eraser waits');const p1=T.itemPlan(A,1,'tb');AK.engine.act(1,{t:'iput',...p1});ok(T.obEraseReady(A),'ready after others');
+  AK.engine.act(0,{t:'erase',i:0});eq(A.it.length,0,'erased');eq(A.ph,'aim','shoot after erase')}
+ {mkRoom({pickfirst:1,stones:1,ob:1,obn:1});const A=H.ak;A.of=['er','er','tb'];A.ok=['er','er','tb'];
+  NOW=A.go+100;AK.engine.act(0,{t:'pick',k:0,rt:10});AK.engine.act(1,{t:'pick',k:1,rt:20});NOW+=300;engineTick();eq(A.ph,'aim','no targets: erasers vanish')}
+}
