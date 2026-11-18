@@ -547,27 +547,40 @@ const dieOf=k=>S3.dice[k]||(S3.dice[k]=S3.mkDie());
 /* 칸 그림 좌표(캔버스, 위가 먼 쪽): 줄 사이 간격 포함 */
 const boxOf=(c,N,cs)=>[colOf(c,N)*cs,(N-1-rowOf(c,N))*cs*(1+GAP)];
 function canvasFor(c,N,W){const h=Math.round(W*2*HD/BW);if(c.width!==W||c.height!==h){c.width=W;c.height=h}return h}
-/* 판 그림: 줄마다 둥근 띠(칸 무늬·번호) + 꺾이는 곳 다리(화살표), 줄 사이는 비워서 나무가 보임 */
+/* 꺾이는 곳: 줄 r의 끝 칸과 줄 r+1의 첫 칸은 같은 칸 열(짝수 줄은 오른쪽 끝, 홀수 줄은 왼쪽 끝)에서 간격의 절반씩 늘어나 맞닿음 */
+const turnCol=(r,N)=>r%2?0:N-1;
+function cellRect(c,N,cs,gp){
+  const r=rowOf(c,N),col=colOf(c,N);let x=col*cs,y=(N-1-r)*(cs+gp),h=cs;
+  if(r<N-1&&col===turnCol(r,N)){y-=gp/2;h+=gp/2}
+  if(r>0&&col===turnCol(r-1,N))h+=gp/2;
+  return [x,y,cs,h];
+}
+/* 공통 rr은 beginPath를 해서 여러 모양을 한 경로로 합칠 수 없음 → 하위 경로만 더하는 둥근 사각형 (같은 시계 방향이라 겹치면 합쳐짐) */
+function rrSub(g,x,y,w,h,r){g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
+/* 판 모양: 줄마다 둥근 띠 + 꺾이는 곳을 잇는 칸 열 (subpath를 합쳐 하나의 리본) */
+function ribbonPath(g,N,W,cs,gp,e){
+  const rad=cs*.16;
+  for(let r=0;r<N;r++){const y=(N-1-r)*(cs+gp);rrSub(g,3-e,y+2-e,W-6+2*e,cs-4+2*e,rad+e)}
+  for(let r=0;r<N-1;r++){const col=turnCol(r,N),x0=col?col*cs:3,x1=col?W-3:cs,yT=(N-2-r)*(cs+gp)+cs-2-rad,yB=(N-1-r)*(cs+gp)+2+rad;g.rect(x0-e,yT,x1-x0+2*e,yB-yT)}
+}
+/* 판 그림: 번호가 이어지는 칸끼리만 붙은 지그재그 리본 하나 (줄 사이는 비어서 나무가 보임) */
 function drawBoard(N){
   const c=S3.top.c,W=1024,Hc=canvasFor(c,N,W),g=c.getContext('2d'),cs=W/N,gp=cs*GAP;
   g.clearRect(0,0,W,Hc);
-  /* 다리: 줄 r 끝 → 줄 r+1 처음 (짝수 줄은 오른쪽 끝, 홀수 줄은 왼쪽 끝) */
-  for(let r=0;r<N-1;r++){const col=r%2?0:N-1,x=col*cs+cs*.2,y=(N-2-r)*(cs+gp)+cs-4;
-    g.fillStyle='#ead2a2';g.fillRect(x,y,cs*.6,gp+8);g.strokeStyle='#4a3020';g.lineWidth=4;g.beginPath();g.moveTo(x,y+4);g.lineTo(x,y+gp+4);g.moveTo(x+cs*.6,y+4);g.lineTo(x+cs*.6,y+gp+4);g.stroke();
-    g.fillStyle='rgba(74,48,32,.55)';const ax=x+cs*.3,ay=y+gp/2+4,s2=Math.min(gp*.38,cs*.12);g.beginPath();g.moveTo(ax,ay-s2);g.lineTo(ax+s2,ay+s2*.6);g.lineTo(ax-s2,ay+s2*.6);g.fill()}
-  for(let r=0;r<N;r++){const y=(N-1-r)*(cs+gp);
-    g.save();g.beginPath();rr(g,3,y+2,W-6,cs-4,cs*.16);g.clip();
-    for(let col=0;col<N;col++){const c2=cellAt(r,col,N),x=col*cs;
-      g.fillStyle=(r+col)%2?'#f4e4c2':'#e7c996';if(c2===1)g.fillStyle='#bfe0a8';if(c2===N*N)g.fillStyle='#ffd36a';
-      g.fillRect(x,y,cs,cs);
-      if(col){g.strokeStyle='rgba(74,48,32,.3)';g.lineWidth=2;g.beginPath();g.moveTo(x,y);g.lineTo(x,y+cs);g.stroke()}
-      g.fillStyle='rgba(74,48,32,.78)';g.font=`600 ${Math.round(cs*.26)}px "IBM Plex Mono", "Jua", monospace`;g.textAlign='left';g.textBaseline='top';g.fillText(String(c2),x+cs*.1,y+cs*.08);
-      if(c2===1||c2===N*N){g.fillStyle=c2===1?'#2f6b22':'#9a5a00';g.font=`${Math.round(cs*.27)}px "Jua", sans-serif`;g.textAlign='center';g.textBaseline='bottom';g.fillText(c2===1?'출발':'도착',x+cs/2,y+cs*.94)}
-      if(c2===N*N){g.save();g.translate(x+cs*.68,y+cs*.36);g.fillStyle='#e08a00';g.beginPath();for(let k=0;k<10;k++){const r2=k%2?cs*.07:cs*.16,a=k*Math.PI/5;g.lineTo(Math.sin(a)*r2,-Math.cos(a)*r2)}g.fill();g.restore()}
-    }
-    g.restore();
-    g.strokeStyle='#4a3020';g.lineWidth=6;g.beginPath();rr(g,3,y+2,W-6,cs-4,cs*.16);g.stroke();
+  g.fillStyle='#4a3020';g.beginPath();ribbonPath(g,N,W,cs,gp,6);g.fill();   // 테두리: 조금 큰 리본을 먼저 칠함
+  g.save();g.beginPath();ribbonPath(g,N,W,cs,gp,0);g.clip();
+  for(let c2=1;c2<=N*N;c2++){
+    const r=rowOf(c2,N),col=colOf(c2,N),[x,y,w,h]=cellRect(c2,N,cs,gp),y0=(N-1-r)*(cs+gp);
+    g.fillStyle=(r+col)%2?'#f4e4c2':'#e7c996';if(c2===1)g.fillStyle='#bfe0a8';if(c2===N*N)g.fillStyle='#ffd36a';
+    g.fillRect(x,y,w,h);
+    g.strokeStyle='rgba(74,48,32,.3)';g.lineWidth=2;
+    if(col){g.beginPath();g.moveTo(x,y0);g.lineTo(x,y0+cs);g.stroke()}
+    if(r<N-1&&col===turnCol(r,N)){g.beginPath();g.moveTo(x,y);g.lineTo(x+w,y);g.stroke()}   // 맞닿은 두 칸의 경계
+    g.fillStyle='rgba(74,48,32,.78)';g.font=`600 ${Math.round(cs*.26)}px "IBM Plex Mono", "Jua", monospace`;g.textAlign='left';g.textBaseline='top';g.fillText(String(c2),x+cs*.1,y0+cs*.08);
+    if(c2===1||c2===N*N){g.fillStyle=c2===1?'#2f6b22':'#9a5a00';g.font=`${Math.round(cs*.27)}px "Jua", sans-serif`;g.textAlign='center';g.textBaseline='bottom';g.fillText(c2===1?'출발':'도착',x+cs/2,y0+cs*.94)}
+    if(c2===N*N){g.save();g.translate(x+cs*.68,y0+cs*.36);g.fillStyle='#e08a00';g.beginPath();for(let k=0;k<10;k++){const r2=k%2?cs*.07:cs*.16,a=k*Math.PI/5;g.lineTo(Math.sin(a)*r2,-Math.cos(a)*r2)}g.fill();g.restore()}
   }
+  g.restore();
   S3.top.t.needsUpdate=true;
   /* 판 크기: 받침·윗면·덧그림을 이 깊이로 */
   const D=2*HD;S3.top.base.scale.set(BW+.26,1,D+.26);S3.top.bo.scale.set(BW+.32,1.25,D+.32);S3.top.m.scale.set(BW,D,1);S3.ovl.m.scale.set(BW,D,1);
@@ -589,11 +602,11 @@ function drawOverlay(o,me){
   L.t.needsUpdate=true;
 }
 /* 뱀 곡선: 머리 a → 꼬리 b, 옆으로 S자로 굽음 (말이 미끄러질 때도 같은 곡선) */
-const ITEM_Y=BT+.06;
+const ITEM_Y=BT+.04;   // 뱀·사다리는 판에 낮게 붙여 눕힘 (말 발밑으로 지나가 보이게)
 function snakePts(a,b,N){
   const [ax,az]=cellXZ(a,N),[bx,bz]=cellXZ(b,N),dx=bx-ax,dz=bz-az,L=Math.hypot(dx,dz)||1,nx=-dz/L,nz=dx/L;
   const amp=Math.min(.42,.1+L*.06)*Math.min(1.2,csOf(N)/.5+.2),wav=Math.max(1,Math.round(L/1.3)),P=[];
-  for(let k=0;k<=40;k++){const t=k/40,w=Math.sin(t*Math.PI*2*wav*.5+.0)*Math.sin(Math.PI*t)*amp;P.push(new THREE.Vector3(ax+dx*t+nx*w,ITEM_Y+.02,az+dz*t+nz*w))}
+  for(let k=0;k<=40;k++){const t=k/40,w=Math.sin(t*Math.PI*2*wav*.5+.0)*Math.sin(Math.PI*t)*amp;P.push(new THREE.Vector3(ax+dx*t+nx*w,ITEM_Y+.012,az+dz*t+nz*w))}
   return P;
 }
 function stripeTex(col){
@@ -613,11 +626,11 @@ function badgeTex(x,col){
 }
 function badge(x,c,N,o){
   const cs=csOf(N),[cx,cz]=cellXZ(c,N),m=new THREE.Mesh(new THREE.PlaneGeometry(cs*.46,cs*.46),new THREE.MeshBasicMaterial({map:badgeTex(x,SEAT_C[o%4]),transparent:true,depthWrite:false}));
-  m.rotation.x=-Math.PI/2;m.position.set(cx+cs*.3,ITEM_Y+.16,cz-cs*.3);m.renderOrder=6;return m;
+  m.rotation.x=-Math.PI/2;m.position.set(cx+cs*.3,ITEM_Y+.12,cz-cs*.3);m.renderOrder=6;return m;
 }
 function mkSnake(it,N){
   const g=new THREE.Group(),col=SEAT_C[it.o%4],k=Math.min(1.25,Math.max(.75,csOf(N)/.5));
-  const P=snakePts(it.a,it.b,N),curve=new THREE.CatmullRomCurve3(P),rad=.085*k;
+  const P=snakePts(it.a,it.b,N),curve=new THREE.CatmullRomCurve3(P),rad=.07*k;
   const tex=stripeTex(col);tex.wrapS=THREE.RepeatWrapping;tex.repeat.set(Math.max(2,Math.round(curve.getLength()*3)),1);
   const tg=new THREE.TubeGeometry(curve,80,rad,10,false);
   /* 꼬리 쪽으로 가늘게: 관 단면을 길이에 따라 줄임 */
@@ -625,7 +638,8 @@ function mkSnake(it,N){
   const body=new THREE.Mesh(tg,toon({map:tex,rim:.2}));body.castShadow=true;g.add(body);
   const hm=toon({color:new THREE.Color(col).getHex(),rim:.25});
   const head=new THREE.Mesh(new THREE.SphereGeometry(rad*1.75,18,12),hm);head.scale.set(1.05,.62,1.35);
-  const t0=curve.getTangentAt(0);head.position.copy(P[0]).addScaledVector(t0,-rad*.6);head.rotation.y=Math.atan2(-t0.x,-t0.z);head.castShadow=true;
+  const t0=curve.getTangentAt(0);head.position.copy(P[0]).addScaledVector(t0,-rad*.6);head.position.y+=rad*.45;   // 머리만 살짝 듦
+  head.rotation.y=Math.atan2(-t0.x,-t0.z);head.castShadow=true;
   const ho=new THREE.Mesh(head.geometry,S3.ink);ho.scale.setScalar(1.1);head.add(ho);
   const eyeG=new THREE.SphereGeometry(rad*.55,10,8),eyeM=new THREE.MeshBasicMaterial({color:0xffffff}),pupM=new THREE.MeshBasicMaterial({color:0x111111});
   for(const sd of [-1,1]){const e=new THREE.Mesh(eyeG,eyeM);e.position.set(sd*rad*.95,rad*.9,rad*.7);const p=new THREE.Mesh(eyeG,pupM);p.scale.setScalar(.55);p.position.set(0,.25*rad,.32*rad);e.add(p);head.add(e)}
@@ -638,8 +652,8 @@ function mkLadder(it,N){
   const rail=toon({color:new THREE.Color(col).getHex(),rim:.22}),rung=toon({color:0xc89a5c,rim:.18});
   const bar=(x1,z1,x2,z2,r,m,y)=>{const l=Math.hypot(x2-x1,z2-z1),c=new THREE.Mesh(new THREE.CylinderGeometry(r,r,l,8),m);c.position.set((x1+x2)/2,y,(z1+z2)/2);c.rotation.order='YXZ';c.rotation.y=Math.atan2(x2-x1,z2-z1);c.rotation.x=Math.PI/2;c.castShadow=true;
     const o=new THREE.Mesh(c.geometry,S3.ink);o.scale.set(1.35,1.02,1.35);c.add(o);g.add(c)};
-  for(const s of [-1,1])bar(ax+nx*w*s-dx/L*.12,az+nz*w*s-dz/L*.12,bx+nx*w*s+dx/L*.12,bz+nz*w*s+dz/L*.12,.032*k,rail,ITEM_Y+.035);
-  const n=Math.max(2,Math.round(L/(.3*k)));for(let j=0;j<=n;j++){const t=j/n,x=ax+dx*t,z=az+dz*t;bar(x-nx*w,z-nz*w,x+nx*w,z+nz*w,.022*k,rung,ITEM_Y+.03)}
+  for(const s of [-1,1])bar(ax+nx*w*s-dx/L*.12,az+nz*w*s-dz/L*.12,bx+nx*w*s+dx/L*.12,bz+nz*w*s+dz/L*.12,.028*k,rail,ITEM_Y+.012);
+  const n=Math.max(2,Math.round(L/(.3*k)));for(let j=0;j<=n;j++){const t=j/n,x=ax+dx*t,z=az+dz*t;bar(x-nx*w,z-nz*w,x+nx*w,z+nz*w,.02*k,rung,ITEM_Y+.008)}
   if(it.x)g.add(badge(it.x,it.a,N,it.o));
   return g;
 }
@@ -649,14 +663,22 @@ function syncItems(o,now,first){
   for(const it of o.items){const key=it.k+it.a+':'+it.b+':'+it.o+':'+o.cf.N;want.add(key);
     if(!S3.items.has(key)){const g=it.k==='s'?mkSnake(it,o.cf.N):mkLadder(it,o.cf.N);S3.root.add(g);S3.items.set(key,{g,born:first?-1e9:now,it})}}
   for(const [key,v] of S3.items)if(!want.has(key)){S3.root.remove(v.g);v.g.traverse(m=>{if(m.geometry&&m.geometry!==S3.ink)m.geometry.dispose();if(m.material&&m.material!==S3.ink&&m.material.map)m.material.map.dispose()});S3.items.delete(key)}
+  /* 말이 설 빈 자리를 고르려고 뱀·사다리가 지나는 점을 모아 둠 (바뀔 때만) */
+  const ik=[...want].sort().join('|');
+  if(ik!==S3.ipKey){S3.ipKey=ik;S3.spot=new Map();const P=[],N=o.cf.N;
+    for(const v of S3.items.values()){const it=v.it;
+      if(it.k==='s')for(const q of snakePts(it.a,it.b,N))P.push(q.x,q.z);
+      else{const [ax,az]=cellXZ(it.a,N),[bx,bz]=cellXZ(it.b,N),L=Math.hypot(bx-ax,bz-az)||1,nx=-(bz-az)/L,nz=(bx-ax)/L,w=.13*Math.min(1.2,Math.max(.75,csOf(N)/.5)),n=Math.ceil(L/.08);
+        for(let j=0;j<=n;j++){const t=j/n,x=ax+(bx-ax)*t,z=az+(bz-az)*t;P.push(x+nx*w,z+nz*w,x-nx*w,z-nz*w,x,z)}}}
+    S3.ipts=P}
   for(const v of S3.items.values()){const k=ez((now-v.born)/320),s=k<1?(.2+.8*k)+Math.sin(Math.PI*k)*.12:1;v.g.scale.set(1,s,1);v.g.position.y=k<1?(1-k)*.25:0}
 }
 /* 굴림 연출 상태 (상태가 오면 시각 기준을 잡음) */
 function simFor(m){
   if(S3.sim&&S3.sim.id===m.id)return S3.sim;
-  /* 던지는 방향: 컵에서 판 가운데 쪽, 시작: 판 가장자리 안쪽 (보는 사람마다 컵 자리가 달라 떨어지는 곳은 다를 수 있고, 눈은 같음) */
-  const rnd=mulberry(m.seed),[cx,cz]=cupXZ(m.s),len=Math.hypot(cx,cz)||1,ux=-cx/len,uz=-cz/len,from=[cx+ux*.95,BT+.75,cz+uz*.95];
-  const ex=Math.max(Math.abs(from[0]),Math.abs(from[2]));if(ex>ARENA-DH-.05){const s=(ARENA-DH-.05)/ex;from[0]*=s;from[2]*=s}
+  /* 던지는 방향: 컵에서 판 가운데 쪽, 시작: 기울어진 컵 입구(판 가장자리 안쪽) (보는 사람마다 컵 자리가 달라 떨어지는 곳은 다를 수 있고, 눈은 같음) */
+  const rnd=mulberry(m.seed),[cx,cz]=cupXZ(m.s),len=Math.hypot(cx,cz)||1,ux=-cx/len,uz=-cz/len,from=[cx+ux*CUP_MOUTH,BT+DH+.12,cz+uz*CUP_MOUTH];
+  from[0]=clamp(from[0],-(AX-DH-.05),AX-DH-.05);from[2]=clamp(from[2],-(AZ-DH-.05),AZ-DH-.05);
   const r=simThrow(throwStarts(m.d.length,from,[ux,0,uz],rnd));
   r.rot=r.fin.map((q,k)=>preRot(q,m.d[k]));r.id=m.id;r.d=m.d.slice();r.s=m.s;r.hitAt=0;
   r.rate=Math.max(1,r.dur/((MV.throw-450)/1000));   // 오래 구르면 빨리 재생해서 말이 걷기 전에 멈추게
@@ -665,7 +687,7 @@ function simFor(m){
 /* 상태가 오면 시각 기준을 잡음 (3D·2D 모두) */
 function syncMv(o){
   const now=clock();
-  if(o.gn!==S3.gn){S3.gn=o.gn;S3.boardKey='';S3.ovKey='';S3.sim=null;S3.mvId=-1;SEL.a=0;
+  if(o.gn!==S3.gn){S3.gn=o.gn;S3.boardKey='';S3.ovKey='';S3.sim=null;S3.mvId=-1;SEL.a=0;S3.dk=null;S3.ipKey='';
     for(const v2 of S3.items.values())if(S3.root)S3.root.remove(v2.g);S3.items.clear();S3.first=true}
   if(o.sw&&S3.swId!==o.sw.id){S3.swId=o.sw.id;S3.swT0=now-(o.sw.el||0)}
   if(o.mv&&S3.mvId!==o.mv.id){S3.mvId=o.mv.id;S3.mvT0=now-(o.mv.el||0);S3.lastHop=-1;S3.slideSnd='';
@@ -688,7 +710,7 @@ function pawnSpot(o,i,now){
     const e=now-S3.mvT0,n=m.path.length,hop0=m.nt?MV.walk0:MV.throw;
     if(e<hop0)return {c:m.from,p:null};
     const k=(e-hop0)/MV.step;
-    if(k<n){const j=Math.floor(k),f=k-j,A=cellXZ(j?m.path[j-1]:m.from,N),B=cellXZ(m.path[j],N),t=ez(Math.min(1,f*1.25));
+    if(k<n){const j=Math.floor(k),f=k-j,A=spotXZ(j?m.path[j-1]:m.from,N),B=spotXZ(m.path[j],N),t=ez(Math.min(1,f*1.25));
       if(j!==S3.lastHop){S3.lastHop=j;tone(520+j*35,.05,{type:'triangle',vol:.1})}
       return {c:m.path[j],p:[lerp(A[0],B[0],t),Math.sin(Math.PI*Math.min(1,f*1.25))*.32,lerp(A[1],B[1],t)],moving:true}}
     const land=n?m.path[n-1]:m.from;
@@ -714,7 +736,15 @@ function pawnSpot(o,i,now){
   return {c:o.pos[i],p:null};
 }
 /* 같은 칸의 말은 겹치지 않게 조금씩 비킴 */
-const OFFS=[[[0,0]],[[-.2,0],[.2,0]],[[-.2,.13],[.2,.13],[0,-.17]],[[-.19,.17],[.19,.17],[-.19,-.17],[.19,-.17]]];
+/* 칸 안에서 말이 설 자리: 가운데와 네 모서리 중 그 칸을 지나는 뱀·사다리에서 먼 곳부터 (같은 칸이면 다음으로 먼 곳) */
+const SPOTS=[[0,0],[-.26,-.24],[.26,-.24],[-.26,.24],[.26,.24]];
+const spotXZ=(c,N)=>{const [x,z]=cellXZ(c,N),o=spotsFor(c,N)[0],cs=csOf(N);return [x+o[0]*cs,z+o[1]*cs]};
+function spotsFor(c,N){
+  let r=S3.spot&&S3.spot.get(c);if(r)return r;
+  const cs=csOf(N),[cx,cz]=cellXZ(c,N),P=S3.ipts||[];
+  const sc=SPOTS.map(([dx,dz],k)=>{const x=cx+dx*cs,z=cz+dz*cs;let m=9;for(let j=0;j<P.length;j+=2){const d=Math.hypot(P[j]-x,P[j+1]-z);if(d<m)m=d}return {k,x:dx,z:dz,d:Math.min(m,cs*.5)+(k?0:cs*.04)}});
+  r=sc.sort((a,b)=>b.d-a.d).map(o=>[o.x,o.z]);if(S3.spot)S3.spot.set(c,r);return r;
+}
 const SHK={w:28.5,A:.16,y0:.4};
 const sndRattle=v=>{tone(650+Math.random()*700,.025,{type:'triangle',vol:.06*v});hiss(.025,{freq:2600,q:1.5,vol:.05*v})};
 const sndHit=v=>{tone(900+Math.random()*500,.03,{type:'triangle',vol:Math.min(.12,.03*v)});hiss(.03,{freq:2600,q:1.2,vol:Math.min(.1,.025*v)})};
@@ -733,6 +763,47 @@ function cupPose(i,now,o){
   return {p:cp,q};
 }
 S3.shAt=[];S3.shD=[];
+/* 컵 안 주사위 자리 (컵 묶음 좌표, 바닥부터 쌓임) · 기울어진 컵 입구까지의 거리 */
+const CUP_IN=[[0,.32,.02],[.05,.71,-.06],[-.06,1.08,.05]],CUP_MOUTH=1.02;
+const CUP_E=[[.1,.4,.06],[.35,-.25,.12],[-.2,.6,.25]].map(e=>window.THREE?new THREE.Quaternion().setFromEuler(new THREE.Euler(e[0],e[1],e[2])):null);
+const _v=window.THREE?new THREE.Vector3():null,_q=window.THREE?new THREE.Quaternion():null;
+function inCup(seat,k,now,shake){
+  const c=cupOf(seat);c.updateMatrixWorld();const L=CUP_IN[k%3];
+  const j=shake?Math.abs(Math.sin(now/1000*SHK.w*2+k*1.9))*.13:0;   // 흔들면 컵 안에서 달그락 튐
+  const p=_v.set(L[0]+(shake?Math.sin(now/37+k)*.04:0),L[1]+j,L[2]).applyMatrix4(c.matrixWorld).clone();
+  const q=c.quaternion.clone().multiply(CUP_E[k%3]);if(shake)q.multiply(_q.setFromAxisAngle(_v.set(1,.3,0).normalize(),now/90+k));
+  return {p,q};
+}
+function diceStep(o,m,now,me,bk){
+  const D=S3.dk||(S3.dk={hold:null,at:[],fly:null});
+  const put=(k,p,q)=>{const d=dieOf(k);d.visible=bk>=1;d.position.copy(p);d.quaternion.copy(q);D.at[k]={p:p.clone(),q:q.clone()}};
+  if(m){   // 던지기: 컵이 기울기 시작해 0.2초까지는 컵 안, 그다음 물리 재생
+    const r=simFor(m),e=(now-S3.mvT0-200)/1000;D.hold=m.s;D.fly=null;
+    if(e<0){for(let k=0;k<r.d.length;k++){const c=inCup(m.s,k,now,false);put(k,c.p,c.q)}return r.d.length}
+    const t=e*r.rate,fi=Math.max(0,Math.min(r.frames.length-1,Math.floor(t*60))),f=r.frames[fi];
+    for(let k=0;k<r.d.length;k++){const R=r.rot[k];put(k,new THREE.Vector3(f[k*7],f[k*7+1],f[k*7+2]),new THREE.Quaternion(f[k*7+3],f[k*7+4],f[k*7+5],f[k*7+6]).multiply(new THREE.Quaternion(R[0],R[1],R[2],R[3])))}
+    while(r.hitAt<r.hits.length&&r.hits[r.hitAt][0]<=t){sndHit(r.hits[r.hitAt][1]);r.hitAt++}
+    D.board=r.d.length;return r.d.length;
+  }
+  const hold=o.ph==='play'&&V.t>=0&&V.t<o.out.length&&!o.out[V.t]?V.t:null;
+  if(hold==null){   // 설치·끝: 지난 굴림이 있으면 판 위 그대로
+    if(D.at.length&&D.board&&o.ph!=='setup'){for(let k=0;k<D.board;k++)put(k,D.at[k].p,D.at[k].q);return D.board}
+    D.hold=null;return 0;
+  }
+  const n=o.cf.dn+(hold===me&&o.more?1:0),sh=o.ph==='play'&&!o.mv&&(hold===me?HOLD.on:!!(o.shk&&o.shk[hold]));
+  if(D.hold!==hold){   // 차례가 바뀜: 지금 자리에서 새 컵으로 톡 튀어 들어감
+    D.fly={t0:now,from:D.at.slice(0,3).map(a=>a&&{p:a.p.clone(),q:a.q.clone()})};D.hold=hold;D.board=0;
+    if(D.fly.from.some(Boolean))sfx('tick');
+  }
+  const fk=D.fly?(now-D.fly.t0)/450:1;
+  for(let k=0;k<n;k++){
+    const c=inCup(hold,k,now,sh),fr=D.fly&&D.fly.from[k];
+    if(fk<1&&fr){const t=ez(fk),p=fr.p.clone().lerp(c.p,t);p.y+=Math.sin(Math.PI*Math.min(1,fk))*.9;put(k,p,fr.q.clone().slerp(c.q,t))}
+    else put(k,c.p,c.q);
+  }
+  if(fk>=1)D.fly=null;
+  return n;
+}
 function step3D(now){
   const o=O_();if(!o||!S3.on)return;
   const me=myIdx(),n=V.ps.length,N=o.cf.N,cs=csOf(N),intro=IN.on?now-IN.t0:1e9;
@@ -752,7 +823,7 @@ function step3D(now){
     pw.visible=!!s&&bk>=1;if(!pw.visible)continue;
     let x,y=BT,z;
     if(s.p){x=s.p[0];z=s.p[2];y=BT+s.p[1]}
-    else{const [cx,cz]=cellXZ(s.c,N),grp=byCell.get(s.c)||[i],j=grp.indexOf(i),of=(OFFS[grp.length-1]||OFFS[3])[j]||[0,0];x=cx+of[0]*cs;z=cz+of[1]*cs}
+    else{const [cx,cz]=cellXZ(s.c,N),grp=byCell.get(s.c)||[i],j=grp.indexOf(i),of=spotsFor(s.c,N)[j]||[0,0];x=cx+of[0]*cs;z=cz+of[1]*cs}
     if(IN.on&&!IN.again){const k=(intro-INTRO.pawn[0]-i*INTRO.pawn[1])/INTRO.pawn[2];if(k<1){if(k<0){pw.visible=false;continue}y+=(1-k*k)*1.4}}
     pw.position.set(x,y,z);pw.scale.setScalar(pk*((byCell.get(s.c)||[]).length>1&&!s.p?.44:.52));
   }
@@ -766,19 +837,10 @@ function step3D(now){
   /* 차례 고리 */
   {const ti=V.st==='play'&&o.ph==='play'?V.t:-1,ok=ti>=0&&ti<n&&!o.out[ti]&&bk>=1&&!IN.on;S3.ring.visible=ok;
    if(ok){const [x,z]=cupXZ(ti);S3.ring.position.set(x,.012,z);S3.ring.material.color.set(SEAT_C[ti%4]);const s=1+.08*Math.sin(now/220);S3.ring.scale.set(s,s,1);S3.ring.material.opacity=.6+.3*Math.sin(now/220)}}
-  /* 주사위: 굴리는 중이면 물리 기록을 재생, 끝난 판은 마지막 굴림 그대로 */
-  const m=o.mv&&!o.mv.nt?o.mv:null,last=!o.mv&&o.last&&!o.last.nt&&o.ph!=='setup'?o.last:null;
-  let shown=0;
-  if(m||last){
-    const src=m||last,r=simFor({...src,s:src.s}),e=m?(now-S3.mvT0-200)/1000:9;
-    const t=e*r.rate,fi=Math.max(0,Math.min(r.frames.length-1,Math.floor(t*60)));
-    const hide=!m&&o.ph==='play'&&(HOLD.on||!!(o.shk&&o.shk[V.t]));   // 다음 사람이 컵을 흔들면 지난 주사위는 컵으로 들어감
-    if(e>=0&&!hide){
-      for(let k=0;k<r.d.length;k++){const d=dieOf(k),f=r.frames[fi];d.visible=true;shown++;
-        d.position.set(f[k*7],f[k*7+1],f[k*7+2]);const q=new THREE.Quaternion(f[k*7+3],f[k*7+4],f[k*7+5],f[k*7+6]),R=r.rot[k];d.quaternion.copy(q).multiply(new THREE.Quaternion(R[0],R[1],R[2],R[3]))}
-      if(m){while(r.hitAt<r.hits.length&&r.hits[r.hitAt][0]<=t){sndHit(r.hits[r.hitAt][1]);r.hitAt++}}
-    }
-  }
+  /* 주사위: 판 → 컵 → 판으로 사라지지 않고 이어짐.
+     던지는 중이면 컵 안(기울기 전) → 물리 기록 재생, 아니면 차례인 사람의 컵 안(차례가 바뀌면 지난 자리에서 그 컵으로 톡 튀어 들어감).
+     설치·끝난 판은 마지막으로 떨어진 자리 */
+  const m=o.mv&&!o.mv.nt?o.mv:null,shown=diceStep(o,m,now,me,bk);
   for(let k=shown;k<S3.dice.length;k++)S3.dice[k].visible=false;
   for(const mm of [T.timerBg,T.timerArc,T.ring])if(mm)mm.visible=false;
   if(IN.on)introStep(now);
@@ -864,7 +926,8 @@ function cellAtScreen(cx,cy){
     const v=new THREE.Vector2((cx-st.left)/st.width*2-1,-((cy-st.top)/st.height)*2+1),rc=S3.ray||(S3.ray=new THREE.Raycaster());rc.setFromCamera(v,S3.cam);
     const O=rc.ray.origin,D=rc.ray.direction;if(Math.abs(D.y)<1e-6)return 0;const t=(BT-O.y)/D.y;if(t<0)return 0;
     const x=O.x+D.x*t,z=O.z+D.z*t,cs=csOf(N),col=Math.floor((x+BH)/cs),u=(HD-z)/(cs*(1+GAP)),r=Math.floor(u);
-    if((u-r)*(1+GAP)>1)return 0;   // 줄 사이 간격
+    const f=(u-r)*(1+GAP);
+    if(f>1){if(r<N-1&&col===turnCol(r,N))return cellAt(f>1+GAP/2?r+1:r,col,N);return 0}   // 줄 사이 간격 (꺾이는 칸은 이어짐)
     return cellAt(r,col,N);
   }
   return 0;
@@ -983,8 +1046,7 @@ function draw2d(){
   const cx=c=>(colOf(c,N)+.5)*u,ry=c=>(N-1-rowOf(c,N))*(u+gp),cy=c=>ry(c)+u/2;
   const ends=pl&&SEL.a?new Set(endsFor(o.items,o.cf,pl==='snake'?'s':SEL.k,SEL.a,pl==='setup'?SEL.x:'')):new Set();
   let h=`<svg class="sl-svg" viewBox="0 0 100 ${Hs.toFixed(2)}">`;
-  for(let r=0;r<N-1;r++){const col=r%2?0:N-1;h+=`<rect x="${col*u+u*.2}" y="${(N-2-r)*(u+gp)+u}" width="${u*.6}" height="${gp}" fill="#ead2a2"/>`}
-  for(let c=1;c<=N*N;c++){const x=colOf(c,N)*u,y=ry(c),r=rowOf(c,N);h+=`<rect data-c="${c}" x="${x}" y="${y}" width="${u}" height="${u}" fill="${c===1?'#bfe0a8':c===N*N?'#ffd36a':(r+colOf(c,N))%2?'#f4e4c2':'#e7c996'}" stroke="${ends.has(c)?'#2a9640':c===SEL.a?SEAT_C[Math.max(0,me)%4]:'rgba(74,48,32,.3)'}" stroke-width="${ends.has(c)||c===SEL.a?.8:.15}"/><text x="${x+u*.08}" y="${y+u*.3}" font-size="${u*.26}" fill="#4a3020">${c}</text>`}
+  for(let c=1;c<=N*N;c++){const [x,y,,hh]=cellRect(c,N,u,gp),r=rowOf(c,N);h+=`<rect data-c="${c}" x="${x}" y="${y}" width="${u}" height="${hh}" fill="${c===1?'#bfe0a8':c===N*N?'#ffd36a':(r+colOf(c,N))%2?'#f4e4c2':'#e7c996'}" stroke="${ends.has(c)?'#2a9640':c===SEL.a?SEAT_C[Math.max(0,me)%4]:'rgba(74,48,32,.3)'}" stroke-width="${ends.has(c)||c===SEL.a?.8:.15}"/><text x="${x+u*.08}" y="${ry(c)+u*.3}" font-size="${u*.26}" fill="#4a3020">${c}</text>`}
   const XS={rg:'+2',im:'🛡',ex:'🔒'};
   for(const it of o.items){const col=SEAT_C[it.o%4];h+=it.k==='l'?`<line x1="${cx(it.a)}" y1="${cy(it.a)}" x2="${cx(it.b)}" y2="${cy(it.b)}" stroke="${col}" stroke-width="${u*.22}" stroke-dasharray="${u*.08} ${u*.12}" opacity=".85"/>`:`<path d="M${cx(it.a)} ${cy(it.a)} Q${(cx(it.a)+cx(it.b))/2+u*.6} ${(cy(it.a)+cy(it.b))/2} ${cx(it.b)} ${cy(it.b)}" stroke="${col}" stroke-width="${u*.16}" fill="none" stroke-linecap="round" opacity=".85"/><circle cx="${cx(it.a)}" cy="${cy(it.a)}" r="${u*.17}" fill="${col}"/>`;
     if(it.x)h+=`<text x="${cx(it.a)+u*.22}" y="${cy(it.a)-u*.15}" font-size="${u*.3}" fill="${col}">${XS[it.x]}</text>`}
