@@ -24,6 +24,14 @@ I18N.add=(lang,d)=>{
 };
 /* 사전 밖의 표 (board: 디스플레이 낱말, unit: 단위, short: 목록 판 짧은 게임 이름): 지금 언어의 것만 */
 I18N.set=(lang,key,d)=>{if(lang===LANG)Object.assign(I18N[key],d)};
+/* 게임 번역 표 (게임 파일 맨 아래): G.i18n=i18nGame({'한국어':['English','日本語'],…},{en:{rulesHTML:'…'},ja:{rulesHTML:'…'}})
+   두 언어를 한 줄에 나란히 둠(한국어 문구를 더할 때 같이 더하기 쉽게). 값 순서는 LANGS 순서(한국어 뺌). 지금 언어의 것만 만듦 → core/base.js가 사전에 더하고 나머지 값(rulesHTML 등)은 게임에 덮어씀 */
+function i18nGame(tbl,extra){
+  if(LANG==='ko')return null;
+  const i=Object.keys(LANGS).indexOf(LANG)-1,s={};
+  for(const k in tbl){const v=tbl[k][i];if(v!=null)s[k]=v}
+  return {[LANG]:Object.assign({},extra&&extra[LANG],{strings:s})};
+}
 /* __('한국어 {0}', 값…): 코드에서 직접 쓰는 번역 (gettext처럼). 값은 {0}·{1} 자리에 넣음. t·tr 같은 짧은 이름은 게임 코드의 지역 변수(t=시각)와 겹쳐서 쓰지 않음 */
 function __(s,...a){
   if(s==null)return s;s=String(s);
@@ -64,6 +72,12 @@ if(LANG!=='ko'&&typeof document!=='undefined'){
   const CP=typeof CanvasRenderingContext2D!=='undefined'&&CanvasRenderingContext2D.prototype;   // 캔버스 글자 (3D 판·카드 그림 등)
   if(CP)for(const k of ['fillText','strokeText','measureText']){const f=CP[k];CP[k]=function(s,...r){return f.call(this,typeof s==='string'&&s.length>1?__s(s):s,...r)}}   // 한 글자는 그대로 (한 자씩 그리는 판·말의 글자가 낱말로 바뀌지 않게)
   for(const k of ['confirm','alert','prompt']){const f=window[k];if(f)window[k]=(m,...r)=>f.call(window,__s(m),...r)}
+  /* textContent: 쓸 때 바로 번역해서 넣고, 다시 읽으면 넣었던 한국어를 돌려줌 (화면은 번역).
+     게임 코드의 `if(el.textContent!=='내기')el.textContent='내기'`가 번역 때문에 늘 달라 보여 매 프레임 다시 쓰던 것(약 60곳)을 막음 */
+  const TC=typeof Node!=='undefined'&&Object.getOwnPropertyDescriptor(Node.prototype,'textContent');
+  if(TC&&TC.get&&TC.set)Object.defineProperty(Node.prototype,'textContent',{configurable:true,enumerable:TC.enumerable,
+    get(){const cur=TC.get.call(this);return this.__i18nO!==undefined&&cur===this.__i18nO?this.__i18nS:cur},
+    set(v){const s=v==null?'':String(v);if(HANGUL.test(s)){const o=__s(s);this.__i18nS=s;this.__i18nO=o;TC.set.call(this,o)}else{this.__i18nO=undefined;TC.set.call(this,v)}}});
   const start=()=>{
     I18N.dom(document.body);document.title=__s(document.title);
     new MutationObserver(ms=>{for(const m of ms){

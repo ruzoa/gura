@@ -493,5 +493,23 @@ G.init=()=>{
   elBox=document.createElement('div');elBox.className='rb-box';elBox.hidden=true;elBox.innerHTML='<div class="rb-2d"></div>';
   $('#stage').appendChild(elBox);
 };
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음 */
+G.i18n=i18nGame({
+'합계 77을 피하기':['Avoid a total of 77','合計77を避ける'],
+'시간이 지나면 낼 수 있는 카드 중 하나가 무작위로 나갑니다':['When time runs out, a random playable card is played','時間切れになると、出せるカードからランダムに1枚出ます'],
+'손패 5장 · 칩 3개 · 제한 시간 {0}초':['5 cards · 3 chips · Time limit {0}s','手札5枚 · チップ3枚 · 制限時間{0}秒'],
+'2~8명 암산 카드 게임':['Mental math card game for 2–8','2〜8人の暗算カードゲーム'],
+'카드 55장 · 손패 5장 · 칩 3개':['55 cards · 5 in hand · 3 chips','カード55枚 · 手札5枚 · チップ3枚'],
+'판 끝':['Round over','ラウンド終了'],
+'{0} 칩 -1 (남은 칩 {1})':['{0} chip -1 ({1} left)','{0} チップ-1（残り{1}）'],
+'{0}명 시작. {1}부터 냅니다.':['{0} players. {1} plays first.','{0}人で開始。{1}から出します。'],
+'칩 {0}개':['{0} chips','チップ{0}枚'],
+'{0}장':['{0} cards','{0}枚'],
+'· {0}장':['· {0} cards','· {0}枚']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Be the last player left</li><li><b>Play</b> : The card\'s value is added to the total. Draw 1 card after playing</li><li><b>Losing a chip</b> : If the total becomes 11·22·33·44·55·66 (even if it stays the same) or 77 or more, the player who played loses 1 chip (a light on their name tag)</li><li><b>Special cards</b> : 0 adds nothing · -10 subtracts 10 · ⇄ reverses direction · ×2 the next player plays 2 cards</li><li><b>Out</b> : If you lose one more after all your lights are out, you are out</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 最後まで残れば勝ちです</li><li><b>出す</b> : カードを出すとその数が合計に足されます。出したあと1枚引きます</li><li><b>チップを失う</b> : 合計が11·22·33·44·55·66（変わらなくても）または77以上になると、出した人がチップ（名札のランプ）を1枚失います</li><li><b>特殊カード</b> : 0 そのまま · -10 10を引く · ⇄ 向きが変わる · ×2 次の人が2枚出す</li><li><b>脱落</b> : ランプがすべて消えたあと、もう一度失うと脱落です</li></ol>'}});
 (window.GAMES=window.GAMES||{}).robo77=G;
 })();

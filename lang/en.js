@@ -130,6 +130,15 @@ I18N.add('en',{
 '연결이 끊겼습니다':'Disconnected','방장이 나갔거나 인터넷 연결이 끊겼습니다.':'The host left or the connection dropped.',
 '상을 치웠습니다':'The table was cleared','방장이 탁자를 정리했습니다.':'The host cleared the table.',
 '손님':'Guest','다른 참가자':'Another player',
+/* ===== 여러 게임이 같이 쓰는 말 (게임 파일 G.i18n에는 넣지 않음) ===== */
+'초':'s','{0}초':'{0}s','분':'min','(나)':'(you)','게임이 끝났습니다.':'Game over.','게임 종료':'Game over','무승부입니다.':"It's a draw.",'무승부입니다. ({0})':"It's a draw. ({0})",
+'{0} 승리!':'{0} wins!','{0} 승리 ({1})':'{0} wins ({1})','{0} 승리{1}':'{0} wins{1}','{0} 항복! {1} 승리':'{0} resigned! {1} wins','{0} 탈주! {1} 승리':'{0} left! {1} wins','{0} 항복! {1}위':'{0} resigned! Place {1}','{0} 탈주! {1}위':'{0} left! Place {1}','{0} 항복!':'{0} resigned!','{0} 탈주!':'{0} left!',
+'{0} 시간 초과':'{0} timed out','{0} 시간 초과로 패배! {1} 승리':'{0} ran out of time! {1} wins','{0} 항복':'{0} resigned','{0} 탈락':'{0} is out','탈락':'Out','(항복)':'(resigned)','(탈주)':'(left)',
+'{0}님이 먼저 시작합니다.':'{0} goes first.','두 명이 하는 게임입니다.':'This is a 2-player game.','2명 보드게임':'2-player board game','2~4명 보드게임':'Board game for 2–4',
+'시계':'Clock','총 시간':'Total time','한 사람이 쓸 수 있는 전체 시간입니다. 다 쓰면 패배합니다':'The total time each player can use. You lose when it runs out',
+'추가 시간':'Increment','한 수를 둘 때마다 늘어나는 시간입니다':'Time added after each move',
+'놓기':'Place','주사위':'Dice','규칙':'Rules','기보':'Record','기보 복사':'Copy record','복사했습니다':'Copied','복사하지 못했습니다':"Couldn't copy",
+'버린 카드를 섞습니다.':'Shuffling the discard pile.','진짜였다':'It was true','걸렸다!':'Caught!','흑':'Black','백':'White',
 /* ===== 로그인·도토리 ===== */
 '다른 브라우저로 열기':'Open in another browser','주소 복사':'Copy address','이 앱 안에서는 구글 로그인을 할 수 없습니다. Chrome이나 Safari에서 열어 주세요.':"Google sign-in doesn't work inside this app. Please open it in Chrome or Safari.",
 '로그인하면 아바타를 꾸밀 수 있습니다.':'Sign in to decorate your avatar.','로그인하면 도토리를 모으고 아바타를 꾸밀 수 있습니다.':'Sign in to collect acorns and decorate your avatar.',

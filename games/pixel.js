@@ -925,5 +925,30 @@ G.init=()=>{
 };
 G._d3={P3,IN,introEnd,gridAt,get CS(){return CS},tapSq,get pend(){return pend},lines,get D(){return D}};   // 화면 검사용
 
-if(typeof window!=='undefined')(window.GAMES=window.GAMES||{}).pixel=G;
+if(typeof window!=='undefined')/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음 */
+G.i18n=i18nGame({
+'중간':['Medium','ふつう'],
+'극악':['Insane','鬼'],
+'줄을 이으면 끝':['Ends when a line is made','列ができたら終わり'],
+'시간이 지나면 둘 수 있는 칸에 무작위로 놓습니다. 연결이 끊겨도 시간은 흐르고, 45초가 지나면 탈주로 처리합니다':['When time runs out, a piece is placed on a random legal square. The clock keeps running if you disconnect, and after 45 seconds you count as having left','時間切れになると、置けるマスにランダムに置きます。接続が切れても時間は進み、45秒過ぎると離脱扱いになります'],
+'선택: 방장이 이름표 메뉴에서 선 플레이어를 고릅니다. 무작위: 주사위로 정하고, 바로 시작하면 다음 사람이 먼저 둡니다':['Choose: the host picks the first player from the name tag menu. Random: decided by dice; when you play again, the next player goes first','指定：ホストが名札メニューで先手を選びます。ランダム：サイコロで決め、もう一度遊ぶときは次の人が先手です'],
+'제한 시간 {0}초 · 선 {1}':['Time limit {0}s · First player {1}','制限時間{0}秒 · 先手 {1}'],
+'지금 인원이면 3개를 이으면 이깁니다.':['With this many players, connect 3 to win.','この人数では3つつなげると勝ちです。'],
+'지금 인원이면 4개를 이으면 이깁니다.':['With this many players, connect 4 to win.','この人数では4つつなげると勝ちです。'],
+'픽셀은 최대 4명까지 할 수 있습니다.':['Pixel allows up to 4 players.','ピクセルは最大4人まで遊べます。'],
+'{0}줄 {1}개, {2} 승리':['{1} lines of {0}, {2} wins','{0}つ並び{1}本で{2}の勝ち'],
+'{0}줄 수가 같아 무승부입니다.':['Same number of lines of {0}. Draw.','{0}つ並びの数が同じなので引き分けです。'],
+'{0}줄 {1}개로 공동 1위입니다.':['Tied for 1st with {1} lines of {0}.','{0}つ並び{1}本で同率1位です。'],
+'{0}목! {1} 승리':['{0} in a row! {1} wins','{0}つ並び！{1}の勝ち'],
+'{0}줄 {1}개':['{1} lines of {0}','{0}つ並び{1}本'],
+'{0} 승리 ({1}목)':['{0} wins ({1} in a row)','{0}の勝ち（{1}つ並び）'],
+'{0} 승리 ({1}줄)':['{0} wins (lines of {1})','{0}の勝ち（{1}つ並び）'],
+'공동 1위 ({0}줄)':['Tied for 1st (lines of {0})','同率1位（{0}つ並び）'],
+'픽셀 판':['Pixel board','ピクセル盤']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Connect your pieces in a line to win (4 with 2–3 players, 3 with 4 players)</li><li><b>Your turn</b> : Move one slider and place a piece on the empty square where the two sliders meet</li><li><b>Next player</b> : Plays in the row or column of the square you just took</li><li><b>End</b> : If there is nowhere to play, whoever made the most lines of 3 (2 with 4 players) wins</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 自分の駒を1列につなげれば勝ちです（2〜3人は4つ、4人は3つ）</li><li><b>自分の番</b> : スライダーを1つ動かし、2つのスライダーが交わる空きマスに駒を置きます</li><li><b>次の人</b> : 前の人が置いたマスの横の列・縦の列に置きます</li><li><b>終わり</b> : 置ける場所がなくなったら、3つ並び（4人は2つ並び）を最も多く作った人の勝ちです</li></ol>'}});
+(window.GAMES=window.GAMES||{}).pixel=G;
 })();

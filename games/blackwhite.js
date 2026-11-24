@@ -390,7 +390,7 @@ function recordText(v){
     L.push(`${k+1}판  ${name(r.a)} ${t(r.a)} · ${name(1-r.a)} ${t(1-r.a)}  → ${r.w<0?'무승부':name(r.w)+' 승'}`);
   });
   if(v.st==='over'&&o.res){const r=o.res;L.push(`결과: ${r.w<0?'무승부':name(r.w)+' 승리'}${r.why==='surrender'?' (상대 항복)':r.why==='desert'?' (상대 탈주)':''} (${r.w<0?o.sc[0]+':'+o.sc[1]:o.sc[r.w]+':'+o.sc[1-r.w]})`)}
-  return L.join('\n');
+  return L.map(x=>__s(x)).join('\n');   // 한 줄씩 번역 (여러 줄을 한 덩어리로 넣으면 사전과 맞지 않음)
 }
 
 /* ---------- 화면 (모든 참가자) ---------- */
@@ -958,5 +958,37 @@ G.init=()=>{
 };
 G._bw3={Bw3,IN,introEnd,get pend(){return pend}};   // 화면 검사용
 
-if(typeof window!=='undefined')(window.GAMES=window.GAMES||{}).blackwhite=G;
+if(typeof window!=='undefined')/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음 */
+G.i18n=i18nGame({
+'5점을 먼저 얻으면 승리':['First to 5 points wins','先に5点で勝ち'],
+'시간이 지나면 남은 타일 중 하나가 무작위로 나갑니다':['When time runs out, one of your remaining tiles is played at random','時間切れになると、残りのタイルからランダムに1枚出ます'],
+'제한 시간 {0}초 · 5점 먼저 (9판)':['Time limit {0}s · First to 5 (9 rounds)','制限時間{0}秒 · 先に5点（9回）'],
+'2명 타일 게임':['2-player tile game','2人用タイルゲーム'],
+'흑과백은 두 명이 하는 게임입니다.':['Black & White is a 2-player game.','黒と白は2人で遊ぶゲームです。'],
+'{0} 승리! ({1}:{2})':['{0} wins! ({1}:{2})','{0}の勝ち！（{1}:{2}）'],
+'무승부입니다. ({0}:{1})':['It\'s a draw. ({0}:{1})','引き分けです。（{0}:{1}）'],
+'{0} 시간 초과 (무작위로 냄)':['{0} timed out (played at random)','{0} 時間切れ（ランダムに出しました）'],
+'{0}판 · {1}':['Round {0} · {1}','{0}回目 · {1}'],
+'{0}판 결과 · {1} ({2}:{3})':['Round {0} result · {1} ({2}:{3})','{0}回目の結果 · {1}（{2}:{3}）'],
+'승':['wins','勝ち'],
+'{0} 승':['{0} wins','{0}の勝ち'],
+'{0}님이 먼저 냅니다.':['{0} plays first.','{0}さんが先に出します。'],
+'흑과백 기록':['Black & White record','黒と白の記録'],
+'{0}판  {1} · {2}  → {3}':['Round {0}  {1} · {2}  → {3}','{0}回目  {1} · {2}  → {3}'],
+'{0} 흑 {1}':['{0} Black {1}','{0} 黒 {1}'],
+'{0} 백 {1}':['{0} White {1}','{0} 白 {1}'],
+'{0} 흑':['{0} Black','{0} 黒'],
+'흑 {0}':['Black {0}','黒 {0}'],
+'백 {0}':['White {0}','白 {0}'],
+'{0} 백':['{0} White','{0} 白'],
+'결과: {0}{1} ({2})':['Result: {0}{1} ({2})','結果：{0}{1}（{2}）'],
+'(상대 항복)':['(opponent resigned)','（相手が降参）'],
+'(상대 탈주)':['(opponent left)','（相手が離脱）'],
+'기록':['Record','記録']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Score 5 points first to win. After 9 rounds the higher score wins; a tie is a draw</li><li><b>Tiles</b> : Each player has 9 tiles, 0–8. Even numbers are black, odd numbers are white</li><li><b>A round</b> : The leader plays a tile face down, then the other player plays seeing only its color. The higher number scores 1 point, but 0 beats 8</li><li><b>Same number</b> : It\'s a draw and the leader stays the same</li><li><b>Leader</b> : The winner of the previous round plays first</li><li><b>Hidden</b> : Played numbers stay hidden until the game ends; only who won each round is shown</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 先に5点取れば勝ちです。9回が終わったら点数の多い方が勝ち、同じなら引き分けです</li><li><b>タイル</b> : それぞれ0〜8のタイル9枚。偶数は黒、奇数は白です</li><li><b>1回の流れ</b> : 先手が伏せて出すと、相手は色だけを見て出します。大きい数字が1点、ただし0は8に勝ちます</li><li><b>同じ数字</b> : 引き分けで、先手はそのままです</li><li><b>先手</b> : 前の回に勝った人が先に出します</li><li><b>非公開</b> : 出した数字はゲームが終わるまで公開されず、勝ち負けだけが見えます</li></ol>'}});
+(window.GAMES=window.GAMES||{}).blackwhite=G;
 })();
