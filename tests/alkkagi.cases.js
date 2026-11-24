@@ -332,7 +332,7 @@ for(const ag of [1,0]){
 /* 장 떨어지면 패배: 상대 장을 떨어뜨리면 승리, 둘 다면 먼저 떨어진 쪽이 짐(같은 순간이면 튕긴 사람). 끄면 계속 */
 for(const jl of [1,0]){mkRoom({pickfirst:1,md:2,jang:jl},undefined,true);
  const A=H.ak,g=T.geomOf;A.st=[{x:0,y:TOP+g(4).h,z:-1.5,s:0,o:0,g:0,t:4,w:0},{x:0,y:TOP+g(7).h,z:-2.15,s:1,o:0,g:0,t:7,w:0},{x:1.5,y:TOP+g(1).h,z:-1,s:1,o:0,g:0,t:1,w:0},{x:1.5,y:TOP+g(7).h,z:1.5,s:0,o:0,g:0,t:7,w:0}];
- AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.7});
+ {const mr=Math.random;Math.random=()=>.5;AK.engine.act(0,{t:'shoot',i:0,a:-Math.PI/2,p:.7});Math.random=mr}   // 튕길 때 기우뚱은 무작위라 가운데 값으로 (가끔 빗나가 테스트가 흔들렸음)
  if(!A.st[1].o){fail('alkkagi jang knock setup');continue}
  roll();
  if(jl){eq(H.phase,'over','jang down ends');eq(A.res.w,0,'jang knocker wins');eq(A.res.why,'jang','jang reason')}
