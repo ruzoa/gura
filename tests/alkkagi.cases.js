@@ -341,6 +341,17 @@ for(const [t0,t1,w] of [[100,200,1],[300,120,0],[150,150,1]]){mkRoom({pickfirst:
  const A=H.ak;A.st.forEach(q=>{if(q.t===7){q.o=1;q.y=.05}});const k0=A.st.findIndex(q=>q.t===7&&q.s===0),k1=A.st.findIndex(q=>q.t===7&&q.s===1);
  A.sh={id:1,by:0,i:0,a:0,p:.5,of:{[k0]:t0,[k1]:t1},tr:{},nf:1,ev:[],dur:0,t0:NOW};A.ph='roll';A.until=NOW;A.next=1;engineTick();
  eq(H.phase,'over','both jang over');eq(A.res.w,w,'earlier jang loses '+t0+'/'+t1);}
+/* 장기 모드 봇: 난이도를 그대로 씀(예전엔 쉬움만), 보통·어려움은 상대 장을 떨어뜨리는 수를 찾고, 내 알만 떨어지는 수는 점수가 낮음 */
+{const lvOf=lv=>T.botLvA({bot:true,lv});eq(lvOf(2),2,'janggi hard level kept');eq(lvOf(1),1,'janggi normal level kept');eq(lvOf(0),0,'easy');}
+for(const lv of [1,2]){mkRoom({pickfirst:1,md:2,jang:1},undefined,true);
+ const A=H.ak,g=T.geomOf,P=(t,x,z,s)=>({x,y:TOP+g(t).h,z,s,o:0,g:0,t,w:0});
+ A.st=[P(6,0,-.9,0),P(7,0,-1.65,1),P(1,1.3,-.4,1),P(7,1.4,1.4,0)];   // 내 차 바로 앞에 상대 장(판 끝 가까이). 어느 알로 치든 장을 떨어뜨리면 됨
+ H.players[0].bot=true;H.players[0].lv=lv;A.bq=null;
+ let k=0;while(!T.botThink(0,lv)&&k++<500);
+ ok(A.bq.c.length>0&&A.bq.c.every(c=>A.st[c.i].s===0),'janggi bot shoots own pieces lv'+lv);
+ const b=A.bq.best;ok(b&&T.jgScore(A,0,b)>=1000,'janggi bot knocks jang lv'+lv);
+ if(lv===2)ok(A.bq.c.some(c=>c.par!=null),'hard re-checks with hand shake');
+ ok(T.jgScore(A,0,{i:3,a:0,p:1})<0,'own piece off scores low');}
 /* 봇끼리 끝까지 */
 function playOutA(over,lvs,np){
   np=np||2;

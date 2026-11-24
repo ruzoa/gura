@@ -334,7 +334,7 @@ let akt=0;const ak0=Date.now();
 akt+=playOutA({omok:1,turn:10,pickfirst:1},[0,0])+playOutA({omok:1,turn:10,pickfirst:0},[0,1])+playOutA({omok:1,turn:10,pickfirst:1},[2,0]);
 console.log('alkkagi omok ticks',akt,'ms',Date.now()-ak0);
 let jkt=0;const jk0=Date.now();
-for(let rep=0;rep<6;rep++)jkt+=playOutA({md:2,jang:rep%2,again:(rep>>1)%2,turn:[10,30][rep%2],pickfirst:rep%3===0?1:0},[[0,0],[1,2],[2,1]][rep%3]);   // 장기 모드 (봇은 쉬움만)
+for(let rep=0;rep<6;rep++)jkt+=playOutA({md:2,jang:rep%2,again:(rep>>1)%2,turn:[10,30][rep%2],pickfirst:rep%3===0?1:0},[[0,0],[1,2],[2,1]][rep%3]);   // 장기 모드 (난이도 섞어서)
 console.log('alkkagi janggi ticks',jkt,'ms',Date.now()-jk0);
 let obt=0;const ob0=Date.now();
 for(let rep=0;rep<8;rep++)obt+=playOutA({ob:1,obn:1+rep%3,stones:[3,5,2][rep%3],again:rep%2,turn:[30,10][rep%2],pickfirst:rep%3===0?1:0,...(rep>=6?{md:2}:{}),max:rep===4||rep===5?4:2},[[0,2],[1,0],[2,1]][rep%3],rep===4?3:rep===5?4:2);   // 물건 놓기 (2~4명, 장기)

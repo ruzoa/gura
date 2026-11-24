@@ -511,9 +511,10 @@ const CNAME=['','흑','백','적','청'];   // 알 색 이름 (세·네 명일 �
    보통·어려움(botThink): 가까운 내 알·상대 알 짝마다 몇 가지 방향(정면·비껴 치기)과 힘으로 물리를 미리 돌려 보고(simulate, 흔들림 없이)
    가장 좋은 수를 고른 뒤 실제로는 조금 흔들어 튕김. 한 번에 다 돌리면 방장 화면이 멈추므로 틱마다 조금씩(BOT_MS) */
 const BLV=[null,{pairs:3,offs:[0,-1,1],pows:[0,.25],aim:.11,pw:.15,opw:.05},{pairs:6,offs:[0,-1,1,-2,2],pows:[0,.2,.45],aim:.015,pw:.04,opw:.012}];   // opw: 오목 모드 힘 흔들림 (굴려 세우는 거리는 힘의 2.5제곱이라 더 작게)
-const BOT_MS=8;   // 틱(0.1초)마다 생각에 쓰는 시간
+const BOT_MS=8;   // 틱(0.1초)마다 생각에 쓰는 시간 (장기 모드는 알이 많아 미리 돌리기가 무거워 12)
 function shotCands(A,seat,lv){
   if(A.om)return omCands(A,seat,lv);
+  if(A.jg)return jgCands(A,seat,BLVJ[lv]);
   const L=BLV[lv],mine=[],opp=[];A.st.forEach((q,i)=>{if(q.o||q.u)return;(q.s===seat?mine:opp).push(i)});
   const pairs=[];for(const i of mine)for(const j of opp){const a=A.st[i],b=A.st[j];pairs.push({i,j,d:Math.hypot(b.x-a.x,b.z-a.z)})}
   pairs.sort((x,y)=>x.d-y.d);
@@ -525,26 +526,96 @@ function shotCands(A,seat,lv){
 }
 function shotScore(A,seat,c){   // 떨어뜨린 상대 알 +10, 떨어진 내 알 −12, 튕긴 알이 판 끝 가까이 멈추면 조금 −
   if(A.om)return omScore(A,seat,c);
+  if(A.jg)return jgScore(A,seat,c);
   const v=speedOf(c.p),r=simulate(A.st,{i:c.i,vx:Math.cos(c.a)*v,vz:Math.sin(c.a)*v,p:c.p,ht:clock()+600},()=>.5,A.it);
   let sc=0;r.fin.forEach((q,k)=>{const was=A.st[k];if(was.o||!q.o)return;sc+=was.s===seat?-12:10});
   const f=r.fin[c.i];if(!f.o)sc-=2*Math.max(0,Math.max(Math.abs(f.x),Math.abs(f.z))-(BW-.5));
   return sc;
 }
 function botThink(i,lv){   // 이번 차례의 생각을 이어서 함. 끝났으면 true
-  const A=H.ak;let q=A.bq;
-  if(!q||q.sid!==A.sid||q.pc!==(A.pc||0)||q.seat!==i){q=A.bq={sid:A.sid,pc:A.pc||0,seat:i,c:shotCands(A,i,lv),k:0,best:null,bs:-1e9}}
-  const t0=Date.now();
-  while(q.k<q.c.length&&Date.now()-t0<BOT_MS){const c=q.c[q.k++],sc=shotScore(A,i,c)+Math.random()*.3;if(sc>q.bs){q.bs=sc;q.best=c}}
+  const A=H.ak,L=blvOf(A,lv);let q=A.bq;
+  if(!q||q.sid!==A.sid||q.pc!==(A.pc||0)||q.seat!==i){q=A.bq={sid:A.sid,pc:A.pc||0,seat:i,c:shotCands(A,i,lv),k:0,best:null,bs:-1e9,sc:[],rg:null}}
+  const t0=Date.now(),ms=A.jg?12:BOT_MS;
+  while(q.k<q.c.length&&Date.now()-t0<ms){
+    const k=q.k++,c=q.c[k],sc=shotScore(A,i,c)+Math.random()*.3;
+    if(c.par!=null){const g=q.rg.find(e=>e.k===c.par);g.s+=sc;g.n++;   // 견고성: 손 떨림 양쪽으로 돌린 점수까지 평균해 다시 고름
+      const b=q.rg.reduce((x,y)=>y.s/y.n>x.s/x.n?y:x);q.best=q.c[b.k];q.bs=b.s/b.n}
+    else{q.sc[k]=sc;if(sc>q.bs){q.bs=sc;q.best=c}}
+    if(q.k===q.c.length&&L&&L.rob&&!q.rg){   // 다 봤으면 가장 좋은 몇 수를 떨린 쪽으로 다시 (장기 모드 어려움)
+      q.rg=q.sc.map((s,k)=>({k,s,n:1})).filter(e=>e.s!=null&&e.s>-500).sort((x,y)=>y.s-x.s).slice(0,L.rob);
+      for(const e of q.rg){const c0=q.c[e.k],dj=.6*spreadOf(c0.p);if(dj<1e-4)continue;q.c.push({...c0,j:dj,par:e.k},{...c0,j:-dj,par:e.k})}}
+  }
   return q.k>=q.c.length;
 }
 function botPick(i,rnd){   // 난이도에 맞는 수 {i,a,p,fa} 또는 (오목 모드) 놓기 {pl:[c,r]}
   rnd=rnd||Math.random;
-  const A=H.ak,lv=botLvA(H.players[i]),L=BLV[lv];
+  const A=H.ak,lv=botLvA(H.players[i]),L=blvOf(A,lv);
   if(!L)return botPlan(A,i,rnd);
   botThink(i,lv);const b=A.bq&&A.bq.best;if(!b)return botPlan(A,i,rnd);
   if(b.pl)return {pl:b.pl};
-  const a=b.a+(rnd()*2-1)*L.aim,p=Math.max(A.om?PMIN:.3,Math.min(1,b.p*(1+(rnd()*2-1)*(A.om?L.opw:L.pw))));   // 오목 모드는 살살 굴려 세우기도 함
+  const a=b.a+(rnd()*2-1)*L.aim,p=Math.max(A.om?PMIN:A.jg?.15:.3,Math.min(1,b.p*(1+(rnd()*2-1)*(A.om?L.opw:L.pw))));   // 오목 모드는 살살 굴려 세우기도 함, 장기 모드는 살살 물러나기도 함
   return {i:b.i,a,p,fa:a+spreadOf(p)*jit(rnd()*1e6)};
+}
+/* ---------- 장기 모드 봇 (보통·어려움) ----------
+   바둑 모드처럼 후보 수를 물리로 미리 돌려 고르되, 알마다 크기·무게가 달라 후보와 점수를 따로 만듦.
+   후보(jgCands): 내 알 → 상대 알 짝마다 물리 없이 따져 봄(jgPairs: 가는 길이 비었는지, 맞은 알이 판 끝까지 갈 길이 비었는지, 무게·반발로 필요한 당김, 멀수록 빗나가기 쉬움)
+     → 좋은 짝부터 정면·비껴 치기와 힘 몇 가지. 생각이 다 끝나지 않아도 되게 넓게 먼저(짝마다 정면 → 더 세게 → 비껴).
+   점수(jgScore): 떨어뜨린 상대 알 +알 값, 떨어진 내 알 −알 값×1.2, '장 떨어지면 패배'면 장은 승패, 한 번 더면 덤, 튕긴 알이 판 끝 가까이 멈추면 조금 −.
+   어려움은 상대가 다음에 칠 가장 좋은 수(jgThreat, 물리 없이)를 빼고, 판 끝에 몰린 내 알을 가운데로 물리는 수도 보고, 가장 좋은 몇 수는 손 떨림 양쪽으로 다시 돌려 평균(botThink) */
+const HALF=()=>.5;   // 물리 미리 보기의 기우뚱은 가운데 값 (함수를 매번 새로 만들지 않음: 물리 함수가 최적화에서 자꾸 풀림)
+const BLVJ=[null,{pairs:4,offs:[0,-1,1],pows:[0,.2],aim:.06,pw:.12,rob:0,thr:0,ret:0},{pairs:9,offs:[0,-1,1],pows:[0,.18,.4],aim:.012,pw:.035,rob:4,thr:1,ret:2}];
+const blvOf=(A,lv)=>(A&&A.jg?BLVJ:BLV)[lv];
+const jgVal=(A,t)=>A.jl?(t===7?60:5+2*JM[t]):10+2*JM[t];   // 알 하나의 값 (무거운 알은 세게 밀고 덜 밀려서 조금 더. '장 떨어지면 패배'면 장이 승패라 크게)
+function jgEdge(x,z,ux,uz){let t=1e9;if(Math.abs(ux)>1e-9)t=Math.min(t,((ux>0?BD.x:-BD.x)-x)/ux);if(Math.abs(uz)>1e-9)t=Math.min(t,((uz>0?BD.z:-BD.z)-z)/uz);return Math.max(0,t)}   // (x,z)에서 u쪽으로 판 끝까지
+function jgBlock(st,x,z,ux,uz,L,r,i,j){   // (x,z)에서 u쪽으로 L만큼 반지름 r인 알이 지나갈 때 걸리는 알 수 (i·j 빼고)
+  let n=0;for(let k=0;k<st.length;k++){if(k===i||k===j)continue;const q=st[k];if(q.o||q.u||q.g)continue;
+    const dx=q.x-x,dz=q.z-z,s=dx*ux+dz*uz;if(s<=0||s>=L)continue;if(Math.abs(dx*uz-dz*ux)<r+geomOf(q.t).r-.01)n++}
+  return n}
+function jgNeed(a,b,d,ex){   // a로 b를 정면으로 맞혀 b가 ex만큼 가게 하는 당김 (1이 넘으면 끝까지 당겨도 모자람)
+  const ga=geomOf(a.t),gb=geomOf(b.t),vt=Math.sqrt(2*PHY.aB*ex),vh=vt*(ga.m+gb.m)/((1+PHY.eJ)*ga.m),vs=Math.sqrt(vh*vh+2*PHY.aB*Math.max(0,d-ga.r-gb.r));
+  return Math.pow(vs/(jShotK(a.t)*PHY.vmax),.8)}
+function jgPairs(A,st,seat){   // seat의 알로 다른 사람 알을 칠 짝마다: 필요한 당김 p, 떨어뜨릴 수 있는 정도 ch(0~1)
+  const out=[];
+  for(let i=0;i<st.length;i++){const a=st[i];if(a.o||a.u||a.g||a.s!==seat)continue;const ga=geomOf(a.t);
+    for(let j=0;j<st.length;j++){const b=st[j];if(b.o||b.u||b.g||b.s===seat)continue;
+      const dx=b.x-a.x,dz=b.z-a.z,d=Math.hypot(dx,dz);if(d<1e-6)continue;const ux=dx/d,uz=dz/d,gb=geomOf(b.t);
+      const blk=jgBlock(st,a.x,a.z,ux,uz,d-gb.r,ga.r,i,j),ex=jgEdge(b.x,b.z,ux,uz)+.08,beh=jgBlock(st,b.x,b.z,ux,uz,ex,gb.r,i,j),p=jgNeed(a,b,d,ex);
+      const ch=(blk?.12:1)*(beh?.4:1)*(p>1?Math.max(0,1-(p-1)*2.5):1)*Math.max(.25,1-d/5);
+      out.push({i,j,d,ux,uz,p:Math.min(1,p),ch})}}
+  return out}
+function jgThreat(A,st,att){let m=0;for(const k of jgPairs(A,st,att))m=Math.max(m,jgVal(A,st[k.j].t)*k.ch);return m}   // att가 다음에 칠 가장 좋은 수의 값
+function jgCands(A,seat,L){
+  useBoard(1);
+  const P=jgPairs(A,A.st,seat).map(k=>({...k,pr:jgVal(A,A.st[k.j].t)*k.ch-(A.jl&&A.st[k.i].t===7?20:0)}));   // '장 떨어지면 패배'면 내 장으로는 웬만하면 안 침
+  P.sort((x,y)=>y.pr-x.pr);
+  const top=P.slice(0,L.pairs),out=[];
+  const mk=(k,o,dp)=>{const ga=geomOf(A.st[k.i].t),gb=geomOf(A.st[k.j].t),cut=Math.asin(Math.min(.95,(ga.r+gb.r)*.35/Math.max(k.d,ga.r+gb.r)));
+    return {i:k.i,a:Math.atan2(k.uz,k.ux)+o*cut,p:Math.max(.15,Math.min(1,k.p+dp)),thr:L.thr}};
+  for(const k of top)out.push(mk(k,0,L.pows[0]));   // 넓게 먼저
+  for(const dp of L.pows.slice(1))for(const k of top)out.push(mk(k,0,dp));
+  for(const o of L.offs.slice(1))for(const k of top)for(const dp of L.pows.slice(0,2))out.push(mk(k,o,dp));
+  if(L.ret){   // 판 끝에 몰린 내 알(장 떨어지면 패배면 장 먼저)을 가운데 쪽으로 살살 물림
+    const ed=q=>Math.min(BD.x-Math.abs(q.x),BD.z-Math.abs(q.z))-(A.jl&&q.t===7?1:0);
+    const mine=A.st.map((q,i)=>i).filter(i=>{const q=A.st[i];return q.s===seat&&!q.o&&!q.u}).sort((x,y)=>ed(A.st[x])-ed(A.st[y]));
+    for(const i of mine.slice(0,L.ret)){const q=A.st[i],Lr=Math.min(1.1,Math.hypot(q.x,q.z)*.6);if(Lr<.2)continue;
+      const v=Math.sqrt(2*PHY.aB*Lr)/jShotK(q.t);out.push({i,a:Math.atan2(-q.z,-q.x),p:Math.max(.15,Math.min(1,Math.pow(v/PHY.vmax,.8))),thr:L.thr})}}
+  return out;
+}
+function jgScore(A,seat,c){
+  useBoard(1);
+  const s=A.st[c.i],v=shotSpeed(s,c.p),j=c.j||0,fa=c.a+j,op=1-seat;
+  const r=simulate(simSt(A.st),{i:c.i,vx:Math.cos(fa)*v,vz:Math.sin(fa)*v,p:c.p,wy:shotSpin(s,v,j),by:seat,nx:nextAlive(A,seat),ht:clock()+600},HALF,A.it);
+  let sc=0,kn=0;const jf=[];
+  r.fin.forEach((q,k)=>{const was=A.st[k];if(was.u||was.o||!q.o)return;const v=jgVal(A,was.t);if(was.s===seat)sc-=1.2*v;else{sc+=v;kn++}
+    if(A.jl&&was.t===7)jf.push({s:was.s,at:r.of[k]!=null?r.of[k]:-1})});
+  if(jf.length){jf.sort((x,y)=>x.at-y.at);return (jf.length>1&&jf[0].at===jf[1].at?seat:jf[0].s)===seat?-1000:1000}   // 먼저 떨어진 장이 짐 (같은 순간이면 튕긴 사람)
+  const al=[0,0];r.fin.forEach(q=>{if(!q.o&&q.s>=0&&q.s<2)al[q.s]++});
+  if(!al[op])return al[seat]?1000:0;if(!al[seat])return -1000;
+  const f=r.fin[c.i],ag=+H.cfg.again&&kn>0&&!f.o;
+  if(ag)sc+=3;
+  if(!f.o)sc-=2*Math.max(0,Math.abs(f.x)-(BD.x-.4),Math.abs(f.z)-(BD.z-.4));
+  if(c.thr&&!ag)sc-=.5*jgThreat(A,r.fin,op);   // 어려움: 다음에 상대가 칠 수 있는 가장 좋은 수만큼 뺌 (한 번 더면 내가 또 치니 빼지 않음)
+  return sc;
 }
 /* 쉬움 봇: 두 알 사이 곧은 길을 서 있는 물건(벽돌·유리·탱탱볼·상자·폭탄·선풍기·차단기 기둥·회전판 축)이 막는지 */
 function pathBlocked(A,a,b){const dx=b.x-a.x,dz=b.z-a.z,L2=dx*dx+dz*dz||1;
@@ -553,8 +624,8 @@ function pathBlocked(A,a,b){const dx=b.x-a.x,dz=b.z-a.z,L2=dx*dx+dz*dz||1;
     const pts=OB_BOX[o.k]||o.k==='gt'?windPts(o).map(([x,z])=>[x,z,OB_BOX[o.k]?IT[o.k].W:IT.gt.W]):[[o.x,o.z,o.k==='rt'?.06:itFp(o)]];
     if(pts.some(([x,z,r])=>segD(x,z)<r+.2))return true}
   return false}
-/* 봇 난이도: 장기 모드는 쉬움만 */
-const botLvA=p=>H.ak&&H.ak.jg?0:typeof botLv==='function'?botLv(p):1;
+/* 봇 난이도 */
+const botLvA=p=>typeof botLv==='function'?botLv(p):1;
 function botPlan(A,seat,rnd){
   rnd=rnd||Math.random;
   if(A.jg){   // 장기 모드 쉬움: 가까운 상대 알(장 떨어지면 패배면 상대 장을 더 자주) 쪽으로, 맞은 알이 판 끝까지 갈 만큼 무게를 따져 대충
@@ -990,7 +1061,7 @@ function botShootNow(i){const A=H.ak;if(!botDo(i,A.bp||botPick(i)))startTurn(tur
 /* 봇: 알을 고르고 천천히 당긴 뒤(상대 화면에도 손이 보임) 놓음. 오목 모드에서 놓기로 정했으면 바로 놓음 */
 function botStep(i,t){
   const A=H.ak;
-  if(!A.bp){const lv=botLvA(H.players[i]);if(BLV[lv]&&!botThink(i,lv)&&t<H.botActAt+4000)return;   // 다 생각할 때까지 (오래 걸리면 그때까지 찾은 것으로)
+  if(!A.bp){const lv=botLvA(H.players[i]);if(blvOf(A,lv)&&!botThink(i,lv)&&t<H.botActAt+4000)return;   // 다 생각할 때까지 (오래 걸리면 그때까지 찾은 것으로)
     const b=botPick(i);if(!b){startTurn(turnAfter(A,i));return}
     if(b.pl){if(!botDo(i,b))startTurn(turnAfter(A,i));return}
     A.bp={...b,t0:t,dur:Math.round(rand(650,1150))};A.aim={s:i,i:b.i,a:b.a,p:0,w:0};mark();return}
@@ -1000,7 +1071,7 @@ function botStep(i,t){
   if(!doShot(i,b.i,b.fa,b.p,b.fa-b.a))startTurn(turnAfter(A,i));
 }
 /* 테스트(tests/engine.test.js)에서 직접 부르는 내부 함수 */
-G._test={pathBlocked,OB_K,OB_RAR,OB_BOX,gateTh,rotAng,inWind,gateDist,rbSpawn,doErase,obEraseReady,obDraw,claimPick,resolvePicks,IT,canPut,endFree,itemPlan,doPut,doPick,bhR,brDist,geomOf,JM,jShotK,shotSpin,SPREAD,octHit,octVerts,JSET,jgSetup,useBoard,BD,shotSpeed,mdOf,omGrid,omFive,omThreats,omLines,omTargets,omPlacePlan,omCands,omScore,omFull,simulate,reserves,shotCands,shotScore,botPick,placePlan,canPlace,gridXZ,botPlan,speedOf,groundAt,doShot,doSurrender,timeout,pickFirst,aliveOf,sideOfSeat,ownPt,freeAt,PHY,TOP,SH,SR,BW,PITCH,NL};
+G._test={jgCands,jgScore,jgPairs,jgThreat,jgVal,BLVJ,botThink,botLvA,pathBlocked,OB_K,OB_RAR,OB_BOX,gateTh,rotAng,inWind,gateDist,rbSpawn,doErase,obEraseReady,obDraw,claimPick,resolvePicks,IT,canPut,endFree,itemPlan,doPut,doPick,bhR,brDist,geomOf,JM,jShotK,shotSpin,SPREAD,octHit,octVerts,JSET,jgSetup,useBoard,BD,shotSpeed,mdOf,omGrid,omFive,omThreats,omLines,omTargets,omPlacePlan,omCands,omScore,omFull,simulate,reserves,shotCands,shotScore,botPick,placePlan,canPlace,gridXZ,botPlan,speedOf,groundAt,doShot,doSurrender,timeout,pickFirst,aliveOf,sideOfSeat,ownPt,freeAt,PHY,TOP,SH,SR,BW,PITCH,NL};
 G.engine={
   /* 게임 시작: 공통 코드가 H.players를 만든 뒤 부름 */
   start(){
@@ -1065,7 +1136,7 @@ G.engine={
       return}
     const cur=H.players[H.turn];if(!cur)return;
     if(t>=H.deadline){timeout();return}
-    if(cur.bot&&H.botActAt&&A.ph==='aim'&&!A.bp&&t<H.botActAt&&!(cur.away&&t<cur.awayAt+AWAY_WAIT)){const lv=botLvA(cur);if(BLV[lv])botThink(H.turn,lv)}   // 당기기 전 쉬는 동안 미리 생각
+    if(cur.bot&&H.botActAt&&A.ph==='aim'&&!A.bp&&t<H.botActAt&&!(cur.away&&t<cur.awayAt+AWAY_WAIT)){const lv=botLvA(cur);if(blvOf(A,lv))botThink(H.turn,lv)}   // 당기기 전 쉬는 동안 미리 생각
     if(cur.bot&&H.botActAt&&t>=H.botActAt&&!(cur.away&&t<cur.awayAt+AWAY_WAIT)){if(A.ph==='place')autoPlace(H.turn);else botStep(H.turn,t)}
   },
   snap(s,you,t){
