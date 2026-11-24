@@ -187,6 +187,8 @@ function rbSetPlanks(){
 }
 const rbNSet=()=>FR.rb.set?rbSetPlanks().length:0;
 function rbLo(it){if(it.k==='max')return Math.max(it.lo,(V.ps||[]).length,2);if(it.k==='spec')return Math.max(it.lo,Array.isArray(V.sv)?V.sv.length:0);return it.lo}
+/* 숫자 옆 단위의 폭: 다른 언어 단위가 길면(일본어 '回ごと') 자리를 넓혀 + 단추와 겹치지 않게. 한국어 한 글자는 기본 폭 그대로 */
+function rbUnitW(s,px){const g=rbUnitW.g||(rbUnitW.g=document.createElement('canvas').getContext?.('2d'));if(!g)return 0;g.font=`${px}px ${RB_BODY}`;return g.measureText(s).width}
 /* 장치 자리(판자 그림 좌표). 누르는 자리 계산과 그리기가 같이 씀 */
 function rbCtl(row){
   const it=row.it,T2=RB.tall,R=RS.CX,L0=RB.MX,o={y:row.y,parts:[]};
@@ -194,7 +196,7 @@ function rbCtl(row){
   o.cy=row.two?row.y+row.h-(T2?64:44):row.y+row.h/2;   // 장치 줄 가운데
   o.ch=row.two?(T2?128:88):row.h;   // 장치 줄 높이 (누르는 자리)
   if(it.kind==='num'){
-    const nd=String(it.hi).length,cw=T2?80:60,gap=6,cells=nd*cw+(nd-1)*gap,uw=it.unit?(T2?60:52):0,bw=row.two?(T2?170:120):62;
+    const nd=String(it.hi).length,cw=T2?80:60,gap=6,cells=nd*cw+(nd-1)*gap,uw=it.unit?Math.max(T2?60:52,rbUnitW(__u(it.unit),T2?46:40)+10):0,bw=row.two?(T2?170:120):62;
     let xd,xi,xc;
     if(row.two){xd=L0;xi=R-bw;xc=(xd+bw+xi)/2-(cells+uw)/2}
     else{xi=R-uw-bw;xc=xi-10-cells;xd=xc-10-bw}

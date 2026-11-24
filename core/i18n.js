@@ -6,7 +6,7 @@
 /* ===== 언어 ===== */
 const LANGS={ko:'한국어',en:'English',ja:'日本語'};   // 고르는 버튼 이름 (번역하지 않음)
 const LANG=(()=>{try{const v=localStorage.getItem('gura-lang');if(v&&LANGS[v])return v}catch(e){}return 'ko'})();
-const I18N={dict:{},pats:[],cache:new Map(),board:{},unit:{}};   // board: 디스플레이 4칸 플립 낱말(영어는 4글자 이하), unit: 숫자 옆 단위
+const I18N={dict:{},pats:[],cache:new Map(),board:{},unit:{},short:{}};   // board: 디스플레이 4칸 플립 낱말(영어는 4글자 이하), unit: 숫자 옆 단위, short: 게임의 짧은 이름(G.short 한국어 → 번역) 중 사전의 이름과 달라야 하는 것만(base.js에서 바꿈)
 const DEF_NICK={ko:'나',en:'Me',ja:'わたし'}[LANG]||'나';   // 닉네임을 비웠을 때 (사전에 '나'를 넣지 않음: 남의 닉네임 '나'가 바뀌지 않게)   // board: 디스플레이 4칸 플립 낱말(영어는 4글자 이하)
 const HANGUL=/[가-힣ㄱ-ㅎ]/;   // 한글이 없는 글자는 바로 건너뜀
 /* 사전 더하기: 지금 언어의 것만 담음. 키에 {0}·{1}이 있으면 이미 만들어진 글자(방장이 보낸 기록, 이름이 든 문장)도 맞춰 바꿈 */
@@ -21,7 +21,7 @@ I18N.add=(lang,d)=>{
   }
   I18N.pats.sort((a,b)=>b.len-a.len);I18N.cache.clear();
 };
-/* 사전 밖의 표 (board: 디스플레이 낱말, unit: 단위): 지금 언어의 것만 */
+/* 사전 밖의 표 (board: 디스플레이 낱말, unit: 단위, short: 목록 판 짧은 게임 이름): 지금 언어의 것만 */
 I18N.set=(lang,key,d)=>{if(lang===LANG)Object.assign(I18N[key],d)};
 /* __('한국어 {0}', 값…): 코드에서 직접 쓰는 번역 (gettext처럼). 값은 {0}·{1} 자리에 넣음. t·tr 같은 짧은 이름은 게임 코드의 지역 변수(t=시각)와 겹쳐서 쓰지 않음 */
 function __(s,...a){

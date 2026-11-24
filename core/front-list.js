@@ -77,9 +77,9 @@ function frontDrawList(t){
     g.fillStyle='rgba(0,0,0,.55)';g.fillRect(x0,y+h/2-1.5,x1-x0,3);
     if(txt){g.save();g.beginPath();g.rect(x0+4,y,x1-x0-8,h);g.clip();g.fillStyle=lit?'#fff6e2':'#f6ecd8';g.textBaseline='middle';
       const cy=y+h/2+4;let fs=align==='r'?44:48;const FF='"Jua","Black Han Sans",sans-serif';g.font=`${fs}px ${FF}`;
-      // 번역한 글자로 재고 자름: 한국어 원문을 자르면 사전과 안 맞아 '대…'처럼 한국어 조각이 보임. 게임 칸(가운데 맞춤)은 자르기 전에 글자를 2/3까지 줄임(영어 이름이 김)
+      // 번역한 글자로 재고 자름: 한국어 원문을 자르면 사전과 안 맞아 '대…'처럼 한국어 조각이 보임. 게임 칸(가운데 맞춤)은 자르기 전에 글자를 절반 남짓(26px)까지 줄임(영어·일본어 이름이 김. 그래도 안 들어가면 짧은 이름 I18N.short, base.js)
       let s=__s(txt);const maxW=x1-x0-24;
-      if(align==='c')while(fs>32&&[...s].length>1&&g.measureText(s).width>maxW){fs-=2;g.font=`${fs}px ${FF}`}
+      if(align==='c')while(fs>26&&[...s].length>1&&g.measureText(s).width>maxW){fs-=2;g.font=`${fs}px ${FF}`}
       const s0=s;while([...s].length>1&&g.measureText(s).width>maxW){s=[...s].slice(0,-1).join('')}if(s!==s0&&[...s].length>1)s=[...s].slice(0,-1).join('')+'…';
       const x=align==='c'?(x0+x1)/2:align==='r'?x1-14:x0+16;g.textAlign=align==='c'?'center':align==='r'?'right':'left';
       if(mid){g.globalAlpha=.85;g.translate(x,cy);g.scale(1,.84);g.fillText(s,0,0)}else g.fillText(s,x,cy);g.restore()}

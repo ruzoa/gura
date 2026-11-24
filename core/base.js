@@ -27,7 +27,7 @@ const GAME_IDS=['gura','president','quoridor','yahtzee','omok','chess','janggi',
 if(LANG!=='ko')for(const g of Object.values(GAMES)){
   const o=g.i18n&&g.i18n[LANG];
   if(o){if(o.strings)I18N.add(LANG,o.strings);for(const k in o)if(k!=='strings')g[k]=o[k]}
-  for(const k of ['name','short','lead'])if(typeof g[k]==='string')g[k]=__(g[k]);
+  for(const k of ['name','short','lead'])if(typeof g[k]==='string')g[k]=(k==='short'&&I18N.short[g[k]])||__(g[k]);   // short: 좁은 칸(목록 판 게임 칸·2D 게임 꼬리표)에 쓰는 이름. 이름이 같아 사전으로 못 나누는 것만 I18N.short(예: 일본어 블랙잭 → BJ)
 }
 let G=GAMES.gura;
 const EG=()=>(H&&H.cfg&&GAMES[H.cfg.game])||GAMES.gura;
