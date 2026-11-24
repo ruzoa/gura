@@ -403,15 +403,15 @@ function recordText(v){
   if(cols[0])lines.push(`흑: ${name(cols[0]===1?0:1)} · 백: ${name(cols[0]===1?1:0)}`);
   const mv=[];let k=0;
   for(const x of rec){
-    if(x[0]==='s'){k++;mv.push(`${k}.${CNAME[x[4]]}${sqName(n,x[2],x[3])}`)}
-    else mv.push(x[2]===3?`[${name(x[1])}: 돌 2개 더]`:`[${name(x[1])}: ${CNAME[x[2]]} 선택]`);
+    if(x[0]==='s'){k++;mv.push(__s(`${k}.${CNAME[x[4]]}${sqName(n,x[2],x[3])}`))}
+    else mv.push(__s(x[2]===3?`[${name(x[1])}: 돌 2개 더]`:`[${name(x[1])}: ${CNAME[x[2]]} 선택]`));
   }
   lines.push(mv.join(' '));
   if(v.st==='over'&&o.res){
     const r=o.res;
     lines.push('결과: '+(r.w<0?'무승부':`${name(r.w)} 승리${r.why==='time'?' (상대 시간 초과)':r.why==='surrender'?' (상대 항복)':r.why==='desert'?' (상대 탈주)':''}`));
   }
-  return lines.join('\n');
+  return lines.map(x=>__s(x)).join('\n');   // 한 줄씩 번역
 }
 
 /* ---------- 방 설정의 규칙 레버 (공통 코드가 G.settingsHTML·G.panelAct로 부름) ----------
@@ -1148,5 +1148,81 @@ G.init=()=>{
 };
 G._om3={Om3,IN,introEnd,cellW,pitchOf,get OS(){return OS}};   // 화면 검사용
 
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음. 일꾼(Web Worker)으로 읽힐 때는 i18nGame이 없어 건너뜀 */
+G.i18n=typeof i18nGame!=='function'?null:i18nGame({
+'먼저 5목을 만든 사람이 이기면 끝':['Ends when someone makes five in a row','先に五目を作った人が勝てば終わり'],
+'자유':['Free','自由'],
+'렌주':['Renju','連珠'],
+'판 크기':['Board size','盤の大きさ'],
+'기본은 15×15입니다':['The default is 15×15','標準は15×15です'],
+'가능':['Allowed','可'],
+'흑만 금지':['Banned for Black','黒のみ禁止'],
+'양쪽 금지':['Banned for both','両方禁止'],
+'열린 3이 둘, 또는 4가 둘이 되는 수를 둘 수 있는지 정합니다':['Whether you may play a move that makes two open threes or two fours','活三が2つ、または四が2つできる手を打てるかを決めます'],
+'장목 (6목 이상)':['Overline (6 or more)','長連（6目以上）'],
+'승리 아님':['Doesn\'t win','勝ちにならない'],
+'흑만 금수':['Forbidden for Black','黒のみ禁じ手'],
+'승리: 6목도 이김 · 승리 아님: 두어도 되지만 이기지 못함 · 흑만 금수: 흑은 둘 수 없고 백은 6목도 이김':['Wins: six in a row also wins · Doesn\'t win: allowed but doesn\'t win · Forbidden for Black: Black can\'t play it, and six also wins for White','勝ち：6目でも勝ち · 勝ちにならない：打てるが勝てない · 黒のみ禁じ手：黒は打てず、白は6目でも勝ち'],
+'오프닝':['Opening','オープニング'],
+'없음: 선플레이어가 흑 · Swap: 돌 3개를 놓고 상대가 색을 고름 · Swap2: 거기에 돌 2개를 더 놓고 넘기는 선택이 있음':['None: the first player is Black · Swap: 3 stones are placed and the opponent picks a color · Swap2: adds the option to place 2 more stones and pass the choice','なし：先手が黒 · Swap：石を3つ置き相手が色を選ぶ · Swap2：さらに石を2つ置いて選択を渡す手もある'],
+'3-3·4-4 {0}':['3-3·4-4 {0}','三三・四四 {0}'],
+'장목':['Overline','長連'],
+'장목 {0}':['Overline {0}','長連 {0}'],
+'오프닝 {0}':['Opening {0}','オープニング {0}'],
+'{#0}분':['{0} min','{0}分'],
+'{#0}분+{#1}초':['{0} min +{1}s','{0}分+{1}秒'],
+'선택: 방장이 대기실에서 선 플레이어를 고릅니다. 무작위: 랜덤으로 정합니다. 오프닝이 없으면 선 플레이어가 흑, 있으면 오프닝 돌을 놓습니다. 결과 화면에서 바로 시작하면 이긴 사람이 선입니다':['Choose: the host picks the first player in the waiting room. Random: chosen at random. Without an opening the first player is Black; with one, they place the opening stones. When starting again from the results screen, the winner goes first','指定：ホストが待合室で先手を選びます。ランダム：ランダムで決めます。オープニングがなければ先手が黒、あればオープニングの石を置きます。結果画面からすぐ始めると勝った人が先手です'],
+'({0} 기반)':['(based on {0})','（{0}ベース）'],
+'{0} 기반':['Based on {0}','{0}ベース'],
+'{0} · 시계 {1} · 선 {2}':['{0} · Clock {1} · First {2}','{0} · 時計 {1} · 先手 {2}'],
+'규칙:':['Rules:','ルール：'],
+'· 오프닝 {0}':['· Opening {0}','· オープニング {0}'],
+'오목은 두 명이 하는 게임입니다.':['Omok is a two-player game.','五目並べは2人で遊ぶゲームです。'],
+'두 명이 하는 게임입니다. 사람이 한 명이면 봇이 상대합니다.':['This is a two-player game. With one person, a bot plays against you.','2人で遊ぶゲームです。1人ならボットが相手をします。'],
+'{0} 승리! (흑)':['{0} wins! (Black)','{0}の勝ち！（黒）'],
+'{0} 승리! (백)':['{0} wins! (White)','{0}の勝ち！（白）'],
+'{0} 돌 2개를 더 놓습니다.':['{0} places 2 more stones.','{0} 石を2つ追加で置きます。'],
+'{0} 흑 선택. {1}은(는) 백입니다.':['{0} chose Black. {1} is White.','{0} 黒を選択。{1}は白です。'],
+'{0} 백 선택. {1}은(는) 흑입니다.':['{0} chose White. {1} is Black.','{0} 白を選択。{1}は黒です。'],
+'{0}님이 오프닝 돌 3개를 놓습니다.':['{0} places the 3 opening stones.','{0}さんがオープニングの石を3つ置きます。'],
+'{0}님이 흑으로 먼저 시작합니다.':['{0} starts first as Black.','{0}さんが黒で先に始めます。'],
+'오목 기보':['Omok record','五目並べの棋譜'],
+'규칙: {0} · {1} · 3-3·4-4 {2} · 장목 {3} · 오프닝 {4} · 시계 {5}':['Rules: {0} · {1} · 3-3·4-4 {2} · Overline {3} · Opening {4} · Clock {5}','ルール：{0} · {1} · 三三・四四 {2} · 長連 {3} · オープニング {4} · 時計 {5}'],
+'선플레이어: {0}':['First player: {0}','先手：{0}'],
+'흑: {0} · 백: {1}':['Black: {0} · White: {1}','黒：{0} · 白：{1}'],
+'{#0}.흑{1}':['{0}.B{1}','{0}.黒{1}'],
+'{#0}.백{1}':['{0}.W{1}','{0}.白{1}'],
+'[{0}: 돌 2개 더]':['[{0}: 2 more stones]','[{0}：石2つ追加]'],
+'[{0}: 흑 선택]':['[{0}: chose Black]','[{0}：黒を選択]'],
+'[{0}: 백 선택]':['[{0}: chose White]','[{0}：白を選択]'],
+'결과: {0}':['Result: {0}','結果：{0}'],
+'{0} 승리 (상대 시간 초과)':['{0} wins (opponent timed out)','{0}の勝ち（相手の時間切れ）'],
+'{0} 승리 (상대 항복)':['{0} wins (opponent resigned)','{0}の勝ち（相手の降参）'],
+'{0} 승리 (상대 탈주)':['{0} wins (opponent left)','{0}の勝ち（相手の離脱）'],
+'{0} 승리':['{0} wins','{0}の勝ち'],
+'금수·오프닝 없음':['No forbidden moves or opening','禁じ手・オープニングなし'],
+'세부 설정':['Details','詳細設定'],
+'흑 금수 + Swap2':['Black restrictions + Swap2','黒の禁じ手 + Swap2'],
+'세부 설정 접기':['Hide details','詳細設定を閉じる'],
+'세부 설정 펼치기':['Show details','詳細設定を開く'],
+'자유: 금수·오프닝 없음 · 렌주: 흑 금수 + Swap2. 아래 항목을 바꾸면 커스텀이 됩니다':['Free: no forbidden moves or opening · Renju: Black restrictions + Swap2. Changing the items below makes it Custom','自由：禁じ手・オープニングなし · 連珠：黒の禁じ手 + Swap2。下の項目を変えるとカスタムになります'],
+'{0} 승리 (시간 초과)':['{0} wins (time)','{0}の勝ち（時間切れ）'],
+'{0} 승리 (항복)':['{0} wins (resigned)','{0}の勝ち（降参）'],
+'{0} 승리 (탈주)':['{0} wins (left)','{0}の勝ち（離脱）'],
+'흑·백 고르기':['Choose Black or White','黒・白を選ぶ'],
+'흑·백 고르는 중':['Choosing Black or White','黒・白を選択中'],
+'흑으로 하기':['Play Black','黒にする'],
+'백으로 하기':['Play White','白にする'],
+'돌 2개 더 놓기':['Place 2 more stones','石を2つ追加で置く'],
+'내가 먼저 오프닝 돌을 놓습니다.':['I place the opening stones first.','私が先にオープニングの石を置きます。'],
+'내가 흑으로 먼저 시작합니다.':['I start first as Black.','私が黒で先に始めます。'],
+'{0}님이 먼저 오프닝 돌을 놓습니다.':['{0} places the opening stones first.','{0}さんが先にオープニングの石を置きます。'],
+'오프닝 선택':['Opening choice','オープニングの選択'],
+'오목판':['Omok board','五目並べの盤']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Be the first to line up 5 of your stones horizontally, vertically or diagonally</li><li><b>Play</b> : Black starts, then take turns placing one stone. If the board fills up, it is a draw</li><li><b>Clock</b> : Each move adds extra time, and you lose if you use up your time</li><li><b>Free</b> : No moves are forbidden</li><li><b>Renju</b> : Black can\'t play 3-3 or 4-4 points (red ✕), and the game starts with the Swap2 opening. For details such as overlines and openings, tap an item name on the settings board</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 縦・横・斜めに自分の石を5つ先に並べれば勝ちです</li><li><b>進行</b> : 黒から交互に1手ずつ打ちます。盤が埋まれば引き分けです</li><li><b>時計</b> : 1手ごとに追加時間が付き、時間を使い切ると負けです</li><li><b>自由</b> : 禁じ手はありません</li><li><b>連珠</b> : 黒は三三・四四の点（赤い✕）に打てず、Swap2オープニングで始めます。長連やオープニングなどの細かいルールは、設定板で項目名を押すと説明が出ます</li></ol>'}});
 (window.GAMES=window.GAMES||{}).omok=G;
 })();

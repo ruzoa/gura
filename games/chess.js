@@ -640,7 +640,7 @@ function recordText(v){
   let res='*';
   if(v.st==='over'&&c.res)res=c.res.w<0?'1/2-1/2':c.co[c.res.w]===0?'1-0':'0-1';
   const term=c.res?({time:'Time forfeit',tdead:'Time forfeit',surrender:'Resignation',desert:'Abandoned',agree:'Agreement',rep:'Threefold repetition',fifty:'50-move rule',dead:'Insufficient material',stale:'Stalemate',mate:'Checkmate'})[c.res.why]||'':'';
-  const tags=[['Event','탁자하나 체스'],['Site','https://ruzoa.github.io/gura/'],['Date',ds],['White',name(wi)],['Black',name(bi)],['Result',res],['TimeControl',`${c.R.tm*60}+${c.R.inc}`]];
+  const tags=[['Event',__('탁자하나 체스')],['Site','https://ruzoa.github.io/gura/'],['Date',ds],['White',name(wi)],['Black',name(bi)],['Result',res],['TimeControl',`${c.R.tm*60}+${c.R.inc}`]];
   if(term)tags.push(['Termination',term]);
   const mv=[];c.sn.forEach((s,i)=>{if(i%2===0)mv.push(`${i/2+1}.`);mv.push(s)});
   mv.push(res);
@@ -1493,5 +1493,42 @@ G.init=()=>{
 };
 G._ch3={Ch3,IN,introEnd,sqW,get CS(){return CS},tapSq,myMoves,movesFrom,get sel(){return sel},get pend(){return pend},get flash(){return flash}};   // 화면 검사용
 
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음. 일꾼(Web Worker)으로 읽힐 때는 i18nGame이 없어 건너뜀 */
+G.i18n=typeof i18nGame!=='function'?null:i18nGame({
+'체크메이트하면 끝':['Ends at checkmate','チェックメイトで終わり'],
+'선택: 방장이 대기실에서 백(먼저 두는 사람)을 고릅니다. 무작위: 랜덤이고, 바로 시작하면 색을 바꿉니다':['Choose: the host picks White (who moves first) in the waiting room. Random: chosen at random, and colors switch when you start again','指定：ホストが待合室で白（先に指す人）を選びます。ランダム：ランダムで、すぐ再開すると色が入れ替わります'],
+'시계 {#0}분 + {#1}초 · 선 {2}':['Clock {0} min + {1}s · First {2}','時計 {0}分 + {1}秒 · 先手 {2}'],
+'체스는 두 명이 하는 게임입니다.':['Chess is a two-player game.','チェスは2人で遊ぶゲームです。'],
+'체크메이트':['Checkmate','チェックメイト'],
+'스테일메이트':['Stalemate','ステイルメイト'],
+'같은 국면 3번':['Threefold repetition','同一局面3回'],
+'50수 규칙':['50-move rule','50手ルール'],
+'기물 부족':['Insufficient material','駒不足'],
+'합의':['Agreement','合意'],
+'시간 초과 · 기물 부족':['Time out · insufficient material','時間切れ · 駒不足'],
+'체크메이트! {0} 승리 (백)':['Checkmate! {0} wins (White)','チェックメイト！{0}の勝ち（白）'],
+'체크메이트! {0} 승리 (흑)':['Checkmate! {0} wins (Black)','チェックメイト！{0}の勝ち（黒）'],
+'{0} 무승부 제안을 받았습니다.':['{0} accepted the draw offer.','{0} 引き分けの提案を受けました。'],
+'{0} 무승부를 제안합니다.':['{0} offers a draw.','{0} 引き分けを提案します。'],
+'{0}님이 백으로 먼저 시작합니다.':['{0} starts first as White.','{0}さんが白で先に始めます。'],
+'{0} 무승부 제안을 거절했습니다.':['{0} declined the draw offer.','{0} 引き分けの提案を断りました。'],
+'탁자하나 체스':['A table Chess','A table チェス'],
+'무승부 제안':['Offer a draw','引き分けを提案'],
+'½ 무승부 제안':['½ Offer a draw','½ 引き分けを提案'],
+'½ 제안 거두기':['½ Withdraw offer','½ 提案を取り消す'],
+'퀸':['Queen','クイーン'],
+'룩':['Rook','ルーク'],
+'비숍':['Bishop','ビショップ'],
+'나이트':['Knight','ナイト'],
+'½ 무승부 받기':['½ Accept draw','½ 引き分けを受ける'],
+'내가 백으로 먼저 시작합니다.':['I start first as White.','私が白で先に始めます。'],
+'두기':['Move','指す'],
+'고르기':['Choose','選ぶ'],
+'체스판':['Chessboard','チェス盤']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Checkmate the opponent\'s king to win. White moves first</li><li><b>Pieces</b> : King one square · Queen any direction · Rook straight · Bishop diagonal · Knight L-shape (jumps) · Pawn one square forward (two on its first move), captures diagonally forward</li><li><b>Check</b> : You can\'t make a move that leaves your king in check</li><li><b>Castling</b> : If the king and rook have never moved and the squares between are empty, the king moves two squares toward the rook and the rook jumps over to the other side. Not allowed while in check or if the king passes through an attacked square</li><li><b>En passant</b> : If an opponent\'s pawn moves two squares and lands right beside your pawn, you can capture it diagonally on the very next move</li><li><b>Promotion</b> : A pawn reaching the last rank becomes a queen, rook, bishop or knight</li><li><b>Draw</b> : Stalemate, the same position three times, 50 moves with no pawn move or capture, or not enough material to checkmate. Tap your name box to offer a draw</li><li><b>Clock</b> : You lose if your time runs out (a draw if the opponent can\'t checkmate)</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 相手のキングをチェックメイトすれば勝ちです。白が先に指します</li><li><b>駒</b> : キング1マス · クイーン全方向 · ルーク縦横 · ビショップ斜め · ナイトL字（飛び越える）· ポーンは前に1マス（最初は2マス）、取るときは斜め前</li><li><b>チェック</b> : チェックを外さない手は指せません</li><li><b>キャスリング</b> : キングとルークが一度も動いておらず間が空いていれば、キングがルーク側へ2マス動き、ルークがキングの反対側に来ます。チェック中や、キングが通るマスが攻撃されているときはできません</li><li><b>アンパッサン</b> : 2マス進んだ相手のポーンが自分のポーンのすぐ横に来たら、すぐ次の手に限り斜めに取れます</li><li><b>プロモーション</b> : ポーンが最後の列に着くと、クイーン・ルーク・ビショップ・ナイトのどれかになります</li><li><b>引き分け</b> : ステイルメイト、同じ局面3回、50手のあいだポーンの移動も駒取りもない、チェックメイトする駒が足りない。自分の名前の欄を押すと引き分けを提案できます</li><li><b>時計</b> : 時間を使い切ると負けです（相手にチェックメイトできる駒がなければ引き分け）</li></ol>'}});
 if(!IS_WORKER)(window.GAMES=window.GAMES||{}).chess=G;
 })();
