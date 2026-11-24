@@ -520,14 +520,14 @@ function hintText(me){   // 안내·알림 원칙: 차례·할 수 있는 행동
 function recordText(v){
   const q=v.q,rec=q.rec||[],cnt=q.cnt,f0=q.f0||0,order=Array.from({length:q.n},(_,k)=>(f0+k)%q.n).filter(i=>i<cnt);
   const name=i=>v.ps[i]?v.ps[i].n:'?';
-  const lines=['쿼리도 기보',order.map(i=>`${CNAME[i%4]}: ${name(i)}`).join(' · ')];
+  const lines=['쿼리도 기보',order.map(i=>__s(`${CNAME[i%4]}: ${name(i)}`)).join(' · ')];
   const rounds=new Map();for(const [n,i,m] of rec){if(!rounds.has(n))rounds.set(n,[]);rounds.get(n).push([i,m])}
   for(const [n,list] of rounds){
     const plain=cnt===2&&list.every(([i],k)=>i===order[k]);
-    lines.push(`${n}. `+list.map(([i,m])=>plain?m:`${CNAME[i%4]} ${m}`).join(plain?' ':', '));
+    lines.push(`${n}. `+list.map(([i,m])=>plain?m:__s(`${CNAME[i%4]} ${m}`)).join(plain?' ':', '));
   }
-  if(v.st==='over')lines.push('결과: '+v.ps.map((p,i)=>({p,i})).filter(x=>x.i<cnt&&x.p.f).sort((a,b)=>a.p.f-b.p.f).map(x=>`${x.p.f}위 ${x.p.n}${x.p.sr===2?' (시간 초과)':x.p.sr===3?' (탈주)':x.p.sr?' (항복)':''}`).join(', '));
-  return lines.join('\n');
+  if(v.st==='over')lines.push('결과: '+v.ps.map((p,i)=>({p,i})).filter(x=>x.i<cnt&&x.p.f).sort((a,b)=>a.p.f-b.p.f).map(x=>__s(`${x.p.f}위 ${x.p.n}${x.p.sr===2?' (시간 초과)':x.p.sr===3?' (탈주)':x.p.sr?' (항복)':''}`)).join(', '));
+  return lines.map(x=>__s(x)).join('\n');   // 한 줄씩 번역
 }
 function modesHTML(me){
   const mine=myTurnNow()&&me>=0,wl=me>=0&&V.q?V.q.wl[me]:0;
@@ -1153,5 +1153,60 @@ G.init=()=>{
 
 const toW=p=>({x:p.x*BS,y:p.y*BS,z:p.z*BS,ry:p.ry});
 G._q3={Q3,IN,introEnd,wallPose:(w)=>toW(wallPose(w,viewK)),pawnPose:(p)=>toW(pawnPose(p,viewK)),trayRect:()=>Q3.trayRect,U:U*BS};   // 화면 검사용
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음. 일꾼(Web Worker)으로 읽힐 때는 i18nGame이 없어 건너뜀 */
+G.i18n=typeof i18nGame!=='function'?null:i18nGame({
+'빨강':['Red','赤'],
+'빨강: {0}':['Red: {0}','赤：{0}'],
+'빨강 {0}':['Red {0}','赤 {0}'],
+'파랑':['Blue','青'],
+'파랑: {0}':['Blue: {0}','青：{0}'],
+'파랑 {0}':['Blue {0}','青 {0}'],
+'초록':['Green','緑'],
+'초록: {0}':['Green: {0}','緑：{0}'],
+'초록 {0}':['Green {0}','緑 {0}'],
+'주황':['Orange','オレンジ'],
+'주황: {0}':['Orange: {0}','オレンジ：{0}'],
+'주황 {0}':['Orange {0}','オレンジ {0}'],
+'먼저 도착한 사람이 이기면 끝':['Ends when someone reaches the goal','誰かがゴールしたら終わり'],
+'제한 시간이 지나면 패배합니다. 연결이 끊겨도 시간은 흐르고, 45초가 지나면 탈주로 처리합니다':['You lose if time runs out. The clock keeps running if you disconnect, and after 45 seconds you count as having left','制限時間を過ぎると負けです。接続が切れても時間は進み、45秒過ぎると離脱扱いになります'],
+'선택: 방장이 이름표 메뉴에서 선 플레이어를 고릅니다. 무작위: 주사위로 정합니다':['Choose: the host picks the first player from the name tag menu. Random: decided by dice','指定：ホストが名札メニューで先手を選びます。ランダム：サイコロで決めます'],
+'제한 시간 {0}초 · 선 {1}':['Time limit {0}s · First {1}','制限時間{0}秒 · 先手 {1}'],
+'지금 {#0}명이면 1인당 벽 {#1}개':['With {0} players, {1} walls each','今の{0}人なら1人あたり壁{1}枚'],
+'3명이면 한쪽 변이 비어서 2명·4명보다 균형이 덜 맞습니다.':['With 3 players one side is empty, so it is less balanced than with 2 or 4.','3人だと1辺が空くので、2人・4人よりバランスがよくありません。'],
+'쿼리도는 최대 4명까지 할 수 있습니다.':['Quoridor allows up to 4 players.','コリドールは最大4人まで遊べます。'],
+'도착':['Goal','ゴール'],
+'이동 / 벽 바꾸기':['Switch move / wall','移動 / 壁の切り替え'],
+'말을 움직이는 모드와 벽을 세우는 모드를 바꿉니다':['Switch between moving your pawn and placing walls','駒を動かすモードと壁を立てるモードを切り替えます'],
+'벽 방향':['Wall direction','壁の向き'],
+'가로·세로가 애매한 모서리에서 벽 방향을 바꿉니다':['Change the wall\'s direction at corners where horizontal or vertical is unclear','横か縦か迷う角で壁の向きを変えます'],
+'{0} 움직일 수 없어 차례를 넘깁니다.':['{0} cannot move and passes.','{0} 動けないので番を回します。'],
+'이동':['Move','移動'],
+'벽':['Wall','壁'],
+'{0}. {1} {2} 벽 (남은 벽 {3}개)':['{0}. {1} {2} wall ({3} left)','{0}. {1} {2} 壁（残り{3}枚）'],
+'{0} 도착! {1}위':['{0} made it! Place {1}','{0} ゴール！{1}位'],
+'{0} 승리! 게임이 끝났습니다.':['{0} wins! The game is over.','{0}の勝ち！ゲーム終了です。'],
+'{0}. {1} 시간 초과로 패배! {2}위':['{0}. {1} ran out of time! Place {2}','{0}. {1} 時間切れで負け！{2}位'],
+'{0}명 게임 시작 (벽 {1}개씩). {2}부터 시작합니다.':['{0}-player game started ({1} walls each). {2} goes first.','{0}人でゲーム開始（壁{1}枚ずつ）。{2}から始めます。'],
+'벽 {0}':['Walls {0}','壁{0}'],
+'시간 초과로 패배했습니다.':['You ran out of time.','時間切れで負けました。'],
+'탈주 처리되었습니다.':['You were counted as having left.','離脱扱いになりました。'],
+'항복했습니다.':['You resigned.','降参しました。'],
+'도착했습니다!':['You made it!','ゴールしました！'],
+'쿼리도 기보':['Quoridor record','コリドールの棋譜'],
+'결과: {0}':['Result: {0}','結果：{0}'],
+'{#0}위 {1}':['Place {0} {1}','{0}位 {1}'],
+'{#0}위 {1} (시간 초과)':['Place {0} {1} (time)','{0}位 {1}（時間切れ）'],
+'{#0}위 {1} (탈주)':['Place {0} {1} (left)','{0}位 {1}（離脱）'],
+'{#0}위 {1} (항복)':['Place {0} {1} (resigned)','{0}位 {1}（降参）'],
+'(시간 초과)':['(time)','（時間切れ）'],
+'말 이동':['Move pawn','駒を動かす'],
+'벽 세우기':['Place a wall','壁を立てる'],
+'행동 고르기':['Choose an action','行動を選ぶ'],
+'쿼리도 보드':['Quoridor board','コリドールの盤']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Be the first to get your pawn to the opposite edge. Other places go by remaining distance</li><li><b>Your turn</b> : Move your pawn one square or place one wall</li><li><b>Pawn</b> : Moves one square up, down or sideways and can\'t cross walls. If an opponent\'s pawn is right in front, jump over it; if the square behind it is blocked, step diagonally</li><li><b>Walls</b> : Two squares long, placed between squares. They can\'t overlap or cross, and can\'t completely block anyone\'s path</li><li><b>4 players</b> : Start from all four sides and share the walls</li><li><b>Time limit</b> : You lose if you run out of time on your turn</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 自分の駒を向こう側の端の列に一番先に送れば勝ちです。ほかの順位は残りの距離順です</li><li><b>自分の番</b> : 駒を1マス動かすか、壁を1枚立てます</li><li><b>駒</b> : 上下左右に1マス進み、壁は越えられません。相手の駒がすぐ前にあれば飛び越え、その後ろがふさがっていれば斜めによけます</li><li><b>壁</b> : マスの間に2マスの長さで立てます。重ねたり十字に置いたりできず、誰かの道を完全にふさぐこともできません</li><li><b>4人</b> : 4方向から出発し、壁を分け合います</li><li><b>制限時間</b> : 自分の番で時間を過ぎると負けです</li></ol>'}});
 (window.GAMES=window.GAMES||{}).quoridor=G;
 })();
