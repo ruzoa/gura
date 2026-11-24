@@ -77,13 +77,13 @@ function beanImg(t){
 }
 const meterTxt=t=>BEANS[t].m.map(x=>x||'-').join(' ');
 Object.assign(G,{labelOf:id=>BEANS[typ(id)].n,cmpCard:(a,b)=>typ(a)-typ(b)||a-b});
-G.cardHTML=(id,extra)=>{const t=typ(id),b=BEANS[t];return `<button type="button" class="card bn-c ${extra||''}" data-id="${id}" style="--rc:${b.col};--tc:${b.tx||'#fffcf5'}" aria-label="${b.n}"><span class="bn-nm">${b.n}</span><span class="bn-be">${beanImg(t)}</span><span class="bn-mt">${meterTxt(t)}</span></button>`};
+G.cardHTML=(id,extra)=>{const t=typ(id),b=BEANS[t],nm=__(b.n);return `<button type="button" class="card bn-c ${extra||''}" data-id="${id}" data-nx="${__('다음 심기')}" style="--rc:${b.col};--tc:${b.tx||'#fffcf5'}" aria-label="${b.n}"><span class="bn-nm"${[...nm].length>7?' style="font-size:.78em;letter-spacing:-.02em"':''}>${nm}</span><span class="bn-be">${beanImg(t)}</span><span class="bn-mt">${meterTxt(t)}</span></button>`};
 G.faceKey=id=>typ(id);   // 같은 콩은 3D 앞면 하나를 같이 씀 (카드마다 만들면 100장 넘게 쌓임)
 G.drawFace=function(g,w,h,id){
   const t=typ(id),b=BEANS[t],k=w/60;
   g.clearRect(0,0,w,h);g.save();rr(g,0,0,w,h,8*k);g.clip();g.fillStyle='#fffcf5';g.fillRect(0,0,w,h);g.fillStyle=b.col;g.fillRect(0,0,w,20*k);g.restore();
   g.strokeStyle='#e3d4bb';g.lineWidth=k;rr(g,k/2,k/2,w-k,h-k,8*k);g.stroke();
-  g.fillStyle=b.tx||'#fffcf5';g.textAlign='center';g.textBaseline='middle';g.font=`700 ${11.5*k}px "Jua",sans-serif`;g.fillText(b.n,w/2,10.5*k);
+  g.fillStyle=b.tx||'#fffcf5';g.textAlign='center';g.textBaseline='middle';const nm=__(b.n);let fs=11.5*k;g.font=`700 ${fs}px "Jua",sans-serif`;while(fs>7*k&&g.measureText(nm).width>w-6*k){fs-=.5*k;g.font=`700 ${fs}px "Jua",sans-serif`}g.fillText(nm,w/2,10.5*k);   // 번역한 이름이 길면 머리띠 안에 들어가게 줄임
   g.save();g.translate(3*k,26*k);g.scale(k*54/120,k*54/120);drawBean(g,t);g.restore();
   g.fillStyle='#3b2a1f';g.font=`700 ${9.5*k}px "IBM Plex Mono",monospace`;g.fillText(meterTxt(t),w/2,76*k);
 };
@@ -1093,7 +1093,7 @@ G.init=()=>{
 .bn-zc li b{display:flex;gap:2px;font-size:15px}
 .bn-zc p{margin:4px 0 8px;font-size:12px;color:#7a6650}
 .stage.bng .card.bn-c.bn-f1{outline:3px solid #2e9d5f;outline-offset:-1px}
-.stage.bng .card.bn-c.bn-f1::before{content:'다음 심기';position:absolute;left:50%;top:-21px;transform:translateX(-50%);color:#1f8a4c;font:700 12px "Jua",sans-serif;white-space:nowrap;pointer-events:none;text-shadow:0 0 3px #fff8e8,0 0 3px #fff8e8}
+.stage.bng .card.bn-c.bn-f1::before{content:attr(data-nx);position:absolute;left:50%;top:-21px;transform:translateX(-50%);color:#1f8a4c;font:700 12px "Jua",sans-serif;white-space:nowrap;pointer-events:none;text-shadow:0 0 3px #fff8e8,0 0 3px #fff8e8}
 .stage.bng .card.bn-c .bn-nm{position:absolute;left:0;right:0;top:0;padding:2px 0;background:var(--rc);color:var(--tc,#fffcf5);font:600 11px "Jua",sans-serif;text-align:center;white-space:nowrap;border-radius:6px 6px 0 0}
 .stage.bng .card.bn-c .bn-be{position:absolute;left:7px;right:7px;top:27px;pointer-events:none}
 .bn-bi{display:block;width:100%;pointer-events:none;-webkit-user-drag:none}
@@ -1139,5 +1139,70 @@ G.init=()=>{
     else if(k==='buy')sendAct({t:'buy'});
   });
 };
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음 */
+G.i18n=i18nGame({
+'완두콩':['Pea','エンドウ豆'],
+'메주콩':['Soybean','大豆'],
+'검은콩':['Black bean','黒豆'],
+'강낭콩':['Kidney bean','インゲン豆'],
+'렌즈콩':['Lentil','レンズ豆'],
+'병아리콩':['Chickpea','ひよこ豆'],
+'팥':['Red bean','小豆'],
+'작두콩':['Sword bean','なた豆'],
+'콩을 심고 거래하기':['Plant and trade beans','豆を植えて取引する'],
+'심기 제한 시간':['Planting time limit','植える制限時間'],
+'손패 심기와 임시 구역 심기의 제한 시간입니다. 지나면 자동으로 심습니다':['Time limit for planting from your hand and from the holding area. When it runs out, cards are planted automatically','手札から植えるときと仮置き場から植えるときの制限時間です。過ぎると自動で植えます'],
+'거래 제한 시간':['Trading time limit','取引の制限時間'],
+'거래 단계의 제한 시간입니다. 지나면 거래가 끝납니다':['Time limit for the trading phase. Trading ends when it runs out','取引フェーズの制限時間です。過ぎると取引が終わります'],
+'선택: 방장이 대기실에서 먼저 시작할 사람을 고릅니다. 무작위: 카드를 나눈 뒤 주사위로 정합니다':['Choose: the host picks who starts in the waiting room. Random: decided by dice after dealing','指定：ホストが待機室で最初の人を選びます。ランダム：カードを配ったあとサイコロで決めます'],
+'세 번째 밭 사기':['Buy a third field','3つ目の畑を買う'],
+'예전 판 규칙: 4~5명일 때 3코인으로 세 번째 밭을 살 수 있습니다. 현행 규칙서 기본 게임에는 없습니다':['Old edition rule: with 4–5 players you can buy a third field for 3 coins. Not in the base game of the current rulebook','旧版のルール：4〜5人のとき3コインで3つ目の畑を買えます。現行ルールの基本ゲームにはありません'],
+'심기':['Plant','植える'],
+'거래':['Trade','取引'],
+'심기 {0}초 · 거래 {1}초 · 선 {2}':['Plant {0}s · Trade {1}s · First {2}','植える{0}秒 · 取引{1}秒 · 先手 {2}'],
+'심기 {0}초 · 거래 {1}초 · 선 {2} · 세 번째 밭 사기':['Plant {0}s · Trade {1}s · First {2} · Buy a third field','植える{0}秒 · 取引{1}秒 · 先手 {2} · 3つ目の畑を買う'],
+'· 세 번째 밭 사기':['· Buy a third field','· 3つ目の畑を買う'],
+'3~5명 거래 카드 게임':['Trading card game for 3–5','3〜5人の取引カードゲーム'],
+'3명은 밭 3개, 4~5명은 밭 2개로 시작합니다.':['3 players start with 3 fields; 4–5 players with 2.','3人は畑3つ、4〜5人は畑2つで始めます。'],
+'{0} 완두콩 {#1}장 수확 ({#2}코인)':['{0} harvested {1} pea ({2} coins)','{0} エンドウ豆{1}枚を収穫（{2}コイン）'],
+'{0} 메주콩 {#1}장 수확 ({#2}코인)':['{0} harvested {1} soybean ({2} coins)','{0} 大豆{1}枚を収穫（{2}コイン）'],
+'{0} 검은콩 {#1}장 수확 ({#2}코인)':['{0} harvested {1} black bean ({2} coins)','{0} 黒豆{1}枚を収穫（{2}コイン）'],
+'{0} 강낭콩 {#1}장 수확 ({#2}코인)':['{0} harvested {1} kidney bean ({2} coins)','{0} インゲン豆{1}枚を収穫（{2}コイン）'],
+'{0} 렌즈콩 {#1}장 수확 ({#2}코인)':['{0} harvested {1} lentil ({2} coins)','{0} レンズ豆{1}枚を収穫（{2}コイン）'],
+'{0} 병아리콩 {#1}장 수확 ({#2}코인)':['{0} harvested {1} chickpea ({2} coins)','{0} ひよこ豆{1}枚を収穫（{2}コイン）'],
+'{0} 팥 {#1}장 수확 ({#2}코인)':['{0} harvested {1} red bean ({2} coins)','{0} 小豆{1}枚を収穫（{2}コイン）'],
+'{0} 작두콩 {#1}장 수확 ({#2}코인)':['{0} harvested {1} sword bean ({2} coins)','{0} なた豆{1}枚を収穫（{2}コイン）'],
+'{0} 승리 ({1}코인)':['{0} wins ({1} coins)','{0}の勝ち（{1}コイン）'],
+'{0} 세 번째 밭':['{0} bought a third field','{0} 3つ目の畑'],
+'거래 끝':['End trading','取引終了'],
+'넘기기':['Pass','パス'],
+'수확':['Harvest','収穫'],
+'더미 {0} · {1}/3회':['Deck {0} · {1}/3','山札{0} · {1}/3回'],
+'나':['Me','自分'],
+'내 턴':['My turn','自分の番'],
+'{0} 턴':['{0}\'s turn','{0}の番'],
+'모두 심기':['Plant all','すべて植える'],
+'{0} · 심기 {1}/2':['{0} · Plant {1}/2','{0} · 植える {1}/2'],
+'{0} · 거래':['{0} · Trade','{0} · 取引'],
+'아무나':['Anyone','誰でも'],
+'수락':['Accept','承諾'],
+'역제안':['Counter','逆提案'],
+'거절':['Decline','断る'],
+'제안':['Offer','提案'],
+'빈 밭':['Empty field','空き畑'],
+'{0} 수확 {1}코인':['{0} harvest {1} coins','{0} 収穫{1}コイン'],
+'{0} {#1}/{#2} ({#3}코인)':['{0} {1}/{2} ({3} coins)','{0} {1}/{2}（{3}コイン）'],
+'{0} {#1}/{#2} ({#3}코인) ✕':['{0} {1}/{2} ({3} coins) ✕','{0} {1}/{2}（{3}コイン） ✕'],
+'{0} {#1} MAX':['{0} {1} MAX','{0} {1} MAX'],
+'{0} {#1} MAX ✕':['{0} {1} MAX ✕','{0} {1} MAX ✕'],
+'{0}코인':['{0} coins','{0}コイン'],
+'밭 사기':['Buy field','畑を買う'],
+'다음 심기':['Plant next','次に植える'],
+'{0} · {#1}':['{0} · {1}','{0} · {1}']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Harvest beans and collect the most coins</li><li><b>Hand</b> : You can\'t change the order. Plant from the front card; new cards go to the back</li><li><b>1. Plant</b> : You must plant the front card and may plant one more. Each field holds only one kind of bean</li><li><b>2. Trade</b> : Reveal 2 cards; you can trade with the active player or just give cards away</li><li><b>3. Plant again</b> : Plant all revealed cards and cards received in trades</li><li><b>4. Draw</b> : Draw 3 cards and put them at the back of your hand</li><li><b>Harvest</b> : Tap a field twice to harvest at any time. If you have a field with 2 or more cards, you can\'t harvest a field with only 1</li><li><b>End</b> : The game ends when the deck runs out for the third time; the player with the most coins wins</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 豆を収穫してコインをいちばん多く集めます</li><li><b>手札</b> : 順番は変えられません。いちばん前のカードから植え、新しいカードはいちばん後ろに入ります</li><li><b>1. 植える</b> : いちばん前のカードは必ず植え、もう1枚植えてもかまいません。1つの畑には1種類だけ植えます</li><li><b>2. 取引</b> : 2枚をめくり、手番の人と取引したり、ただであげたりできます</li><li><b>3. また植える</b> : めくったカードと取引でもらったカードをすべて植えます</li><li><b>4. 引く</b> : 3枚引いて手札のいちばん後ろに入れます</li><li><b>収穫</b> : いつでも畑を2回押すと収穫します。2枚以上の畑があるときは、1枚だけの畑は収穫できません</li><li><b>終わり</b> : 山札が3回目になくなったら終わり、コインの多い人が勝ちです</li></ol>'}});
 (window.GAMES=window.GAMES||{}).bohnanza=G;
 })();

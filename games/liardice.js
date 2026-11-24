@@ -1071,5 +1071,53 @@ G.init=()=>{
   addEventListener('keyup',e=>{if(typeof KEYS!=='undefined'&&e.code===KEYS.yroll&&HOLD.src==='key')holdEnd(false)});
   addEventListener('blur',()=>{if(HOLD.on)holdEnd(false)});
 };
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음 */
+G.i18n=i18nGame({
+'페루도':['Perudo','ペルード'],
+'마지막 한 사람이 남을 때까지':['Until one player is left','最後の1人になるまで'],
+'시간이 지나면 선언이 있으면 구라!, 없으면 가장 낮은 선언을 합니다':['When time runs out, you call GURA! if there is a bid, otherwise make the lowest bid','時間切れになると、宣言があればGURA!、なければ一番低い宣言をします'],
+'생명':['Lives','ライフ'],
+'처음 생명 수. 주사위 잃기를 켜면 쓰지 않습니다':['Starting lives. Not used when Lose dice is on','最初のライフの数。サイコロを失うがオンなら使いません'],
+'한 사람이 굴리는 주사위 수':['Dice each player rolls','1人が振るサイコロの数'],
+'1 와일드':['1s wild','1はワイルド'],
+'1을 모든 눈으로 셉니다':['1s count as any face','1をどの目としても数えます'],
+'주사위 잃기':['Lose dice','サイコロを失う'],
+'생명 대신 주사위를 하나씩 잃고, 주사위가 모두 없어지면 탈락합니다':['You lose a die instead of a life, and you are out when you have none left','ライフの代わりにサイコロを1個ずつ失い、なくなったら脱落です'],
+'내 차례에 직전 선언에 도전합니다. 정확하면 나 빼고 모두, 아니면 내가 1개를 잃습니다. 구라!에 개수가 정확해도 선언한 사람 빼고 모두 1개를 잃습니다. 칼사와 함께 켤 수 없습니다':['On your turn, challenge the last bid as exact. If it is exact, everyone else loses 1; otherwise you lose 1. If GURA! is called and the count is exact, everyone except the bidder loses 1. Cannot be on together with Calza','自分の番に直前の宣言がぴったりだとチャレンジします。ぴったりなら自分以外の全員が、違えば自分が1つ失います。GURA!のとき個数がぴったりでも、宣言した人以外の全員が1つ失います。カルサと同時にはオンにできません'],
+'칼사':['Calza','カルサ'],
+'내 차례에 직전 선언이 정확하다고 외칩니다. 맞으면 1개를 되찾고, 틀리면 1개를 잃습니다. spot on과 함께 켤 수 없습니다':['On your turn, call the last bid exact. If right you regain 1; if wrong you lose 1. Cannot be on together with spot on','自分の番に直前の宣言がぴったりだと言います。当たれば1つ取り戻し、外れれば1つ失います。spot onと同時にはオンにできません'],
+'팔리피코':['Palifico','パリフィコ'],
+'처음 1개만 남은 사람이 생기면 한 판 동안 1이 와일드가 아니고 눈을 바꿀 수 없습니다':['When someone first gets down to 1, for that round 1s are not wild and the face cannot be changed','初めて残り1つの人が出たら、その回は1がワイルドではなく、目を変えられません'],
+'선택: 방장이 대기실에서 먼저 선언할 사람을 고릅니다. 무작위: 주사위로 정합니다':['Choose: the host picks who bids first in the waiting room. Random: decided by dice','指定：ホストが待機室で最初に宣言する人を選びます。ランダム：サイコロで決めます'],
+'구라! 다이스: 아래 항목 모두 끔 · 페루도: 1 와일드·주사위 잃기·칼사·팔리피코. 아래 항목을 바꾸면 커스텀이 됩니다':['GURA! Dice: all options below off · Perudo: 1s wild, lose dice, Calza, Palifico. Changing an option below makes it Custom','GURA! ダイス：下の項目はすべてオフ · ペルード：1はワイルド・サイコロを失う・カルサ・パリフィコ。下の項目を変えるとカスタムになります'],
+'{0} · {1}주사위 {2}개 · 제한 시간 {3}초 · 선 {4}':['{0} · {1}Dice {2} · Time limit {3}s · First {4}','{0} · {1}サイコロ{2}個 · 制限時間{3}秒 · 先手 {4}'],
+'{0} · 주사위 {1}개 · 제한 시간 {2}초 · 선 {3}':['{0} · Dice {1} · Time limit {2}s · First {3}','{0} · サイコロ{1}個 · 制限時間{2}秒 · 先手 {3}'],
+'생명 {0}개 ·':['Lives {0} ·','ライフ{0} ·'],
+'2~4명 주사위 허세 게임':['Dice bluffing game for 2–4','2〜4人のサイコロはったりゲーム'],
+'주사위 · 컵':['Dice · cup','サイコロ · カップ'],
+'도전 / 칼사':['Challenge / Calza','チャレンジ / カルサ'],
+'구라! 다이스: 직전 선언이 정확하다고 외칩니다(spot on·칼사를 켰을 때). 구라!는 구라! 키, 선언은 내기 키, 개수는 ↑↓, 눈은 ←→, 컵(누르고 있으면 흔들기·들춰 보기)은 야추다이스 굴리기 키를 같이 씁니다':['GURA! Dice: call the last bid exact (when spot on or Calza is on). GURA! uses the GURA! key, bidding uses the play key, count ↑↓, face ←→, and the cup (hold to shake and peek) uses the Yacht roll key','GURA! ダイス：直前の宣言がぴったりだと言います（spot on・カルサがオンのとき）。GURA!はGURA!キー、宣言は出すキー、個数は↑↓、目は←→、カップ（押している間振る・のぞく）はヨットの振るキーを共用します'],
+'{0} : {#1} {#2}개':['{0}: {2} × {1}s','{0}：{1}が{2}個'],
+'도전':['Challenge','チャレンジ'],
+'{0} 구라! · {#1} {#2}개':['{0} GURA! · {2} × {1}s','{0} GURA! · {1}が{2}個'],
+'{0} 도전 · {#1} {#2}개':['{0} Challenge · {2} × {1}s','{0} チャレンジ · {1}が{2}個'],
+'{0} 칼사 · {#1} {#2}개':['{0} Calza · {2} × {1}s','{0} カルサ · {1}が{2}個'],
+'팔리피코 · {0}':['Palifico · {0}','パリフィコ · {0}'],
+'{0}명 시작. {1}부터 선언합니다.':['{0} players. {1} bids first.','{0}人で開始。{1}から宣言します。'],
+'도전!':['Challenge!','チャレンジ！'],
+'칼사!':['Calza!','カルサ！'],
+'선언 · 실제':['bid · actual','宣言 · 実際'],
+'아니었다':['It was not','違った'],
+'큰 눈':['Higher face','大きい目'],
+'작은 눈':['Lower face','小さい目'],
+'개수 늘리기':['More','個数を増やす'],
+'개수 줄이기':['Fewer','個数を減らす'],
+'내 컵':['My cup','自分のカップ'],
+'선언':['Bid','宣言']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Start with 3 lives and be the last one left</li><li><b>Rolling</b> : Everyone rolls 5 dice under a cup. Hold your cup to see only your own dice</li><li><b>Bidding</b> : Bid at least how many of a face there are among everyone\'s dice. The next player raises the count, or bids a higher face with the same count</li><li><b>GURA!</b> : Anyone except the bidder can call it. All dice are revealed; if there are at least as many as bid, the caller loses 1 life, otherwise the bidder does</li><li><b>Next round</b> : The player who lost a life rolls first</li><li><b>Perudo</b> : For extra rules such as 1s wild, tap an option\'s name on the settings board to see what it does</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : ライフ3つで始め、最後まで残れば勝ちです</li><li><b>振る</b> : 全員がサイコロ5個をカップで伏せて振ります。カップを長押しすると自分のサイコロだけ見られます</li><li><b>宣言</b> : 全員のサイコロの中に、その目が少なくともいくつあるかを宣言します。次の人は個数を上げるか、同じ個数でより大きい目を言います</li><li><b>GURA!</b> : 宣言した人以外なら誰でも言えます。全部公開して宣言以上あれば言った人が、足りなければ宣言した人がライフを1つ失います</li><li><b>次の回</b> : ライフを失った人から振り直します</li><li><b>ペルード</b> : 1はワイルドなどの追加ルールは、設定板で項目名を押すと説明が出ます</li></ol>'}});
 (window.GAMES=window.GAMES||{}).liardice=G;
 })();

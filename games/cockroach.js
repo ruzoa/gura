@@ -788,5 +788,50 @@ G.init=()=>{
     e.stopPropagation();e.preventDefault();giveTo(+seat.dataset.i);
   },true);
 };
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음 */
+G.i18n=i18nGame({
+'바퀴벌레':['Cockroach','ゴキブリ'],
+'박쥐':['Bat','コウモリ'],
+'파리':['Fly','ハエ'],
+'두꺼비':['Toad','ヒキガエル'],
+'전갈':['Scorpion','サソリ'],
+'거미':['Spider','クモ'],
+'노린재':['Stink bug','カメムシ'],
+'한 사람이 질 때까지':['Until one player loses','1人が負けるまで'],
+'시간이 지나면 무작위로 넘기거나 고릅니다':['When time runs out, a random pass or call is made','時間切れになると、ランダムに渡すか選びます'],
+'지는 장수':['Cards to lose','負けの枚数'],
+'같은 벌레가 이만큼 앞에 모이면 집니다':['You lose when this many of the same bug pile up in front of you','同じ虫がこの枚数だけ前にたまると負けです'],
+'선택: 방장이 대기실에서 먼저 넘기는 사람을 고릅니다. 무작위: 무작위로 정합니다':['Choose: the host picks who passes first in the waiting room. Random: chosen at random','指定：ホストが待機室で最初に渡す人を選びます。ランダム：ランダムに決めます'],
+'지는 장수 {0}장 · 제한 시간 {1}초 · 선 {2}':['Lose at {0} cards · Time limit {1}s · First {2}','負け{0}枚 · 制限時間{1}秒 · 先手 {2}'],
+'2~6명 블러핑 카드 게임':['Bluffing card game for 2–6','2〜6人のブラフカードゲーム'],
+'벌레 8종류 × 8장 · 64장':['8 bugs × 8 cards · 64 cards','虫8種類 × 8枚 · 64枚'],
+'진짜!':['True!','本当！'],
+'바퀴벌레 포커: 받은 카드가 말한 벌레라고 외칩니다. 구라!는 구라! 키, 넘기기는 패스 키, 선언할 벌레는 선언 자음 키를 같이 씁니다':['Cockroach Poker: call that the card you received is the named bug. GURA! uses the GURA! key, passing uses the pass key, and the bug to declare uses the declare keys','ごきぶりポーカー：受け取ったカードが言われた虫だと言います。GURA!はGURA!キー、渡すはパスキー、宣言する虫は宣言キーを共用します'],
+'{0} 패배 ({1} {#2}장)':['{0} loses ({1} ×{2})','{0} 負け（{1} {2}枚）'],
+'{0} 패배 (손패 없음)':['{0} loses (no cards left)','{0} 負け（手札なし）'],
+'(손패 없음)':['(no cards left)','（手札なし）'],
+'{0} 넘김 → {1} : {2}':['{0} passes → {1} : {2}','{0} 渡す → {1} : {2}'],
+'{0} 진짜! · {1}였음':['{0} True! · it was a {1}','{0} 本当！ · {1}だった'],
+'{0} 구라! · {1}였음':['{0} GURA! · it was a {1}','{0} GURA! · {1}だった'],
+'{0} 바퀴벌레 가져감':['{0} takes the cockroach','{0} ゴキブリを取る'],
+'{0} 박쥐 가져감':['{0} takes the bat','{0} コウモリを取る'],
+'{0} 파리 가져감':['{0} takes the fly','{0} ハエを取る'],
+'{0} 두꺼비 가져감':['{0} takes the toad','{0} ヒキガエルを取る'],
+'{0} 쥐 가져감':['{0} takes the mouse','{0} ネズミを取る'],
+'{0} 전갈 가져감':['{0} takes the scorpion','{0} サソリを取る'],
+'{0} 거미 가져감':['{0} takes the spider','{0} クモを取る'],
+'{0} 노린재 가져감':['{0} takes the stink bug','{0} カメムシを取る'],
+'{0}명 시작. {1}부터 넘깁니다.':['{0} players. {1} passes first.','{0}人で開始。{1}から渡します。'],
+'이전 벌레':['Previous bug','前の虫'],
+'다음 벌레':['Next bug','次の虫'],
+'봄':['Seen','見た'],
+'손패 없음':['No cards left','手札なし'],
+'이 카드는':['This card is','このカードは'],
+'넘기기':['Pass','パス']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : You lose if 4 of the same bug pile up in front of you, or if you have no cards on your turn. Everyone except the one loser wins</li><li><b>Passing</b> : Pass one card face down and name a bug. You may lie</li><li><b>When you receive</b> : Call True! or GURA!, or peek and pass it again to someone who hasn\'t seen it</li><li><b>Judging</b> : If the caller is right, the passer takes the card; if wrong, the caller takes it. Whoever takes the card goes next</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 同じ虫が自分の前に4枚たまるか、自分の番に手札がなければ負けです。負けた1人以外は全員勝ちです</li><li><b>渡す</b> : カードを1枚伏せて渡し、虫の名前を言います。うそでも構いません</li><li><b>受け取ったら</b> : 本当！かGURA!と言うか、こっそり見てまだ見ていない人にまた渡します</li><li><b>判定</b> : 当たれば渡した人が、外れれば言った人がそのカードを前に置きます。カードを取った人が次の番です</li></ol>'}});
 (window.GAMES=window.GAMES||{}).cockroach=G;
 })();
