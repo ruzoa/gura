@@ -4,15 +4,28 @@
    카드 id는 숫자-1(0~99): 공통 코드가 100 이상을 별카드로 보기 때문.
    더 작은 카드가 남아 있는데 내면 생명 1개를 잃고 그보다 작은 카드를 모두 버림. 표창은 모두 불을 켜면 각자 가장 낮은 카드를 버림.
    단계 ph: focus(모두 시작 버튼을 함께 누름) → play → show(버린 카드·통과를 보여 줌) → focus 또는 다음 레벨. 모든 레벨을 넘기면 블라인드로 이어짐.
-   거의 동시에 낸 카드는 방장이 BATCH_MS 동안 모아 숫자순으로 내려놓음(인터넷 지연으로 억울한 실패가 나지 않게) */
+   거의 동시에 낸 카드는 방장이 BATCH_MS 동안 모아 숫자순으로 내려놓음(인터넷 지연으로 억울한 실패가 나지 않게)
+   봇 3단계는 협력 게임이라 거꾸로: 쉬움 = 잘하는 봇, 어려움 = 못하는 봇(BOT) */
 (function(){
-const G={id:'mind',name:'더 마인드',short:'마인드',lead:'말없이 숫자를 맞추는 협력 게임',dealAnim:true,maxHi:4,minN:2,noFast:true,oneBotLv:true,noGiveUp:true};
+const G={id:'mind',name:'더 마인드',short:'마인드',lead:'말없이 숫자를 맞추는 협력 게임',dealAnim:true,maxHi:4,minN:2,noFast:true,noGiveUp:true};
 
 /* ---------- 규칙 값 ---------- */
 const TOP={2:12,3:10,4:8},REWARD={2:'star',3:'life',5:'star',6:'life',8:'star',9:'life'};
 const MAX_LIVES=5,MAX_STARS=3;
 const BATCH_MS=150,HOLD_MS=500,MISS_MS=2200,CLEAR_MS=1500,BLIND_MS=3000;
-const TEMPO=120;   // 봇: 숫자 1 차이마다 기다리는 시간
+const TEMPO=120;   // 봇: 숫자 1 차이마다 기다리는 처음 박자(ms)
+/* 봇 단계(p.lv 0 쉬움 · 1 보통 · 2 어려움). 협력 게임이라 쉬움 = 손발이 잘 맞는 봇, 어려움 = 박자가 들쭉날쭉한 봇(예전 봇 그대로).
+   기다리는 시간 = max(min, base + 숫자 차이 × 박자) × (lo~hi) + (0~add) ms. base가 있으면 가까운 숫자끼리도 순서가 갈림(예전 봇은 7 차이까지 모두 0.9초).
+   lead: 내기 몇 ms 전에 카드를 올리나, fit: 사람 박자를 익히는 정도(0 = 안 익힘),
+   star: 남이 표창을 켜면 따라 켜기까지(ms), look: 사람이 카드를 올리면 [이 배 이하면 서두름, 이 배 이상이면 기다림], ask: 생명이 1개면 먼저 표창을 켬 */
+const BOT=[
+  {min:600,base:450,lo:.9,hi:1.1,add:150,lead:[1000,1500],fit:.5,star:[500,1000],look:[.7,1.4],ask:true},
+  {min:600,base:450,lo:.8,hi:1.25,add:250,lead:[500,1000],fit:.2,star:[1200,2600]},
+  {min:900,base:0,lo:.65,hi:1.4,add:500,lead:[500,1000],fit:0,star:[1200,2600]},
+];
+const botOf=p=>BOT[Math.max(0,Math.min(BOT.length-1,p.lv??1))];
+const ASK_MS=5000;   // 봇이 먼저 켠 표창을 기다리는 시간(그동안 그 봇은 카드를 내지 않음)
+const FIT_MIN=8;     // 이보다 가까운 숫자는 반응 시간이 대부분이라 박자를 재지 않음
 
 /* ---------- 카드 ---------- */
 const num=id=>id+1;
@@ -28,7 +41,7 @@ G.drawFace=function(g,w,h,id){
 };
 
 /* ---------- 규칙 설명·방 설정 ---------- */
-G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 한 팀입니다. 레벨마다 받은 카드를 모두 함께 낮은 숫자부터 내면 통과합니다(레벨 수 = 카드 수)</li><li><b>끝</b> : 2명 12, 3명 10, 4명 8레벨을 통과하면 승리하고, 생명이 없으면 집니다</li><li><b>침묵</b> : 말할 수 없고 차례도 없습니다. 언제 낼지는 각자 정합니다</li><li><b>시작</b> : 레벨을 시작할 때와 실수·표창 뒤에는 모두 시작 버튼을 꾹 누릅니다</li><li><b>실수</b> : 낸 숫자보다 작은 카드가 남아 있으면 생명 1개를 잃고 그 카드를 버립니다</li><li><b>표창</b> : 모두 표창 버튼을 켜면 각자 가장 낮은 카드를 버립니다</li><li><b>보상</b> : 레벨 2·5·8 통과는 표창, 3·6·9 통과는 생명을 얻습니다</li></ol>';
+G.rulesHTML='<ol class="rules"><li><b>목표</b> : 모두 한 팀입니다. 레벨마다 받은 카드를 모두 함께 낮은 숫자부터 내면 통과합니다(레벨 수 = 카드 수)</li><li><b>끝</b> : 2명 12, 3명 10, 4명 8레벨을 통과하면 승리하고, 생명이 없으면 집니다</li><li><b>침묵</b> : 말할 수 없고 차례도 없습니다. 언제 낼지는 각자 정합니다</li><li><b>시작</b> : 레벨을 시작할 때와 실수·표창 뒤에는 모두 시작 버튼을 꾹 누릅니다</li><li><b>실수</b> : 낸 숫자보다 작은 카드가 남아 있으면 생명 1개를 잃고 그 카드를 버립니다</li><li><b>표창</b> : 모두 표창 버튼을 켜면 각자 가장 낮은 카드를 버립니다</li><li><b>보상</b> : 레벨 2·5·8 통과는 표창, 3·6·9 통과는 생명을 얻습니다</li><li><b>봇</b> : 한 팀이라 쉬움 봇은 손발이 잘 맞고, 어려움 봇은 박자가 들쭉날쭉합니다</li></ol>';
 G.modeDesc=['낮은 숫자부터 말없이','낮은 숫자부터 말없이'];
 G.defaults={max:4};
 G.roomSet=[];G.ruleSet=[];
@@ -48,13 +61,13 @@ const seats=()=>H.players.map((p,i)=>i);
 const allHands=()=>H.players.flatMap((p,s)=>p.hand.map(v=>({v,s})));
 function resetRound(){
   const O=H.md,n=H.players.length,t=clock();
-  O.up=Array(n).fill(-1);O.st=Array(n).fill(false);O.hd=Array(n).fill(false);O.hdAt=0;O.q=[];O.qAt=0;O.bp=Array(n).fill(null);O.bs=Array(n).fill(0);
+  O.up=Array(n).fill(-1);O.st=Array(n).fill(false);O.hd=Array(n).fill(false);O.hdAt=0;O.q=[];O.qAt=0;O.bp=Array(n).fill(null);O.bs=Array(n).fill(0);O.ask=Array(n).fill(0);
   O.ph='focus';O.bh=H.players.map(()=>t+rand(600,1500));mark();
 }
 function deal(){
   const O=H.md,deck=shuffle([...Array(100).keys()]);
   H.players.forEach(p=>p.hand=deck.splice(0,O.lv).sort((a,b)=>a-b));
-  O.pile=[];O.last=-1;O.show=null;O.own=H.players.map(()=>-1);
+  O.pile=[];O.last=-1;O.show=null;O.own=H.players.map(()=>-1);O.asked=0;
   resetRound();
 }
 function finish(why,seat){
@@ -121,19 +134,47 @@ function blindCheck(){
   showStep('blind',[P[i-1],P[i]],BLIND_MS,O.lives<=0?'over':'clear');
 }
 function flush(){
-  const O=H.md,L=O.q.slice().sort((a,b)=>a.id-b.id);O.q=[];O.qAt=0;
+  const O=H.md,first=O.q[0],L=O.q.slice().sort((a,b)=>a.id-b.id);O.q=[];O.qAt=0;
+  if(first)learn(first);
   for(const q of L){if(O.ph!=='play')break;if(!place(q.s,q.id))break}
   if(O.ph==='play')plan();
   mark();
 }
-/* 봇(쉬움): 자기 패만 봄. 마지막 숫자와의 차이만큼 기다렸다 뒤집어 올리고 잠시 뒤 냄. 오차가 커서 높은 레벨은 어려움 */
+/* 봇: 자기 패와 탁자 위에 보이는 것만 봄(남의 패는 안 봄). 마지막 숫자와의 차이 × 박자만큼 기다렸다 뒤집어 올리고 잠시 뒤 냄.
+   단계마다 오차·올리는 때·사람 박자 익히기·남이 올린 카드 보기·표창이 다름(BOT) */
+const tempoOf=i=>(H.md.bt&&H.md.bt[i])||TEMPO;
+function planOne(i,t){
+  const O=H.md,p=H.players[i];O.bp[i]=null;if(!realBot(p)||!p.hand.length)return;
+  const B=botOf(p),id=O.up[i]>=0&&p.hand.includes(O.up[i])?O.up[i]:p.hand[0],last=O.blind?O.own[i]:O.last,gap=Math.max(1,id-last);
+  const wait=Math.max(B.min,B.base+gap*tempoOf(i))*rand(B.lo,B.hi)+rand(0,B.add);
+  O.bp[i]={id,at:t+wait,upAt:t+Math.max(0,wait-rand(B.lead[0],B.lead[1]))};
+}
 function plan(){
-  const O=H.md,t=clock();
+  const O=H.md,t=clock();O.pt=t;
+  H.players.forEach((p,i)=>planOne(i,t));
+}
+/* 사람이 카드를 내면 숫자 차이와 걸린 시간으로 그 사람 박자를 익힘(fit만큼 섞음). 블라인드는 숫자가 안 보여서 안 익힘 */
+function learn(q){
+  const O=H.md,p=H.players[q.s];
+  if(O.blind||!O.pt||!p||p.bot||!(q.at>=O.pt))return;
+  const g=q.id-O.last;if(g<FIT_MIN)return;
+  if(!O.bt)O.bt=H.players.map(()=>TEMPO);
+  H.players.forEach((b,i)=>{
+    const B=realBot(b)?botOf(b):null;if(!B||!B.fit)return;
+    const per=Math.max(60,Math.min(400,(q.at-O.pt-B.base)/g));   // 자기 식(base + 차이 × 박자)에 맞춰 잼
+    O.bt[i]=O.bt[i]*(1-B.fit)+per*B.fit;
+  });
+}
+/* 사람이 카드를 올리면(look 봇): 흐른 시간으로 그 사람 숫자를 어림해 내 숫자가 확실히 작으면 서둘러 내고, 확실히 크면 잠깐 기다림.
+   거의 같이 내도 BATCH_MS 동안 모아 숫자순으로 놓으므로 서두르는 쪽은 안전함. 블라인드는 마지막 숫자를 몰라서 안 봄.
+   봇이 올린 카드는 보지 않음: 쉬움 봇은 일찍 올려서 어림이 틀리고, 봇끼리는 박자가 이미 맞음(시뮬레이션에서 4명 판이 나빠졌음) */
+function look(j,t){
+  const O=H.md;if(O.blind||O.ph!=='play'||!O.pt||realBot(H.players[j]))return;
   H.players.forEach((p,i)=>{
-    O.bp[i]=null;if(!realBot(p)||!p.hand.length)return;
-    const id=O.up[i]>=0&&p.hand.includes(O.up[i])?O.up[i]:p.hand[0],last=O.blind?O.own[i]:O.last,gap=Math.max(1,id-last);
-    const wait=Math.max(900,gap*TEMPO)*rand(.65,1.4)+rand(0,500);
-    O.bp[i]={id,at:t+wait,upAt:t+Math.max(0,wait-rand(500,1000))};
+    const b=O.bp[i],L=realBot(p)&&botOf(p).look;if(i===j||!b||!L)return;
+    const est=Math.max(1,(t-O.pt+700-botOf(p).base)/tempoOf(i)),gap=Math.max(1,b.id-O.last);
+    if(gap<=est*L[0]&&gap<=est-2){b.at=Math.min(b.at,t+rand(150,350));b.upAt=Math.min(b.upAt,t)}
+    else if(gap>=est*L[1]&&gap>=est+2&&b.at<t+1600){b.at=t+1600+rand(0,400);b.upAt=Math.max(b.upAt,b.at-rand(800,1200))}
   });
 }
 function allOn(a){return a.length>0&&a.every(Boolean)}
@@ -148,7 +189,7 @@ function queue(seat,id){
   const O=H.md;
   if(O.q.some(q=>q.s===seat))return;
   if(!O.q.length)O.qAt=clock()+BATCH_MS;
-  O.q.push({s:seat,id});
+  O.q.push({s:seat,id,at:clock()});
 }
 function doSurrender(seat){
   if(H.phase!=='play'||H.players[seat].finished)return;
@@ -166,23 +207,31 @@ function tickPlay(t){
   const O=H.md;
   if(O.q.length&&t>=O.qAt){flush();if(O.ph!=='play')return}
   if(!O.q.length&&O.stars>0&&allOn(O.st)){useStar();return}
-  const some=H.players.some((p,i)=>!realBot(p)&&O.st[i]);
+  if(!O.ask)O.ask=H.players.map(()=>0);
+  /* 표창: 사람이 켰거나 봇이 먼저 켜고 기다리는 중이면 따라 켬(따라 켠 봇끼리는 서로 붙잡지 않음) */
+  const asking=i=>O.ask[i]>t,lit=k=>H.players.some((p,i)=>i!==k&&O.st[i]&&(!realBot(p)||asking(i)));
   H.players.forEach((p,i)=>{
     if(!realBot(p))return;
-    if(some&&!O.st[i]){if(!O.bs[i])O.bs[i]=t+rand(1200,2600);else if(t>=O.bs[i]){O.st[i]=true;O.bs[i]=0;mark()}}
+    const B=botOf(p);
+    if(O.ask[i]){if(asking(i))return;O.ask[i]=0;planOne(i,t)}   // 먼저 켠 표창을 기다리는 동안은 카드를 내지 않고, 끝나면 그때부터 다시 셈
+    const some=lit(i);
+    if(some&&!O.st[i]){if(!O.bs[i])O.bs[i]=t+rand(B.star[0],B.star[1]);else if(t>=O.bs[i]){O.st[i]=true;O.bs[i]=0;mark()}}
     else if(!some&&(O.st[i]||O.bs[i])){O.st[i]=false;O.bs[i]=0;mark()}
     const b=O.bp[i];if(!b)return;
-    if(O.up[i]<0&&t>=b.upAt){O.up[i]=b.id;mark()}
+    if(B.ask&&!O.asked&&O.lives===1&&O.stars>0&&!some&&!O.st[i]&&t>=O.pt+800&&b.at>t+1500&&allHands().length>=2*H.players.length){
+      O.asked=1;O.ask[i]=t+ASK_MS;O.st[i]=true;O.bp[i]=null;O.up[i]=-1;mark();return;   // 생명이 1개: 한 레벨에 한 번 먼저 표창을 켜 봄
+    }
+    if(O.up[i]<0&&t>=b.upAt){O.up[i]=b.id;look(i,t);mark()}
     if(t>=b.at){O.bp[i]=null;queue(i,b.id)}
   });
 }
-G._test={TOP,REWARD,BATCH_MS,HOLD_MS,MISS_MS,CLEAR_MS,plan,flush};
+G._test={TOP,REWARD,BATCH_MS,HOLD_MS,MISS_MS,CLEAR_MS,TEMPO,BOT,ASK_MS,FIT_MIN,plan,flush};
 G.engine={
   start(){
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,known:{},turn:0,botActAt:0,deadline:clock()+864e5});
     const n=H.players.length;
     H.players.forEach(p=>{p.finished=false;p.rank=null;p.surrendered=false;p.hand=[]});
-    H.md={gn:((H.md&&H.md.gn)||0)+1,lv:1,top:TOP[n]||8,blind:0,won:0,lives:n,stars:1,sid:0,res:null,left:null,ph:'focus'};
+    H.md={gn:((H.md&&H.md.gn)||0)+1,lv:1,top:TOP[n]||8,blind:0,won:0,lives:n,stars:1,sid:0,res:null,left:null,ph:'focus',bt:H.players.map(()=>TEMPO),pt:0};
     addLog(`${n}명 · 레벨 ${H.md.top}까지`,'sys');
     deal();
   },
@@ -194,7 +243,7 @@ G.engine={
     if(O.ph!=='play')return;
     if(a.t==='star'){if(O.stars>0){O.st[seat]=!!a.on;O.bs=O.bs.map(()=>0);mark()}return}
     if(O.q.some(q=>q.s===seat))return;
-    if(a.t==='up'&&Number.isInteger(a.id)&&p.hand.includes(a.id)){O.up[seat]=a.id;mark();return}
+    if(a.t==='up'&&Number.isInteger(a.id)&&p.hand.includes(a.id)){const was=O.up[seat];O.up[seat]=a.id;if(was<0)look(seat,clock());mark();return}
     if(a.t==='down'){O.up[seat]=-1;mark();return}
     if(a.t==='put'&&a.id===O.up[seat]&&p.hand.includes(a.id))queue(seat,a.id);
   },
@@ -217,6 +266,9 @@ G.engine={
     if(O.bh)O.bh=O.bh.map(x=>x+ms);
     if(O.bp)for(const b of O.bp)if(b){b.at+=ms;b.upAt+=ms}
     if(O.bs)O.bs=O.bs.map(x=>x?x+ms:0);
+    if(O.ask)O.ask=O.ask.map(x=>x?x+ms:0);
+    if(O.pt)O.pt+=ms;
+    if(O.q)for(const q of O.q)if(q.at)q.at+=ms;
   },
   emoPhase:ph=>ph==='over'   // 게임 중에는 어떤 신호도 주고받지 않음
 };
