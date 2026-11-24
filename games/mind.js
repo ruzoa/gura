@@ -614,8 +614,8 @@ G.init=()=>{
 const currentG=()=>typeof GAMES!=='undefined'&&V&&V.cfg&&GAMES[V.cfg.game]?GAMES[V.cfg.game]:null;
 /* ===== 번역 (English·日本語) =====
    화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
-   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음 */
-G.i18n=i18nGame({
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음. 일꾼(Web Worker)으로 읽힐 때는 i18nGame이 없어 건너뜀 */
+G.i18n=typeof i18nGame!=='function'?null:i18nGame({
 '낮은 숫자부터 말없이':['Lowest first, in silence','小さい数字から無言で'],
 '2명 레벨 12 · 3명 레벨 10 · 4명 레벨 8':['2 players: level 12 · 3: level 10 · 4: level 8','2人 レベル12 · 3人 レベル10 · 4人 レベル8'],
 '협력 카드 게임':['Co-op card game','協力カードゲーム'],

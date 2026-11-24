@@ -980,5 +980,41 @@ G.init=()=>{
 };
 G._d3={P3,IN,introEnd,worldAt,cellAt,get CS(){return CS},tapCell,get sel(){return sel},get pick(){return pick},arrows,wx,wz,MY};   // 화면 검사용
 
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음. 일꾼(Web Worker)으로 읽힐 때는 i18nGame이 없어 건너뜀 */
+G.i18n=typeof i18nGame!=='function'?null:i18nGame({
+'표준':['Standard','標準'],
+'벨기안 데이지':['Belgian Daisy','ベルギーデイジー'],
+'독일 데이지':['German Daisy','ジャーマンデイジー'],
+'벨기안':['Belgian','ベルギー'],
+'독일':['German','ジャーマン'],
+'6개를 밀어내면 끝':['Ends when 6 are pushed off','6個押し出したら終わり'],
+'시작 배치':['Starting layout','初期配置'],
+'표준: 양쪽이 끝 줄에 모여 시작합니다. 벨기안 데이지·독일 데이지: 구슬이 꽃처럼 둘로 나뉘어 맞붙은 채 시작해 판이 빨리 움직입니다':['Standard: both sides start bunched on their back rows. Belgian Daisy, German Daisy: marbles start split in two like flowers, already in contact, so the game moves quickly','標準：両者が端の列に集まって始めます。ベルギーデイジー・ジャーマンデイジー：玉が花のように2つに分かれて接した状態で始まり、展開が速くなります'],
+'선택: 방장이 대기실에서 먼저 두는 사람을 고릅니다. 무작위: 주사위로 정하고, 바로 시작하면 선·후를 바꿉니다':['Choose: the host picks who moves first in the waiting room. Random: decided by dice; when you play again, first and second swap','指定：ホストが待機室で先手を選びます。ランダム：サイコロで決め、もう一度遊ぶときは先手と後手が入れ替わります'],
+'{0}분 + {1}초':['{0} min + {1}s','{0}分 + {1}秒'],
+'{0} · 시계 {1} · 선 {2}':['{0} · Clock {1} · First {2}','{0} · 持ち時間 {1} · 先手 {2}'],
+'아발론은 2명이 합니다.':['Abalone is for 2 players.','アバロンは2人で遊びます。'],
+'2명까지 할 수 있습니다.':['Up to 2 players can play.','2人まで遊べます。'],
+'같은 국면 3번':['Same position 3 times','同一局面3回'],
+'60수 동안 떨어진 구슬 없음':['No marble pushed off in 60 moves','60手の間、落ちた玉なし'],
+'구슬 {0}개! {1} 승리':['{0} marbles! {1} wins','玉{0}個！{1}の勝ち'],
+'떨어뜨림':['Pushed off','押し出し'],
+'밀기':['Push','押す'],
+'{0} 떨어뜨림':['{0} pushed off','{0} 押し出し'],
+'{0} 밀기':['{0} push','{0} 押す'],
+'{0}님이 흑으로 먼저 시작합니다.':['{0} plays black and goes first.','{0}さんが黒で先手です。'],
+'무승부입니다. (같은 국면 3번)':['It\'s a draw. (same position 3 times)','引き分けです。（同一局面3回）'],
+'{0} 승리 ({1}개)':['{0} wins ({1} marbles)','{0}の勝ち（{1}個）'],
+'{0} 승리 (시간 초과)':['{0} wins (time)','{0}の勝ち（時間切れ）'],
+'{0} 승리 (밀어낸 수)':['{0} wins (more pushed off)','{0}の勝ち（押し出した数）'],
+'{0} 승리 (탈주)':['{0} wins (opponent left)','{0}の勝ち（相手が離脱）'],
+'{0} 승리 (항복)':['{0} wins (opponent resigned)','{0}の勝ち（相手が降参）'],
+'두기':['Move','指す'],
+'아발론 판':['Abalone board','アバロン盤']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Push 6 of your opponent\'s marbles off the board to win</li><li><b>Your turn</b> : Move 1–3 of your marbles that are in a straight line by one space. When moving sideways, every destination space must be empty</li><li><b>Pushing</b> : If you have more marbles in the line\'s direction, you push the opponent\'s (2:1, 3:1, 3:2). You can\'t push if one of your marbles is right behind their line</li><li><b>End</b> : The same position three times is a draw. If no marble falls off for 60 moves, whoever pushed off more wins</li><li><b>Clock</b> : You lose if you use up all your time</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 相手の玉を6個盤の外に押し出せば勝ちです</li><li><b>自分の番</b> : 一直線に並んだ自分の玉1〜3個を1マス動かします。横に動かすときは、行き先のマスがすべて空いている必要があります</li><li><b>押す</b> : 列の向きに自分の玉の方が多ければ相手の玉を押せます（2:1、3:1、3:2）。相手の列のすぐ後ろに自分の玉があると押せません</li><li><b>終わり</b> : 同じ局面が3回出たら引き分けです。60手の間に落ちた玉がなければ、多く押し出した方が勝ちです</li><li><b>持ち時間</b> : 時間を使い切ると負けです</li></ol>'}});
 if(!IS_WORKER)(window.GAMES=window.GAMES||{}).abalone=G;
 })();

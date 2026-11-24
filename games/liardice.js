@@ -1073,8 +1073,8 @@ G.init=()=>{
 };
 /* ===== 번역 (English·日本語) =====
    화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
-   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음 */
-G.i18n=i18nGame({
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음. 일꾼(Web Worker)으로 읽힐 때는 i18nGame이 없어 건너뜀 */
+G.i18n=typeof i18nGame!=='function'?null:i18nGame({
 '페루도':['Perudo','ペルード'],
 '마지막 한 사람이 남을 때까지':['Until one player is left','最後の1人になるまで'],
 '시간이 지나면 선언이 있으면 구라!, 없으면 가장 낮은 선언을 합니다':['When time runs out, you call GURA! if there is a bid, otherwise make the lowest bid','時間切れになると、宣言があればGURA!、なければ一番低い宣言をします'],

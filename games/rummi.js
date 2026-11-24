@@ -1133,8 +1133,8 @@ G._d3={P3,IN,introEnd,pickAt,scrOf,scrLocal,tap,placeAt,get CS(){return CS},get 
 
 /* ===== 번역 (English·日本語) =====
    화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
-   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음 */
-G.i18n=i18nGame({
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음. 일꾼(Web Worker)으로 읽힐 때는 i18nGame이 없어 건너뜀 */
+G.i18n=typeof i18nGame!=='function'?null:i18nGame({
 '타일을 묶어 먼저 다 내기':['Make sets and play all your tiles first','タイルを組んで先に出し切る'],
 '시간이 지나면 탁자가 맞을 때는 그대로 마치고, 아니면 되돌리고 뽑습니다':['When time runs out, your turn ends as is if the table is valid; otherwise it is undone and you draw','時間切れになると、テーブルが正しければそのまま終了し、正しくなければ元に戻して引きます'],
 '첫 등록 30점':['Initial meld 30','アイスブレイク30点'],

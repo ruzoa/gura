@@ -315,7 +315,7 @@ function recordText(v){
   const o=v.o,name=i=>v.ps[i]?v.ps[i].n:'?',L=['숫자야구 기록'];
   (o.rec||[]).forEach(r=>L.push(`${r.n}  ${o.md?name(r.s)+'  ':''}${r.x?'정답 ':''}${r.g?r.g+'  '+resText(r.S,r.B):'시간 초과'}`));
   if(o.sec)L.push(`정답: ${o.md===1?o.sec.map((x,i)=>name(i)+' '+x).join(' · '):o.sec}`);
-  return L.join('\n');
+  return L.map(x=>__s(x)).join('\n');   // 한 줄씩 번역
 }
 
 /* ---------- 화면 공통 상태 ---------- */
@@ -948,5 +948,55 @@ G.init=()=>{
 };
 G._nb={Nb,IN,introEnd,pose,get buf(){return buf},get lamps(){return [...lampOff]},press,lampToggle,hitAt};   // 화면 검사용
 
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음. 일꾼(Web Worker)으로 읽힐 때는 i18nGame이 없어 건너뜀 */
+G.i18n=typeof i18nGame!=='function'?null:i18nGame({
+'혼자':['Solo','ソロ'],
+'맞대결':['Head-to-head','対決'],
+'경주':['Race','レース'],
+'혼자: 10번 안에 찾습니다. 맞대결: 서로의 비밀 숫자를 동시에 공격합니다(2명). 경주: 같은 숫자를 번갈아 부르며 먼저 찾습니다(2~6명)':['Solo: find it within 10 tries. Head-to-head: attack each other\'s secret numbers at the same time (2 players). Race: take turns guessing the same number and find it first (2–6 players)','ソロ：10回以内に当てます。対決：お互いの秘密の数字を同時に攻めます（2人）。レース：同じ数字を順番に言い合い、先に当てます（2〜6人）'],
+'자릿수':['Digits','桁数'],
+'찾을 숫자의 자릿수입니다':['Number of digits to find','当てる数字の桁数です'],
+'시간이 지나면 차례를 건너뜁니다 (혼자는 시간제한 없음)':['When time runs out, the turn is skipped (no time limit in Solo)','時間切れになると番をとばします（ソロは制限時間なし）'],
+'{0}자리':['{0} digits','{0}桁'],
+'{0} · {#1}자리':['{0} · {1} digits','{0} · {1}桁'],
+'{0} · {#1}자리 · 제한 시간 {#2}초':['{0} · {1} digits · Time limit {2}s','{0} · {1}桁 · 制限時間{2}秒'],
+'· 제한 시간 {0}초':['· Time limit {0}s','· 制限時間{0}秒'],
+'1~6명 숫자 게임':['Number game for 1–6','1〜6人の数字ゲーム'],
+'혼자 하는 게임입니다.':['A solo game.','1人で遊ぶゲームです。'],
+'두~여섯 명이 하는 게임입니다.':['For 2–6 players.','2〜6人で遊ぶゲームです。'],
+'정답':['Answer','解答'],
+'{#0} 시간 초과':['{0} Timed out','{0} 時間切れ'],
+'{#0} {1} 시간 초과':['{0} {1} timed out','{0} {1} 時間切れ'],
+'{#0} {1} 정답 {2}':['{0} {1} Answer {2}','{0} {1} 解答 {2}'],
+'{#0} 정답 {1}':['{0} Answer {1}','{0} 解答 {1}'],
+'{#0}  {1}  정답 {2}':['{0}  {1}  Answer {2}','{0}  {1}  解答 {2}'],
+'{#0}  {1}  시간 초과':['{0}  {1}  Timed out','{0}  {1}  時間切れ'],
+'{#0}  정답 {1}':['{0}  Answer {1}','{0}  解答 {1}'],
+'{#0}  시간 초과':['{0}  Timed out','{0}  時間切れ'],
+'찾았습니다! ({0}번)':['Found it! ({0} tries)','当たり！（{0}回）'],
+'정답 {0}':['Answer {0}','正解は{0}'],
+'숫자야구 기록':['Number Baseball record','数字野球の記録'],
+'정답: {0}':['Answer: {0}','正解：{0}'],
+'항복 · 정답 {0}':['Resigned · Answer {0}','降参 · 正解は{0}'],
+'실패 · 정답 {0}':['Failed · Answer {0}','失敗 · 正解は{0}'],
+'무승부입니다. 정답 {0}':['It\'s a draw. Answer {0}','引き分けです。正解は{0}'],
+'· 상대 숫자 {0}':['· Opponent\'s number {0}','· 相手の数字 {0}'],
+'· 정답 {0}':['· Answer {0}','· 正解は{0}'],
+'(항복) · {0}':['(resigned) · {0}','（降参） · {0}'],
+'(탈주) · {0}':['(left) · {0}','（離脱） · {0}'],
+'상대 숫자 {0}':['Opponent\'s number {0}','相手の数字 {0}'],
+'비밀 숫자 정하기':['Set your secret number','秘密の数字を決める'],
+'{0} 정답 입력':['{0} is answering','{0} 解答中'],
+'{0}/{1} 회':['{0}/{1} tries','{0}/{1} 回'],
+'{0} 사망':['{0} is out','{0} 脱落'],
+'{0} 정답!':['{0} got it!','{0} 正解！'],
+'기록':['Record','記録'],
+'성공':['Success','成功'],
+'실패':['Failure','失敗']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Guess the secret number</li><li><b>Numbers</b> : 3–5 digits with no repeated digits. 0 may come first</li><li><b>Result</b> : S right digit in the right place · B right digit in the wrong place · OUT none</li><li><b>Solo</b> : Find it within 10 tries</li><li><b>Head-to-head</b> : Guess each other\'s numbers at the same time; the first to find it wins. Finding it on the same turn, or reaching 20 turns, is a draw</li><li><b>Race</b> : Take turns guessing one number and see the results together. The first to get it wins. Hold the red answer button to try at any time, but a wrong answer knocks you out</li><li><b>Notes</b> : Tap a number lamp to turn it off. Only you can see it</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 秘密の数字を当てます</li><li><b>数字</b> : 3〜5桁で、同じ数字は使いません。0が先頭に来てもかまいません</li><li><b>判定</b> : S 数字も位置も合っている · B 数字だけ合っている · OUT ひとつもない</li><li><b>ソロ</b> : 10回以内に当てます</li><li><b>対決</b> : お互いの数字を同時に言い、先に当てれば勝ちです。同じ回に当てるか、20回を過ぎると引き分けです</li><li><b>レース</b> : 1つの数字を順番に言い、結果をみんなで見ます。先に当てれば勝ちです。赤い解答ボタンを長押しすればいつでも挑戦できますが、外れると脱落です</li><li><b>メモ</b> : 数字ランプを押すと消えます。自分にしか見えません</li></ol>'}});
 (window.GAMES=window.GAMES||{}).baseball=G;
 })();

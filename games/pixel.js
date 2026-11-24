@@ -925,10 +925,10 @@ G.init=()=>{
 };
 G._d3={P3,IN,introEnd,gridAt,get CS(){return CS},tapSq,get pend(){return pend},lines,get D(){return D}};   // 화면 검사용
 
-if(typeof window!=='undefined')/* ===== 번역 (English·日本語) =====
+/* ===== 번역 (English·日本語) =====
    화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
-   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음 */
-G.i18n=i18nGame({
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음. 일꾼(Web Worker)으로 읽힐 때는 i18nGame이 없어 건너뜀 */
+G.i18n=typeof i18nGame!=='function'?null:i18nGame({
 '중간':['Medium','ふつう'],
 '극악':['Insane','鬼'],
 '줄을 이으면 끝':['Ends when a line is made','列ができたら終わり'],
@@ -950,5 +950,5 @@ G.i18n=i18nGame({
 },{
 en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Connect your pieces in a line to win (4 with 2–3 players, 3 with 4 players)</li><li><b>Your turn</b> : Move one slider and place a piece on the empty square where the two sliders meet</li><li><b>Next player</b> : Plays in the row or column of the square you just took</li><li><b>End</b> : If there is nowhere to play, whoever made the most lines of 3 (2 with 4 players) wins</li></ol>'},
 ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 自分の駒を1列につなげれば勝ちです（2〜3人は4つ、4人は3つ）</li><li><b>自分の番</b> : スライダーを1つ動かし、2つのスライダーが交わる空きマスに駒を置きます</li><li><b>次の人</b> : 前の人が置いたマスの横の列・縦の列に置きます</li><li><b>終わり</b> : 置ける場所がなくなったら、3つ並び（4人は2つ並び）を最も多く作った人の勝ちです</li></ol>'}});
-(window.GAMES=window.GAMES||{}).pixel=G;
+if(typeof window!=='undefined')(window.GAMES=window.GAMES||{}).pixel=G;
 })();

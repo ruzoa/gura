@@ -1158,5 +1158,59 @@ G.init=()=>{
 };
 G._d3={Dz3,IN,introEnd,pW,get CS(){return CS},tapSq,tapHand,myMoves,movesFrom,get sel(){return sel},get pend(){return pend},d3Point,handXZ};   // 화면 검사용
 
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음. 일꾼(Web Worker)으로 읽힐 때는 i18nGame이 없어 건너뜀 */
+G.i18n=typeof i18nGame!=='function'?null:i18nGame({
+'코끼리':['Elephant','ゾウ'],
+'기린':['Giraffe','キリン'],
+'사자':['Lion','ライオン'],
+'닭':['Hen','ニワトリ'],
+'{0} {1}에 놓기':['Drop {0} on {1}','{0}を{1}に打つ'],
+'{0} {1}→{2}':['{0} {1}→{2}','{0} {1}→{2}'],
+'{0} ({1} 잡음)':['{0} (captures {1})','{0}（{1}を取る）'],
+'{0} ({1} 잡음) · {2}':['{0} (captures {1}) · {2}','{0}（{1}を取る） · {2}'],
+'({0} 잡음)':['(captures {0})','（{0}を取る）'],
+'{0} · 닭':['{0} · Hen','{0} · ニワトリ'],
+'{0} · 후':['{0} · 侯','{0} · 侯'],
+'자 {0}→{1}':['子 {0}→{1}','子 {0}→{1}'],
+'자 {0}에 놓기':['Drop 子 on {0}','子を{0}に打つ'],
+'{0} (자 잡음)':['{0} (captures 子)','{0}（子を取る）'],
+'상 {0}→{1}':['相 {0}→{1}','相 {0}→{1}'],
+'상 {0}에 놓기':['Drop 相 on {0}','相を{0}に打つ'],
+'{0} (상 잡음)':['{0} (captures 相)','{0}（相を取る）'],
+'장 {0}→{1}':['將 {0}→{1}','將 {0}→{1}'],
+'장 {0}에 놓기':['Drop 將 on {0}','將を{0}に打つ'],
+'{0} (장 잡음)':['{0} (captures 將)','{0}（將を取る）'],
+'왕 {0}→{1}':['王 {0}→{1}','王 {0}→{1}'],
+'왕 {0}에 놓기':['Drop 王 on {0}','王を{0}に打つ'],
+'{0} (왕 잡음)':['{0} (captures 王)','{0}（王を取る）'],
+'후 {0}→{1}':['侯 {0}→{1}','侯 {0}→{1}'],
+'후 {0}에 놓기':['Drop 侯 on {0}','侯を{0}に打つ'],
+'{0} (후 잡음)':['{0} (captures 侯)','{0}（侯を取る）'],
+'사자를 잡으면 끝':['Ends when a lion is captured','ライオンを取ったら終わり'],
+'십이장기':['Twelve Janggi','十二将棋'],
+'십이장기: 말이 한자(王·將·相·子·侯)이고, 포로를 상대 진영(상대 끝 줄 3칸)에 놓을 수 없습니다. 왕이 상대 진영에 들어가면 상대에게 한 수를 주고, 그 수에 잡히지 않으면 이깁니다':['Twelve Janggi: pieces are hanja (王·將·相·子·侯), and you can\'t drop pieces in the opponent\'s camp (their far row of 3). When your king enters the opponent\'s camp, the opponent gets one move; if the king isn\'t captured, you win','十二将棋：駒は漢字（王·將·相·子·侯）で、持ち駒を相手の陣地（相手のいちばん奥の3マス）に打てません。王が相手の陣地に入ると相手に1手渡し、その手で取られなければ勝ちです'],
+'선택: 방장이 대기실에서 먼저 두는 사람을 고릅니다. 무작위: 주사위로 정하고, 바로 시작하면 선·후를 바꿉니다':['Choose: the host picks who moves first in the waiting room. Random: decided by dice; when you play again, first and second swap','指定：ホストが待機室で先手を選びます。ランダム：サイコロで決め、もう一度遊ぶときは先手と後手が入れ替わります'],
+'시계 {0}분 + {1}초 · 선 {2}':['Clock {0} min + {1}s · First {2}','持ち時間{0}分 + {1}秒 · 先手 {2}'],
+'십이장기 · 시계 {0}분 + {1}초 · 선 {2}':['Twelve Janggi · Clock {0} min + {1}s · First {2}','十二将棋 · 持ち時間{0}分 + {1}秒 · 先手 {2}'],
+'십이장기 ·':['Twelve Janggi ·','十二将棋 ·'],
+'동물장기는 두 명이 하는 게임입니다.':['Animal Shogi is a 2-player game.','どうぶつしょうぎは2人で遊ぶゲームです。'],
+'사자를 잡았습니다! {0} 승리':['Lion captured! {0} wins','ライオンを取りました！{0}の勝ち'],
+'왕을 잡았습니다! {0} 승리':['King captured! {0} wins','王を取りました！{0}の勝ち'],
+'사자 도착! {0} 승리':['The lion made it! {0} wins','ライオン到達！{0}の勝ち'],
+'왕 도착! {0} 승리':['The king made it! {0} wins','王 到達！{0}の勝ち'],
+'사자 잡음':['Lion captured','ライオンを取った'],
+'사자 도착':['Lion reached the end','ライオン到達'],
+'왕 잡음':['King captured','王を取った'],
+'왕 도착':['King reached the end','王 到達'],
+'같은 국면 세 번':['Same position 3 times','同一局面3回'],
+'둘 수 없음':['No legal moves','指せる手なし'],
+'수 제한':['Move limit','手数制限'],
+'두기':['Move','指す'],
+'동물장기판':['Animal Shogi board','どうぶつしょうぎの盤']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Capture the opposing lion to win. You also win if your lion reaches the far row and isn\'t captured on the next move</li><li><b>Moves</b> : One square at a time, in the directions of the dots on the piece</li><li><b>Hen</b> : A chick that reaches the far row becomes a hen</li><li><b>Captured pieces</b> : Pieces you capture become yours, and on your turn you can drop one on an empty square (as your move)</li><li><b>Draw</b> : The same position three times is a draw</li><li><b>Twelve Janggi</b> : You can\'t drop pieces on the opponent\'s far row, and your king wins by surviving one move on the opponent\'s far row</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 相手のライオンを取れば勝ちです。自分のライオンが相手のいちばん奥の列に着き、次の手で取られなくても勝ちです</li><li><b>動き</b> : 1回に1マス、駒に描かれた点の方向に進みます</li><li><b>ニワトリ</b> : ひよこが相手のいちばん奥の列に着くとニワトリになります</li><li><b>持ち駒</b> : 取った駒は自分の持ち駒になり、自分の番に空いているマスに打てます（1手）</li><li><b>引き分け</b> : 同じ局面が3回出たら引き分けです</li><li><b>十二将棋</b> : 持ち駒を相手のいちばん奥の列に打てず、王が相手のいちばん奥の列で1手しのげば勝ちです</li></ol>'}});
 if(typeof window!=='undefined')(window.GAMES=window.GAMES||{}).animal=G;
 })();

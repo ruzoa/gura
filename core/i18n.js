@@ -45,8 +45,12 @@ const __u=u=>LANG==='ko'||!u?u:(I18N.unit[u]??__(u));
 function __s(s){
   if(LANG==='ko'||typeof s!=='string'||!HANGUL.test(s))return s;
   const c=I18N.cache.get(s);if(c!==undefined)return c;
-  const m=/^(\s*)([\s\S]*?)(\s*)$/.exec(s),core=m[2];let r=I18N.dict[core];
+  const m=/^(\s*)([\s\S]*?)(\s*)$/.exec(s);let core=m[2],r=I18N.dict[core];
   if(typeof r==='function')r=null;
+  /* 봇 이름('여우 봇')이 사전에 없는 문장(진행 기록 등) 속에 있으면 먼저 바꿔 둠: 이름 둘레 모양을 키마다 다 만들 수 없어서. 봇 이름만 남은 글은 '{0} 봇'이 바꿈 */
+  if(r==null&&core.includes(' 봇')&&!/^[가-힣]+ 봇$/.test(core)){const bv=I18N.dict['{0} 봇'];
+    if(typeof bv==='string'){const c2=core.replace(/([가-힣]+) 봇(?![가-힣])/g,(w,a)=>typeof I18N.dict[a]==='string'?bv.replace('{0}',I18N.dict[a]):w);
+      if(c2!==core){core=c2;r=HANGUL.test(c2)?I18N.dict[c2]:c2;if(typeof r==='function')r=null}}}
   if(r==null)for(const p of I18N.pats){const x=p.re.exec(core);if(!x)continue;
     const v=I18N.dict[p.v],args=[];p.ix.forEach((n,j)=>{args[n]=__s(x[j+1])});   // 값도 사전 모양으로 다시 바꿈('여우 봇 설정' → {0}='여우 봇' → '{0} 봇' → 'Fox Bot'). 값은 문장보다 짧아서 끝남
     r=typeof v==='function'?v(...args):String(v).replace(/\{(\d)\}/g,(q,i)=>args[i]??q);break}
