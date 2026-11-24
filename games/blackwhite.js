@@ -7,7 +7,7 @@
    숨김: 낸 숫자는 끝날 때까지 상대·관전자에게 보이지 않음(색만). 상대 손의 타일은 판마다 섞은 순서로 색만 보냄(자리로 숫자를 알 수 없게).
    손패(hand)는 카드가 아니라 표시용 [0] (공통 코드가 hand가 비면 끝난 사람으로 봄) */
 (function(){
-const G={id:'blackwhite',name:'흑과백',short:'흑백',lead:'색만 보고 숫자를 겨루기',maxHi:2,minN:2,noFast:true,firstPick:true,oneBotLv:true};
+const G={id:'blackwhite',name:'흑과백',short:'흑백',lead:'색만 보고 숫자를 겨루기',maxHi:2,minN:2,noFast:true,firstPick:true};
 
 /* ---------- 규칙 (방장 엔진과 화면이 같은 함수를 씀) ---------- */
 const N=9,WIN=5;
@@ -37,8 +37,12 @@ G.keys={};
 G.keyActions=[];
 G.cardHTML=()=>'';G.drawFace=()=>{};G.cmpCard=()=>0;G.labelOf=()=>'';
 
-/* ---------- 봇 (쉬움) ----------
-   선이면 아무거나. 따라 낼 때는 반쯤은 아무거나, 나머지는 '그 색의 수 가운데 절반 넘게 이기는 가장 작은 타일'(없으면 가장 작은 타일을 버림) */
+/* ---------- 봇 (쉬움·보통·어려움) ----------
+   쉬움: 선이면 아무거나. 따라 낼 때는 반쯤은 아무거나, 나머지는 '그 색의 수 가운데 절반 넘게 이기는 가장 작은 타일'(없으면 가장 작은 타일을 버림)
+   보통·어려움은 공개된 정보만 씀(botView): 내 남은 타일, 지난 판마다 내 숫자·상대 색·승패, 점수, 지금 선이 낸 색.
+   - 상대가 아직 안 낸 타일: 지난 판의 색·승패와 맞는 경우를 모두 세어 봄(oppSets).
+   - 보통: 그 경우들로 이번 판만 따져 봄 — 이길 확률 − 타일을 쓰는 값(앞으로 상대 타일을 얼마나 이길 수 있는지). 선일 때는 상대가 색만 보고 어떻게 받을지 짐작함.
+   - 어려움: 이번 판을 작은 게임으로 풀어 섞는 비율대로 냄(hardPick, 아래 설명). 한 가지 수만 고집하지 않아 읽히지 않음. 일꾼(Web Worker)에서 생각함. */
 function botPick(hand,leadCol,rnd){
   const r=rnd||Math.random;
   if(!hand.length)return -1;
@@ -47,6 +51,189 @@ function botPick(hand,leadCol,rnd){
   const winP=v=>pool.filter(o=>cmp(v,o)>0).length/pool.length;
   const s=hand.slice().sort((a,b)=>a-b);
   return s.find(v=>winP(v)>.5)??s[0];
+}
+const ALL=[0,1,2,3,4,5,6,7,8],BP={k:.7,tMid:.06,tRes:.1,nzRoll:.15,types:16,M:24,it:400,cut:.03,rnr:.4,mq:.3};
+/* 타일 묶음은 비트(값 v → 1<<v)로 셈 */
+const PC=new Uint8Array(512);for(let m=1;m<512;m++)PC[m]=PC[m>>1]+(m&1);   // 비트 개수
+const BEAT=ALL.map(v=>ALL.reduce((m,y)=>cmp(v,y)>0?m|1<<y:m,0));   // v가 이기는 타일들
+const COLM=[341,170];   // 흑(짝수) 타일들, 백(홀수) 타일들
+const maskOf=a=>a.reduce((m,v)=>m|1<<v,0);
+function rndBit(m,r){let k=(r()*PC[m])|0;for(let v=0;v<9;v++)if((m>>v&1)&&!k--)return v;return -1}
+/* 봇이 보는 것: 공개된 정보와 자기 타일뿐 (상대 숫자는 넣지 않음) */
+function botView(s){
+  const O=H.bw,o=other(s);
+  return {me:O.hand[s].slice().sort((a,b)=>a-b),
+    rec:O.rec.map(r=>({m:r.t[s],oc:colOf(r.t[o]),w:r.w<0?-1:r.w===s?1:0})),   // w: 1 내가 이김, 0 상대가 이김, -1 같은 수
+    sc:[O.sc[s],O.sc[o]],lc:O.ph==='follow'?colOf(O.pl[O.A]):-1};
+}
+/* 상대가 아직 안 낸 타일 묶음(비트) → 지난 판들과 맞는 가짓수 */
+function oppSets(rec){
+  const cand=rec.map(r=>ALL.filter(x=>colOf(x)===r.oc&&(r.w<0?x===r.m:r.w>0?cmp(r.m,x)>0:cmp(x,r.m)>0)));
+  const ord=cand.map((c,i)=>i).sort((a,b)=>cand[a].length-cand[b].length),out=new Map();
+  (function go(k,used){
+    if(k===ord.length){const m=511&~used;out.set(m,(out.get(m)||0)+1);return}
+    for(const x of cand[ord[k]])if(!(used>>x&1))go(k+1,used|1<<x);
+  })(0,0);
+  return out;
+}
+/* v가 상대 타일 묶음 q에서 이기는 비율 (타일을 쓰는 값) */
+const strOf=(v,q)=>q?PC[BEAT[v]&q]/PC[q]:0;
+/* 타일을 아끼는 정도: 남은 판이 적을수록, 누가 4점이면(이번 판이 결판) 덜 아낌 */
+const kUse=(n,urg)=>BP.k*(n-1)/8*(urg?.35:1);
+const urgOf=(s0,s1)=>s0>=WIN-1||s1>=WIN-1;
+/* 따라 내기 (Q 내 타일, X 선이 냈을 타일들(고르게), P 선의 남은 타일): 이길 확률 + 같으면 반 − 쓰는 값 + 흔들림. mx 확률로 아무거나 */
+function folPick(Q,X,P,r,nz,urg,mx){
+  if(mx&&r()<mx)return rndBit(Q,r);
+  const k=kUse(PC[Q],urg),nx=PC[X]||1;let best=-1,top=-1e9;
+  for(let v=0;v<9;v++)if(Q>>v&1){
+    const s=(PC[BEAT[v]&X]+(X>>v&1)*.5)/nx-k*strOf(v,P)+(nz?nz*r():0);
+    if(s>top){top=s;best=v}
+  }
+  return best;
+}
+/* 따라 내기를 비율로: 점수가 높을수록 자주 (보통 봇이 선일 때 상대 짐작) */
+function folDist(Q,X,P,urg){
+  const k=kUse(PC[Q],urg),nx=PC[X]||1,p=new Float64Array(9);let s=0;
+  for(let v=0;v<9;v++)if(Q>>v&1)p[v]=(PC[BEAT[v]&X]+(X>>v&1)*.5)/nx-k*strOf(v,P);
+  let mx=-1e9;for(let v=0;v<9;v++)if(Q>>v&1)mx=Math.max(mx,p[v]);
+  for(let v=0;v<9;v++)if(Q>>v&1){p[v]=Math.exp((p[v]-mx)/BP.tRes);s+=p[v]}
+  for(let v=0;v<9;v++)p[v]/=s;
+  return p;
+}
+/* 점수가 높을수록 자주 고름 (온도 t) */
+function softPick(a,sc,t,r){
+  const mx=Math.max(...sc),w=sc.map(x=>Math.exp((x-mx)/t));let u=r()*w.reduce((x,y)=>x+y,0);
+  for(let i=0;i<a.length;i++)if((u-=w[i])<0)return a[i];
+  return a[a.length-1];
+}
+/* 선으로 내기 (P 내 타일, Q 상대 타일): 상대가 내 남은 타일을 안다고 보고 색마다 받을 타일을 짐작해 결과 − 쓰는 값 + 흔들림 */
+function leadPick(P,Q,r,nz,urg,mx){
+  if(mx&&r()<mx)return rndBit(P,r);
+  const k=kUse(PC[P],urg),r0=P&COLM[0]?folPick(Q,P&COLM[0],P,r,0,urg):-1,r1=P&COLM[1]?folPick(Q,P&COLM[1],P,r,0,urg):-1;
+  let best=-1,top=-1e9;
+  for(let v=0;v<9;v++)if(P>>v&1){
+    const c=cmp(v,v&1?r1:r0),s=(c>0?1:c===0?.5:0)-k*strOf(v,Q)+(nz?nz*r():0);
+    if(s>top){top=s;best=v}
+  }
+  return best;
+}
+/* 끝까지 굴려 봄. a 내 타일, b 상대 타일, s0·s1 점수(나, 상대), L 다음 선 (0 나, 1 상대) → 1 승 · .5 무 · 0 패 */
+function rollout(a,b,s0,s1,L,r){
+  while(s0<WIN&&s1<WIN&&a){
+    const P=L?b:a,Q=L?a:b,urg=urgOf(s0,s1);
+    const x=leadPick(P,Q,r,BP.nzRoll,urg),y=folPick(Q,P&COLM[x&1],P,r,BP.nzRoll,urg);
+    if(L){b&=~(1<<x);a&=~(1<<y)}else{a&=~(1<<x);b&=~(1<<y)}
+    const c=cmp(x,y);if(c){const w=c>0?L:1-L;if(w)s1++;else s0++;L=w}
+  }
+  return s0>s1?1:s0<s1?0:.5;
+}
+/* 고정 씨앗 난수 (어려움: 후보 타일마다 같은 경우·같은 흔들림으로 비교) */
+function seeded(a){return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+/* 상대 타일 경우들: [남은 타일 비트, 가중치]. 따라 낼 때는 선이 그 색을 낼 수 있는 경우만, 그 색 타일 수만큼 무겁게 */
+function worlds(V){
+  const out=[];
+  for(const [m,n] of oppSets(V.rec)){const w=V.lc<0?n:n*PC[m&COLM[V.lc]];if(w>0)out.push([m,w])}
+  return out;
+}
+function midPick(V,r){
+  const W=worlds(V),me=maskOf(V.me),urg=urgOf(V.sc[0],V.sc[1]),k=kUse(PC[me],urg);
+  if(!W.length)return botPick(V.me,V.lc,r);
+  const tot=W.reduce((a,x)=>a+x[1],0),sc=new Float64Array(9);
+  for(const [S,w] of W){
+    if(V.lc>=0){
+      const X=S&COLM[V.lc],nx=PC[X];
+      for(const v of V.me)sc[v]+=w*((PC[BEAT[v]&X]+(X>>v&1)*.5)/nx-k*strOf(v,S));
+    }else{
+      const d=[0,1].map(c=>me&COLM[c]?folDist(S,me&COLM[c],me,urg):null);   // 상대가 색을 보고 받을 타일 (비율)
+      for(const v of V.me){const p=d[v&1];let o=0;for(let y=0;y<9;y++)if(p[y]){const c=cmp(v,y);o+=p[y]*(c>0?1:c===0?.5:0)}sc[v]+=w*(o-k*strOf(v,S))}
+    }
+  }
+  return softPick(V.me,V.me.map(v=>sc[v]/tot),BP.tMid,r);
+}
+/* 어려움: 이번 판을 작은 게임으로 보고 서로 가장 잘 섞는 비율(균형)을 찾아 그 비율대로 냄.
+   - 상대 손 경우를 BP.types 가지까지 뽑고, (선 타일, 받는 타일) 짝마다 끝까지 BP.M 번 굴려 이긴 비율을 셈.
+   - 선은 타일마다 비율, 받는 쪽은 본 색마다 비율. 후회 맞추기(regret matching+)를 BP.it 번 돌려 평균 비율을 씀.
+   - 내가 선이면 내 비율로, 내가 받으면 본 색의 내 비율로 뽑음. 아주 작은 비율(BP.cut 아래)은 버림 */
+function hardPick(V,r){
+  const me=maskOf(V.me),lead=V.lc<0;
+  if(V.me.length===1)return V.me[0];
+  const W0=[];for(const [m,n] of oppSets(V.rec))W0.push([m,n]);
+  if(!W0.length)return botPick(V.me,V.lc,r);
+  let W=W0;
+  if(W0.length>BP.types){   // 경우가 많으면 가중치대로 뽑아 묶음
+    const tot=W0.reduce((a,x)=>a+x[1],0),cnt=new Map();
+    for(let j=0;j<BP.types;j++){let u=r()*tot,k=0;while(k<W0.length-1&&(u-=W0[k][1])>=0)k++;cnt.set(W0[k][0],(cnt.get(W0[k][0])||0)+1)}
+    W=[...cnt];
+  }
+  const tw=W.reduce((a,x)=>a+x[1],0),A=V.me,s0=V.sc[0],s1=V.sc[1];
+  /* U[j][x*9+y]: 경우 j에서 선이 x, 받는 쪽이 y를 냈을 때 내가 이길 비율 */
+  const U=W.map(([S])=>{
+    const Lh=lead?me:S,Fh=lead?S:me,u=new Float64Array(81),seeds=[];
+    for(let m=0;m<BP.M;m++)seeds.push((r()*4294967296)>>>0);
+    for(let x=0;x<9;x++)if(Lh>>x&1)for(let y=0;y<9;y++)if(Fh>>y&1){
+      const c=cmp(x,y);let t0=s0,t1=s1,L;
+      const mine=lead?c>0:c<0,theirs=lead?c<0:c>0;   // 내가 이겼는지·상대가 이겼는지
+      if(mine)t0++;else if(theirs)t1++;
+      L=mine?0:theirs?1:lead?0:1;   // 비기면 선 그대로
+      if(t0>=WIN||t1>=WIN){u[x*9+y]=t0>=WIN?1:0;continue}
+      const a=me&~(1<<(lead?x:y)),b=S&~(1<<(lead?y:x));
+      let sum=0;for(const sd of seeds)sum+=rollout(a,b,t0,t1,L,seeded(sd));
+      u[x*9+y]=sum/BP.M;
+    }
+    return u;
+  });
+  /* 후회 맞추기: 선 쪽 비율 ls[j](선이 나면 j=0 하나), 받는 쪽 비율 fs[j][c] */
+  const nL=lead?1:W.length,nF=lead?W.length:1;
+  const Lh=j=>lead?me:W[j][0],Fh=j=>lead?W[j][0]:me;
+  const mk=()=>new Float64Array(9);
+  const LR=[],LS=[],FR=[],FS=[];
+  for(let j=0;j<nL;j++){LR.push(mk());LS.push(mk())}
+  for(let j=0;j<nF;j++){FR.push([mk(),mk()]);FS.push([mk(),mk()])}
+  /* 상대 짐작(보통 봇처럼 + 가끔 아무거나): 균형 상대와 BP.rnr 만큼 섞어서 상대의 버릇은 이용하되 너무 믿지 않음 */
+  const urg=urgOf(s0,s1),model=(h,pk)=>{const p=mk(),n=PC[h];for(let v=0;v<9;v++)if(h>>v&1)p[v]=BP.mq/n;p[pk]+=1-BP.mq;return p};
+  const ML=lead?null:W.map(([S])=>model(S,leadPick(S,me,r,0,urg))),MF=lead?W.map(([S])=>[0,1].map(c=>me&COLM[c]?model(S,folPick(S,me&COLM[c],me,r,0,urg)):model(S,rndBit(S,r)))):null;
+  const mixP=(a,b)=>{const p=mk();for(let v=0;v<9;v++)p[v]=BP.rnr*a[v]+(1-BP.rnr)*b[v];return p};
+  const strat=(R,h,c)=>{const p=mk();let s=0;for(let v=0;v<9;v++)if((h>>v&1)&&(c<0||(v&1)===c)&&R[v]>0){p[v]=R[v];s+=R[v]}
+    if(s>0){for(let v=0;v<9;v++)p[v]/=s}else{let n=0;for(let v=0;v<9;v++)if((h>>v&1)&&(c<0||(v&1)===c))n++;for(let v=0;v<9;v++)if((h>>v&1)&&(c<0||(v&1)===c))p[v]=1/n}
+    return p};
+  for(let it=1;it<=BP.it;it++){
+    const lp=LR.map((R,j)=>strat(R,Lh(j),-1)),fp=FR.map((Rc,j)=>[0,1].map(c=>strat(Rc[c],Fh(j),-1)));
+    const lpE=lead?lp:lp.map((p,j)=>mixP(ML[j],p)),fpE=lead?fp.map((pc,j)=>pc.map((p,c)=>mixP(MF[j][c],p))):fp;   // 내가 맞서는 상대 비율
+    // 선 쪽: 타일 x의 값 (내가 선이면 내 승률, 상대가 선이면 상대 승률 = 1 - 내 승률)
+    for(let jl=0;jl<nL;jl++){
+      const h=Lh(jl),q=mk();let ev=0;
+      for(let x=0;x<9;x++)if(h>>x&1){
+        let s=0;
+        for(let jf=0;jf<nF;jf++){const j=lead?jf:jl,wt=lead?W[jf][1]/tw:1,u=U[j],f=fpE[jf][x&1];for(let y=0;y<9;y++)if(f[y])s+=wt*f[y]*u[x*9+y]}
+        q[x]=lead?s:1-s;ev+=lp[jl][x]*q[x];
+      }
+      for(let x=0;x<9;x++)if(h>>x&1){LR[jl][x]=Math.max(0,LR[jl][x]+q[x]-ev);LS[jl][x]+=it*lp[jl][x]}
+    }
+    // 받는 쪽: 색 c를 보고 타일 y의 값
+    for(let jf=0;jf<nF;jf++){
+      const h=Fh(jf);
+      for(const c of [0,1]){
+        const q=mk();let ev=0;
+        for(let y=0;y<9;y++)if(h>>y&1){
+          let s=0;
+          for(let jl=0;jl<nL;jl++){const j=lead?jf:jl,wt=lead?1:W[jl][1]/tw,u=U[j],l=lpE[jl],lh=Lh(jl);for(let x=c;x<9;x+=2)if((lh>>x&1)&&l[x])s+=wt*l[x]*(lead?1-u[x*9+y]:u[x*9+y])}
+          q[y]=s;
+        }
+        const p=fp[jf][c];for(let y=0;y<9;y++)if(h>>y&1)ev+=p[y]*q[y];
+        for(let y=0;y<9;y++)if(h>>y&1){FR[jf][c][y]=Math.max(0,FR[jf][c][y]+q[y]-ev);FS[jf][c][y]+=it*p[y]}
+      }
+    }
+  }
+  const avg=lead?LS[0]:FS[0][V.lc];
+  let s=0;for(const v of A)s+=avg[v];
+  const pr=A.map(v=>avg[v]/s),keep=pr.map(p=>p>=BP.cut?p:0),ks=keep.reduce((a,b)=>a+b,0);
+  let u=r()*ks;for(let i=0;i<A.length;i++){if(keep[i]&&(u-=keep[i])<0)return A[i]}
+  return A[pr.indexOf(Math.max(...pr))];
+}
+function botDecide(V,lv,rnd){
+  const r=rnd||Math.random;
+  if(!V.me.length)return -1;
+  return lv<=0?botPick(V.me,V.lc,r):lv===1?midPick(V,r):hardPick(V,r);
 }
 
 /* ---------- 방장 엔진 (규칙 처리) ---------- */
@@ -112,15 +299,36 @@ function doSurrender(seat){
   if(H.phase!=='play'||seat<0||seat>1||H.players[seat].finished)return;
   finishGame(other(seat),H.players[seat].deserter?'desert':'surrender');
 }
+/* 일꾼(Web Worker): 어려움 봇의 생각을 맡겨 방장 화면이 멈추지 않게 함 (픽셀·장기와 같은 방식). 요청 {id,V,lv} → 답 {id,v} */
+const IS_WORKER=typeof window==='undefined'&&typeof self!=='undefined'&&typeof importScripts==='function';
+if(IS_WORKER)self.onmessage=e=>{const d=e.data||{};let v=-1;try{v=botDecide(d.V,d.lv)}catch(err){}self.postMessage({id:d.id,v})};
+const BOTW={w:null,fail:false,id:0,pend:null};
+function botWorker(){
+  if(BOTW.w||BOTW.fail)return BOTW.w;
+  try{if(typeof Worker==='undefined'||typeof document==='undefined'){BOTW.fail=true;return null}
+    const src=(document.querySelector('script[src*="games/blackwhite.js"]')||{}).src||'games/blackwhite.js';
+    BOTW.w=new Worker(src);BOTW.w.onmessage=e=>botReply(e.data);BOTW.w.onerror=()=>{BOTW.fail=true;BOTW.w=null;BOTW.pend=null}}catch(e){BOTW.fail=true;BOTW.w=null}
+  return BOTW.w;
+}
+/* 봇 차례: 어려움은 일꾼이 있으면 공개 정보(botView)를 보내고 답을 기다림, 없으면 바로 계산 */
 function botTurn(i){
-  const O=H.bw,lc=O.ph==='follow'?colOf(O.pl[O.A]):-1;
-  playTile(i,botPick(O.hand[i],lc),false);
+  const O=H.bw,lv=botLv(H.players[i]),V=botView(i),w=lv>=2?botWorker():null;
+  BOTW.pend=null;
+  if(w){const id=++BOTW.id;BOTW.pend={id,o:O,n:O.rec.length,ph:O.ph,seat:i,at:clock()};H.botActAt=0;try{w.postMessage({id,V,lv});return}catch(e){BOTW.pend=null;BOTW.fail=true;BOTW.w=null}}
+  playTile(i,botDecide(V,lv),false);
+}
+/* 일꾼의 답: 그사이 판이 바뀌었으면(다른 판·새 게임·방장이 바뀜) 버림 */
+function botReply(d){
+  const P=BOTW.pend;if(!P||!d||d.id!==P.id)return;BOTW.pend=null;
+  if(typeof H==='undefined'||!H||H.bw!==P.o||H.phase!=='play'||H.bw.rec.length!==P.n||H.bw.ph!==P.ph||H.turn!==P.seat)return;
+  const pl=H.players[P.seat];if(!pl||!pl.bot||awayHuman(pl))return;
+  if(!playTile(P.seat,d.v,false))playTile(P.seat,botDecide(botView(P.seat),1),false);
 }
 function timeout(){
   const O=H.bw,i=H.turn,h=O.hand[i];
   if(h&&h.length)playTile(i,pick(h),true);
 }
-G._test={cmp,colOf,botPick,playTile,timeout,doSurrender,SHOW_MS};
+G._test={cmp,colOf,botPick,botView,botDecide,oppSets,BP,BOTW,playTile,timeout,doSurrender,SHOW_MS};
 G.engine={
   start(){
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,known:{}});
@@ -148,6 +356,9 @@ G.engine={
     }
     const p=H.players[H.turn];if(!p)return;
     if(p.bot&&!awayHuman(p)){
+      const P=BOTW.pend;
+      if(P&&(P.o!==O||P.n!==O.rec.length||P.ph!==O.ph||P.seat!==H.turn||t-P.at>8000)){if(t-P.at>8000){BOTW.fail=true;BOTW.w=null}BOTW.pend=null;if(!H.botActAt)H.botActAt=t+200}   // 답이 안 오거나 쓸모없어짐 (너무 늦으면 일꾼 없이)
+      if(!H.botActAt&&!BOTW.pend)H.botActAt=t+300;   // 방장이 바뀌는 등으로 예약이 사라졌으면 다시
       if(H.botActAt&&t>=H.botActAt&&!(p.away&&t<p.awayAt+AWAY_WAIT))botTurn(H.turn);
       return;
     }
@@ -747,5 +958,5 @@ G.init=()=>{
 };
 G._bw3={Bw3,IN,introEnd,get pend(){return pend}};   // 화면 검사용
 
-(window.GAMES=window.GAMES||{}).blackwhite=G;
+if(typeof window!=='undefined')(window.GAMES=window.GAMES||{}).blackwhite=G;
 })();
