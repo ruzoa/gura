@@ -1179,7 +1179,7 @@ G.i18n=typeof i18nGame!=='function'?null:i18nGame({
 '{0} · 시계 {1} · 선 {2}':['{0} · Clock {1} · First {2}','{0} · 時計 {1} · 先手 {2}'],
 '규칙:':['Rules:','ルール：'],
 '· 오프닝 {0}':['· Opening {0}','· オープニング {0}'],
-'오목은 두 명이 하는 게임입니다.':['Omok is a two-player game.','五目並べは2人で遊ぶゲームです。'],
+'오목은 두 명이 하는 게임입니다.':['Gomoku is a two-player game.','五目並べは2人で遊ぶゲームです。'],
 '두 명이 하는 게임입니다. 사람이 한 명이면 봇이 상대합니다.':['This is a two-player game. With one person, a bot plays against you.','2人で遊ぶゲームです。1人ならボットが相手をします。'],
 '{0} 승리! (흑)':['{0} wins! (Black)','{0}の勝ち！（黒）'],
 '{0} 승리! (백)':['{0} wins! (White)','{0}の勝ち！（白）'],
@@ -1188,7 +1188,7 @@ G.i18n=typeof i18nGame!=='function'?null:i18nGame({
 '{0} 백 선택. {1}은(는) 흑입니다.':['{0} chose White. {1} is Black.','{0} 白を選択。{1}は黒です。'],
 '{0}님이 오프닝 돌 3개를 놓습니다.':['{0} places the 3 opening stones.','{0}さんがオープニングの石を3つ置きます。'],
 '{0}님이 흑으로 먼저 시작합니다.':['{0} starts first as Black.','{0}さんが黒で先に始めます。'],
-'오목 기보':['Omok record','五目並べの棋譜'],
+'오목 기보':['Gomoku record','五目並べの棋譜'],
 '규칙: {0} · {1} · 3-3·4-4 {2} · 장목 {3} · 오프닝 {4} · 시계 {5}':['Rules: {0} · {1} · 3-3·4-4 {2} · Overline {3} · Opening {4} · Clock {5}','ルール：{0} · {1} · 三三・四四 {2} · 長連 {3} · オープニング {4} · 時計 {5}'],
 '선플레이어: {0}':['First player: {0}','先手：{0}'],
 '흑: {0} · 백: {1}':['Black: {0} · White: {1}','黒：{0} · 白：{1}'],
@@ -1220,7 +1220,7 @@ G.i18n=typeof i18nGame!=='function'?null:i18nGame({
 '내가 흑으로 먼저 시작합니다.':['I start first as Black.','私が黒で先に始めます。'],
 '{0}님이 먼저 오프닝 돌을 놓습니다.':['{0} places the opening stones first.','{0}さんが先にオープニングの石を置きます。'],
 '오프닝 선택':['Opening choice','オープニングの選択'],
-'오목판':['Omok board','五目並べの盤']
+'오목판':['Gomoku board','五目並べの盤']
 },{
 en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Be the first to line up 5 of your stones horizontally, vertically or diagonally</li><li><b>Play</b> : Black starts, then take turns placing one stone. If the board fills up, it is a draw</li><li><b>Clock</b> : Each move adds extra time, and you lose if you use up your time</li><li><b>Free</b> : No moves are forbidden</li><li><b>Renju</b> : Black can\'t play 3-3 or 4-4 points (red ✕), and the game starts with the Swap2 opening. For details such as overlines and openings, tap an item name on the settings board</li></ol>'},
 ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 縦・横・斜めに自分の石を5つ先に並べれば勝ちです</li><li><b>進行</b> : 黒から交互に1手ずつ打ちます。盤が埋まれば引き分けです</li><li><b>時計</b> : 1手ごとに追加時間が付き、時間を使い切ると負けです</li><li><b>自由</b> : 禁じ手はありません</li><li><b>連珠</b> : 黒は三三・四四の点（赤い✕）に打てず、Swap2オープニングで始めます。長連やオープニングなどの細かいルールは、設定板で項目名を押すと説明が出ます</li></ol>'}});
