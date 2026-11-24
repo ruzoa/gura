@@ -12,12 +12,13 @@ const HANGUL=/[가-힣ㄱ-ㅎ]/;   // 한글이 없는 글자는 바로 건너�
 /* 사전 더하기: 지금 언어의 것만 담음. 키에 {0}·{1}이 있으면 이미 만들어진 글자(방장이 보낸 기록, 이름이 든 문장)도 맞춰 바꿈 */
 I18N.add=(lang,d)=>{
   if(lang!==LANG||!d)return;
-  for(const k in d){
+  for(const k0 in d){
+    const k=k0.trim();   // 키는 앞뒤 빈칸 없이 (화면 글자도 앞뒤 빈칸을 떼고 맞춤. ' (나)'처럼 빈칸을 붙인 키가 맞지 않던 것)
     if(!(k in I18N.dict)&&/\{#?\d\}/.test(k)){
       const re=new RegExp('^'+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\\\{#(\d)\\\}/g,'([-+]?[\\d.,/×:]+)').replace(/\\\{(\d)\\\}/g,'([\\s\\S]+?)')+'$');
       I18N.pats.push({re,ix:[...k.matchAll(/\{#?(\d)\}/g)].map(m=>+m[1]),v:k,len:k.length});
     }
-    I18N.dict[k]=d[k];
+    I18N.dict[k]=d[k0];
   }
   I18N.pats.sort((a,b)=>b.len-a.len);I18N.cache.clear();
 };
@@ -39,7 +40,7 @@ function __s(s){
   const m=/^(\s*)([\s\S]*?)(\s*)$/.exec(s),core=m[2];let r=I18N.dict[core];
   if(typeof r==='function')r=null;
   if(r==null)for(const p of I18N.pats){const x=p.re.exec(core);if(!x)continue;
-    const v=I18N.dict[p.v],args=[];p.ix.forEach((n,j)=>{const a=x[j+1];args[n]=typeof I18N.dict[a]==='string'?I18N.dict[a]:a});
+    const v=I18N.dict[p.v],args=[];p.ix.forEach((n,j)=>{args[n]=__s(x[j+1])});   // 값도 사전 모양으로 다시 바꿈('여우 봇 설정' → {0}='여우 봇' → '{0} 봇' → 'Fox Bot'). 값은 문장보다 짧아서 끝남
     r=typeof v==='function'?v(...args):String(v).replace(/\{(\d)\}/g,(q,i)=>args[i]??q);break}
   const out=r==null?s:m[1]+r+m[3];
   if(I18N.cache.size>4000)I18N.cache.clear();I18N.cache.set(s,out);return out;
