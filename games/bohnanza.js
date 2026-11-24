@@ -5,7 +5,7 @@
    거래: 제안(offer)을 보내면 제안자의 수락, 받는 쪽이 수락하면 그 자리에서 교환. 제안 내용은 바꿀 수 없고 다시 보내면 새 제안(수락도 처음부터).
    받는 쪽에는 콩 종류만 보냄: 손패 카드 id·위치는 제안자에게만 있음(snap 참고). 거래로 받은 카드는 임시 구역으로 가고 다시 거래할 수 없음 */
 (function(){
-const G={id:'bohnanza',name:'보난자',short:'보난자',lead:'콩을 심고 거래해 코인을 모으는 카드 게임',dealAnim:true,maxHi:5,minN:3,noFast:true,oneBotLv:true,emptyHandOk:true,firstPick:true};
+const G={id:'bohnanza',name:'보난자',short:'보난자',lead:'콩을 심고 거래해 코인을 모으는 카드 게임',dealAnim:true,maxHi:5,minN:3,noFast:true,emptyHandOk:true,firstPick:true};
 
 /* ---------- 규칙 값 ---------- */
 /* m: 1·2·3·4코인에 필요한 장수 (0이면 그 코인 칸 없음) */
@@ -152,11 +152,11 @@ function startTurn(s){
 }
 function beginTrade(){
   const O=H.bn,t=clock();
-  O.ph='trade';O.up=[];O.of=[];O.tried={};O.asked={};
+  O.ph='trade';O.up=[];O.of=[];O.tried={};O.asked={};O.ctr={};O.nask={};
   for(let k=0;k<TURN_UP;k++){const id=draw1();if(id==null)break;O.up.push(id)}
   H.turn=O.act;H.deadline=t+tradeMs();O.t0=t;
   const human=H.players.some(p=>!p.bot);
-  O.botEnd=t+(human?rand(8000,12000):rand(1500,2500));
+  O.botEnd=t+(human?rand(8000,12000):rand(2500,3500));
   H.players.forEach((p,i)=>{if(realBot(p))wake(i,900,2000)});
   if(!O.up.length){endTrade();return}
   mark();
@@ -249,7 +249,7 @@ function accept(s,a){
   addLog(`${he.name} → ${me.name}: ${nm(toMe)} / ${me.name} → ${he.name}: ${nm(toHe)}`,'sys');
   mark();return true;
 }
-/* 봇(쉬움): 내 밭에 맞으면 좋고, 안 맞으면 내주고 싶음 */
+/* 봇(쉬움): 내 밭에 맞으면 좋고, 안 맞으면 내주고 싶음 (보통·어려움은 아래 botTrade2 등) */
 function fit(s,t){
   const a=fieldsOf(s);let L=a.find(x=>x.length&&typ(x[0])===t);if(L)return 3+L.length;
   return a.some(x=>!x.length)?1:-2;
@@ -271,6 +271,7 @@ function botTrade(t){
   const O=H.bn,P=H.players;
   P.forEach((p,i)=>{
     if(O.ph!=='trade'||!realBot(p)||p.finished||t<O.bt[i])return;
+    if(lvOf(i)>0){botTrade2(i,t);return}
     const inc=O.of.find(x=>forMe(x,i)&&t>=x.at+LOCK_MS);
     if(inc){botAnswer(i,inc);wake(i,700,1300);return}
     wake(i,900,1600);
@@ -293,6 +294,7 @@ function botTrade(t){
 function botP1(t){
   const O=H.bn,s=O.act,p=H.players[s];
   if(!realBot(p)||t<O.bt[s])return;
+  if(lvOf(s)>0){botP1v(s);return}
   const id=p.hand[0];
   if(O.pl===0){const f=autoField(s,id);plantHand(s,f);wake(s,600,1100);return}
   const f=fieldsOf(s).findIndex((L,k)=>L.length&&fits(s,k,id));
@@ -305,7 +307,229 @@ function plantHand(s,f){
   if(O.pl>=2||!p.hand.length)beginTrade();else mark();
 }
 function plantTmp(s,id,f){const O=H.bn;O.tmp[s]=O.tmp[s].filter(v=>v!==id);O.fd[s][f].push(id)}
-G._test={BEANS,TYPE,coinsFor,nextStep,canHarvest,LOCK_MS,turnMs,tradeMs};
+
+/* ---------- 봇 보통·어려움 ----------
+   보는 것은 공개된 정보뿐: 밭·임시 구역·공개 카드·코인·제안에 적힌 콩 종류, 어려움은 지나간 카드(수확·버린 카드)까지 셈. 남의 손패와 더미 순서는 보지 않음.
+   값 = 앞으로 심을 카드(임시 구역 → 손패 앞에서부터)를 차례로 심어 보며 밀려 수확한 코인 + 남은 밭의 값.
+   밭의 값 = 지금 코인 + (다음 코인 - 지금 코인) × 모자란 장수를 채울 가능성.
+   보통: 손패 앞 3장, 콩마다 전체 장수 비율로 가능성. 어려움: 손패 앞 2장 + 그 뒤 6장은 맞는 밭에 보탬, 안 보인 장수와 남은 차례로 가능성,
+   1등을 돕는 만큼 깎고 더 까다롭게 수락, 손패 콩도 청함, 세 번째 밭 사기 */
+const lvOf=s=>Math.min(2,botLv(H.players[s]));
+function poisAtLeast(l,k){if(k<=0)return 1;let p=Math.exp(-l),c=p;for(let j=1;j<k;j++){p*=l/j;c+=p}return Math.max(0,1-c)}
+/* 아직 안 보인 장수 (더미 + 남의 손패): 밭·임시 구역·코인·버린 카드·공개 카드·내 손패를 뺌 */
+function unseen(s){
+  const O=H.bn,u=BEANS.map(b=>b.c),see=id=>{u[typ(id)]--};
+  O.fd.forEach(a=>a.forEach(L=>L.forEach(see)));O.tmp.forEach(L=>L.forEach(see));O.coin.forEach(L=>L.forEach(see));
+  O.disc.forEach(see);O.up.forEach(see);H.players[s].hand.forEach(see);
+  return u.map(x=>Math.max(0,x));
+}
+/* 한 사람에게 남은 차례 수 (어림): 더미 + 앞으로 섞일 카드 / 한 차례 5장 */
+function turnsLeft(){
+  const O=H.bn,n=Math.max(1,live().length);
+  const inPlay=H.players.reduce((v,p,i)=>v+p.hand.length+O.tmp[i].length+O.fd[i].reduce((w,L)=>w+L.length,0),0)+O.up.length;
+  const coins=O.coin.reduce((v,L)=>v+L.length,0),pile=Math.max(8,(TYPE.length-coins-inPlay)*.6);
+  return (O.deck.length+Math.max(0,LAST_RUN-1-O.runs)*pile)/5/n;
+}
+/* 어려움 값: 봇끼리 대전으로 맞춤 (손패를 길게 내다볼수록 오히려 약해서 앞 2장 + 뒤 6장은 맞는 밭에 보탬만) */
+const HARD={hz:2,tail:6,tw:.25,w1:.4,w0:.1,need:.1,buyTurns:5};
+function brain(s){
+  const lv=lvOf(s);
+  if(lv>=2){const u=unseen(s),tot=Math.max(1,u.reduce((a,b)=>a+b,0)),tl=turnsLeft(),k=Math.min(tl,4)*4;return {s,lv,hz:HARD.hz,tail:HARD.tail,tw:HARD.tw,tl,reach:(t,m)=>poisAtLeast(u[t]/tot*k,m)}}
+  return {s,lv,hz:3,tl:99,reach:(t,m)=>poisAtLeast(BEANS[t].c/TYPE.length*16,m)};
+}
+function fieldVal(B,t,n){
+  if(!n)return 0;
+  const cur=coinsFor(t,n),st=nextStep(t,n);
+  return st?cur+(st.c-cur)*B.reach(t,st.at-n):cur;
+}
+/* 밭은 [콩, 장수] (빈 밭은 장수 0) */
+const harvOk=(F,j)=>F[j][1]>0&&!(F[j][1]===1&&F.some((x,k)=>k!==j&&x[1]>1));
+/* 임시 구역은 순서 자유: 밭에 맞는 콩 → 같은 콩이 많은 것 */
+function orderNow(F,now){
+  const cnt={};now.forEach(t=>{cnt[t]=(cnt[t]||0)+1});
+  const on=t=>F.some(x=>x[1]&&x[0]===t)?0:1;
+  return now.slice().sort((a,b)=>on(a)-on(b)||cnt[b]-cnt[a]||a-b);
+}
+function simVal(B,fd,now,hand){
+  const F=fd.map(x=>x.slice()),seq=orderNow(F,now).concat(hand.slice(0,B.hz));let coins=0;
+  for(let k=0;k<seq.length;k++){
+    const t=seq[k];let f=F.findIndex(x=>x[1]&&x[0]===t);
+    if(f<0)f=F.findIndex(x=>!x[1]);
+    if(f<0){   // 밀려서 수확: 앞으로 들어올 같은 콩까지 셈해 덜 아픈 밭
+      let bl=1e9,bc=-1;
+      F.forEach((x,j)=>{if(!harvOk(F,j))return;let more=0;for(let q=k+1;q<seq.length;q++)if(seq[q]===x[0])more++;
+        const c=coinsFor(x[0],x[1]),loss=fieldVal(B,x[0],x[1]+more)-c;if(loss<bl-1e-9||(loss<bl+1e-9&&c>bc)){bl=loss;bc=c;f=j}});
+      coins+=coinsFor(F[f][0],F[f][1]);F[f]=[t,0];
+    }
+    F[f][0]=t;F[f][1]++;
+  }
+  const tail=B.tail?hand.slice(B.hz,B.hz+B.tail):[];
+  return coins+F.reduce((v,x)=>{if(!x[1])return v;const v0=fieldVal(B,x[0],x[1]),more=tail.filter(t=>t===x[0]).length;return v+(more?v0+(fieldVal(B,x[0],x[1]+more)-v0)*B.tw:v0)},0);
+}
+const fdT=s=>H.bn.fd[s].map(L=>[L.length?typ(L[0]):-1,L.length]);
+function nowT(s){const O=H.bn,a=O.tmp[s].map(typ);if(s===O.act&&O.ph==='trade')a.push(...O.up.map(typ));return a}
+const handT=s=>H.players[s].hand.map(typ);
+const dropT=(a,ts)=>{const r=a.slice();ts.forEach(t=>{const k=r.indexOf(t);if(k>=0)r.splice(k,1)});return r};
+/* 바꾸면 늘어나는 값: add 임시 구역에 들어올 콩, rmUp 내줄 공개 카드 id, rmHand 내줄 손패 id */
+function gainOf(B,s,add,rmUp,rmHand){
+  const fd=fdT(s),now=nowT(s),hand=H.players[s].hand;
+  const base=simVal(B,fd,now,hand.map(typ));
+  const h2=rmHand&&rmHand.length?hand.filter(id=>!rmHand.includes(id)):hand;
+  return simVal(B,fd,dropT(now,(rmUp||[]).map(typ)).concat(add||[]),h2.map(typ))-base;
+}
+/* 남이 얻는 값 (어림): 그 사람의 밭·임시 구역·(차례면) 공개 카드만, 손패는 모름 */
+function oppGain(B,j,add,rm){
+  const fd=fdT(j),now=nowT(j);
+  return simVal(B,fd,dropT(now,rm||[]).concat(add),[])-simVal(B,fd,now,[]);
+}
+const scoreOf=j=>H.bn.coin[j].length+H.bn.fd[j].reduce((v,L)=>v+(L.length?coinsFor(typ(L[0]),L.length):0),0);
+/* 어려움: 나보다 앞선 1등을 돕는 만큼 깎음 */
+function wOf(B,j){
+  if(B.lv<2)return 0;
+  const sj=scoreOf(j),top=Math.max(...live().filter(k=>k!==B.s).map(scoreOf));
+  return sj>=top&&sj>scoreOf(B.s)?HARD.w1:HARD.w0;
+}
+const needOf=B=>B.lv>=2?HARD.need:.02;
+/* 줄 콩: 같은 콩이 여러 장이면 내주고 나서 값이 가장 좋은 카드 */
+function bestPick(B,s,want,add,rmUp){
+  const h=H.players[s].hand,out=[];
+  for(const t of want){
+    let best=-1,bv=-1e9;
+    h.forEach(id=>{if(typ(id)!==t||out.includes(id))return;const v=gainOf(B,s,add,rmUp,[...out,id]);if(v>bv){bv=v;best=id}});
+    if(best<0)return null;out.push(best);
+  }
+  return out;
+}
+/* 받으면 가장 좋은 콩 하나 (없으면 -1) */
+function wantType(B,s){
+  let best=-1,bv=.3;
+  for(let t=0;t<BEANS.length;t++){const v=gainOf(B,s,[t],[],[]);if(v>bv){bv=v;best=t}}
+  return best;
+}
+/* 제안 하나의 점수: 받을 것 getT(콩)·getUp(공개 카드 id), 줄 것 giveT(콩)·giveUp(공개 카드 id) */
+function dealScore(B,s,j,getT,getUp,giveT,giveUp){
+  const add=[...getT,...getUp.map(typ)],pick=bestPick(B,s,giveT,add,giveUp);if(!pick)return null;
+  const my=gainOf(B,s,add,giveUp,pick);
+  const th=B.lv>=2?oppGain(B,j,[...giveT,...giveUp.map(typ)],getUp.map(typ)):0;
+  return {pick,my,sc:my-wOf(B,j)*th};
+}
+const offerScore=(B,s,x)=>dealScore(B,s,x.from,x.hand.map(typ),x.gf,x.want,x.wf);
+/* 역제안: 거절한 제안에서 내 쪽 하나를 빼거나, 나에게 맞는 콩 하나를 더 받는 쪽으로. 두 사람 사이에 거래 단계마다 한 번 */
+function counter(B,s,x){
+  const O=H.bn,j=x.from,key=Math.min(s,j)+':'+Math.max(s,j);O.ctr=O.ctr||{};
+  if(O.ctr[key]||!H.players[j]||H.players[j].finished)return;
+  const getT=x.hand.map(typ),getUp=x.gf.slice(),giveT=x.want.slice(),giveUp=x.wf.slice(),C=[];
+  giveT.forEach((_,k)=>C.push([getT,getUp,giveT.filter((_,q)=>q!==k),giveUp]));
+  giveUp.forEach((_,k)=>C.push([getT,getUp,giveT,giveUp.filter((_,q)=>q!==k)]));
+  const wt=wantType(B,s);if(wt>=0&&getT.length+1<=MAX_WANT)C.push([[...getT,wt],getUp,giveT,giveUp]);
+  let best=null,bv=.15;
+  for(const c of C){
+    if(!c[0].length&&!c[1].length)continue;   // 받는 것이 없는 역제안은 안 함
+    const gv=[...c[2],...c[3].map(typ)];if([...c[0],...c[1].map(typ)].some(t=>gv.includes(t)))continue;   // 같은 콩을 주고받는 제안은 안 함
+    const r=dealScore(B,s,j,...c);if(r&&r.sc>bv){bv=r.sc;best={c,pick:r.pick}}
+  }
+  if(!best)return;
+  O.ctr[key]=1;const [gT,gU,,vU]=best.c,iAct=s===O.act;
+  offer(s,{to:j,hand:best.pick,gf:iAct?vU:[],want:gT,wf:iAct?[]:gU});
+}
+/* 받은 제안: 수락할 만한 것 중 가장 좋은 것, 없으면 가장 나쁜 것부터 거절(+역제안) */
+function botAnswer2(B,s,t){
+  const O=H.bn;
+  O.of.filter(x=>forMe(x,s)&&!valid(x)).forEach(x=>refuse(x,s));
+  const L=O.of.filter(x=>forMe(x,s)&&t>=x.at+LOCK_MS);if(!L.length)return false;
+  const R=L.map(x=>({x,r:offerScore(B,s,x)})).sort((a,b)=>(b.r?b.r.sc:-1e9)-(a.r?a.r.sc:-1e9));
+  const top=R[0];
+  if(top.r&&top.r.sc>=needOf(B)&&accept(s,{id:top.x.id,pick:top.r.pick}))return true;
+  const bad=R.filter(q=>!q.r||q.r.sc<needOf(B)).pop()||top;
+  refuse(bad.x,s);counter(B,s,bad.x);mark();return true;
+}
+/* 차례인 봇: 손해인 카드(공개·손패)를 맞는 사람에게. 처음엔 원하는 콩을 같이 청하고, 거절되면 그냥 줌 */
+function botActive2(B,i){
+  const O=H.bn,J=[];
+  const busy=id=>O.of.some(x=>x.from===i&&(x.gf.includes(id)||x.hand.includes(id)));
+  O.up.forEach(id=>{if(busy(id))return;const g=gainOf(B,i,[],[id],[]);if(g>.15)J.push({id,up:1,g})});
+  H.players[i].hand.forEach(id=>{if(busy(id))return;const g=gainOf(B,i,[],[],[id]);if(g>.15)J.push({id,up:0,g})});
+  J.sort((a,b)=>b.g-a.g);
+  const wt=J.length?wantType(B,i):-1;
+  for(const c of J){
+    const tt=typ(c.id),give=c.up?{gf:[c.id]}:{hand:[c.id]};
+    const T=live().filter(j=>j!==i).map(j=>{const f=oppGain(B,j,[tt],[]);return {j,f,sc:c.g-wOf(B,j)*Math.max(0,f)}}).filter(q=>q.f>.05&&q.sc>.05).sort((a,b)=>b.sc-a.sc||b.f-a.f);
+    for(const q of T){
+      const k1=c.id+':'+q.j+':w',k0=c.id+':'+q.j;
+      if(wt>=0&&wt!==tt&&!O.tried[k1]){O.tried[k1]=1;offer(i,{to:q.j,...give,want:[wt]});return true}
+      if(!O.tried[k0]){O.tried[k0]=1;offer(i,{to:q.j,...give});return true}
+    }
+  }
+  return false;
+}
+/* 차례가 아닌 봇: 공개 카드 청하기(대가 없이 또는 상대에게 맞는 손패로) → 차례인 사람 밭에 맞는 손해 손패 주기 → (어려움) 손패의 콩 청하기 */
+function botAsk2(B,i){
+  const O=H.bn,a=O.act,P=H.players;O.nask=O.nask||{};
+  const lim=P[a]&&P[a].bot?(B.lv>=2?3:2):1;   // 사람에게는 한 번만
+  if((O.nask[i]||0)>=lim||O.of.some(x=>x.from===i)||!P[a]||P[a].finished)return false;
+  const w=wOf(B,a),C=[],hand=P[i].hand;
+  const add=(o,my,th)=>{if(th>-.05&&my>.2)C.push({o,sc:my-w*Math.max(0,th),k:JSON.stringify(o)})};
+  for(const u of O.up){
+    if(gainOf(B,i,[typ(u)],[],[])<.3)continue;
+    add({wf:[u]},gainOf(B,i,[typ(u)],[],[]),oppGain(B,a,[],[typ(u)]));
+    for(const h of hand)if(typ(h)!==typ(u))add({wf:[u],hand:[h]},gainOf(B,i,[typ(u)],[],[h]),oppGain(B,a,[typ(h)],[typ(u)]));
+  }
+  for(const h of hand){const g=gainOf(B,i,[],[],[h]),f=oppGain(B,a,[typ(h)],[]);if(f>.05)add({hand:[h]},g,f)}
+  if(B.lv>=2){const wt=wantType(B,i);if(wt>=0)for(const h of hand){if(typ(h)===wt)continue;const f=oppGain(B,a,[typ(h)],[]);if(f>.05)add({hand:[h],want:[wt]},gainOf(B,i,[wt],[],[h])*.6,f)}}
+  C.sort((x,y)=>y.sc-x.sc);
+  const c=C.find(q=>!O.tried['a'+i+q.k]);if(!c)return false;
+  O.tried['a'+i+c.k]=1;O.nask[i]=(O.nask[i]||0)+1;offer(i,{to:a,...c.o});return true;
+}
+function botTrade2(i,t){
+  const O=H.bn,P=H.players,B=brain(i);
+  O.of=O.of.filter(x=>{if(x.from!==i||t<x.at+7000)return true;[...x.gf,...x.hand].forEach(id=>{O.tried[id+':'+x.to]=1});return false});   // 답이 없으면 그 사람에게는 그 카드를 다시 내밀지 않음
+  if(botAnswer2(B,i,t)){wake(i,700,1300);return}
+  wake(i,900,1600);
+  if(i!==O.act){botAsk2(B,i);return}
+  if(botActive2(B,i))return;
+  const wait=O.of.some(x=>forMe(x,i)||(x.from===i&&(x.to<0||!P[x.to].bot||t<x.at+3000)));   // 사람에게 보낸 제안은 7초까지 기다림
+  if(t>=O.botEnd&&!wait)endTrade();
+}
+/* 카드 하나를 심을 밭: 맞는 밭, 아니면 빈 밭·수확할 밭 중 남은 계획의 값이 가장 큰 곳 (빈 밭이 있어도 다 찬 밭을 수확할 수 있음) */
+function spotFor(B,s,t,restNow,restHand){
+  const fd=fdT(s);
+  let f=fd.findIndex(x=>x[1]&&x[0]===t);
+  if(f>=0){const F=fd.map(y=>y.slice());F[f][1]++;return {f,v:simVal(B,F,restNow,restHand),h:false}}
+  let best=null;
+  fd.forEach((x,j)=>{
+    if(x[1]&&!harvOk(fd,j))return;
+    const F=fd.map(y=>y.slice());F[j]=[t,1];
+    const v=(x[1]?coinsFor(x[0],x[1]):0)+simVal(B,F,restNow,restHand)-(x[1]?0:.01);
+    if(!best||v>best.v)best={f:j,v,h:x[1]>0};
+  });
+  return best;
+}
+function plantAt(s,r){if(r.h)harvest(s,r.f);return r.f}
+/* 세 번째 밭: 어려움만, 남은 차례가 넉넉할 때 (봇끼리 대전에서 일찍 무작정 사면 오히려 손해였음) */
+function maybeBuy(B,s){
+  const O=H.bn;
+  if(B.lv<2||!+H.cfg.buy3||H.players.length<=3||O.fd[s].length>=3||O.coin[s].length<FIELD3)return;
+  if(B.tl>=HARD.buyTurns)G.engine.act(s,{t:'buy'});
+}
+function botP1v(s){
+  const O=H.bn,p=H.players[s],B=brain(s);
+  if(O.pl===0){
+    maybeBuy(B,s);
+    plantHand(s,plantAt(s,spotFor(B,s,typ(p.hand[0]),[],handT(s).slice(1))));wake(s,600,1100);return;
+  }
+  /* 둘째 장: 맞는 밭이면 심고, 빈 밭은 공개 카드 자리로 남김(빈 밭이 둘 이상이면 심음), 수확이 필요하면 안 심음 */
+  const t=typ(p.hand[0]),fd=fdT(s);
+  if(fd.some(x=>x[1]&&x[0]===t)||fd.filter(x=>!x[1]).length>=2)plantHand(s,plantAt(s,spotFor(B,s,t,[],handT(s).slice(1))));
+  else beginTrade();
+}
+/* 임시 구역: 맞는 밭에 들어가는 카드부터, 아니면 콩마다 심어 보고 남은 계획의 값이 가장 큰 것 */
+function botP3v(i){
+  const O=H.bn,L=O.tmp[i],B=brain(i),now=L.map(typ),hand=handT(i);
+  let best=null;
+  for(const t of [...new Set(now)]){const r=spotFor(B,i,t,dropT(now,[t]),hand);if(r&&(!best||r.v>best.r.v))best={t,r}}
+  const id=L.find(v=>typ(v)===best.t);plantTmp(i,id,plantAt(i,best.r));
+}
+G._test={BEANS,TYPE,coinsFor,nextStep,canHarvest,LOCK_MS,turnMs,tradeMs,HARD,simVal,brain,gainOf,offerScore,unseen,turnsLeft,botP1v,botP3v,lvOf};
 /* 카드 나누기 뒤 주사위 시간: 공통 dealExtra (방장이 시간·봇을 멈춤) */
 G.dealExtra=()=>H.bn?Math.round(DICE_LEAD+DicePick.totalFor(H.bn.rolls)+DICE_REST):0;
 G.engine={
@@ -355,6 +579,7 @@ G.engine={
       H.players.forEach((p,i)=>{
         if(p.finished||!O.tmp[i].length)return;
         if(auto){while(O.tmp[i].length){const id=O.tmp[i][0];plantTmp(i,id,autoField(i,id))}ch=true}
+        else if(realBot(p)&&t>=O.bt[i]&&lvOf(i)>0){botP3v(i);wake(i,400,800);ch=true}
         else if(realBot(p)&&t>=O.bt[i]){const id=O.tmp[i].slice().sort((a,b)=>fit(i,typ(b))-fit(i,typ(a)))[0];plantTmp(i,id,autoField(i,id));wake(i,400,800);ch=true}
       });
       if(ch)checkP3();

@@ -2,9 +2,9 @@
 const TT=BN._test;
 const eq=(a,b,m)=>{if(a!==b)fail('bohnanza '+m+': '+a+' != '+b)};
 const pass=ms=>{for(let k=0;k<ms/50;k++){NOW+=50;engineTick()}};
-const setup=(n,bots,over)=>{
+const setup=(n,bots,over,lv)=>{   // lv: 봇 난이도 (기본 쉬움)
   hostNew(false,'t','t');H.cfg={...cfgFor('bohnanza'),game:'bohnanza',...(over||{})};
-  H.members=[];for(let i=0;i<n;i++)H.members.push(bots&&i>=bots?{name:'b'+i,bot:true,conn:null,host:false,lv:0}:{name:'p'+i,bot:false,conn:i?{}:null,host:i===0,cid:i?'c'+i:''});
+  H.members=[];for(let i=0;i<n;i++)H.members.push(bots&&i>=bots?{name:'b'+i,bot:true,conn:null,host:false,lv:lv??0}:{name:'p'+i,bot:false,conn:i?{}:null,host:i===0,cid:i?'c'+i:''});
   hostStart();eq(snapFor(0).t,undefined,'turn hidden while dealing');eq(snapFor(0).o.act,-1,'act hidden while dealing');while(dealing()){NOW+=50;engineTick()}
 };
 const act=(s,a)=>BN.engine.act(s,a);
@@ -88,3 +88,66 @@ setup(4);{const s=toTrade(),b=(s+1)%4,c=(s+2)%4,e=(s+3)%4,P=H.players;
   act(c,{t:'accept',id,pick:[idOf(3,1)]});eq(P[c].hand.length,1,'late no trade');
   P[s].hand=[idOf(2,1)];act(s,{t:'offer',to:-1,hand:[idOf(2,1)]});const q=O().of[0].id;for(const k of [b,c,e])act(k,{t:'reject',id:q});eq(O().of.length,0,'all rejected');
   for(let k=0;k<9;k++)act(s,{t:'offer',to:-1,want:[1]});eq(O().of.length,6,'offer cap')}
+/* ===== 봇 난이도 ===== */
+if(BN.oneBotLv)fail('bohnanza bot levels hidden');
+/* 남의 손패·더미 순서는 보지 않음: 바꿔도 봇의 판단 재료가 같음 */
+setup(4,1,null,2);{const o=O(),s=1;
+  const before=JSON.stringify([TT.unseen(s),TT.turnsLeft()]),g0=TT.gainOf(TT.brain(s),s,[3],[],[]);
+  const P=H.players;const a=P[2].hand.splice(0),b=o.deck.splice(0,a.length);P[2].hand.push(...b);o.deck.push(...a.reverse());o.deck.reverse();
+  eq(JSON.stringify([TT.unseen(s),TT.turnsLeft()]),before,'hard ignores hidden cards');eq(TT.gainOf(TT.brain(s),s,[3],[],[]),g0,'gain ignores hidden')}
+/* 수확할 밭: 쉬움은 코인이 많은 밭, 보통·어려움은 곧 자랄 밭을 남김 */
+for(const lv of [0,1,2]){setup(4,1,null,lv);const o=O(),s=o.act;H.players.forEach((p,i)=>{p.lv=i===s?lv:p.lv;p.bot=i===s||p.bot});
+  o.fd[s]=[[idOf(0),idOf(0,1),idOf(0,2),idOf(0,3),idOf(0,4),idOf(0,5)],[idOf(3),idOf(3,1),idOf(3,2)]];
+  H.players[s].hand=[idOf(6),idOf(0,6),idOf(0,7)];o.bt[s]=0;engineTick();
+  const kept=o.fd[s].map(L=>L.length?TT.TYPE[L[0]]:-1).join();
+  eq(kept,lv?'0,6':'6,3','harvest choice lv'+lv)}
+/* 받은 제안: 맞는 콩은 받고, 손해면 거절하고 한 번 역제안 */
+for(const lv of [1,2]){setup(4,1,null,lv);const o=O();
+  o.act=0;H.turn=0;o.ph='p1';o.pl=1;H.players[0].hand=[idOf(7)];act(0,{t:'skip'});eq(o.ph,'trade','to trade lv'+lv);
+  o.up=[idOf(3,10),idOf(5,5)];o.bt=o.bt.map(()=>NOW+1e9);o.botEnd=NOW+1e9;
+  o.fd[1]=[[idOf(3),idOf(3,1),idOf(3,2),idOf(3,3)],[idOf(1),idOf(1,1)]];H.players[1].hand=[idOf(1,2),idOf(1,3),idOf(2),idOf(4)];
+  act(0,{t:'offer',to:1,gf:[idOf(3,10)],want:[1,1]});const x=o.of[0].id;
+  o.bt[1]=NOW+1500;pass(1600);
+  eq(o.of.some(q=>q.id===x),false,'bad offer refused lv'+lv);
+  const c=o.of.find(q=>q.from===1&&q.to===0);
+  if(!c)fail('bohnanza no counter lv'+lv);else{eq(c.wf.join(),String(idOf(3,10)),'counter asks the card lv'+lv);eq(c.hand.length>0&&c.hand.length+c.want.length<=3,true,'counter shape lv'+lv)}
+  /* 역제안은 두 사람 사이에 거래 단계마다 한 번 */
+  o.of=[];o.nask[1]=99;act(0,{t:'offer',to:1,gf:[idOf(3,10)],want:[1,1]});o.bt[1]=NOW+1500;pass(1600);eq(o.of.filter(q=>q.from===1).length,0,'one counter per turn lv'+lv);
+  /* 좋은 제안은 수락 */
+  o.of=[];act(0,{t:'offer',to:1,gf:[idOf(3,10)]});o.bt[1]=NOW+1500;pass(1600);eq(o.tmp[1].includes(idOf(3,10)),true,'gift accepted lv'+lv)}
+/* 차례인 봇: 밭을 망칠 공개 카드는 맞는 사람에게 내밂, 어려움은 앞선 1등보다 뒤진 사람에게 먼저 */
+for(const lv of [1,2]){setup(4,1,null,lv);const o=O(),s=1;
+  o.act=s;H.turn=s;o.ph='p1';o.pl=1;H.players[s].hand=[idOf(7)];act(s,{t:'skip'});
+  o.bt=o.bt.map(()=>NOW+1e9);o.botEnd=NOW+1e9;o.of=[];
+  o.up=[idOf(6),idOf(0,15)];
+  o.fd[s]=[[idOf(1),idOf(1,1),idOf(1,2),idOf(1,3),idOf(1,4)],[idOf(0),idOf(0,1),idOf(0,2)]];H.players[s].hand=[idOf(1,5),idOf(0,3)];
+  o.fd[0]=[[idOf(2),idOf(2,1),idOf(2,2)],[idOf(5),idOf(5,1),idOf(5,2)]];o.fd[2]=[[idOf(6,1)],[]];o.fd[3]=[[idOf(6,2)],[]];o.coin[2]=Array.from({length:12},(_,k)=>idOf(4,k));o.coin[3]=[];
+  o.bt[s]=NOW;pass(100);
+  const x=o.of.find(q=>q.from===s);
+  if(!x)fail('bohnanza active bot keeps junk lv'+lv);else{eq(x.gf.join(),String(idOf(6)),'offers junk up lv'+lv);if(lv===2)eq(x.to,3,'hard avoids leader');else eq(x.to===2||x.to===3,true,'to a fitting player')}}
+/* 보통·어려움 봇이 섞인 판(사람 한 명): 언제나 끝나고 카드 수가 맞음, 거래도 함 */
+{let tr=0;
+for(let rep=0;rep<12;rep++){
+  const n=3+rep%3;setup(n,1,{turn:10,tt:20},1+rep%2);
+  H.players.forEach((p,i)=>{if(i>1)p.lv=1+(rep+i)%2});
+  for(let k=0;k<160000&&H.phase==='play';k++){
+    NOW+=100;
+    if(H.bn.ph==='p1'&&H.bn.act===0){const f=H.players[0].hand.length?H.bn.fd[0].findIndex((L,j)=>!L.length||TT.TYPE[L[0]]===TT.TYPE[H.players[0].hand[0]]):-1;if(f>=0)act(0,{t:'plant',f});if(H.bn.ph==='p1')act(0,{t:'skip'})}
+    engineTick();
+    const o=H.bn,cnt=o.deck.length+o.disc.length+o.up.length+H.players.reduce((v,p,i)=>v+p.hand.length+o.tmp[i].length+o.coin[i].length+o.fd[i].reduce((w,L)=>w+L.length,0),0);
+    if(cnt!==104){fail('bohnanza lv count '+cnt);break}
+    if(o.fd.some(a=>a.some(L=>L.some(id=>TT.TYPE[id]!==TT.TYPE[L[0]])))){fail('bohnanza lv mixed field');break}
+  }
+  eq(H.phase,'over','lv bots finish n='+n);tr+=H.bn.ts;
+}
+if(!tr)fail('bohnanza lv bots never traded');}
+/* 난이도 대전 (4명, 자리를 돌려 가며 둘씩): 우승 수를 셈 */
+{const duel=(a,b,games)=>{let w=0;for(let g=0;g<games;g++){
+    hostNew(false,'t','t');H.cfg={...cfgFor('bohnanza'),game:'bohnanza'};
+    H.members=[0,1,2,3].map(i=>({name:'b'+i,bot:true,conn:null,host:i===0,lv:(i+g)%2?a:b}));
+    hostStart();for(let k=0;k<200000&&H.phase==='play';k++){NOW+=200;engineTick()}
+    eq(H.phase,'over','duel ends');const win=H.players.find(p=>p.rank===1);if(win&&win.lv===a)w++}
+  return w};
+ const hm=duel(2,1,80),me=duel(1,0,40),he=duel(2,0,40);
+ console.log('bohnanza hard/normal',hm,'of 80, normal/easy',me,'hard/easy',he,'of 40');
+ if(me<40*.7)fail('bohnanza normal not above easy');if(he<40*.75)fail('bohnanza hard not above easy');if(hm<80*.55)fail('bohnanza hard not above normal');}
