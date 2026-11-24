@@ -1,7 +1,7 @@
 /* index.html 공통 코드 · 대기실 도토리 주머니(복주머니 모양이지만 복주머니는 아님: '복' 글자 없음). 파일 순서는 index.html의 <script src> 순서 */
 /* ===== 도토리 주머니 =====
    디스플레이 오른쪽 나무 띠(시작 버튼과 맞은 자리)에서 구멍이 열리고 올라옴. 로그인이 켜져 있을 때(AUTH_ON) 대기실에서 내 자리에 앉아 있으면 보임
-   · 게스트: 납작한 빈 주머니. 누르면 로그인 꼬리표(core/auth.js)
+   · 게스트: 덜 찬 빈 주머니(납작하지 않게 키 .82). 누르면 로그인 꼬리표(core/auth.js)
    · 로그인: 도토리가 많을수록 통통해짐(100개쯤이면 가득). 누르면 입구가 벌어지며 도토리가 보이고 꼬리표에 개수
    · 판이 끝나고 받은 도토리는 대기실로 돌아와 주머니가 올라오면 위에서 하나씩 떨어져 들어감 */
 const PO={a:{v:0,to:0,from:0,t0:0,ms:0},h:{v:0,to:0,from:0,t0:0,ms:0},op:{v:0,to:0,from:0,t0:0,ms:0},holeSnd:0,drops:[],bounceAt:-1e9,plusAt:-1e9};
@@ -60,18 +60,19 @@ function pouchUpdate(t,wait){
   if(!P.g.visible){PO.drops.forEach(d=>d.m.visible=false);return}
   // 통통함·흔들림·떨어진 도토리에 들썩임
   const f=pouchFull(),b=t-PO.bounceAt,bb=b<420?Math.sin(b/420*Math.PI)*(1-b/420):0;
-  P.bag.scale.set((1.08-.08*f)*(1+.08*bb),(.5+.5*f)*(1-.12*bb),(1.08-.08*f)*(1+.08*bb));
+  const sy=.82+.23*f,sx=.98+.1*f;   // 빈 주머니도 납작하지 않게(높이 .82), 가득 차면 키 1.05·폭 1.08로 불룩
+  P.bag.scale.set(sx*(1+.08*bb),sy*(1-.12*bb),sx*(1+.08*bb));
   P.bag.rotation.z=.035*Math.sin(t/900);P.bag.rotation.x=.02*Math.sin(t/1300+1);
   // 열림: 로그인했고 꼬리표가 열려 있으면 입구가 벌어지고 도토리가 보임
   const ov=smooth(frontTween(PO.op,AU.open&&AU.from==='pouch'&&!!AU.user?1:0,t,260));
-  P.frill.scale.set(1+.4*ov,(1-.15*ov)*Math.min(1.6,.8/(.5+.5*f)),1+.4*ov);   // 납작한 주머니도 입구 주름은 너무 눌리지 않게
+  P.frill.scale.set(1+.4*ov,(1-.15*ov)*Math.min(1.2,.95/sy),1+.4*ov);   // 입구 주름은 주머니 키를 따라 눌리지 않게
   const nPeek=AU.prof?Math.min(3,AU.prof.acorn|0):0;P.peek.forEach((a,i)=>{a.visible=ov>.05&&i<nPeek;a.position.y=-.05+.08*ov});
   // 받은 도토리가 위에서 떨어져 들어감
   if(AU.gain>0&&su>=.999&&want){const n=Math.min(5,AU.gain);for(let i=0;i<n;i++)PO.drops.push({at:t+150+i*200,m:null,x:(Math.random()-.5)*.06,r:Math.random()*6,done:false});PO.plus=AU.gain;PO.plusAt=t+150;AU.gain=0}
   for(const d of PO.drops){
     if(!d.m){d.m=pouchAcorn();P.TG.add(d.m)}
     const k=(t-d.at)/420;d.m.visible=k>=0&&k<1;
-    if(k>=0&&k<1){d.m.position.set(PO_X+d.x,P.g.position.y+1.3-(1.3-.32*(.5+.5*f))*k*k,PO_Z);d.m.rotation.set(d.r+k*3,d.r,0)}
+    if(k>=0&&k<1){d.m.position.set(PO_X+d.x,P.g.position.y+1.3-(1.3-.4*sy)*k*k,PO_Z);d.m.rotation.set(d.r+k*3,d.r,0)}
     if(k>=1&&!d.done){d.done=true;PO.bounceAt=t;sfx('tick')}
   }
   if(PO.drops.length&&PO.drops.every(d=>d.done)){PO.drops.forEach(d=>{P.TG.remove(d.m)});PO.drops=[]}
