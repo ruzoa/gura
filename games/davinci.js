@@ -616,7 +616,7 @@ G.overDelay=()=>Dv.on?1800:0;
 G.overRank=p=>{const t=p.sr===3?'탈주':p.sr?'항복':'';return t?`<span class="left">${t}</span>`:''};
 G.overExtra=()=>{
   if(!V||!V.o)return '';
-  const L=V.ps.map((p,i)=>`${p.n}: ${V.o.rk[i].map(t=>`${CN[t.c]}${vName2(t.v)}`).join(' ')}`);
+  const L=V.ps.map((p,i)=>`${p.n}: ${V.o.rk[i].map(t=>__(CN[t.c]+'{0}',vName2(t.v))).join(' ')}`);
   return `<div class="qd-rec"><div class="qd-rec-h"><b>타일</b></div><pre>${esc(L.join('\n'))}</pre></div>`;
 };
 G.usesDbl=true;
@@ -720,5 +720,47 @@ G.init=()=>{
 };
 const currentG=()=>typeof GAMES!=='undefined'&&V&&V.cfg&&GAMES[V.cfg.game]===G;
 G._dv={Dv,IN,get foc(){return foc},get selU(){return selU}};   // 화면 검사용
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음 */
+G.i18n=i18nGame({
+'조커':['Joker','ジョーカー'],
+'상대 타일 맞히기':['Guess your opponents\' tiles','相手のタイルを当てる'],
+'시간이 지나면 뽑기·추리는 무작위로 하고, 계속할지 고를 때는 멈춥니다':['When time runs out, drawing and guessing are random; when choosing whether to continue, you stop','時間切れになると、引く・推理はランダムで行い、続けるか選ぶときはやめます'],
+'조커 타일 2개를 넣습니다':['Adds 2 joker tiles','ジョーカータイルを2枚入れます'],
+'숫자 흐리게':['Dim known numbers','わかっている数字を薄く'],
+'숫자를 고를 때 내 타일·공개된 타일의 숫자를 흐리게 보여 줍니다':['When picking a number, numbers on your tiles and revealed tiles are dimmed','数字を選ぶとき、自分のタイルと公開されたタイルの数字を薄く表示します'],
+'선택이면 방장이 대기실 이름표에서 고르고, 무작위면 주사위로 정합니다':['Choose: the host picks from the name tags in the waiting room. Random: decided by dice','指定ならホストが待機室の名札で選び、ランダムならサイコロで決めます'],
+'있음':['Yes','あり'],
+'제한 시간 {0}초 · 조커 {1}':['Time limit {0}s · Jokers: {1}','制限時間{0}秒 · ジョーカー{1}'],
+'2~4명 추리 타일 게임':['Deduction tile game for 2–4','2〜4人の推理タイルゲーム'],
+'2~3명 타일 4개 · 4명 타일 3개':['2–3 players: 4 tiles · 4 players: 3 tiles','2〜3人はタイル4枚 · 4人は3枚'],
+'{0} 흑 뽑음':['{0} drew black','{0} 黒を引いた'],
+'{0} 백 뽑음':['{0} drew white','{0} 白を引いた'],
+'{0} 시간 초과 · 흑 뽑음':['{0} timed out · drew black','{0} 時間切れ · 黒を引いた'],
+'{0} 시간 초과 · 백 뽑음':['{0} timed out · drew white','{0} 時間切れ · 白を引いた'],
+'시간 초과 ·':['Timed out ·','時間切れ ·'],
+'정답!':['Correct!','正解！'],
+'오답':['Wrong','不正解'],
+'{0} 흑 {1} 공개':['{0}: black {1} revealed','{0} 黒{1}を公開'],
+'{0} 백 {1} 공개':['{0}: white {1} revealed','{0} 白{1}を公開'],
+'흑{0}':['B{0}','黒{0}'],
+'백{0}':['W{0}','白{0}'],
+'{0}님이 먼저 뽑습니다.':['{0} draws first.','{0}さんが先に引きます。'],
+'여기에 놓기':['Place here','ここに置く'],
+'추리':['Guess','推理'],
+'패 뽑기':['Draw a tile','タイルを引く'],
+'상대 패 고르기':['Pick an opponent\'s tile','相手のタイルを選ぶ'],
+'{0} · 타일 고르기':['{0} · pick a tile','{0} · タイルを選ぶ'],
+'숫자 고르기':['Pick a number','数字を選ぶ'],
+'계속할까요?':['Keep going?','続けますか？'],
+'놓을 자리':['Where to place','置く場所'],
+'공개할 타일':['Tile to reveal','公開するタイル'],
+'타일':['Tiles','タイル'],
+'계속':['Continue','続ける'],
+'멈춤':['Stop','やめる']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Reveal your opponents\' tiles by guessing them, and be the last one left</li><li><b>Tiles</b> : Black and white 0–11 plus 2 jokers. Smaller numbers go to the left; for the same number, black goes left</li><li><b>Your turn</b> : Take one of the scattered tiles, then guess the number of one opponent tile</li><li><b>If right</b> : That tile is revealed. Keep guessing, or stop and place your drawn tile hidden</li><li><b>If wrong</b> : Place your drawn tile face up</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 相手のタイルをすべて当てて公開させ、最後まで残れば勝ちです</li><li><b>タイル</b> : 黒・白の0〜11とジョーカー2枚。小さい数字が左、同じ数字は黒が左に置かれます</li><li><b>自分の番</b> : 散らばったタイルを1枚取り、相手のタイル1枚の数字を当てます</li><li><b>当たったら</b> : そのタイルが公開されます。続けて当てるか、やめて取ったタイルを伏せたまま置きます</li><li><b>外れたら</b> : 取ったタイルを公開して置きます</li></ol>'}});
 (window.GAMES=window.GAMES||{}).davinci=G;
 })();

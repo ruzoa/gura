@@ -589,5 +589,46 @@ G.init=()=>{
   elOne.addEventListener('click',pressOne);elCh.addEventListener('click',pressCh);
   elSuits.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||pickId==null)return;if(!legalV(pickId)){closePick();sfx('no');return}sendPlay(pickId,+b.dataset.s)});
 };
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음 */
+G.i18n=i18nGame({
+'한 사람이 남을 때까지':['Until one player is left','1人残るまで'],
+'시간이 지나면 뽑거나 받고 차례를 넘깁니다':['When time runs out, you draw or take the penalty and your turn passes','時間切れになると、引くか受けて番を回します'],
+'시작 장수':['Starting cards','最初の枚数'],
+'처음 나눠 주는 카드 수입니다':['Number of cards dealt at the start','最初に配るカードの枚数です'],
+'겹치기':['Stacking','重ね'],
+'+2에는 +2나 +4, +4에는 +4나 지정 무늬의 +2를 내서 장수를 쌓아 넘깁니다':['Answer +2 with +2 or +4, and +4 with +4 or a +2 of the chosen suit, passing the growing total on','+2には+2か+4、+4には+4か指定マークの+2を出し、枚数を重ねて回します'],
+'시작':['Start','スタート'],
+'켜짐':['On','オン'],
+'꺼짐':['Off','オフ'],
+'시작 {0}장 · 겹치기 {1} · 제한 시간 {2}초':['Start with {0} cards · Stacking {1} · Time limit {2}s','最初{0}枚 · 重ね{1} · 制限時間{2}秒'],
+'2~6명 카드 게임':['Card game for 2–6','2〜6人のカードゲーム'],
+'카드 60장 · 숫자 40장 · 기능 12장 · 별 8장':['60 cards · 40 number · 12 action · 8 star','カード60枚 · 数字40枚 · 特殊12枚 · 星8枚'],
+'{0}등':['#{0}','{0}位'],
+'1장 남았을 때 선언하거나 남을 잡습니다':['Call it with 1 card left, or catch someone who forgot','残り1枚で宣言するか、言い忘れた人を捕まえます'],
+'도전':['Challenge','チャレンジ'],
+'+4를 낸 사람의 손패를 확인합니다':['Check the hand of the player who played +4','+4を出した人の手札を確認します'],
+'{0} {#1}등':['{0} #{1}','{0} {1}位'],
+'{0} {#1}장 받음':['{0} took {1} cards','{0} {1}枚受け取り'],
+'{0} 도전':['{0} challenges','{0} チャレンジ'],
+'도전 {0}':['Challenge {0}','チャレンジ{0}'],
+'성공':['Success','成功'],
+'실패':['Failure','失敗'],
+'{0} 원카드!':['{0}: One Card!','{0} ワンカード！'],
+'{0} 원카드! {1} {#2}장':['{0} calls One Card! {1} takes {2}','{0} ワンカード！{1}が{2}枚'],
+'{0} 헛누름 {#1}장':['{0} pressed by mistake, takes {1}','{0} お手つき {1}枚'],
+'{0}명 시작. {1}부터 냅니다.':['{0} players. {1} plays first.','{0}人で開始。{1}から出します。'],
+'받기':['Take','受ける'],
+'넘기기':['Pass','パス'],
+'뽑기':['Draw','引く'],
+'원카드!':['One Card!','ワンカード！'],
+'도전 성공':['Challenge succeeded','チャレンジ成功'],
+'도전 실패':['Challenge failed','チャレンジ失敗'],
+'{0} · 더미 {1}':['{0} · Deck {1}','{0} · 山札{1}'],
+'0장':['0 cards','0枚']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Be the first to empty your hand</li><li><b>Play</b> : Play a card matching the top card\'s suit or number. If you don\'t play, draw 1 card</li><li><b>Special cards</b> : +2 next player takes 2 · ⇄ reverse · ⊘ skip the next player · ★ change suit · ★+4 change suit and the next player takes 4</li><li><b>Challenge</b> : When hit by +4, you can challenge. If the player had a matching suit, they take the cards; if not, you take 2 more</li><li><b>One Card</b> : With 1 card left, press the One Card button first. If someone else presses it first, you take 2 cards</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 先に手札をなくせば勝ちです</li><li><b>出す</b> : 一番上のカードとマークか数字が同じカードを出します。出さなければ1枚引きます</li><li><b>特殊カード</b> : +2 次の人が2枚 · ⇄ 向きが変わる · ⊘ 次の人をとばす · ★ マークを変える · ★+4 マークを変えて次の人が4枚</li><li><b>チャレンジ</b> : +4を受けたらチャレンジできます。出した人に合うマークがあればその人が引き、なければ自分がさらに2枚引きます</li><li><b>ワンカード</b> : 残り1枚になったらワンカードボタンを先に押します。ほかの人が先に押すと2枚引きます</li></ol>'}});
 (window.GAMES=window.GAMES||{}).onecard=G;
 })();

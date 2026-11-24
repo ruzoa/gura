@@ -74,10 +74,15 @@ if(LANG!=='ko'&&typeof document!=='undefined'){
   for(const k of ['confirm','alert','prompt']){const f=window[k];if(f)window[k]=(m,...r)=>f.call(window,__s(m),...r)}
   /* textContent: 쓸 때 바로 번역해서 넣고, 다시 읽으면 넣었던 한국어를 돌려줌 (화면은 번역).
      게임 코드의 `if(el.textContent!=='내기')el.textContent='내기'`가 번역 때문에 늘 달라 보여 매 프레임 다시 쓰던 것(약 60곳)을 막음 */
-  const TC=typeof Node!=='undefined'&&Object.getOwnPropertyDescriptor(Node.prototype,'textContent');
-  if(TC&&TC.get&&TC.set)Object.defineProperty(Node.prototype,'textContent',{configurable:true,enumerable:TC.enumerable,
-    get(){const cur=TC.get.call(this);return this.__i18nO!==undefined&&cur===this.__i18nO?this.__i18nS:cur},
-    set(v){const s=v==null?'':String(v);if(HANGUL.test(s)){const o=__s(s);this.__i18nS=s;this.__i18nO=o;TC.set.call(this,o)}else{this.__i18nO=undefined;TC.set.call(this,v)}}});
+  /* nodeValue·data(글자 마디)도 같게 (더 마인드 표창 버튼처럼 글자 마디를 바로 고치는 곳). 자동 바꾸기(I18N.text)는 원래 값으로 읽고 씀 */
+  const remember=(proto,key)=>{const D=typeof proto!=='undefined'&&Object.getOwnPropertyDescriptor(proto.prototype,key);if(!D||!D.get||!D.set)return null;
+    Object.defineProperty(proto.prototype,key,{configurable:true,enumerable:D.enumerable,
+      get(){const cur=D.get.call(this);return this.__i18nO!==undefined&&cur===this.__i18nO?this.__i18nS:cur},
+      set(v){const s=v==null?'':String(v);if(HANGUL.test(s)){const o=__s(s);this.__i18nS=s;this.__i18nO=o;D.set.call(this,o)}else{this.__i18nO=undefined;D.set.call(this,v)}}});
+    return D};
+  remember(typeof Node!=='undefined'?Node:undefined,'textContent');remember(typeof Node!=='undefined'?Node:undefined,'nodeValue');
+  const CD=remember(typeof CharacterData!=='undefined'?CharacterData:undefined,'data');
+  if(CD)I18N.text=n=>{const v=CD.get.call(n);if(!HANGUL.test(v))return;const p=n.parentNode;if(p&&/^(SCRIPT|STYLE|TEXTAREA)$/.test(p.nodeName))return;const r=__s(v);if(r!==v)CD.set.call(n,r)};
   const start=()=>{
     I18N.dom(document.body);document.title=__s(document.title);
     new MutationObserver(ms=>{for(const m of ms){

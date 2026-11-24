@@ -1131,5 +1131,51 @@ function scrOf(kind,k){
 function scrLocal(x,y,z){const r=T.r.domElement.getBoundingClientRect(),v=new THREE.Vector3(x*SC,ROOT_Y+y*SC,(z-ZC)*SC).project(P3.cam);return {x:r.left+(v.x+1)/2*r.width,y:r.top+(1-v.y)/2*r.height}}
 G._d3={P3,IN,introEnd,pickAt,scrOf,scrLocal,tap,placeAt,get CS(){return CS},get GV(){return GV},get slots(){return slots},get sel(){return sel},get DR(){return DR},slotXZ,poseOf};   // 화면 검사용
 
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음 */
+G.i18n=i18nGame({
+'타일을 묶어 먼저 다 내기':['Make sets and play all your tiles first','タイルを組んで先に出し切る'],
+'시간이 지나면 탁자가 맞을 때는 그대로 마치고, 아니면 되돌리고 뽑습니다':['When time runs out, your turn ends as is if the table is valid; otherwise it is undone and you draw','時間切れになると、テーブルが正しければそのまま終了し、正しくなければ元に戻して引きます'],
+'첫 등록 30점':['Initial meld 30','アイスブレイク30点'],
+'처음 낼 때 내 타일만으로 만든 묶음의 합이 30점 이상이어야 합니다':['Your first play must be sets made only from your own tiles totaling 30 or more','最初に出すときは、自分のタイルだけで作った組の合計が30点以上必要です'],
+'타일 줍기':['Pick up tiles','タイルを拾う'],
+'시작할 때 엎어서 흩어 둔 타일을 각자 14개씩 직접 주워 갑니다. 끄면 나눠 줍니다':['At the start, tiles are scattered face down and each player picks up 14 by hand. When off, tiles are dealt','開始時、伏せて散らしたタイルを各自14枚ずつ自分で拾います。オフなら配られます'],
+'선택이면 방장이 대기실 이름표에서 고르고, 무작위면 주사위로 정합니다':['Choose: the host picks from the name tags in the waiting room. Random: decided by dice','指定ならホストが待機室の名札で選び、ランダムならサイコロで決めます'],
+'첫 등록':['Initial meld','アイスブレイク'],
+'30점':['30 pts','30点'],
+'제한 시간 {0}초 · 첫 등록 {1}':['Time limit {0}s · Initial meld {1}','制限時間{0}秒 · アイスブレイク{1}'],
+'2~4명 숫자 타일 게임':['Number tile game for 2–4','2〜4人の数字タイルゲーム'],
+'타일 106개 · 14개씩':['106 tiles · 14 each','タイル106枚 · 14枚ずつ'],
+'{0}등':['#{0}','{0}位'],
+'시간 초과 ·':['Timed out ·','時間切れ ·'],
+'시간 초과 · {0}':['Timed out · {0}','時間切れ · {0}'],
+'{0} {#1}개 냄':['{0} played {1}','{0} {1}枚出した'],
+'{0} · 첫 등록':['{0} · initial meld','{0} · アイスブレイク'],
+'· 첫 등록':['· initial meld','· アイスブレイク'],
+'되돌림 ·':['undone ·','戻し ·'],
+'개 뽑음':['drawn','枚引いた'],
+'{0} 되돌림 · {#1}개 뽑음':['{0} undone · drew {1}','{0} 戻し · {1}枚引いた'],
+'{0} {#1}개 뽑음':['{0} drew {1}','{0} {1}枚引いた'],
+'{0} 넘김':['{0} passed','{0} パス'],
+'{0} 되돌림 · 넘김':['{0} undone · passed','{0} 戻し · パス'],
+'넘김':['Passed','パス'],
+'{0}님이 먼저 합니다.':['{0} goes first.','{0}さんが先手です。'],
+'점':['pts','点'],
+'{#0}점':['{0} pts','{0}点'],
+'남은 패':['Pool','山'],
+'(남은 타일 합)':['(by remaining tiles)','（残りタイルの合計）'],
+'{0} 승리 (남은 타일 합)':['{0} wins (by remaining tiles)','{0}の勝ち（残りタイルの合計）'],
+'타일 줍기 {0} / {1}':['Picking up tiles {0} / {1}','タイル拾い {0} / {1}'],
+'첫 등록 {0} / {1}':['Initial meld {0} / {1}','アイスブレイク {0} / {1}'],
+'{0} 되돌림 +{1}':['{0} undone +{1}','{0} 戻し +{1}'],
+'남은 타일 {0}개 · {1}점':['{0} tiles left · {1} pts','残り{0}枚 · {1}点'],
+'되돌리기 +3':['Undo +3','戻す +3'],
+'마치기':['Done','終了'],
+'뽑기':['Draw','引く'],
+'넘기기':['Pass','パス']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Be the first to play all your tiles</li><li><b>Sets</b> : 3–4 tiles of the same number in different colors, or 3+ consecutive numbers of the same color (1 does not follow 13). A joker can stand in for any tile</li><li><b>Your turn</b> : Play tiles to make sets or add to them. You may also rearrange tiles on the table. If you play nothing, draw 1 tile</li><li><b>Initial meld</b> : Your first play must total 30 or more using only your own tiles</li><li><b>Mistakes</b> : If any set is invalid when your turn ends, it is undone and you draw 3 tiles</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 先にタイルを出し切れば勝ちです</li><li><b>組</b> : 同じ数字で色違いの3〜4枚、または同じ色で続いた数字3枚以上（13の次に1は続きません）。ジョーカーはどのタイルの代わりにもなります</li><li><b>自分の番</b> : タイルを出して組を作るか、組に付け足します。テーブルのタイルも組み替えられます。1枚も出さなければ1枚引きます</li><li><b>アイスブレイク</b> : 最初は自分のタイルだけで合計30点以上出さなければなりません</li><li><b>間違えたら</b> : 番の終わりに正しくない組があれば元に戻し、3枚引きます</li></ol>'}});
 (window.GAMES=window.GAMES||{}).rummi=G;
 })();

@@ -560,7 +560,7 @@ G.overExtra=()=>{
   if(!V||!V.o||!V.o.res)return '';
   const o=V.o,n=V.ps.length,b=bestMap()[n],L=(o.left||[]).flat().sort((a,b)=>a-b).map(num);
   const clear=x=>x>o.top?`블라인드 레벨 ${x-o.top}`:`레벨 ${x}`;
-  return `<div class="qd-rec"><div class="qd-rec-h"><b>${esc(resText(o))}</b></div><pre>${b>0?`${n}명 최고 기록: ${clear(b)} 통과`:`${n}명 최고 기록: 없음`}${L.length?`\n남은 카드: ${L.join(', ')}`:''}</pre></div>`;
+  return `<div class="qd-rec"><div class="qd-rec-h"><b>${esc(resText(o))}</b></div><pre>${__s(b>0?`${n}명 최고 기록: ${clear(b)} 통과`:`${n}명 최고 기록: 없음`)}${L.length?`\n${__s(`남은 카드: ${L.join(', ')}`)}`:''}</pre></div>`;
 };
 G.overRank=p=>{const t=p.sr===3?'탈주':p.sr?'항복':'';return t?`<span class="left">${t}</span>`:''};
 G.live=()=>{};
@@ -612,5 +612,48 @@ G.init=()=>{
   $('#btnPlay').addEventListener('pointerdown',()=>{if(currentG()===G&&canHold())hold(true)});
 };
 const currentG=()=>typeof GAMES!=='undefined'&&V&&V.cfg&&GAMES[V.cfg.game]?GAMES[V.cfg.game]:null;
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음 */
+G.i18n=i18nGame({
+'낮은 숫자부터 말없이':['Lowest first, in silence','小さい数字から無言で'],
+'2명 레벨 12 · 3명 레벨 10 · 4명 레벨 8':['2 players: level 12 · 3: level 10 · 4: level 8','2人 レベル12 · 3人 レベル10 · 4人 レベル8'],
+'협력 카드 게임':['Co-op card game','協力カードゲーム'],
+'{0}명: 레벨 {1}까지 · 생명 {2} · 표창 1':['{0} players: up to level {1} · {2} lives · 1 shuriken','{0}人：レベル{1}まで · ライフ{2} · 手裏剣1'],
+'블라인드':['Blind','ブラインド'],
+'모든 레벨 통과!':['All levels cleared!','全レベルクリア！'],
+'{0}에서 끝났습니다.':['Ended at {0}.','{0}で終わりました。'],
+'{0} 항복! {1}에서 끝났습니다.':['{0} resigned! Ended at {1}.','{0} 降参！{1}で終わりました。'],
+'{0} 탈주! {1}에서 끝났습니다.':['{0} left! Ended at {1}.','{0} 離脱！{1}で終わりました。'],
+'레벨 {0} 통과':['Level {0} cleared','レベル{0}クリア'],
+'블라인드 레벨 {0} 통과':['Blind level {0} cleared','ブラインド レベル{0}クリア'],
+'생명 +1':['Life +1','ライフ+1'],
+'표창 +1':['Shuriken +1','手裏剣+1'],
+'블라인드 시작':['Blind round begins','ブラインド開始'],
+'{0} 냄':['{0} played','{0} 出した'],
+'실수! 생명 -1 ({0} 버림)':['Mistake! Life -1 ({0} discarded)','ミス！ライフ-1（{0}を捨てる）'],
+'순서가 틀렸습니다. 생명 -1':['Wrong order. Life -1','順番が違います。ライフ-1'],
+'표창! {0} 버림':['Shuriken! {0} discarded','手裏剣！{0}を捨てる'],
+'{0}명 · 레벨 {1}까지':['{0} players · up to level {1}','{0}人 · レベル{1}まで'],
+'시작':['Start','スタート'],
+'표창 끄기':['Shuriken off','手裏剣を取り消す'],
+'표창':['Shuriken','手裏剣'],
+'레벨':['Level','レベル'],
+'레벨 {0}':['Level {0}','レベル{0}'],
+'블라인드 레벨 {0}':['Blind level {0}','ブラインド レベル{0}'],
+'{0} · {#1}장':['{0} · {1} cards','{0} · {1}枚'],
+'{0} · {#1}장 · 올림':['{0} · {1} cards · raised','{0} · {1}枚 · 上げた'],
+'{0} · {#1}장 · 표창':['{0} · {1} cards · shuriken','{0} · {1}枚 · 手裏剣'],
+'{0} · {#1}장 · 올림 · 표창':['{0} · {1} cards · raised · shuriken','{0} · {1}枚 · 上げた · 手裏剣'],
+'· 올림':['· raised','· 上げた'],
+'· 표창':['· shuriken','· 手裏剣'],
+'생명 {0} · 표창 {1}':['Lives {0} · Shuriken {1}','ライフ{0} · 手裏剣{1}'],
+'모든 레벨을 통과했습니다.':['You cleared every level.','全レベルをクリアしました。'],
+'{0}명 최고 기록: {1} 통과':['Best for {0} players: cleared {1}','{0}人の最高記録：{1}クリア'],
+'{0}명 최고 기록: 없음':['Best for {0} players: none','{0}人の最高記録：なし'],
+'남은 카드: {0}':['Cards left: {0}','残りのカード：{0}']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Everyone is on one team. Clear a level by playing all the cards you were dealt, together, from lowest to highest (level number = cards each)</li><li><b>End</b> : Clear level 12 with 2 players, 10 with 3, or 8 with 4 to win; you lose when you run out of lives</li><li><b>Silence</b> : No talking and no turns. Everyone decides when to play</li><li><b>Start</b> : At the start of a level and after a mistake or a shuriken, everyone holds down the start button</li><li><b>Mistake</b> : If anyone still holds a card lower than the one just played, you lose 1 life and those cards are discarded</li><li><b>Shuriken</b> : When everyone turns on the shuriken button, each player discards their lowest card</li><li><b>Rewards</b> : Clearing levels 2·5·8 gives a shuriken; clearing 3·6·9 gives a life</li><li><b>Bots</b> : Since you are one team, Easy bots keep good time with you and Hard bots have an uneven rhythm</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 全員で1チームです。レベルごとに配られたカードを、みんなで小さい数字から順に出し切ればクリアです（レベル数 = 1人のカード枚数）</li><li><b>終わり</b> : 2人はレベル12、3人は10、4人は8をクリアすれば勝ち、ライフがなくなると負けです</li><li><b>沈黙</b> : 話すことはできず、手番もありません。いつ出すかは各自が決めます</li><li><b>開始</b> : レベルの開始時と、ミス・手裏剣のあとは、全員でスタートボタンを長押しします</li><li><b>ミス</b> : 出した数字より小さいカードが残っていたら、ライフを1つ失い、そのカードを捨てます</li><li><b>手裏剣</b> : 全員が手裏剣ボタンをオンにすると、各自いちばん小さいカードを捨てます</li><li><b>報酬</b> : レベル2·5·8のクリアで手裏剣、3·6·9のクリアでライフがもらえます</li><li><b>ボット</b> : 1チームなので、かんたんボットは息がよく合い、むずかしいボットはリズムがばらばらです</li></ol>'}});
 (window.GAMES=window.GAMES||{}).mind=G;
 })();
