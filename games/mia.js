@@ -491,7 +491,7 @@ function hintText(){
 }
 function histHTML(){
   if(!seatMe()||!CS.hist.length)return '';
-  return CS.hist.map(h=>`<span class="mia-h${h[1]<0?' now':''}"><i>${h[0].map(a=>a===4?'벽':DARROW[a]).join('')}</i>${h[1]<0?'·':h[1]}</span>`).join('');
+  return CS.hist.map(h=>`<span class="mia-h${h[1]<0?' now':''}"><i>${h[0].map(a=>a===4?__('벽'):DARROW[a]).join('')}</i>${h[1]<0?'·':h[1]}</span>`).join('');
 }
 function ctlHTML(){
   const m=myIdx(),mine=myMove(),left=CS.left[m];
@@ -1102,5 +1102,53 @@ G.init=()=>{
 };
 G._d3={P3,IN,introEnd,gridAt,get CS(){return CS},tapAt,tapDir,toggleWall,confirmPend,get pend(){return pend},get wallMode(){return wallMode},get memo(){return memo}};   // 화면 검사용
 
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음. 일꾼(Web Worker)으로 읽힐 때는 i18nGame이 없어 건너뜀 */
+G.i18n=typeof i18nGame!=='function'?null:i18nGame({
+'{#0}라운드 {1} 북쪽':['Round {0} {1} north','{0}ラウンド {1} 北'],
+'북쪽':['North','北'],
+'{#0}라운드 {1} 동쪽':['Round {0} {1} east','{0}ラウンド {1} 東'],
+'동쪽':['East','東'],
+'{#0}라운드 {1} 남쪽':['Round {0} {1} south','{0}ラウンド {1} 南'],
+'남쪽':['South','南'],
+'{#0}라운드 {1} 서쪽':['Round {0} {1} west','{0}ラウンド {1} 西'],
+'서쪽':['West','西'],
+'{0} 남쪽':['{0} south','{0} 南側'],
+'{0} 동쪽':['{0} east','{0} 東側'],
+'탈출구가 사람마다 하나씩':['Each player has their own exit','出口は1人に1つずつ'],
+'모두 같은 탈출구, 먼저 밟으면 승리':['One shared exit; first to step on it wins','全員同じ出口、先に踏めば勝ち'],
+'배틀로얄':['Battle royale','バトルロイヤル'],
+'시간이 지나면 무작위 방향으로 움직입니다. 연결이 끊겨도 시간은 흐르고, 45초가 지나면 탈주로 처리합니다':['When time runs out, you move in a random direction. The clock keeps running if you disconnect, and after 45 seconds you count as having left','時間切れになるとランダムな方向に動きます。接続が切れても時間は進み、45秒過ぎると離脱扱いになります'],
+'전체 벽':['Total walls','壁の総数'],
+'모든 사람의 벽을 합친 수입니다. 똑같이 나눠 가지고 남는 벽은 쓰지 않습니다. 절반은 시작 전에 세웁니다':['Total walls for all players. They are split evenly and any left over are not used. Half are placed before the start','全員の壁を合わせた数です。均等に分け、余りは使いません。半分は開始前に立てます'],
+'클래식(0)은 탈출구가 사람마다 하나씩, 배틀로얄(1)은 모두 같은 탈출구 하나를 찾고 먼저 밟으면 승리합니다':['Classic (0): each player has their own exit. Battle royale (1): everyone looks for one shared exit, and the first to step on it wins','クラシック(0)は出口が1人に1つずつ、バトルロイヤル(1)は全員で同じ出口を1つ探し、先に踏んだ人の勝ちです'],
+'선택: 방장이 이름표 메뉴에서 선 플레이어를 고릅니다. 무작위: 주사위로 정하고, 바로 시작하면 다음 사람이 먼저 합니다':['Choose: the host picks the first player from the name tag menu. Random: decided by dice; when you play again, the next player goes first','指定：ホストが名札メニューで先手を選びます。ランダム：サイコロで決め、もう一度遊ぶときは次の人が先手です'],
+'{0} · 제한 시간 {1}초 · 전체 벽 {2}개 · 선 {3}':['{0} · Time limit {1}s · Total walls {2} · First {3}','{0} · 制限時間{1}秒 · 壁の総数{2} · 先手 {3}'],
+'내 말이 어디 있는지 나만 모릅니다.':['Only you don\'t know where your piece is.','自分の駒の位置を自分だけが知りません。'],
+'미아는 최대 4명까지 할 수 있습니다.':['MIA allows up to 4 players.','MIAは最大4人まで遊べます。'],
+'서쪽 고르기':['Choose west','西を選ぶ'],
+'미아: ← 방향을 고릅니다. ↑↓는 블랙잭 키, 벽은 쿼리도 벽 키를 같이 씁니다':['MIA: choose the ← direction. ↑↓ use the Blackjack keys, and walls use the Quoridor wall key','MIA：←方向を選びます。↑↓はブラックジャックのキー、壁はコリドールの壁キーを共用します'],
+'동쪽 고르기':['Choose east','東を選ぶ'],
+'미아: → 방향을 고릅니다':['MIA: choose the → direction','MIA：→方向を選びます'],
+'{0} 시작 칸 고름':['{0} chose a start square','{0} スタートマスを選んだ'],
+'탈출구 {0}':['Exit {0}','出口 {0}'],
+'{0} 탈출구 {1}':['{0}\'s exit {1}','{0}の出口 {1}'],
+'모두 함께 도착해 무승부입니다.':['Everyone arrived together. Draw.','全員同時に到着したので引き分けです。'],
+'{0} 도착, 승리':['{0} arrived and wins','{0} 到着、勝ち'],
+'{0} 탈출, 승리':['{0} escaped and wins','{0} 脱出、勝ち'],
+'시작 전 {0} 벽 {1}':['Before start: {0} wall {1}','開始前 {0} 壁 {1}'],
+'{0}라운드 {1} 벽 {2}':['Round {0} {1} wall {2}','{0}ラウンド {1} 壁 {2}'],
+'벽 {0}':['Walls {0}','壁{0}'],
+'벽 세우기':['Place a wall','壁を立てる'],
+'{0} 시작 칸':['{0}\'s start square','{0}のスタートマス'],
+'{0} 함께 승리':['{0} win together','{0} 同時に勝ち'],
+'벽':['Wall','壁'],
+'내 탈출구까지 남은 칸':['Squares left to my exit','自分の出口までの残りマス'],
+'칸':['sq','マス'],
+'미아 판':['MIA board','MIAの盤']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Be the first to reach your exit. But you are the only one who doesn\'t know where your own piece is</li><li><b>Setup</b> : The player before you secretly picks your start square. Exits are decided by dice, and half the walls are placed first</li><li><b>Your turn</b> : Move one square or place one wall. If you move into a blocked side, you silently stay where you are</li><li><b>Walls</b> : Two squares long, placed between squares. No square may be completely closed off</li><li><b>Distance</b> : At the end of each round you are told the shortest distance left to your exit</li><li><b>Winning</b> : You win if you are on your exit when a round ends (several players can win together). In Battle royale everyone looks for one shared exit, and you win the moment you step on it first</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 先に自分の出口に着けば勝ちです。ただし、自分の駒の位置を自分だけが知りません</li><li><b>準備</b> : 自分のスタートマスは前の人がこっそり決めます。出口はサイコロで決め、壁の半分を先に立てます</li><li><b>自分の番</b> : 1マス動くか、壁を1枚立てます。ふさがれた方へ進むと、何も言われずにその場にとどまります</li><li><b>壁</b> : 2マスの長さでマスの間に立てます。どのマスも閉じ込めることはできません</li><li><b>距離</b> : ラウンドが終わると、出口までの最短距離が知らされます</li><li><b>勝ち</b> : ラウンドの終わりに自分の出口にいれば勝ちです（複数なら同時に勝ち）。バトルロイヤルは全員で同じ出口を1つ探し、先に踏んだ瞬間に勝ちです</li></ol>'}});
 if(typeof window!=='undefined')(window.GAMES=window.GAMES||{}).mia=G;
 })();
