@@ -94,7 +94,6 @@ Object.assign(G,{eval5,best,handName});
 G.rulesHTML='<ol class="rules"><li><b>목표</b> : 정한 판 수가 끝났을 때 칩이 가장 많으면 승리합니다. 칩을 다 잃으면 탈락합니다</li><li><b>카드</b> : 내 카드 2장과 공용 카드 5장 중 가장 좋은 5장으로 겨룹니다</li><li><b>블라인드</b> : 딜러 버튼(D) 왼쪽 두 사람이 스몰·빅 블라인드를 먼저 겁니다</li><li><b>베팅</b> : 카드를 받은 뒤, 공용 카드 3장·4번째·5번째가 펼쳐질 때마다 한 바퀴씩 겁니다. 체크·콜·레이즈·폴드, 올인은 언제든 됩니다</li><li><b>쇼다운</b> : 끝까지 남은 사람 중 가장 좋은 패가 팟을 가져갑니다. 올인한 사람은 건 만큼만 겨룹니다</li><li><b>족보</b> : 스트레이트 플러시 · 포카드 · 풀 하우스 · 플러시 · 스트레이트 · 트리플 · 투 페어 · 원 페어 · 하이 카드</li><li><b>손짓</b> : 내 카드에 손가락을 대면 숫자가 보입니다. 카드 위로 밀기 폴드 · 탁자 두 번 두드리기 체크 · 칩 앞으로 밀기 콜·레이즈</li></ol>';
 G.modeDesc=['정한 판 수까지','정한 판 수까지'];
 G.noFast=true;
-G.oneBotLv=true;   // 봇은 쉬움 하나뿐: 대기실에서 난이도를 고르지 않음
 const U=10;   // 가장 작은 칩: 모든 베팅·나누기가 이 단위
 G.defaults={chips:1000,sb:10,rounds:10,up:0,turn:30,pickfirst:0};
 G.roomSet=[
@@ -155,6 +154,9 @@ function newHand(){
   if(ls.length===2){K.sbS=K.bt;K.bbS=nextFrom(K.bt,inHand)}   // 둘이서: 버튼이 스몰 블라인드
   else{K.sbS=nextFrom(K.bt,inHand);K.bbS=nextFrom(K.sbS,inHand)}
   Object.assign(K,{bet:Array(n).fill(0),tot:Array(n).fill(0),la:Array(n).fill(''),hc:Array.from({length:n},()=>[]),bd:[],rs:null,sr:0,acted:Array(n).fill(false),ro:Array(n).fill(true),open:false,nextAt:0,ph:'deal'});
+  K.hx=Array.from({length:n},()=>['','','','']);K.pfa=-1;   // 봇이 읽는 이번 판 행동 기록
+  if(!K.ob)K.ob=H.players.map(newOb);
+  K.st.forEach((x,i)=>{if(x===0&&K.ob[i])K.ob[i].h++});
   pay(K,K.sbS,K.sb);pay(K,K.bbS,K.bb);
   K.cur=K.bb;K.minR=K.bb;
   K.deck=shuffle([...Array(52).keys()]);
@@ -194,6 +196,7 @@ function advance(from){
 function doAct(i,a){
   const K=K_();
   if(K.ph!=='bet'||H.turn!==i||!canAct(i))return false;
+  const pc=K.cur,pb=K.bet[i];
   if(a.t==='fold'){K.st[i]=1;K.la[i]='폴드';addLog(`${nm(i)} 폴드`)}
   else if(a.t==='call')doCall(K,i);
   else if(a.t==='raise'){
@@ -212,6 +215,7 @@ function doAct(i,a){
       addLog(`${nm(i)} ${K.la[i]} ${to}`);
     }
   }else return false;
+  noteAct(K,i,pc,pb);
   K.acted[i]=true;K.sq++;
   advance(i);
   return true;
@@ -266,6 +270,7 @@ function showdown(){
   const K=K_(),t=clock(),n=H.players.length,ct=live(),score=Array(n).fill(-1),bs={};
   for(const i of ct){const b=best([...K.hc[i],...K.bd]);score[i]=b.v;bs[i]={v:b.v,cat:b.cat,five:b.five,nm:handName(b)}}
   const {pots,won}=splitPots(K,score);
+  noteShow(K,ct);
   const pot=potOf(K);
   won.forEach((x,i)=>{K.ch[i]+=x});K.tot=K.tot.map(()=>0);   // 팟은 정산 결과(rs)로 옮김
   K.rs={won,pot,pots:pots.map(p=>({a:p.a,w:p.w,ret:p.ret})),show:ct,best:bs};
@@ -322,8 +327,11 @@ function doSurrender(i){
   if(K.ph==='bet'){if(live().length<2){winNoShow();return}if(H.turn===i){advance(i);return}}
   mark();
 }
-/* ---------- 봇 (쉬움) ----------
-   프리플랍은 두 장 점수, 그 뒤는 남은 상대 수만큼 몇백 번 끝까지 펼쳐 본 승률을 팟 오즈와 견줌. 무작위를 섞어 가끔 따라가고 가끔 블러핑 */
+/* ---------- 봇 (쉬움·보통·어려움) ----------
+   세 단계 모두 남의 카드는 보지 않음: 자기 카드·공용 카드·모두가 본 행동과 쇼다운에서 펼친 카드만 씀. 생각하는 시간은 패와 상관없이 무작위(setTurn)
+   쉬움: 지금 완성된 패만 봄. 좋은 패일 때만 작게 걸고, 페어만 있어도 따라오고, 아무것도 없으면 접음(블러핑이 잘 통함)
+   보통: 두 장 점수 + 상대 행동으로 좁힌 상대 패에 대한 승률을 팟 오즈와 견줌. 무작위를 섞어 가끔 따라가고 가끔 블러핑
+   어려움: 자리·상대 행동으로 좁힌 상대 패에 대한 승률, 같은 크기로 거는 가치 베팅과 블러핑, 칩 길이, 남은 판 수와 순위, 이번 게임의 상대 기록 */
 function preScore(a,b){
   let x=rv(a),y=rv(b);if(x<y)[x,y]=[y,x];
   let s=x===14?10:x===13?8:x===12?7:x===11?6:x/2;
@@ -346,7 +354,183 @@ function equity(hole,board,opp,sims){
   }
   return win/sims;
 }
-function botPlay(i){
+/* 두 장의 순위(0~1, 1 = A-A): 1326가지 조합을 두 장 점수로 줄 세움. 처음 쓸 때 한 번 만듦 */
+let PCT=null;
+function pctOf(a,b){
+  if(!PCT){
+    const sc=[],key=(x,y)=>preScore(x,y)+(rv(x)+rv(y))/100;
+    for(let x=0;x<52;x++)for(let y=x+1;y<52;y++)sc.push([x,y,key(x,y)]);
+    const vs=sc.map(e=>e[2]).sort((p,q)=>p-q),N=vs.length;
+    const below=v=>{let lo=0,hi=N;while(lo<hi){const m=(lo+hi)>>1;if(vs[m]<v)lo=m+1;else hi=m}return lo};
+    const above=v=>{let lo=0,hi=N;while(lo<hi){const m=(lo+hi)>>1;if(vs[m]<=v)lo=m+1;else hi=m}return lo};
+    PCT=new Float32Array(52*52);
+    for(const [x,y,v] of sc){const p=(below(v)+above(v))/2/N;PCT[x*52+y]=PCT[y*52+x]=p}
+  }
+  return PCT[a*52+b];
+}
+/* 공용 카드 정보: 공용 카드만의 족보 등급, 가장 높은·둘째 숫자, 숫자 모음, 무늬 수 */
+function boardInfo(bd){
+  const cnt=new Int8Array(15),sc=[0,0,0,0];let mask=0;
+  for(const c of bd){cnt[rv(c)]++;sc[suitOf(c)]++;mask|=1<<rv(c)}
+  const rs=[];for(let r=14;r>=2;r--)if(cnt[r])rs.push(r);
+  let cat=0;
+  if(bd.length>=5)cat=Math.floor(score7(bd)/B15);
+  else{let p=0,t=0,q=0;for(let r=2;r<=14;r++){if(cnt[r]===2)p++;else if(cnt[r]===3)t++;else if(cnt[r]===4)q++}cat=q?7:t?3:p>=2?2:p?1:0}
+  return {n:bd.length,bd,cat,top:rs[0]||0,sec:rs[1]||rs[0]||0,mask,sc};
+}
+/* 내 두 장이 이 공용 카드에서 얼마나 좋은지: m 완성된 패(4 투 페어 이상·트리플, 3 탑 페어·오버 페어, 2 가운데 페어, 1 낮은 페어, 0 없음),
+   d 기다리는 패(2 플러시를 기다리는 4장·양쪽이 열린 스트레이트, 1 한쪽만 열린 스트레이트). 내 카드가 보태는 것만 셈 */
+function handClass(a,b,bi){
+  if(bi.n<3)return {m:0,d:0};
+  const v=score7([a,b,...bi.bd]),cat=Math.floor(v/B15);
+  let m=0;
+  if(cat>bi.cat){
+    if(cat>=3||(cat===2&&bi.cat===0))m=4;
+    else{
+      let p=Math.floor(v/15**4)%15;   // 원 페어의 숫자
+      if(cat===2){const x=rv(a),y=rv(b);p=x===y?x:(bi.mask>>x&1)?x:(bi.mask>>y&1)?y:0}   // 공용 카드 페어 + 내 페어
+      m=p>=bi.top?3:p>=bi.sec?2:p?1:0;
+    }
+  }
+  let d=0;
+  if(bi.n<5&&m<4){
+    const sa=suitOf(a),sb=suitOf(b);
+    if(bi.sc[sa]+(sa===sb?2:1)===4||(sa!==sb&&bi.sc[sb]+1===4))d=2;
+    else{
+      const mk=bi.mask|1<<rv(a)|1<<rv(b);
+      if(!topStraight(mk)){let outs=0;for(let r=2;r<=14;r++)if(!(mk>>r&1)&&topStraight(mk|1<<r)&&!topStraight(bi.mask|1<<r))outs++;d=outs>=2?2:outs?1:0}
+    }
+  }
+  return {m,d};
+}
+/* 이번 게임의 상대 기록 (모두가 본 것만): h 받은 판, vp 프리플랍에 스스로 칩을 냄, pr 프리플랍 레이즈, fc 플랍 뒤 베팅을 받음, fb 그때 폴드,
+   ag 플랍 뒤 베팅·레이즈, pc 플랍 뒤 콜, sb 턴·리버에 걸고 쇼다운에서 약한 패(블러핑), sv 강한 패 */
+const newOb=()=>({h:0,vp:0,pr:0,fc:0,fb:0,ag:0,pc:0,sb:0,sv:0});
+const obOf=j=>{const K=K_();return (K.ob&&K.ob[j])||newOb()};
+/* 판 안의 행동 기록 hx[자리][베팅 차례]: f 폴드, k 체크, c 콜, C 레이즈에 콜(프리플랍), b 베팅·첫 레이즈, R 레이즈 위에 다시 레이즈 */
+function noteAct(K,i,pc,pb){
+  if(!K.hx||!K.hx[i])return;
+  const s=K.sr,o=K.ob&&K.ob[i],h=K.hx[i][s];
+  let ch;
+  if(K.st[i]===1)ch='f';
+  else if(K.cur>pc)ch=(s===0?pc>K.bb:pc>0)?'R':'b';
+  else if(K.bet[i]>pb)ch=s===0&&pc>K.bb?'C':'c';
+  else ch='k';
+  if(o){
+    if(s===0){if(/[cCbR]/.test(ch)&&!/[cCbR]/.test(h))o.vp++;if(/[bR]/.test(ch)&&!/[bR]/.test(h))o.pr++}
+    else{if(pc>pb){o.fc++;if(ch==='f')o.fb++}if(ch==='b'||ch==='R')o.ag++;else if(ch==='c')o.pc++}
+  }
+  K.hx[i][s]+=ch;
+  if(s===0&&(ch==='b'||ch==='R'))K.pfa=i;
+}
+/* 쇼다운에서 펼친 카드로 블러핑 기록: 턴·리버에 걸었던 사람의 패가 약했는지 */
+function noteShow(K,ct){
+  if(!K.hx||!K.ob||K.bd.length<5)return;
+  const bi=boardInfo(K.bd);
+  for(const i of ct){
+    if(!/[bR]/.test(K.hx[i][2]+K.hx[i][3])||!K.ob[i])continue;
+    const c=handClass(K.hc[i][0],K.hc[i][1],bi);
+    if(c.m<=1)K.ob[i].sb++;else K.ob[i].sv++;
+  }
+}
+const bayes=(x,n,prior,k)=>(x+prior*k)/(n+k);
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const foldRate=j=>{const o=obOf(j);return bayes(o.fb,o.fc,.42,5)};
+/* 상대 j의 패가 (a,b)일 가능성(0~1): 프리플랍 행동으로 두 장 순위의 범위를 정하고, 플랍 뒤 행동마다 지금 공용 카드에서의 패 세기로 곱함 */
+function rangeW(j,bi,plain){
+  const K=K_(),hx=(K.hx&&K.hx[j])||['','','',''],o=plain?newOb():obOf(j),pre=hx[0];
+  const vpR=bayes(o.vp,o.h,.35,6),prR=bayes(o.pr,o.h,.16,6);
+  let W=1;
+  if(pre.includes('R'))W=clamp(prR*.45,.03,.2);
+  else if(pre.includes('b'))W=clamp(prR*1.1,.06,.5);
+  else if(pre.includes('C'))W=clamp(vpR*.75,.12,.6);
+  else if(pre.includes('c'))W=clamp(vpR*1.1,.2,.85);
+  const bw=.06+bayes(o.sb,o.sb+o.sv,.25,4)*.7;   // 걸었을 때 아무것도 없을 가능성 (쇼다운에서 블러핑이 잦았던 사람은 큼)
+  const acts=[];for(let k=1;k<=K.sr&&k<4;k++)for(const ch of hx[k])acts.push(ch);
+  const cache=new Map();
+  return (a,b)=>{
+    const key=a<b?a*52+b:b*52+a;let w=cache.get(key);if(w!==undefined)return w;
+    w=1;
+    if(W<1){const dd=(pctOf(a,b)-(1-W))/.05;w=dd>=0?1:Math.max(Math.min(.03,W*.08),Math.exp(dd))}   // 범위 밖도 조금은 남김(좁은 범위일수록 적게)
+    if(acts.length&&bi.n>=3){
+      const {m,d}=handClass(a,b,bi);
+      for(const ch of acts){
+        if(ch==='b')w*=m>=4?1:m===3?.85:m===2?.5:m===1?.3:d===2?.6:d===1?.35:bw;
+        else if(ch==='R')w*=m>=4?1:m===3?.5:m===2?.2:m===1?.12:d===2?.4:d===1?.15:bw*.6;
+        else if(ch==='c'||ch==='C')w*=m>=4?.75:m===3?1:m===2?.85:m===1?.6:d===2?.9:d===1?.55:.15;
+        else if(ch==='k')w*=m>=4?.55:m===3?.8:1;
+      }
+    }
+    cache.set(key,w);return w;
+  };
+}
+/* 좁힌 상대 패에 대한 승률: 아무 카드나 뽑고 그 카드일 가능성만큼 무게를 줌 */
+function eqRange(i,sims,plain){
+  const K=K_(),hole=K.hc[i],bd=K.bd,opps=live().filter(j=>j!==i);
+  if(!opps.length)return 1;
+  const known=new Set([...hole,...bd]),rest=[...Array(52).keys()].filter(x=>!known.has(x));
+  const bi=boardInfo(bd),fill=5-bd.length,need=fill+2*opps.length,wf=opps.map(j=>rangeW(j,bi,plain));
+  let S=0,Wt=0;
+  for(let s=0;s<sims;s++){
+    for(let k=0;k<need;k++){const j=k+(Math.random()*(rest.length-k)|0);const t=rest[k];rest[k]=rest[j];rest[j]=t}
+    let w=1;for(let o=0;o<opps.length&&w>1e-4;o++)w*=wf[o](rest[fill+2*o],rest[fill+2*o+1]);
+    if(w<=1e-4)continue;
+    const b5=bd.concat(rest.slice(0,fill)),me=score7([...hole,...b5]);
+    let tie=0,lose=false;
+    for(let o=0;o<opps.length;o++){const v=score7([rest[fill+2*o],rest[fill+2*o+1],...b5]);if(v>me){lose=true;break}if(v===me)tie++}
+    S+=w*(lose?0:tie?1/(tie+1):1);Wt+=w;
+  }
+  return Wt>0?S/Wt:.5;
+}
+/* 남은 판 수와 순위: 끝이 가까운데 1등에게 많이 뒤지면 1(과감하게), 넉넉한 1등이면 -1(조심스럽게) */
+function riskMode(i){
+  const K=K_(),left=K.hns-K.hn,win=Math.max(1,Math.round(K.hns*.2));
+  if(left>=win)return 0;
+  const me=K.ch0[i],ot=H.players.map((_,j)=>j).filter(j=>j!==i&&alive(j)).map(j=>K.ch0[j]).sort((a,b)=>b-a);
+  if(!ot.length)return 0;
+  if(me<ot[0]*.85)return 1;
+  if(me>=ot[0]*1.3)return -1;
+  return 0;
+}
+/* 자리: 이번 프리플랍에서 내 뒤에 아직 행동할 사람 수, 플랍 뒤에 내가 마지막으로 행동하는지 */
+const behind=i=>{const K=K_();let n=0;for(let j=0;j<K.st.length;j++)if(j!==i&&canAct(j)&&!K.acted[j])n++;return n};
+const inPos=i=>{const K=K_(),n=H.players.length;let last=-1;for(let k=1;k<=n;k++){const j=(K.bt+k)%n;if(canAct(j))last=j}return last===i};
+/* 레이즈 목표를 칩 단위로. 남는 칩이 얼마 안 되면 올인 */
+function raiseAct(R,to){
+  to=rUp(Math.max(R.minTo,to));
+  if(to>=R.maxTo*.6||to>=R.maxTo)return {t:'raise',all:1};
+  return {t:'raise',a:to};
+}
+/* 쉬움: 좋은 패일 때만 작게 걸고, 페어만 있어도 끝까지 따라오고, 아무것도 없으면 접음. 블러핑은 거의 안 함 */
+function botEasy(i){
+  const K=K_(),R=raiseRange(K,i),need=K.cur-K.bet[i],pot=potOf(K),stack=K.ch[i],r=Math.random();
+  const canR=R.open&&R.maxTo>K.cur,call={t:'call'},fold={t:'fold'};
+  if(K.sr===0){
+    const s=preScore(K.hc[i][0],K.hc[i][1]);
+    if(s>=14&&canR&&r<.8)return raiseAct(R,K.cur+K.bb*3);
+    if(need<=0)return call;
+    if(need>stack*.2)return s>=10?call:fold;
+    if(s>=2)return need<=K.bb*3?call:s>=7?call:fold;
+    return need<=K.bb/2&&r<.5?call:fold;
+  }
+  const {m,d}=handClass(K.hc[i][0],K.hc[i][1],boardInfo(K.bd));
+  if(need<=0){
+    if(!canR)return call;
+    if(m>=4&&r<.7)return raiseAct(R,pot*.5);
+    if(m===3&&r<.4)return raiseAct(R,pot*.33);
+    if(m===0&&d===0&&r<.03)return raiseAct(R,pot*.33);
+    return call;
+  }
+  if(m>=4)return canR&&r<.15?raiseAct(R,R.minTo):call;
+  if(m===3)return call;
+  if(m===2)return need<=pot*.6?call:fold;
+  if(m===1)return need<=pot*.4?call:fold;
+  if(d&&K.sr<3)return need<=pot*.5?call:fold;
+  return fold;
+}
+/* 보통: 예전 봇(두 장 점수 + 승률과 팟 오즈)에서 두 가지를 고침: 플랍부터 상대 패를 상대 행동으로 좁혀 봄(상대 기록·자리는 안 씀), 스몰 블라인드는 웬만하면 따라감.
+   예전 그대로는 쉬움 봇에게도 졌음: 상대가 크게 걸어도 아무 카드로 보고 너무 자주 따라감 */
+function botNormal(i){
   const K=K_(),R=raiseRange(K,i),need=K.cur-K.bet[i],pot=potOf(K),r=Math.random();
   const opp=live().length-1,stack=K.ch[i];
   const raiseTo=x=>({t:'raise',a:rUp(Math.max(R.minTo,x))});
@@ -356,19 +540,84 @@ function botPlay(i){
     if(s>=10&&R.open&&r<.6)a=raiseTo(K.cur+Math.max(K.minR,K.bb*(2+(Math.random()*2|0))));
     else if(s>=6)a=need<=Math.max(K.bb*3,stack*.15)||s>=10?{t:'call'}:{t:'fold'};
     else if(need<=0)a={t:'call'};
-    else a=need<=K.bb&&r<.55?{t:'call'}:{t:'fold'};
+    else a=need<=K.bb/2&&s>=1||need<=K.bb&&r<.55?{t:'call'}:{t:'fold'};   // 스몰 블라인드는 반만 더 내면 되니 웬만하면 따라감
   }else{
-    const eq=equity(K.hc[i],K.bd,Math.max(1,opp),opp>3?110:180),odds=need>0?need/(pot+need):0;
+    const eq=eqRange(i,opp>3?160:240,true),odds=need>0?need/(pot+need):0;   // 상대 기록 없이 행동만으로 좁힌 상대 패
     if(eq>.72&&R.open&&r<.55)a=raiseTo(K.cur+Math.max(K.minR,pot*(.4+Math.random()*.4)));
-    else if(need<=0)a=R.open&&(eq>.55&&r<.35||r<.06)?raiseTo(pot*(.35+Math.random()*.3)):{t:'call'};
+    else if(need<=0)a=R.open&&(eq>.6&&r<.75||eq>.55&&r<.35||r<.06)?raiseTo(pot*(.35+Math.random()*.3)):{t:'call'};
     else if(eq>odds+.05||(r<.08&&need<=pot*.5))a={t:'call'};
     else a={t:'fold'};
   }
-  if(a.t==='raise'&&R.maxTo<=R.minTo&&r<.5&&K.sr===0&&preScore(K.hc[i][0],K.hc[i][1])<12)a=need<=0?{t:'call'}:{t:'fold'};   // 쉬움 봇은 올인이 되는 레이즈를 잘 안 함
-  if(a.t==='fold'&&need<=0)a={t:'call'};   // 체크할 수 있으면 폴드하지 않음
-  doAct(i,a);
+  if(a.t==='raise'&&R.maxTo<=R.minTo&&r<.5&&K.sr===0&&preScore(K.hc[i][0],K.hc[i][1])<12)a=need<=0?{t:'call'}:{t:'fold'};   // 올인이 되는 레이즈는 잘 안 함
+  return a;
 }
-G._test={eval5,best,score7,handName,splitPots,raiseRange,preScore,equity,doAct,newHand,startStreet,endStreet,showdown,winNoShow,endHand,live,U};
+/* 어려움 */
+function botHard(i){
+  const K=K_(),R=raiseRange(K,i),need=K.cur-K.bet[i],pot=potOf(K),stack=K.ch[i],bb=K.bb,r=Math.random();
+  const canR=R.open&&R.maxTo>K.cur,call={t:'call'},fold={t:'fold'},check=need<=0?call:fold;
+  const opps=live().filter(j=>j!==i),nO=opps.length,rk=riskMode(i);
+  const eff=Math.min(stack+K.bet[i],Math.max(...opps.map(j=>K.ch[j]+K.bet[j])));   // 실제로 걸 수 있는 칩
+  const odds=need>0?need/(pot+need):0,allIn=need>=stack;
+  const margin=.04+(rk<0?.04:rk>0?-.05:0);   // 따라갈 때 남기는 여유: 넉넉한 1등은 더 조심, 뒤지면 덜
+  if(K.sr===0){
+    const pct=pctOf(K.hc[i][0],K.hc[i][1]),effBB=eff/bb,bh=behind(i);
+    const limpers=opps.filter(j=>/c/.test((K.hx&&K.hx[j]&&K.hx[j][0])||'')).length;
+    if(K.cur<=bb){   // 아무도 레이즈하지 않음
+      let X=live().length===2?.6:bh>=5?.12:bh===4?.15:bh===3?.2:bh===2?.27:.4;
+      if(limpers)X*=.8;
+      X*=rk>0?1.4:rk<0?.8:1;
+      if(effBB<=12){   // 칩이 짧음: 올인 아니면 폴드
+        X=clamp(X*Math.sqrt(12/Math.max(2,effBB))*1.3,.1,.75);
+        if(pct>=1-X&&canR)return {t:'raise',all:1};
+        return need<=bb/2&&pct>=.4?call:check;
+      }
+      if(pct>=1-X&&canR)return raiseAct(R,bb*(2.5+limpers));
+      if(need<=0)return call;
+      if(limpers&&pct>=1-X*1.6&&need<=bb)return call;
+      if(need<=bb/2&&pct>=.45)return call;
+      return fold;
+    }
+    // 레이즈를 받음: 레이즈한 사람의 범위에 대한 승률로
+    const eq=eqRange(i,nO>1?260:400),rel=eq*(nO+1);
+    if(effBB<=15||allIn){
+      if(eq>odds+.08+margin&&canR)return {t:'raise',all:1};
+      return eq>odds+margin?call:fold;
+    }
+    if(rel>1.16&&canR)return raiseAct(R,K.cur*(inPos(i)?3:3.5));
+    if(canR&&nO===1&&pct>=.6&&r<.06)return raiseAct(R,K.cur*(inPos(i)?3:3.5));   // 가끔 블러핑 다시 레이즈
+    const implied=eff>need*15&&!allIn?.04:0;
+    return eq+implied>odds+margin?call:fold;
+  }
+  // 플랍부터
+  const bi=boardInfo(K.bd),{m,d}=handClass(K.hc[i][0],K.hc[i][1],bi);
+  const eq=eqRange(i,nO>1?320:480),rel=eq*(nO+1);
+  const fs=opps.reduce((a,j)=>a+foldRate(j),0)/nO;   // 상대가 베팅을 받으면 접는 정도
+  const size=[0,.55,.65,.75][K.sr];   // 가치 베팅과 블러핑은 같은 크기
+  if(need<=0){
+    if(!canR)return call;
+    if(rel>1.25){
+      if(eq>.9&&K.sr===1&&r<.25)return call;   // 아주 강하면 가끔 기다림
+      return raiseAct(R,pot*size);
+    }
+    if(d===2&&K.sr<3&&r<.55)return raiseAct(R,pot*size);
+    if(d===1&&K.sr<3&&r<.2)return raiseAct(R,pot*size);
+    if(K.pfa===i&&K.sr===1&&nO<=2&&r<(nO===1?.65:.4)*clamp(fs/.42,.5,1.5))return raiseAct(R,pot*size);
+    if(nO===1&&K.sr>=2&&eq<.3&&r<clamp(.28*fs/.42,.1,.5))return raiseAct(R,pot*size);
+    return call;
+  }
+  if(allIn)return eq>odds+margin?call:fold;
+  if(canR&&rel>(nO===1?1.5:1.6)&&r<.75)return raiseAct(R,K.cur+(pot+need)*.75);
+  if(canR&&nO===1&&d===2&&K.sr===1&&eff>pot*2&&r<.15)return raiseAct(R,K.cur+(pot+need)*.75);
+  const implied=d&&K.sr<3&&eff>need*6?(d===2?.05:.02):0;
+  return eq+implied>odds+margin?call:fold;
+}
+function botPlay(i){
+  const lv=botLv(H.players[i]);
+  const a=lv<=0?botEasy(i):lv===1?botNormal(i):botHard(i);
+  if(a.t==='fold'&&K_().cur<=K_().bet[i])a={t:'call'};   // 체크할 수 있으면 폴드하지 않음
+  if(!doAct(i,a))doAct(i,{t:'call'});
+}
+G._test={eval5,best,score7,handName,splitPots,raiseRange,preScore,equity,pctOf,boardInfo,handClass,eqRange,botEasy,botNormal,botHard,doAct,newHand,startStreet,endStreet,showdown,winNoShow,endHand,live,U};
 G.firstPick=true;   // 첫 딜러 버튼은 공통 주사위(firstPick + dicepick.js)로 정함
 const INTRO_LEAD=900,INTRO_REST=700,DIE=.55;   // DIE: 주사위 한 변
 G.introMs=(again,rolls)=>Math.round(INTRO_LEAD+DicePick.totalFor(rolls)+INTRO_REST);   // 정수 ms (방장 시계와 신호가 소수로 어긋나지 않게)
@@ -380,7 +629,8 @@ G.engine={
     const sb=Math.max(U,rUp(+H.cfg.sb||10));
     H.pk={ph:'intro',hn:0,hns:Math.max(3,+H.cfg.rounds||10),up:Math.max(0,+H.cfg.up||0),sb,bb:sb*2,lv:0,bt:firstSeat(n),sbS:-1,bbS:-1,
       ch:Array(n).fill(Math.max(sb*4,rUp(+H.cfg.chips||1000))),ch0:[],st:Array(n).fill(3),bet:Array(n).fill(0),tot:Array(n).fill(0),la:Array(n).fill(''),
-      hc:Array.from({length:n},()=>[]),bd:[],deck:[],dor:[],cur:0,minR:sb*2,acted:[],ro:[],open:false,rs:null,sr:0,sq:0,nextAt:0,toShow:false};
+      hc:Array.from({length:n},()=>[]),bd:[],deck:[],dor:[],cur:0,minR:sb*2,acted:[],ro:[],open:false,rs:null,sr:0,sq:0,nextAt:0,toShow:false,
+      ob:H.players.map(newOb),hx:[],pfa:-1};   // ob: 봇이 읽는 이번 게임의 상대 기록 (상태로 보내지 않음)
     addLog(`${n}명 게임 시작 · 칩 ${H.pk.ch[0]}개 · ${H.pk.hns}판 · 블라인드 ${sb}/${sb*2}`,'sys');
     mark();
   },

@@ -1,4 +1,4 @@
-/* 포커 테스트: 족보·블라인드와 행동 순서·최소 레이즈·모자란 올인·사이드 팟·숨긴 카드·시간 초과·탈락·판 수 + 봇끼리 끝까지 (engine.test.js가 PK=GAMES.poker로 불러 씀) */
+/* 포커 테스트: 족보·블라인드와 행동 순서·최소 레이즈·모자란 올인·사이드 팟·숨긴 카드·시간 초과·탈락·판 수·봇 단계(패 세기·좁힌 승률·행동 기록·남의 카드를 보지 않음) + 봇끼리 끝까지 (engine.test.js가 PK=GAMES.poker로 불러 씀) */
 const {eval5,best,score7,handName,splitPots,raiseRange,preScore,equity,U}=PK._test;
 const C=(r,s)=>r*4+(s||0);   // r: 0=A, 1=2, …, 9=10, 10=J, 11=Q, 12=K / s: 0♠ 1♥ 2♦ 3♣
 // 족보: 등급 순서와 같은 족보끼리의 비교
@@ -160,11 +160,48 @@ const toNextBet=()=>runTo(()=>(H.pk.ph==='bet'&&H.turn>=0)||H.pk.ph==='show'||H.
  act(2,{t:'surrender'});if(H.phase!=='over'||H.players[1].rank!==1)fail('pk surrender ends '+H.phase);
  if(total(K)!==3000)fail('pk surrender chips '+total(K))}
 
+// 12) 봇 단계: 두 장 순위, 내 카드가 보태는 패 세기와 기다리는 패
+{const {pctOf,boardInfo,handClass}=PK._test,hcl=(a,b,bd)=>handClass(a,b,boardInfo(bd)),is=(c,m,d,w)=>{if(c.m!==m||c.d!==d)fail('pk handClass '+w+' '+JSON.stringify(c))};
+ if(!(pctOf(C(0),C(0,1))>.99&&pctOf(C(6),C(1,1))<.1&&pctOf(C(12),C(11))>pctOf(C(8),C(3,2))))fail('pk pctOf order');
+ is(hcl(C(0),C(8,1),[C(0,2),C(6,3),C(1)]),3,0,'top pair');
+ is(hcl(C(6,1),C(12,3),[C(0,2),C(6,3),C(1)]),2,0,'middle pair');
+ is(hcl(C(0),C(6,1),[C(0,2),C(6,3),C(1)]),4,0,'two pair');
+ is(hcl(C(12),C(11,1),[C(8,2),C(8,3),C(2)]),0,0,'board pair only');
+ is(hcl(C(0,1),C(4,1),[C(12,1),C(8,1),C(1,3)]),0,2,'flush draw');
+ is(hcl(C(7),C(8,1),[C(6,2),C(5,3),C(12)]),0,2,'open straight draw');
+ is(hcl(C(7),C(8,1),[C(5,2),C(4,3),C(12)]),0,1,'gutshot');}
+// 13) 행동 기록과 좁힌 승률: 레이즈한 사람의 패는 강하게, 다시 레이즈하면 더 강하게 봄. 기록(vp·pr)은 프리플랍에 한 번씩
+{const {eqRange}=PK._test;let K=mkP(3,{chips:1000});
+ act(0,{t:'raise',a:60});act(1,{t:'raise',a:200});
+ if(K.hx[0][0]!=='b'||K.hx[1][0]!=='R'||K.pfa!==1)fail('pk hx '+JSON.stringify(K.hx)+' '+K.pfa);
+ if(K.ob[0].vp!==1||K.ob[0].pr!==1||K.ob[2].vp!==0||K.ob.some(o=>o.h!==1))fail('pk ob '+JSON.stringify(K.ob));
+ act(2,{t:'call'});if(K.hx[2][0]!=='C')fail('pk call a raise '+K.hx[2][0]);
+ K=mkP(2,{chips:1000});act(0,{t:'raise',a:60});
+ K.hc[1]=[C(12),C(6,2)];   // K♠ 7♦
+ const vsB=eqRange(1,5000);K.hx[0][0]='';const vsAny=eqRange(1,5000);K.hx[0][0]='R';const vsR=eqRange(1,5000);
+ if(!(vsB<vsAny-.04&&vsR<vsAny-.1&&vsR<vsB))fail('pk eqRange narrows '+[vsR,vsB,vsAny].map(x=>x.toFixed(3)));}
+// 14) 봇은 남의 카드를 보지 않음: 같은 무작위 값이면 남의 카드가 달라도 고르는 행동이 같음 (프리플랍 레이즈를 받았을 때·플랍)
+{const {botEasy,botNormal,botHard}=PK._test,orig=Math.random;
+ const same=(K,i,w)=>{
+   const others=[...Array(52).keys()].filter(c=>!K.hc[i].includes(c)&&!K.bd.includes(c)),out=[];
+   for(let t=0;t<3;t++){
+     const pool=shuffle(others.slice());K.hc.forEach((h,j)=>{if(j!==i)K.hc[j]=[pool.pop(),pool.pop()]});
+     let o='';for(const f of [botEasy,botNormal,botHard]){let x=7+t*0;Math.random=()=>(x=(x*1103515245+12345)%2147483648)/2147483648;o+=JSON.stringify(f(i));Math.random=orig}
+     out.push(o);
+   }
+   if(out[0]!==out[1]||out[1]!==out[2])fail('pk bot peeks '+w+' '+out.join(' | '));
+ };
+ for(let rep=0;rep<6;rep++){
+   const K=mkP(3,{chips:1000});act(0,{t:'raise',a:60});same(K,1,'pre');
+   act(1,{t:'call'});act(2,{t:'call'});toNextBet();if(K.sr!==1){fail('pk to flop '+K.sr);break}
+   act(H.turn,{t:'raise',a:80});same(K,H.turn,'flop');
+ }}
+
 /* 봇끼리 끝까지: 인원·칩·블라인드·판 수를 바꿔 가며. 칩 총합 그대로·음수 없음·10 단위, 차례는 행동할 수 있는 사람, 카드 겹침 없음, 순위 1~n */
 function playOutP(n,over){
   hostNew(false,'t','t');
   H.cfg={...cfgFor('poker'),...over,game:'poker'};
-  H.members=[];for(let i=0;i<n;i++)H.members.push({name:'b'+i,bot:true,conn:null,host:i===0,lv:0});
+  H.members=[];for(let i=0;i<n;i++)H.members.push({name:'b'+i,bot:true,conn:null,host:i===0,lv:(i+n)%3});   // 쉬움·보통·어려움을 섞어서
   let ticks=0;
   for(let g=0;g<2;g++){
     hostStart();
