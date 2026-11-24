@@ -117,11 +117,32 @@ const U=(x0,y0,x1,y1)=>T.toU(IX(x0,y0)|(IX(x1,y1)<<7));
  let hit=0;for(let k=0;k<6;k++){const m=T.botPick(p,{},0);T.make(p,m);if(!T.legal(p).length)hit++;T.unmake(p)}
  eq(hit,6,'bot finds mate in one');}
 
-/* 봇끼리 끝까지 (기보를 처음부터 다시 두어 모든 수가 규칙에 맞는지) */
-function playOutJ(over){
+/* 보통·어려움 봇: 한 수 외통, 공짜 차 잡기, 생각한 뒤 판이 그대로, 빅장(앞서면 응수·뒤지면 그대로 두어 비김), 금수 반복은 안 둠, 두면 이기는 점수 판정 반복은 둠 */
+{const s0=T.setBotScale;s0(.1);
+ for(const lv of [1,2]){
+  const p=P([[4,1,JANG,0],[4,9,JANG,1],[3,9,SANG,1],[5,9,SANG,1],[4,6,CHA,0],[0,8,CHA,0]]),h=p.h1,b0=p.b.join();
+  const m=T.botPickLv(p,{},0,lv,20);T.make(p,m);eq(T.legal(p).length,0,'bot mate in one lv'+lv);T.unmake(p);
+  eq(p.h1===h&&p.b.join()===b0&&p.st.length===0,true,'think keeps the position lv'+lv);
+  const q=P([[4,1,JANG,0],[3,0,SA,0],[5,0,SA,0],[3,8,JANG,1],[1,9,MA,1],[8,0,CHA,0],[8,9,CHA,1]]);
+  eq(T.toU(T.botPickLv(q,{},0,lv,20)),U(8,0,8,9),'bot takes a free cha lv'+lv);
+  const ahead=P([[4,1,JANG,0],[4,8,JANG,1],[0,0,CHA,0],[8,0,CHA,0],[0,9,MA,1]]);
+  const ma=T.botPickLv(ahead,{},0,lv,20);T.make(ahead,ma);eq(T.facing(ahead),false,'ahead answers bikjang lv'+lv);T.unmake(ahead);
+  const behind=P([[4,1,JANG,0],[4,8,JANG,1],[0,0,CHA,0],[0,9,CHA,1],[8,9,CHA,1],[8,8,PO,1]]);
+  const mb=T.botPickLv(behind,{},0,lv,20);T.make(behind,mb);eq(T.facing(behind),true,'behind keeps bikjang for a draw lv'+lv);T.unmake(behind);
+  const r=T.startPos([0,0]),ls=T.legal(r),keep=ls[7],rr={};   // 하나만 빼고 모두 네 번째 반복(금수)
+  for(const m of ls)if(m!==keep){T.make(r,m);rr[T.repKey(r)]=3;T.unmake(r)}
+  eq(T.botPickLv(r,rr,0,lv,20),keep,'bot plays the only move that is not a forbidden repetition lv'+lv);
+  const w=P([[4,1,JANG,0],[3,8,JANG,1],[0,0,CHA,0],[8,9,MA,1],[2,9,SANG,1]]),wm=IX(0,0)|(IX(0,1)<<7),wr={};
+  T.make(w,wm);wr[T.repKey(w)]=3;T.unmake(w);
+  eq(T.botPickLv(w,wr,0,lv,20),wm,'bot repeats into a won score judgment lv'+lv);
+ }
+ s0(.3)}
+
+/* 봇끼리 끝까지 (기보를 처음부터 다시 두어 모든 수가 규칙에 맞는지). lvs: 자리별 난이도 */
+function playOutJ(over,lvs){
   hostNew(false,'t','t');
   H.cfg={...cfgFor('janggi'),...over,game:'janggi'};
-  H.members=[0,1].map(i=>({name:'b'+i,bot:true,conn:null,host:i===0,lv:0}));
+  H.members=[0,1].map(i=>({name:'b'+i,bot:true,conn:null,host:i===0,lv:lvs?lvs[i]:0}));
   hostStart();
   let ticks=0,guard=0;
   while(H.phase!=='over'&&guard++<40000){NOW+=250;engineTick();ticks++}

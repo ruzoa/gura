@@ -6,7 +6,7 @@
    반복(3회까지): 같은 국면(같은 쪽 차례)이 네 번째로 나오는 수는 둘 수 없음. 단 양쪽 모두 덤을 뺀 점수가 30점 미만이면 둘 수 있고, 두면 점수로 판정
    손패(hand)는 표시용 값 [0] (공통 코드가 hand가 비면 끝난 사람으로 봄) */
 (function(){
-const G={id:'janggi',name:'장기',short:'장기',lead:'상차림부터 외통까지',maxHi:2,minN:2,noFast:true,firstPick:true,oneBotLv:true};
+const G={id:'janggi',name:'장기',short:'장기',lead:'상차림부터 외통까지',maxHi:2,minN:2,noFast:true,firstPick:true};
 
 /* ---------- 규칙 엔진 (방장 엔진·화면·봇·테스트가 같은 함수를 씀) ---------- */
 const ZOL=1,SA=2,SANG=3,MA=4,PO=5,CHA=6,JANG=7;
@@ -233,6 +233,211 @@ function botPick(p,reps,mode,o){
 }
 const botSetup=()=>Math.random()*4|0;
 
+/* ---------- 봇 보통·어려움: 반복 심화 PVS 알파-베타 + 기억표 + 널 무브(= 한 수 쉬기) + LMR + 킬러·히스토리 + 잡는 수 정리 탐색 ----------
+   평가는 기물 점수(중반·끝판 섞기) + 움직임(차·포·마·상) + 졸 전진 + 사가 장 곁 + 상대 큰 기물이 우리 쪽에 들어온 정도 + 받침이 줄면 포가 약해짐 + 한의 덤 */
+const XS=new Int8Array(N),YS=new Int8Array(N);for(let i=0;i<N;i++){XS[i]=X(i);YS[i]=Y(i)}
+const RAY=[];for(let i=0;i<N;i++)for(const [dx,dy] of OR){const r=[];let x=X(i)+dx,y=Y(i)+dy;while(inB(x,y)){r.push(IX(x,y));x+=dx;y+=dy}RAY.push(r)}
+const MA_T=[],SG_T=[];   // 칸마다 마 [멱, 도착]…, 상 [멱1, 멱2, 도착]…
+for(let i=0;i<N;i++){const x=X(i),y=Y(i),a=[],s=[];
+  for(const [ox,oy,px,py] of HP){
+    if(!inB(x+ox,y+oy))continue;
+    const l1=IX(x+ox,y+oy),mx=x+2*ox+px,my=y+2*oy+py;if(!inB(mx,my))continue;
+    a.push(l1,IX(mx,my));
+    const sx=x+3*ox+2*px,sy=y+3*oy+2*py;if(inB(sx,sy))s.push(l1,IX(mx,my),IX(sx,sy));
+  }
+  MA_T.push(a);SG_T.push(s)}
+const MGV=[0,200,300,290,500,700,1300,0],EGV=[0,240,280,300,540,600,1300,0];
+const ZOLR=[0,0,0,0,12,28,42,52,46,14];   // 졸·병 전진: 자기 쪽 끝 줄에서 센 줄마다
+const PH0=124;   // 처음 국면의 큰 기물(졸·장 뺌) 점수 합, 양쪽
+function evalJ(p){   // 둘 차례인 쪽 기준 (1점 = 100)
+  const b=p.b;let mg=0,eg=0,ph=0,np=0;
+  const poN=[0,0],thr=[0,0],saN=[0,0],chaN=[0,0];
+  for(let i=0;i<N;i++){
+    const v=b[i];if(!v)continue;
+    const t=v&7,c=v>>3,x=XS[i],ry=c?9-YS[i]:YS[i];np++;
+    let m=MGV[t],e=EGV[t],n=0;
+    if(t===ZOL){const r=ZOLR[ry],mid=ry>=6&&x>=3&&x<=5;m+=r+(mid?14:0);e+=r*1.4+(mid?18:0)}
+    else if(t===SA){saN[c]++;const k=p.k[c];if(k>=0&&Math.abs(XS[k]-x)+Math.abs(YS[k]-YS[i])<=1)m+=12}
+    else if(t===SANG){ph+=3;if(!ry)m-=10;const s=SG_T[i];for(let j=0;j<s.length;j+=3)if(!b[s[j]]&&!b[s[j+1]]){const q=b[s[j+2]];if(!q||(q>>3)!==c)n++}m+=n*3;e+=n*3;if(ry>=5)thr[c]+=8}
+    else if(t===MA){ph+=5;if(!ry)m-=14;if(x===0||x===8)m-=10;const a=MA_T[i];for(let j=0;j<a.length;j+=2)if(!b[a[j]]){const q=b[a[j+1]];if(!q||(q>>3)!==c)n++}m+=n*8-16;e+=n*6-12;if(ry>=5)thr[c]+=ry>=7?22:12}
+    else if(t===PO){ph+=7;poN[c]++;
+      for(let d=0;d<4;d++){const r=RAY[i*4+d],L=r.length;let s=0;while(s<L&&!b[r[s]])s++;if(s>=L||(b[r[s]]&7)===PO)continue;
+        for(s++;s<L;s++){const q=b[r[s]];if(!q){n++;continue}if((q>>3)!==c&&(q&7)!==PO)n++;break}}
+      m+=n*3;e+=n*2;if(ry>=6)thr[c]+=10}
+    else if(t===CHA){ph+=13;chaN[c]++;
+      for(let d=0;d<4;d++){const r=RAY[i*4+d],L=r.length;for(let s=0;s<L;s++){const q=b[r[s]];if(!q){n++;continue}if((q>>3)!==c)n++;break}}
+      m+=n*5;e+=n*4;if(ry>=6)thr[c]+=26}
+    else if(t===JANG){if(x===4&&ry===1)m+=12}
+    if(c){mg-=m;eg-=e}else{mg+=m;eg+=e}
+  }
+  const pa=(np-20)*4;mg+=(poN[0]-poN[1])*pa;eg+=(poN[0]-poN[1])*pa;   // 포는 넘을 기물이 줄면 약해짐
+  for(let c=0;c<2;c++){let d=thr[c^1]*(saN[c]>=2?1:saN[c]?1.4:1.9);if(!chaN[c^1])d*=.5;if(c)mg+=d;else mg-=d}   // 상대 큰 기물이 우리 쪽에 들어옴 (사가 적으면 더 위험)
+  const P=Math.min(PH0,ph)/PH0;
+  const s=mg*P+eg*(1-P)-(40+110*(1-P));   // 한의 덤: 점수 판정이 잦은 끝판일수록 크게
+  return Math.round(p.side?-s:s)+10;   // +10: 둘 차례인 쪽의 이점
+}
+const INF=MATE*2,JW=8000;   // JW: 점수 판정으로 이김 (외통보다 작게)
+let TT=null;
+function ttInit(bits){const n=1<<bits;TT={n,h:new Int32Array(n),d:new Int8Array(n),v:new Int32Array(n),f:new Int8Array(n),m:new Int32Array(n)}}
+const HIS=new Int32Array(N*N);
+const hasBig=(p,c)=>{for(let i=0;i<N;i++){const v=p.b[i];if(v&&(v>>3)===c){const t=v&7;if(t===CHA||t===PO||t===MA)return true}}return false};
+/* 생각하기: o.ms 시간, o.depth 최대 깊이, o.noise 안쪽 수 중 무작위, o.hist 지난 국면(Map h1→h2), o.moves 둘 수 있는 첫 수, o.fix 첫 수마다 정해진 값, o.pen 첫 수마다 감점. 돌려줌 {m, v, d, nodes} */
+function think(p,o){
+  if(!TT)ttInit(typeof window==='undefined'?20:18);
+  const t0=Date.now(),ms=o.ms||500,maxD=o.depth||64,noise=o.noise||0,hist=o.hist||null,fix=o.fix||null,pen=o.pen||null,lowJ=!o.free;
+  /* 같은 국면이 또 나옴: 양쪽 모두 30점 미만이면(3회까지 규칙) 되풀이 끝에 점수 판정, 아니면 0 */
+  const repV=()=>lowJ&&lowMat(p)?(judgeCol(p)===p.side?JW:-JW):0;
+  let nodes=0,stop=false;
+  const killers=[],ph1=[],ph2=[];
+  HIS.fill(0);
+  const tick=()=>{if((++nodes&1023)===0&&Date.now()-t0>ms)stop=true};
+  const cv=m=>m===PASS?0:p.b[mT(m)];
+  /* 수 순서 점수: 기억표 수 > 잡는 수(큰 것을 작은 것으로) > 킬러 > 히스토리 > 쉬기 */
+  function scores(list,ply,tm){
+    const sc=new Int32Array(list.length),k=killers[ply];
+    for(let i=0;i<list.length;i++){const m=list[i];
+      if(m===tm){sc[i]=1e9;continue}
+      if(m===PASS){sc[i]=-1e9;continue}
+      const c=p.b[mT(m)];
+      if(c)sc[i]=1e6+MGV[c&7]*10-MGV[p.b[mF(m)]&7];
+      else if(k&&(k[0]===m||k[1]===m))sc[i]=8e5-(k[0]===m?0:1);
+      else sc[i]=HIS[mF(m)*N+mT(m)]}
+    return sc;
+  }
+  const pickNext=(list,sc,from)=>{let bi=from;for(let j=from+1;j<list.length;j++)if(sc[j]>sc[bi])bi=j;if(bi!==from){const a=list[from];list[from]=list[bi];list[bi]=a;const s=sc[from];sc[from]=sc[bi];sc[bi]=s}return list[from]};
+  function qs(alpha,beta,qd){
+    tick();
+    let st=evalJ(p);
+    if(facing(p))return Math.max(0,st-40);   // 빅장을 받은 쪽: 응수하거나 비김
+    if(st>=beta)return st;if(st>alpha)alpha=st;
+    if(qd>=8)return st;
+    const all=gen(p,[]),caps=[];for(const m of all)if(p.b[mT(m)])caps.push(m);
+    const sc=scores(caps,63,0),us=p.side;
+    for(let n=0;n<caps.length;n++){
+      const m=pickNext(caps,sc,n),cap=p.b[mT(m)];
+      if(st+MGV[cap&7]+200<alpha)continue;   // 잡아도 못 따라잡음
+      make(p,m);if(attacked(p,p.k[us],us^1)){unmake(p);continue}
+      const v=-qs(-beta,-alpha,qd+1);unmake(p);
+      if(v>=beta)return v;if(v>alpha)alpha=v;
+    }
+    return alpha;
+  }
+  function ab(d,alpha,beta,ply,nullOk){
+    tick();if(stop)return 0;
+    const pv=beta-alpha>1;
+    for(let j=ph1.length-2;j>=0;j-=2)if(ph1[j]===p.h1&&ph2[j]===p.h2)return repV();   // 이번 탐색 길에서 같은 국면
+    if(hist&&hist.get(p.h1)===p.h2)return repV();   // 기보에 있던 국면
+    alpha=Math.max(alpha,-MATE+ply);beta=Math.min(beta,MATE-ply-1);if(alpha>=beta)return alpha;
+    const us=p.side,chk=attacked(p,p.k[us],us^1);
+    if(chk&&ply<48)d++;
+    if(d<=0)return qs(alpha,beta,0);
+    const ti=p.h1&(TT.n-1);let tm=0;
+    if(TT.h[ti]===p.h2){tm=TT.m[ti];if(TT.d[ti]>=d&&!pv){let v=TT.v[ti];if(v>MATE-1000)v-=ply;else if(v<-MATE+1000)v+=ply;const f=TT.f[ti];if(f===0||(f===1&&v>=beta)||(f===2&&v<=alpha))return v}}
+    const fb=facing(p),se=chk?-INF:evalJ(p);
+    if(!pv&&!chk&&!fb&&d<=3&&se-120*d>=beta&&Math.abs(beta)<MATE-1000)return se;   // 역 퓨틸리티
+    ph1.push(p.h1);ph2.push(p.h2);
+    if(nullOk&&!pv&&!chk&&!fb&&d>=3&&se>=beta&&hasBig(p,us)){   // 한 번 쉬어도 이기면 더 보지 않음
+      const R=d>6?3:2;make(p,PASS);const v=-ab(d-1-R,-beta,-beta+1,ply+1,false);unmake(p);
+      if(stop||v>=beta){ph1.pop();ph2.pop();return stop?0:beta}
+    }
+    const list=gen(p,[]);if(!chk)list.push(PASS);
+    const sc=scores(list,ply,tm),a0=alpha;let best=-INF,bm=0,n=0;
+    for(let k=0;k<list.length;k++){
+      const m=pickNext(list,sc,k),cap=cv(m);
+      make(p,m);if(attacked(p,p.k[us],us^1)){unmake(p);continue}
+      n++;
+      let v;
+      if(fb&&facing(p))v=0;   // 빅장을 응수하지 않으면 비김
+      else{
+        const gc=attacked(p,p.k[us^1],us);
+        if(n===1)v=-ab(d-1,-beta,-alpha,ply+1,true);
+        else{
+          let r=0;if(d>=3&&n>3&&!cap&&!chk&&!gc){r=1+(n>8?1:0)+(d>6&&n>16?1:0);if(pv)r=Math.max(0,r-1)}
+          v=-ab(d-1-r,-alpha-1,-alpha,ply+1,true);
+          if(v>alpha&&r)v=-ab(d-1,-alpha-1,-alpha,ply+1,true);
+          if(v>alpha&&v<beta)v=-ab(d-1,-beta,-alpha,ply+1,true);
+        }
+      }
+      unmake(p);
+      if(stop){ph1.pop();ph2.pop();return 0}
+      if(v>best){best=v;bm=m}
+      if(v>alpha)alpha=v;
+      if(alpha>=beta){if(!cap&&m!==PASS){const kk=killers[ply]||(killers[ply]=[0,0]);if(kk[0]!==m){kk[1]=kk[0];kk[0]=m}HIS[mF(m)*N+mT(m)]+=d*d}break}
+    }
+    ph1.pop();ph2.pop();
+    if(!n)return -MATE+ply;   // 장군인데 피할 수 없음 (장군이 아니면 쉬기가 있어서 n>0)
+    let sv=best;if(sv>MATE-1000)sv+=ply;else if(sv<-MATE+1000)sv-=ply;
+    TT.h[ti]=p.h2;TT.d[ti]=d;TT.v[ti]=sv;TT.m[ti]=bm;TT.f[ti]=best>=beta?1:best<=a0?2:0;
+    return best;
+  }
+  const root=(o.moves||legal(p)).slice();if(!root.length)return {m:0,v:0,d:0,nodes:0};
+  if(root.length===1)return {m:root[0],v:0,d:0,nodes:0};
+  const fb0=facing(p);
+  ph1.push(p.h1);ph2.push(p.h2);
+  let bestM=root[0],bestV=-INF,doneD=0,scored=[];
+  for(let d=1;d<=maxD&&!stop;d++){
+    const sc0=scores(root,0,bestM),ord=[];for(let k=0;k<root.length;k++)ord.push(pickNext(root,sc0,k));
+    const sc=[];let alpha=-INF,cur=0,cbv=-INF;
+    for(const m of ord){
+      let v;
+      if(fix&&fix.has(m))v=fix.get(m);
+      else{
+        const pn=pen&&pen.get(m)||0;
+        make(p,m);
+        if(fb0&&facing(p))v=0;
+        else{
+          const lo=alpha+pn;   // 감점을 뺀 값이 alpha를 넘어야 함
+          if(noise||!sc.length)v=-ab(d-1,-INF,-(lo-noise),1,true);
+          else{v=-ab(d-1,-lo-1,-lo,1,true);if(v>lo&&!stop)v=-ab(d-1,-INF,-lo,1,true)}
+        }
+        unmake(p);
+        v-=pn;
+      }
+      if(stop)break;
+      sc.push([m,v]);
+      if(v>cbv){cbv=v;cur=m}
+      if(v>alpha)alpha=v;
+    }
+    if(stop&&!noise&&sc.length&&sc[0][0]===bestM&&cbv>bestV){bestM=cur;bestV=cbv}   // 끊겨도 이번 깊이에서 더 좋은 수를 찾았으면 씀
+    if(stop)break;
+    bestM=cur;bestV=cbv;doneD=d;scored=sc;
+    if(Math.abs(bestV)>MATE-100)break;
+    if(Date.now()-t0>ms*.5)break;   // 다음 깊이를 끝내지 못할 것 같으면 그만
+  }
+  if(noise&&scored.length&&Math.abs(bestV)<MATE-1000){const top=Math.max(...scored.map(x=>x[1])),ok=scored.filter(x=>x[1]>top-noise);const x=ok[Math.random()*ok.length|0];if(x)return {m:x[0],v:x[1],d:doneD,nodes}}
+  return {m:bestM,v:bestV,d:doneD,nodes};
+}
+/* 난이도: 0 쉬움(위 botPick), 1 보통(짧게·깊이 4·흔들림), 2 어려움(길게·끝까지) */
+const LV=[null,{ms:450,depth:4,noise:45},{ms:1700,depth:64,noise:0}];
+function botPickLv(p,reps,mode,lv,ply){
+  if(!lv)return botPick(p,reps,mode);
+  const L=LV[lv]||LV[1],ok=[],fix=new Map(),pen=new Map();
+  for(const m of legal(p)){
+    const rs=repState(p,m,reps,mode);if(rs===1)continue;   // 네 번째 반복: 금수
+    make(p,m);
+    if(rs===2)fix.set(m,judgeCol(p)===(p.side^1)?MATE-2:-(MATE-2));   // 두면 바로 점수 판정 (이기면 한 수 외통 다음으로 좋음)
+    else if(reps){const c=reps[repKey(p)]||0;if(c)pen.set(m,15*c)}   // 왔던 국면은 조금 피함
+    unmake(p);
+    if(m===PASS)pen.set(m,(pen.get(m)||0)+6);   // 비슷하면 두는 쪽을
+    ok.push(m);
+  }
+  if(!ok.length)return 0;
+  const hist=new Map();if(reps)for(const k in reps){const [a,c]=k.split('.');hist.set(parseInt(a,36)|0,parseInt(c,36)|0)}
+  const noise=L.noise||(ply<6?15:0);   // 어려움도 첫 몇 수는 조금 섞어 매번 같은 판이 되지 않게
+  return think(p,{ms:L.ms*BOTSCALE,depth:L.depth,noise,hist,moves:ok,fix,pen,free:!!mode}).m||ok[0];
+}
+/* 일꾼(Web Worker): 같은 파일을 일꾼으로 띄워 생각을 맡김. 요청 {id, su, mv(기보), rep, lv} → 답 {id, u} */
+const IS_WORKER=typeof window==='undefined'&&typeof self!=='undefined'&&typeof importScripts==='function';
+if(IS_WORKER)self.onmessage=e=>{const d=e.data||{};try{const r=replay(d.su,d.mv||[]),m=botPickLv(r.p,r.reps,d.rep|0,d.lv|0,(d.mv||[]).length);self.postMessage({id:d.id,u:m?toU(m):''})}catch(err){self.postMessage({id:d.id,u:'',err:String(err)})}};
+const BOTW={w:null,fail:false,id:0,pend:null};
+function botWorker(){
+  if(BOTW.w||BOTW.fail)return BOTW.w;
+  try{if(typeof Worker==='undefined'||typeof document==='undefined'){BOTW.fail=true;return null}
+    const src=(document.querySelector('script[src*="games/janggi.js"]')||{}).src||'games/janggi.js';
+    BOTW.w=new Worker(src);BOTW.w.onmessage=e=>botReply(e.data);BOTW.w.onerror=()=>{BOTW.fail=true;BOTW.w=null;BOTW.pend=null}}catch(e){BOTW.fail=true;BOTW.w=null}
+  return BOTW.w;
+}
+
 /* ---------- 규칙 설명·방 설정 ---------- */
 G.rulesHTML='<ol class="rules"><li><b>목표</b> : 상대 장을 외통으로 몰면 승리합니다. 초가 먼저 둡니다</li><li><b>상차림</b> : 시작할 때 마·상 자리를 고릅니다. 초가 먼저, 한은 초를 보고 고릅니다</li><li><b>기물</b> : 차 가로·세로 끝까지 · 포 기물 하나를 넘어서(포끼리는 넘지도 잡지도 못함) · 마 곧게 한 칸 + 대각선 한 칸 · 상 곧게 한 칸 + 대각선 두 칸(가는 길이 막히면 못 감) · 장·사 궁성 안 한 칸 · 졸·병 앞·옆 한 칸. 궁성 안에서는 대각선으로도 갑니다</li><li><b>장군</b> : 장군을 풀지 않는 수는 둘 수 없습니다</li><li><b>한 수 쉬기</b> : 내 이름 칸을 눌러 쉽니다. 장군일 때는 쉴 수 없습니다</li><li><b>빅장</b> : 두 장이 사이에 아무것도 없이 마주 보면 빅장입니다. 응수한 뒤에도 마주 보면 무승부입니다</li><li><b>반복</b> : 같은 국면이 네 번째로 나오는 수는 둘 수 없습니다. 양쪽 모두 30점 미만이면 둘 수 있고, 점수로 승패를 정합니다</li><li><b>점수</b> : 차 13 · 포 7 · 마 5 · 상·사 3 · 졸·병 2, 한은 덤 1.5. 내 이름 칸을 눌러 점수 계산을 제안할 수 있습니다</li><li><b>시계</b> : 시간을 다 쓰면 패배합니다</li></ol>';
 G.modeDesc=['외통하면 끝','외통하면 끝'];
@@ -275,7 +480,7 @@ function pickCho(again){
   if(again&&L&&L.ns&&sameNames(ns,L.ns))return ns.indexOf(L.h);
   return typeof firstSeat==='function'?firstSeat(2):(Math.random()<.5?0:1);
 }
-function botDelay(){return rand(600,1500)}
+function botDelay(lv){return lv===2?rand(150,400):lv===1?rand(400,1000):rand(600,1500)}   // 어려움·보통은 생각하는 시간만큼 앞 기다림을 줄임
 function setMover(to,inc){
   const C=H.c,t=clock(),from=C.mv_;
   const cur=H.players[from];
@@ -283,7 +488,7 @@ function setMover(to,inc){
   if(inc&&from!==to&&cur&&!cur.bot)C.rem[from]+=C.R.inc*1000;
   C.mv_=to;H.turn=to;C.since=t;
   const nx=H.players[to];C.mvBot=nx&&nx.bot?1:0;
-  H.botActAt=nx&&nx.bot?t+botDelay():0;
+  H.botActAt=nx&&nx.bot?t+botDelay(typeof botLv==='function'?botLv(nx):0):0;
   mark();
 }
 const WHY_TXT={mate:'외통',time:'시간 초과',surrender:'항복',desert:'탈주',bik:'빅장',rep:'반복 · 점수',agree:'점수 계산',stuck:'둘 수 없음 · 점수',long:'수 제한 · 점수'};
@@ -360,13 +565,24 @@ function doOffer(seat){
   mark();
 }
 function timeout(){const C=H.c;finishGame(other(C.mv_),'time')}
+/* 봇 차례: 보통·어려움은 일꾼이 있으면 기보를 보내고 답을 기다림(그동안 방장 화면은 그대로 움직임), 없으면 바로 계산 */
 function botTurn(i){
   const C=H.c;
   if(C.ph==='set'){doSetup(i,botSetup());return}
-  const p=hostPos(),m=botPick(p,HC.reps,C.R.rep);
+  const lv=typeof botLv==='function'?botLv(H.players[i]):0,w=lv?botWorker():null;
+  if(w){const id=++BOTW.id;BOTW.pend={id,n:C.mv.length,seat:i,c:C,at:clock()};H.botActAt=0;try{w.postMessage({id,su:C.su.slice(),mv:C.mv.slice(),rep:C.R.rep,lv});return}catch(e){BOTW.pend=null;BOTW.fail=true;BOTW.w=null}}
+  const p=hostPos(),m=botPickLv(p,HC.reps,C.R.rep,lv,C.mv.length);
   if(!m||!doMove(i,toU(m)))finishScore('stuck');
 }
-G._test={startPos,legal,gen,make,unmake,attacked,inCheck,facing,score,judgeCol,repKey,repState,replay,toU,fromU,moveName,evalPos,botPick,setBotScale:f=>{BOTSCALE=f},doMove,doSetup,doOffer,timeout,pickCho,IX,X,Y,PASS,ZOL,SA,SANG,MA,PO,CHA,JANG,newPos,rehash,SETUPS};
+/* 일꾼의 답: 그사이 판이 바뀌었거나(다른 수·새 판·방장이 바뀜) 사람이 돌아왔으면 버림 */
+function botReply(d){
+  const P=BOTW.pend;if(!P||!d||d.id!==P.id)return;BOTW.pend=null;
+  if(typeof H==='undefined'||!H||H.c!==P.c||H.phase!=='play'||H.c.ph!=='play'||H.c.mv.length!==P.n||H.c.mv_!==P.seat)return;
+  const pl=H.players[P.seat];if(!pl||!pl.bot)return;
+  if(d.u&&doMove(P.seat,d.u))return;
+  const p=hostPos(),m=botPick(p,HC.reps,H.c.R.rep);if(!m||!doMove(P.seat,toU(m)))finishScore('stuck');
+}
+G._test={startPos,legal,gen,make,unmake,attacked,inCheck,facing,score,judgeCol,repKey,repState,replay,toU,fromU,moveName,evalPos,botPick,evalJ,think,botPickLv,BOTW,setBotScale:f=>{BOTSCALE=f},doMove,doSetup,doOffer,timeout,pickCho,IX,X,Y,PASS,ZOL,SA,SANG,MA,PO,CHA,JANG,newPos,rehash,SETUPS};
 G.engine={
   start(){
     const again=H.phase==='over',R={tm:Math.max(1,+H.cfg.tm||10),inc:Math.max(0,+H.cfg.inc||0),rep:+H.cfg.rep?1:0};
@@ -409,8 +625,9 @@ G.engine={
     if(p.bot&&!awayHuman(p)){
       if(!C.mvBot){C.rem[C.mv_]=Math.max(0,C.rem[C.mv_]-Math.max(0,t-C.since));C.mvBot=1}
       C.since=t;
-      if(!H.botActAt)H.botActAt=t+300;
-      if(t>=H.botActAt&&!(p.away&&t<p.awayAt+AWAY_WAIT))botTurn(C.mv_);
+      if(BOTW.pend&&(BOTW.pend.c!==C||BOTW.pend.n!==C.mv.length||t-BOTW.pend.at>15000)){BOTW.pend=null;if(!H.botActAt)H.botActAt=t+200}   // 답이 안 오거나 쓸모없어짐
+      if(!H.botActAt&&!BOTW.pend)H.botActAt=t+300;   // 방장이 바뀌는 등으로 예약이 사라졌으면 다시
+      if(H.botActAt&&t>=H.botActAt&&!(p.away&&t<p.awayAt+AWAY_WAIT))botTurn(C.mv_);
       return;
     }
     if(C.mvBot){C.mvBot=0;C.since=t}

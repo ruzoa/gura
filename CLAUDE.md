@@ -22,7 +22,7 @@
 | `games/yahtzee.js` | 야추다이스 (3D 컵·주사위·점수 종이) | `docs/yahtzee.md` |
 | `games/omok.js` | 오목 (렌주 규칙·오프닝·체스 시계·바둑통) | `docs/omok.md` |
 | `games/chess.js` | 체스 (0x88 엔진·Web Worker 봇·3D 기물) | `docs/chess.md` |
-| `games/janggi.js` | 장기 (상차림·빅장·반복 금수·점수 판정·쉬움 봇·3D 팔각 알) | `docs/janggi.md` |
+| `games/janggi.js` | 장기 (상차림·빅장·반복 금수·점수 판정·3단계 봇(Web Worker)·3D 팔각 알) | `docs/janggi.md` |
 | `games/blackjack.js` | 블랙잭 (슈·사람 딜러·3D 칩·최대 7명(사람 딜러 8명)) | `docs/blackjack.md` |
 | `games/poker.js` | 포커 (텍사스 홀덤 노 리밋·사이드 팟·쉬움 봇) | `docs/poker.md` |
 | `games/alkkagi.js`, `games/hand3d.js` | 알까기 (2~4명·물리는 방장만·3D 손·게임 모드 바둑/오목(2명, 아무 점에 놓거나 튕김)/장기(2명, 장기판·상차림, 알마다 크기·무게, 부딪히면 돎)·물건 놓기(바둑·장기, 희귀도·3·2·1 뒤 반응 시간 선착순 고르기 → 모두 동시에 놓기: 블랙홀·웜홀·벽돌·탱탱볼·얼음판·모래밭·점프대·폭탄·유리·끈끈이·랜덤박스·배신자의 길·지우개·선풍기·차단기·회전판·?)) | `docs/alkkagi.md` |

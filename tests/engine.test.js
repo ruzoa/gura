@@ -288,6 +288,9 @@ const JG=GAMES.janggi;
 run(`
 let jt=0;const j0=Date.now();
 for(let k=0;k<8;k++)jt+=playOutJ({tm:10,inc:10,pickfirst:k%2,rep:k%4===3?1:0});
+GAMES.janggi._test.setBotScale(.03);   // 보통·어려움: 생각 시간을 줄여 단계를 섞은 판 (3회까지·무제한)
+for(const [lvs,rep] of [[[1,2],0],[[2,0],0],[[0,1],1]])jt+=playOutJ({tm:10,inc:10,pickfirst:1,rep},lvs);
+GAMES.janggi._test.setBotScale(.3);
 console.log('janggi ticks',jt,'ms',Date.now()-j0,JSON.stringify(globalThis.JGW));
 `,'janggi.run');
 // 블랙잭: 규칙 단위 테스트 + 봇끼리 끝까지 (봇 딜러·사람 딜러)
