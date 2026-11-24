@@ -6,7 +6,7 @@
    카드를 가져간 사람이 다음 차례. 같은 종류가 '지는 장수'(기본 4)만큼 모이거나, 내 차례에 손패가 없으면 그 한 사람이 짐.
    판 ph: give(넘기기) → ask(받은 사람이 고름) ↔ peek(본 뒤 넘길 곳 고름) → show(공개) → give … → done */
 (function(){
-const G={id:'cockroach',name:'바퀴벌레 포커',short:'바퀴',lead:'거짓말로 벌레 카드를 떠넘기는 게임',dealAnim:true,maxHi:6,minN:2,noFast:true,oneBotLv:true,botLvs:['쉬움'],emptyHandOk:true};
+const G={id:'cockroach',name:'바퀴벌레 포커',short:'바퀴',lead:'거짓말로 벌레 카드를 떠넘기는 게임',dealAnim:true,maxHi:6,minN:2,noFast:true,emptyHandOk:true};
 
 /* ---------- 규칙 값 ---------- */
 const KN=8,CN=64,SHOW_MS=2700;
@@ -149,7 +149,7 @@ function startTurn(seat){
 function doGive(seat,id,cl,to){
   const O=H.cp,p=H.players[seat];
   p.hand.splice(p.hand.indexOf(id),1);H.seatNote={};
-  O.cs++;O.cur={id,cl,fr:seat,to,seen:[seat]};O.ph='ask';
+  O.cs++;O.cur={id,cl,fr:seat,to,seen:[seat],cls:[[seat,cl]]};O.ph='ask';
   addLog(`${p.name} → ${H.players[to].name} : ${KNAME(cl)}`);
   pushEv({k:'g',s:seat,to,cl});setTurn(to);
 }
@@ -159,13 +159,14 @@ function doPeek(seat){
 }
 function doPass(seat,cl,to){
   const O=H.cp,C=O.cur;H.seatNote={};
-  C.cl=cl;C.fr=seat;C.to=to;O.ph='ask';
+  C.cl=cl;C.fr=seat;C.to=to;O.ph='ask';(C.cls||(C.cls=[])).push([seat,cl]);
   addLog(`${H.players[seat].name} 넘김 → ${H.players[to].name} : ${KNAME(cl)}`);
   pushEv({k:'p',s:seat,to,cl});setTurn(to);
 }
 function doAnswer(seat,v){
   const O=H.cp,C=O.cur,truth=kindOf(C.id)===C.cl,ok=(v===1)===truth,tk=ok?C.fr:seat;
   O.ph='show';O.sh={v,ok:ok?1:0,tk,by:seat,at:clock()+SHOW_MS};
+  if(O.tr)for(const [s,c] of C.cls||[]){const r=O.tr[s];if(r){r[1]++;if(c===kindOf(C.id))r[0]++}}   // 공개된 카드로 각자 한 말의 참·거짓을 셈 (모두가 아는 정보)
   H.botActAt=0;H.deadline=clock()+864e5;
   addLog(`${H.players[seat].name} ${v?'진짜!':'구라!'} · ${KNAME(kindOf(C.id))}였음`,ok?'fin':'lie');
   pushEv({k:'a',s:seat,v,ok:ok?1:0,tr:truth?1:0,tk,id:C.id});mark();
@@ -181,6 +182,8 @@ const randClaim=id=>Math.random()<.5?kindOf(id):pickOne([...Array(KN).keys()].fi
 /* 쉬움 봇: 넘길 카드·말·사람은 무작위(말은 반은 진짜). 받으면 30%는 넘기고, 아니면 무작위로 고름.
    단, 내 손패와 펼쳐진 카드만으로 그 벌레 8장이 다 보이면 '가짜' */
 function botAct(i){
+  const lv=typeof botLv==='function'?botLv(H.players[i]):0;
+  if(lv>0){smartAct(i,lv);return}
   const O=H.cp,p=H.players[i];
   if(O.ph==='give'){const id=pickOne(p.hand);doGive(i,id,randClaim(id),pickOne(others(i)));return}
   if(O.ph==='peek'){doPass(i,randClaim(O.cur.id),pickOne(passTargets(i)));return}
@@ -190,6 +193,75 @@ function botAct(i){
   doAnswer(i,Math.random()<.5?1:0);
 }
 const PER_KIND=8;
+/* ---------- 봇 보통·어려움 ----------
+   보이는 정보만 씀: 내 손패, 모두의 펼친 카드, 손패 장수, 내가 몰래 본 카드, 공개된 카드로 센 각자의 참말 비율(어려움).
+   값의 단위는 '지는 쪽으로 얼마나 가까워지나'(1 = 바로 짐). 내가 가져갈 위험은 빼고, 남이 가져가면 W만큼 더함(누가 지든 나머지는 모두 승리) */
+const LVB=[null,{temp:.12,ansT:.06,W:.5,stats:0,maxT:0,deep:0,mix:[.3,.7]},{temp:.045,ansT:.025,W:.85,stats:1,maxT:1,deep:1,mix:[.4,.6]}];   // temp: 넘길 때 섞는 정도, ansT: 받았을 때, mix: 참말 비율 범위
+const sum=a=>a.reduce((x,y)=>x+y,0);
+/* 아직 안 보인 벌레 장수: 펼친 카드를 빼고, i가 있으면 그 사람 손패도 뺌 */
+function unseen(i){const u=Array(KN).fill(PER_KIND);if(i!=null)for(const id of H.players[i].hand)u[kindOf(id)]--;for(const c of H.cp.col)for(let k=0;k<KN;k++)u[k]-=c[k];return u.map(x=>Math.max(0,x))}
+/* 말이 참일 확률: 안 보인 장수 u와 말한 사람이 참말할 확률 t로 (베이즈) */
+function truthP(u,cl,t){const U=sum(u);if(!u[cl])return 0;if(U<=u[cl])return 1;const a=t*u[cl],b=(1-t)/(KN-1)*(U-u[cl]);return a/(a+b)}
+/* s가 벌레 k를 가져가면 얼마나 위험한가. h: 그때 s의 손패 장수(가져간 사람이 다음 차례라 0장이면 짐) */
+function danger(s,k,h){
+  const L=loseN(),c=H.cp.col[s][k]+1;if(c>=L)return 1;
+  if(h==null)h=H.players[s].hand.length;if(h<=0)return 1;
+  return Math.min(1,Math.pow(c/L,2.5)+(h===1?.25:h===2?.08:0));
+}
+const trustOf=(s,L)=>{const r=L.stats&&H.cp.tr&&H.cp.tr[s];if(!r)return .5;return (r[0]+2)/(r[1]+4)};   // 참말 비율 (처음엔 반반)
+function pickSoft(opts,temp){const m=Math.max(...opts.map(o=>o.v)),w=opts.map(o=>Math.exp((o.v-m)/temp));let r=Math.random()*sum(w);for(let j=0;j<opts.length;j++){r-=w[j];if(r<=0)return opts[j]}return opts[opts.length-1]}
+/* 넘길 카드·말·사람의 값. 받는 사람이 '진짜!'라고 할 확률(sayT):
+   보통은 모두가 아는 정보로 본 '말이 참일 확률'만큼, 어려움은 받는 사람도 자기가 가져갈 위험을 따져 덜 위험한 쪽을 고른다고 봄 */
+function sayTrue(t,c,P,up,mine,L){
+  if(!L.deep)return P;
+  const Ul=sum(up)-up[c];let eT=0,eM=0;
+  if(Ul>0)for(let k=0;k<KN;k++)if(k!==c&&up[k]){eT+=up[k]/Ul*danger(t,k);eM+=up[k]/Ul*mine[k]}
+  const vT=-(1-P)*eT+.8*P*mine[c],vL=-P*danger(t,c)+.8*(1-P)*eM;
+  return 1/(1+Math.exp(-(vT-vL)/.08));
+}
+function giveOpts(i,L,ids,targets,hAfter){
+  const up=unseen(null),opts=[],seenK=new Set(),mine=[...Array(KN).keys()].map(k=>danger(i,k,hAfter));
+  /* 어려움: 받는 사람이 보는 '안 보인 장수'를 어림 (모두가 아는 장수 - 받는 사람 손패의 기댓값, 2명이면 정확히 내 손패) */
+  const um=unseen(i),UM=sum(um),upOf=t=>{if(!L.deep||!UM)return up;const h=H.players[t].hand.length;return up.map((x,k)=>Math.max(0,x-um[k]*h/UM))};
+  for(const id of ids){const k=kindOf(id);if(seenK.has(k))continue;seenK.add(k);
+    for(const t of targets){const theirs=danger(t,k),ut=upOf(t);
+      for(let c=0;c<KN;c++){
+        const P=truthP(ut,c,.5),sayT=Math.max(.1,Math.min(.9,sayTrue(t,c,P,ut,mine,L))),corr=c===k?sayT:1-sayT;
+        opts.push({id,cl:c,to:t,v:-corr*mine[k]+L.W*(1-corr)*theirs});
+      }}}
+  return opts;
+}
+/* 넘기기 고르기: 카드 벌레·받을 사람을 먼저 고르고, 참말·거짓말은 반반 가까이(30~70%) 섞은 뒤 거짓말이면 어떤 벌레라고 할지 고름.
+   (말 여덟 개를 한꺼번에 고르면 거짓말이 일곱 개라 거짓말만 늘어 사람이 '구라!'만 외쳐도 이김) */
+function pickGive(i,L,ids,targets,hAfter){
+  const gs=new Map();
+  for(const o of giveOpts(i,L,ids,targets,hAfter)){const key=kindOf(o.id)*KN+o.to;let g=gs.get(key);if(!g)gs.set(key,g={tr:null,li:[]});if(o.cl===kindOf(o.id))g.tr=o;else g.li.push(o)}
+  const cand=[];
+  for(const g of gs.values()){const vL=Math.max(...g.li.map(o=>o.v)),x=Math.max(L.mix[0],Math.min(L.mix[1],.5+(g.tr.v-vL)*1.5));cand.push({g,x,v:x*g.tr.v+(1-x)*vL})}
+  const c=pickSoft(cand,L.temp);
+  return Math.random()<c.x?c.g.tr:pickSoft(c.g.li,L.temp);
+}
+/* 받았을 때: 진짜! / 구라! / 몰래 보고 넘기기 중 값이 큰 쪽 (가까운 값끼리는 섞음) */
+function smartAsk(i,L){
+  const C=H.cp.cur,cl=C.cl,u=unseen(i),P=truthP(u,cl,trustOf(C.fr,L)),Ul=sum(u)-u[cl];
+  const lieAvg=f=>{if(Ul<=0)return 0;let e=0;for(let k=0;k<KN;k++)if(k!==cl&&u[k])e+=u[k]/Ul*f(k);return e};   // 거짓말일 때 실제 벌레의 평균
+  const B=.15,opts=[];   // B: 위험이 작아도 맞을 것 같은 쪽을 고르게
+  if(P>0)opts.push({a:'t',v:-(1-P)*lieAvg(k=>danger(i,k))+L.W*P*danger(C.fr,cl)+B*(P-.5)});   // 그 벌레가 다 보이면 '진짜!'는 안 함
+  if(P<1)opts.push({a:'l',v:-P*danger(i,cl)+L.W*(1-P)*lieAvg(k=>danger(C.fr,k))+B*(.5-P)});
+  const tg=passTargets(i);
+  if(tg.length){   // 넘기면 내가 '넘긴 사람': 다음 사람이 맞히면(q) 내가 가져감
+    const q=.55,pass=k=>{const ds=tg.map(t=>danger(t,k)),d=L.maxT?Math.max(...ds):sum(ds)/ds.length;return -q*danger(i,k)+L.W*(1-q)*d};
+    if(P>0&&P<1)opts.push({a:'p',v:P*pass(cl)+(1-P)*lieAvg(pass)-.02});   // 확실하면 넘기지 않고 맞힘
+  }
+  return pickSoft(opts,L.ansT).a;
+}
+function smartAct(i,lv){
+  const O=H.cp,p=H.players[i],L=LVB[lv]||LVB[1];
+  if(O.ph==='give'){const o=pickGive(i,L,p.hand,others(i),p.hand.length-1);doGive(i,o.id,o.cl,o.to);return}
+  if(O.ph==='peek'){const o=pickGive(i,L,[O.cur.id],passTargets(i),p.hand.length);doPass(i,o.cl,o.to);return}
+  const a=smartAsk(i,L);
+  if(a==='p')doPeek(i);else doAnswer(i,a==='t'?1:0);
+}
 function timeout(){
   const O=H.cp,i=H.turn,p=H.players[i];
   addLog(`${p.name} 시간 초과`,'sys');
@@ -205,7 +277,7 @@ function doSurrender(seat){
   lose(seat,'sur',-1);
 }
 const okKind=k=>Number.isInteger(k)&&k>=0&&k<KN;
-G._test={KN,CN,SHOW_MS,kindOf,botAct,passTargets,loseN};
+G._test={KN,CN,SHOW_MS,kindOf,botAct,passTargets,loseN,truthP,danger,unseen,giveOpts,pickGive,smartAsk,LVB};
 G.engine={
   start(){
     Object.assign(H,{phase:'play',log:[],seatNote:{},field:[],last:null,reveal:null,shouts:[],pending:null,rankNext:1,known:{},turn:0,botActAt:0,deadline:0});
@@ -213,7 +285,7 @@ G.engine={
     H.players.forEach(p=>{p.finished=false;p.rank=null;p.surrendered=false;p.hand=[]});
     deck.forEach((id,j)=>H.players[j%n].hand.push(id));
     H.players.forEach(p=>p.hand.sort((a,b)=>a-b));
-    H.cp={gn:((H.cp&&H.cp.gn)||0)+1,ph:'give',col:H.players.map(()=>Array(KN).fill(0)),cur:null,sh:null,lo:null,cs:0,ev:[],sq:0};
+    H.cp={gn:((H.cp&&H.cp.gn)||0)+1,ph:'give',col:H.players.map(()=>Array(KN).fill(0)),cur:null,sh:null,lo:null,cs:0,ev:[],sq:0,tr:H.players.map(()=>[0,0])};
     const first=firstSeat(n);
     addLog(`${n}명 시작. ${H.players[first].name}부터 넘깁니다.`,'sys');
     setTurn(first);

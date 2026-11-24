@@ -67,4 +67,35 @@ for(let r=0;r<60;r++){
   if(lo.why==='sur')fail('cockroach bots surrendered');
 }
 function loseOf(){return +H.cfg.lose}
+/* 보통·어려움 봇 */
+eq(TT.truthP([0,5,5,5,5,5,5,5],0,.5),0,'claim impossible when all visible');
+eq(TT.truthP([5,0,0,0,0,0,0,0],0,.5),1,'claim certain when only kind left');
+for(const lv of [1,2]){const L=TT.LVB[lv];
+  /* 남의 손패 내용은 보지 않음: 다른 사람들 손패를 섞어도(장수 그대로) 값이 같음 */
+  setup(4);at0();{const v0=JSON.stringify(TT.giveOpts(0,L,H.players[0].hand,[1,2,3],H.players[0].hand.length-1).map(o=>o.v));
+    const pool=[1,2,3].flatMap(i=>H.players[i].hand),sh=shuffle(pool.slice());let j=0;for(const i of [1,2,3])H.players[i].hand=H.players[i].hand.map(()=>sh[j++]);
+    eq(JSON.stringify(TT.giveOpts(0,L,H.players[0].hand,[1,2,3],H.players[0].hand.length-1).map(o=>o.v)),v0,'bot ignores hidden hands lv'+lv)}
+  /* 참말·거짓말은 섞음 (30~70%) */
+  setup(3);at0();{let tr=0;const n=400;for(let r=0;r<n;r++){const o=TT.pickGive(0,L,H.players[0].hand,[1,2],H.players[0].hand.length-1);if(K(o.id)===o.cl)tr++}
+    if(tr<n*.3||tr>n*.7)fail('cockroach truth mix lv'+lv+' '+tr/n)}
+  /* 그 벌레 8장이 다 보이면 '진짜!'라고 하지 않음 */
+  setup(3);at0();{const k=anyKind(0),id=cardOf(0,k),cl=(k+1)%8;H.cp.col[2][cl]=0;
+    const mine=H.players[1].hand.filter(x=>K(x)===cl).length;H.cp.col[0][cl]=8-mine;   // 남은 것은 1번 손패에만
+    act(0,{t:'give',id,cl,to:1});let t=0;for(let r=0;r<50;r++)if(TT.smartAsk(1,L)==='t')t++;eq(t,0,'never trusts an impossible claim lv'+lv)}
+  /* 지는 장수 직전 벌레라고 하면 '구라!'는 거의 안 함 (틀리면 바로 짐) */
+  setup(3);at0();{const k=anyKind(0),id=cardOf(0,k),cl=(k+2)%8,P1=H.players[1],P2=H.players[2];   // 실제로 카드를 옮겨 맞는 국면: 1번은 cl이 3장 모였고 손에는 없음
+    P2.hand.push(...P1.hand.filter(x=>K(x)===cl));P1.hand=P1.hand.filter(x=>K(x)!==cl);
+    for(let m=0;m<3;m++){const src=P2.hand.some(x=>K(x)===cl)?P2:H.players[0],j=src.hand.findIndex(x=>K(x)===cl&&x!==id);src.hand.splice(j,1);H.cp.col[1][cl]++}
+    act(0,{t:'give',id,cl,to:1});
+    let l=0;for(let r=0;r<200;r++)if(TT.smartAsk(1,L)==='l')l++;if(l>20)fail('cockroach deadly claim answered lie lv'+lv+' '+l)}
+}
+/* 단계를 섞은 봇끼리: 끝까지, 카드 보존, 진 사람 한 명 */
+for(let r=0;r<30;r++){
+  const n=2+(r%5),lvs=[[1,2],[2,1],[0,1,2],[1,1],[2,2]][r%5];setup(n,0,{lose:3+(r%3),turn:30});
+  H.players.forEach((p,i)=>{p.bot=true;p.conn=null;p.lv=lvs[i%lvs.length]});H.botActAt=NOW+500;
+  let g=0;while(H.phase==='play'&&g++<20000){NOW+=250;engineTick();if(total()!==64){fail('cockroach lv cards '+total());break}}
+  if(H.phase!=='over'){fail('cockroach lv stuck n='+n);continue}
+  if(H.players.map(p=>p.rank).filter(x=>x===n).length!==1)fail('cockroach lv ranks');
+  if(H.cp.lo.why==='sur')fail('cockroach lv bots surrendered');
+}
 console.log('cockroach ok');
