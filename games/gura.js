@@ -651,5 +651,55 @@ G.init=()=>{
   cv.addEventListener('pointermove',e=>{if(!GLOW.on.length&&!cv.style.cursor)return;const c=e.pointerType==='mouse'&&canShoutV()&&topCardAt(e)?'pointer':'';if(cv.style.cursor!==c)cv.style.cursor=c});
 };
 
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음. 일꾼(Web Worker)으로 읽힐 때는 i18nGame이 없어 건너뜀 */
+G.i18n=typeof i18nGame!=='function'?null:i18nGame({
+'꼴찌가 나올 때까지':['Until a last place is decided','最下位が決まるまで'],
+'모든 자음으로 인정되는 카드':['Cards that count as any consonant','どの子音としても認められるカード'],
+'자음 수':['Consonants','子音の数'],
+'14자 = ㄱ~ㅎ, 15자부터 ㄲ·ㄸ·ㅃ·ㅆ·ㅉ 순으로 추가. 자음마다 4장':['14 = ㄱ–ㅎ; from 15, ㄲ·ㄸ·ㅃ·ㅆ·ㅉ are added in that order. 4 cards per consonant','14字 = ㄱ〜ㅎ、15字からㄲ·ㄸ·ㅃ·ㅆ·ㅉの順に追加。子音ごとに4枚'],
+'카드를 내고 다음 사람이 기다리는 시간':['How long the next player waits after cards are played','カードが出されたあと次の人が待つ時間'],
+'제한 시간 지나면 패스':['Pass when time runs out','制限時間を過ぎるとパス'],
+'첫 플레이어는 다음 사람에게 순서가 넘어갑니다':['If you are the first player, the turn passes to the next player','最初のプレイヤーなら次の人に番が回ります'],
+'자음':['Consonants','子音'],
+'{#0}자':['{0}','{0}字'],
+'별카드 {0}장 · 자음 {1}자 · 대기 시간 {2}초 · 제한 시간 {3}초':['Star cards {0} · Consonants {1} · Wait time {2}s · Time limit {3}s','スターカード{0}枚 · 子音{1}字 · 待ち時間{2}秒 · 制限時間{3}秒'],
+'자음 {0}자 · ★{1}':['Consonants {0} · ★{1}','子音{0}字 · ★{1}'],
+'카드 {#0}장 · 지금 {#1}명이면 1인당 약 {#2}장':['{0} cards · with {1} players now, about {2} each','カード{0}枚 · 今の{1}人なら1人あたり約{2}枚'],
+'{0} · {#1}명이 다 차면 약 {#2}장':['{0} · about {2} each when all {1} seats are filled','{0} · {1}人そろうと約{2}枚'],
+'· {#0}명이 다 차면 약 {#1}장':['· about {1} each when all {0} seats are filled','· {0}人そろうと約{1}枚'],
+'1인당 5장 미만이라 판이 너무 빨리 끝날 수 있습니다. 자음 수나 별카드를 늘리는 것을 추천합니다.':['With fewer than 5 cards each, the game may end too quickly. Try adding consonants or star cards.','1人あたり5枚未満なので、すぐに終わってしまうかもしれません。子音の数かスターカードを増やすのがおすすめです。'],
+'7~8명 탁자는 제한 시간 20초, 대기 시간 2초 정도로 짧게 하면 덜 지루합니다.':['At a table of 7–8, a time limit of about 20 seconds and a wait time of about 2 seconds keep things moving.','7〜8人のテーブルは、制限時間20秒・待ち時間2秒くらいに短くすると退屈しにくいです。'],
+'탈출':['Escaped','上がり'],
+'직전에 낸 카드를 의심합니다':['Doubt the cards just played','直前に出されたカードを疑います'],
+'선언 자음 이전':['Previous consonant','前の子音'],
+'라운드를 시작할 때 선언할 자음을 이전 자음(왼쪽)으로 바꿉니다':['At the start of a round, change the consonant to declare to the previous one (left)','ラウンド開始時に宣言する子音を前（左）に変えます'],
+'선언 자음 다음':['Next consonant','次の子音'],
+'라운드를 시작할 때 선언할 자음을 다음 자음(오른쪽)으로 바꿉니다':['At the start of a round, change the consonant to declare to the next one (right)','ラウンド開始時に宣言する子音を次（右）に変えます'],
+'"{0}" {1}장':['"{0}" ×{1}','「{0}」{1}枚'],
+'{0}: "{1}" {2}장':['{0}: "{1}" ×{2}','{0}：「{1}」{2}枚'],
+'{0} 마지막 카드! 구라가 없으면 탈출.':['{0}: last card! Escapes unless someone calls GURA.','{0} 最後のカード！GURAがなければ上がり。'],
+'{0} 패스':['{0} passes','{0} パス'],
+'{0} 시간 초과 패스':['{0} timed out, passes','{0} 時間切れでパス'],
+'모두 패스. 필드 {0}장 폐기.':['Everyone passed. {0} cards on the field discarded.','全員パス。場の{0}枚を捨てます。'],
+'{0}: "구라!" → {1}':['{0}: "GURA!" → {1}','{0}：「GURA!」→ {1}'],
+'걸렸다! {0} {#1}장 가져감.':['Caught! {0} takes {1} cards.','バレた！{0}が{1}枚取る。'],
+'진짜였다. {0} {#1}장 가져감.':['It was true. {0} takes {1} cards.','本当だった。{0}が{1}枚取る。'],
+'{0} 탈출! {1}위':['{0} escaped! Place {1}','{0} 上がり！{1}位'],
+'빠른 모드: 1등이 나와서 게임이 끝났습니다.':['Quick mode: the game ended when someone finished first.','スピードモード：1位が決まったのでゲーム終了です。'],
+'{0} 시간 초과. 다음 사람이 시작합니다.':['{0} timed out. The next player starts.','{0} 時間切れ。次の人から始めます。'],
+'{#0}명 게임 시작. {1}부터 시작합니다.':['{0}-player game started. {1} goes first.','{0}人でゲーム開始。{1}から始めます。'],
+'{#0}명 게임 시작 (별카드 {#1}장). {2}부터 시작합니다.':['{0}-player game started ({1} star cards). {2} goes first.','{0}人でゲーム開始（スターカード{1}枚）。{2}から始めます。'],
+'(별카드 {0}장)':['({0} star cards)','（スターカード{0}枚）'],
+'이전 자음':['Previous consonant','前の子音'],
+'다음 자음':['Next consonant','次の子音'],
+'선언할 자음':['Consonant to declare','宣言する子音'],
+'{0}장 내기':['Play {0}','{0}枚出す'],
+'{0} 선언':['Declare {0}','{0}を宣言'],
+'자음 선택':['Choose a consonant','子音を選ぶ']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : Be the first to play all the cards in your hand</li><li><b>Playing</b> : The first player picks a consonant. In turn, each player plays 1 or more cards of that consonant face down, or passes</li><li><b>GURA!</b> : If it looks like a lie, anyone can call it. You can call it until the next player plays; with your last card, you escape if the next player passes</li><li><b>Judging</b> : If it was a lie, the player who played takes the whole pile; if it was true, the caller takes it</li><li><b>Pass</b> : If everyone passes, the pile is discarded</li><li><b>Star cards</b> : Count as any consonant</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 先に手札をすべて出せば勝ちです</li><li><b>出す</b> : 最初の人が子音を1つ決めます。順番にその子音のカードを1枚以上伏せて出すか、パスします</li><li><b>GURA!</b> : うそっぽければ誰でも言えます。次の人がカードを出すまで言えます。最後のカードは次の人がパスすれば上がりです</li><li><b>判定</b> : うそなら出した人が、本当なら言った人が積まれたカードを全部取ります</li><li><b>パス</b> : 全員パスしたら積まれたカードは捨てます</li><li><b>スターカード</b> : どの子音としても認められます</li></ol>'}});
 (window.GAMES=window.GAMES||{}).gura=G;
 })();
