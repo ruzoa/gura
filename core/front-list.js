@@ -41,7 +41,7 @@ function frontBuildList(TG){
   rows.forEach((m,i)=>{const bt=document.createElement('button');bt.type='button';bt.className='fr-hot off fr-key';bt.id='frR'+i;bt.addEventListener('click',()=>frontListPick(i));fr.insertBefore(bt,$('#frFoot'))});
 }
 function frontListRooms(){return (FR.lrooms||[]).filter(roomOpen)}
-const PL_POOL=LANG==='ko'?'가나다라마바사아자차카타파하구오목야추대부호블랙잭쿼리도0123456789':'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';   // 넘어가는 동안 보이는 아무 글자 (언어에 맞춤)
+const PL_POOL={ko:'가나다라마바사아자차카타파하구오목야추대부호블랙잭쿼리도0123456789',ja:'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモ0123456789'}[LANG]||'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';   // 넘어가는 동안 보이는 아무 글자 (언어에 맞춤)
 /* 줄마다 보일 내용: [게임, 탁자 이름, 인원]. 찾는 중이면 첫 줄이 계속 돌고, 없으면 가운데 줄에 두 글자 */
 function frontListWant(){
   const rooms=frontListRooms(),pages=Math.max(1,Math.ceil(rooms.length/FR_ROWS)),pg=Math.min(FR.lpage||0,pages-1);

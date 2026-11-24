@@ -4,10 +4,10 @@
    한국어가 아니면 문서 글자(텍스트·title·aria-label·placeholder)·캔버스 글자(fillText·measureText)·확인 창(confirm·alert)을 사전으로 자동으로 바꿈.
    그래서 대부분은 사전에 더하기만 하면 되고, 글자를 한 자·한 낱말씩 쪼개 그리는 곳(디스플레이 플립·목록 판·규칙 판자)만 쪼개기 전에 __()를 씀. 자세한 것은 docs/i18n.md */
 /* ===== 언어 ===== */
-const LANGS={ko:'한국어',en:'English'};   // 고르는 버튼 이름 (번역하지 않음)
+const LANGS={ko:'한국어',en:'English',ja:'日本語'};   // 고르는 버튼 이름 (번역하지 않음)
 const LANG=(()=>{try{const v=localStorage.getItem('gura-lang');if(v&&LANGS[v])return v}catch(e){}return 'ko'})();
 const I18N={dict:{},pats:[],cache:new Map(),board:{},unit:{}};   // board: 디스플레이 4칸 플립 낱말(영어는 4글자 이하), unit: 숫자 옆 단위
-const DEF_NICK=LANG==='ko'?'나':'Me';   // 닉네임을 비웠을 때 (사전에 '나'를 넣지 않음: 남의 닉네임 '나'가 바뀌지 않게)   // board: 디스플레이 4칸 플립 낱말(영어는 4글자 이하)
+const DEF_NICK={ko:'나',en:'Me',ja:'わたし'}[LANG]||'나';   // 닉네임을 비웠을 때 (사전에 '나'를 넣지 않음: 남의 닉네임 '나'가 바뀌지 않게)   // board: 디스플레이 4칸 플립 낱말(영어는 4글자 이하)
 const HANGUL=/[가-힣ㄱ-ㅎ]/;   // 한글이 없는 글자는 바로 건너뜀
 /* 사전 더하기: 지금 언어의 것만 담음. 키에 {0}·{1}이 있으면 이미 만들어진 글자(방장이 보낸 기록, 이름이 든 문장)도 맞춰 바꿈 */
 I18N.add=(lang,d)=>{
@@ -21,6 +21,8 @@ I18N.add=(lang,d)=>{
   }
   I18N.pats.sort((a,b)=>b.len-a.len);I18N.cache.clear();
 };
+/* 사전 밖의 표 (board: 디스플레이 낱말, unit: 단위): 지금 언어의 것만 */
+I18N.set=(lang,key,d)=>{if(lang===LANG)Object.assign(I18N[key],d)};
 /* __('한국어 {0}', 값…): 코드에서 직접 쓰는 번역 (gettext처럼). 값은 {0}·{1} 자리에 넣음. t·tr 같은 짧은 이름은 게임 코드의 지역 변수(t=시각)와 겹쳐서 쓰지 않음 */
 function __(s,...a){
   if(s==null)return s;s=String(s);

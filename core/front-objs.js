@@ -146,7 +146,7 @@ function frontDrawBoard(force){
     g.fillStyle='rgba(0,0,0,.55)';g.fillRect(x,y0+fh/2-1.5,fw,3);
     if(f.ch&&f.ch!==' '){
       g.save();g.fillStyle=warn?'#ff9b84':'#f6ecd8';g.textAlign='center';g.textBaseline='middle';
-      const hang=/[가-힣]/.test(f.ch);g.font=`${hang?92:108}px "Black Han Sans", "Jua", "Apple SD Gothic Neo", sans-serif`;
+      const hang=/[가-힣\u3040-\u30ff\u3400-\u9fff]/.test(f.ch);g.font=`${hang?92:108}px "Black Han Sans", "Jua", "Apple SD Gothic Neo", sans-serif`;
       if(f.mid){g.globalAlpha=.85;g.translate(x+fw/2,y0+fh/2);g.scale(1,.86);g.fillText(f.ch,0,6)}else g.fillText(f.ch,x+fw/2,y0+fh/2+6);
       g.restore();
     }
