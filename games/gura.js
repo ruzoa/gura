@@ -529,14 +529,14 @@ G.field3D=(v,pv,me)=>{
   if(v.fc===0&&T.field.length){
     for(const c of T.field){
       const u=c.userData;
-      if(prevReveal){const tk=prevReveal.tk;const tp=tk===me?nearMe():seatPos(tk,3.85);u.p.set(tp.x,.3,tp.z);u.s=.5;u.rx=Math.PI/2}
+      if(prevReveal){const tk=prevReveal.tk;const tp=tk===me?nearMe():seatHand(tk,.3);u.p.set(tp.x,tk===me?.3:tp.y,tp.z);u.s=.5;u.rx=Math.PI/2}
       else{u.p.set(u.p.x*.3,-.6,-7.5);u.s=.6}
       u.die=true;
     }
     T.field=[];
   }
   if(v.fc>T.field.length){
-    let from=null;if(pv&&v.la){from=v.la.p===me?nearMe():seatPos(v.la.p,3.9);from.y=.8}
+    let from=null;if(pv&&v.la){from=v.la.p===me?nearMe():seatHand(v.la.p);if(v.la.p===me)from.y=.8}   // 남은 손패 자리(더미·부채꼴)에서
     while(T.field.length<v.fc){
       const spot=fieldSpot(T.field.length);
       const c=makeCard(from||spot,Math.PI/2,rand(-.6,.6),1);c.userData.p.copy(spot);T.field.push(c);

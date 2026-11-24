@@ -101,7 +101,7 @@ function frame(){
     const k=1-Math.exp(-dt*7);
     dealUpdate(t);
     for(const c of [...T.cards]){
-      const u=c.userData;if(u.man)continue;c.position.lerp(u.p,k);c.rotation.x+=(u.rx-c.rotation.x)*k;c.rotation.y+=(u.ry-c.rotation.y)*k;
+      const u=c.userData;if(u.man)continue;c.position.lerp(u.p,k);c.rotation.x+=(u.rx-c.rotation.x)*k;c.rotation.y+=(u.ry-c.rotation.y)*k;if(u.rz!=null)c.rotation.z+=(u.rz-c.rotation.z)*k;
       c.scale.setScalar(c.scale.x+(u.s-c.scale.x)*k);
       if(u.die&&c.position.distanceTo(u.p)<.1)killCard(c);
     }

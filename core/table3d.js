@@ -272,6 +272,50 @@ function makeCard(pos,rx,ry,s){
   T.scene.add(g);T.cards.add(g);return g;
 }
 function killCard(c){T.scene.remove(c);T.cards.delete(c)}
+/* ===== 남의 손패(뒷면): 탁자 위 더미, 또는 인형이 든 부채꼴 =====
+   부채꼴은 게임이 G.fanHold로 켬(테스트룸 lab-fan.html은 OPP_FAN.on). 자리마다 인형 앞, 탁자 가장자리 바로 위 공중에서 뒷면이 탁자 가운데를 봄.
+   OPP_FAN: s 카드 크기, r 탁자 중심에서 손까지, y 손 높이(탁자 윗면 0), tilt 위쪽이 인형 쪽으로 눕는 각도(°), step 장당 펼침(°), max 전체 펼침 상한(°),
+        n 펼치는 장수 상한(정확한 장수는 이름표), L 손에서 카드 가운데까지(카드 높이 배), hand 손 0 없음·1 공·2 장갑 */
+const OPP_FAN={on:0,s:.55,r:5.02,y:.06,tilt:22,step:8,max:110,n:13,L:.36,hand:1};
+const fanOn=()=>!!(OPP_FAN.on||G.fanHold);
+let FANH_GEO=null;
+function fanEuler(i){return new THREE.Euler(OPP_FAN.tilt*Math.PI/180,seatAngle(i),0,'YXZ')}
+function fanPivot(i){const p=seatPos(i,OPP_FAN.r);p.y=OPP_FAN.y;return p}
+/* 그 사람 손패가 있는 곳(낸 카드가 날아오기 시작하는 곳, 가져간 카드가 가는 곳). 더미면 높이 y */
+function seatHand(i,y){
+  if(!fanOn()){const p=seatPos(i,3.9);p.y=y!=null?y:.8;return p}
+  const h=.9*(T.cardK||1)*OPP_FAN.s;return fanPivot(i).add(new THREE.Vector3(0,OPP_FAN.L*h,-.02).applyEuler(fanEuler(i)));
+}
+function stackPose(i,arr){
+  const a=seatAngle(i);
+  if(!fanOn()){const sp=seatPos(i,3.85);arr.forEach((c,k)=>{const u=c.userData;u.p.set(sp.x,.03+k*.016,sp.z);u.ry=a;u.rx=Math.PI/2;u.rz=0;u.s=.8});fanHands(i,0);return}
+  const n=arr.length,h=.9*(T.cardK||1)*OPP_FAN.s,L=OPP_FAN.L*h,sp=Math.min(OPP_FAN.max,OPP_FAN.step*Math.max(0,n-1))*Math.PI/180,E=fanEuler(i),P=fanPivot(i),tx=OPP_FAN.tilt*Math.PI/180;
+  arr.forEach((c,k)=>{
+    const u=c.userData,ph=n>1?sp*(.5-k/(n-1)):0;
+    u.p.copy(P).add(new THREE.Vector3(-L*Math.sin(ph),L*Math.cos(ph),-k*.006).applyEuler(E));
+    u.rx=tx;u.ry=a;u.rz=ph;u.s=OPP_FAN.s;
+  });
+  fanHands(i,n);
+}
+/* 손: 카드 아래 가운데를 양쪽에서 쥔 둥근 나무 손 둘(앞쪽 = 탁자 가운데 쪽). 색은 인형 바탕색, 봇은 통나무 색 */
+function fanHands(i,n){
+  if(!T.oppHands)T.oppHands=new Map();
+  let F=T.oppHands.get(i);
+  if(!n||!OPP_FAN.hand){if(F){killCard(F.g);T.oppHands.delete(i)}return}
+  if(!FANH_GEO)FANH_GEO={b:new THREE.SphereGeometry(.085,16,12),k:new THREE.SphereGeometry(.105,16,12)};
+  if(!F){
+    const g=new THREE.Group();g.rotation.order='YXZ';const P=fanPivot(i);g.position.copy(P);g.scale.setScalar(.001);
+    const mat=toon({color:0x7b5534}),hs=[-1,1].map(sd=>{const m=new THREE.Mesh(FANH_GEO.b,mat);m.castShadow=true;const w=new THREE.Group();w.add(m);hull(FANH_GEO.k,m,w);w.userData.sd=sd;g.add(w);return w});
+    g.userData={p:P.clone(),rx:0,ry:seatAngle(i),s:0,die:false};T.scene.add(g);T.cards.add(g);
+    F={g,mat,hs,col:''};T.oppHands.set(i,F);
+  }
+  const p=V&&V.ps&&V.ps[i],v=p&&!p.b&&typeof avParse==='function'?avParse(p.av):null,col=v?AV_COL[v.c]:'#7b5534';
+  if(F.col!==col){F.mat.color.set(col);F.col=col}
+  const w=.62*(T.cardK||1)*OPP_FAN.s;
+  F.hs.forEach(hd=>{hd.position.set(hd.userData.sd*w*.3,-.03,-.06);hd.rotation.z=hd.userData.sd*.35;hd.scale.set(OPP_FAN.hand===2?1.25:1,OPP_FAN.hand===2?.82:1,OPP_FAN.hand===2?.62:1)});
+  const u=F.g.userData;u.p.copy(fanPivot(i));u.rx=OPP_FAN.tilt*Math.PI/180;u.ry=seatAngle(i);u.s=1;
+}
+function fanPose(){if(T.ok&&V&&V.ps&&V.st!=='wait'&&!T.deal)stacksSync(V,myIdx())}   // 테스트룸에서 값을 바꾸면 바로 다시 맞춤
 /* ===== 게임 시작 연출: 리플 셔플 → 커트 → 한 장씩 점점 빠르게 곡선을 타고 나누기 → 내 패가 고개를 들듯 일어나 부채꼴로 펼쳐짐
    카드게임만 (G.dealAnim). 방장이 그동안 시간을 멈춤(DEAL_MS). 늦게 들어오거나 다시 연결된 사람은 연출 없이 바로 보임 */
 const DL={split:[250,520],riffle:[520,960],square:[960,1060],cut1:[1080,1300],cut2:[1300,1500],slide:[1500,1600],deal:[1600,2500],lift:2700,liftDur:720,hold:90,fanDur:820};
@@ -545,19 +589,24 @@ function sync3D(v,pv){
   const fk=G.pre3D?G.pre3D(v):null;   // 3D가 없어도 필요한 표시 (대부호의 2D 조합)
   if(!T.ok)return;
   if(!v||!v.ps||v.st==='wait'){
-    T.field.forEach(killCard);T.field=[];T.fieldKey='';for(const arr of T.stacks.values())arr.forEach(killCard);T.stacks.clear();T.ring.visible=false;return;
+    T.field.forEach(killCard);T.field=[];T.fieldKey='';for(const arr of T.stacks.values())arr.forEach(killCard);T.stacks.clear();if(T.oppHands)for(const i of [...T.oppHands.keys()])fanHands(i,0);T.ring.visible=false;return;
   }
   const me=myIdx();
   if(T.seatKey!==v.ps.length+':'+me)resize3D();   // 인원·내 자리가 바뀌면 카메라를 다시 맞춤
   if(T.deal){G.field3D(v,pv,me,fk);return}
+  stacksSync(v,me);
+  G.field3D(v,pv,me,fk);   // 테이블 가운데 카드는 게임마다 다름
+}
+/* 남의 손패 뒷면: 장수를 맞추고 자리마다 더미(또는 부채꼴)로 */
+function stacksSync(v,me){
   for(const [i,arr] of T.stacks)if(i>=v.ps.length||i===me){arr.forEach(killCard);T.stacks.delete(i)}
+  if(T.oppHands)for(const i of [...T.oppHands.keys()])if(i>=v.ps.length||i===me||!T.stacks.has(i))fanHands(i,0);
+  const cap=fanOn()?OPP_FAN.n:14;
   v.ps.forEach((p,i)=>{
     if(i===me)return;
-    const want=Math.min(+p.c||0,14);let arr=T.stacks.get(i);if(!arr){arr=[];T.stacks.set(i,arr)}
+    const want=Math.min(+p.c||0,cap);let arr=T.stacks.get(i);if(!arr){arr=[];T.stacks.set(i,arr)}
     while(arr.length>want)killCard(arr.pop());
-    while(arr.length<want){const sp=seatPos(i,3.85);sp.y=.5;arr.push(makeCard(sp,Math.PI/2,seatAngle(i),.8))}
-    const sp=seatPos(i,3.85);
-    arr.forEach((c,k)=>{c.userData.p.set(sp.x,.03+k*.016,sp.z);c.userData.ry=seatAngle(i);c.userData.rx=Math.PI/2;c.userData.s=.8});
+    while(arr.length<want){const sp=fanOn()?seatHand(i):seatPos(i,3.85);if(!fanOn())sp.y=.5;arr.push(makeCard(sp,fanOn()?OPP_FAN.tilt*Math.PI/180:Math.PI/2,seatAngle(i),fanOn()?.2:.8))}   // 부채꼴이면 손에서 생겨남(가져간 카드는 손으로 날아가 사라짐)
+    stackPose(i,arr);
   });
-  G.field3D(v,pv,me,fk);   // 테이블 가운데 카드는 게임마다 다름
 }
