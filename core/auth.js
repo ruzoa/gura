@@ -8,7 +8,7 @@
    · 도토리: 판이 끝나면(결과 화면) 끝까지 한 사람 1개, 왕관(1등)이면 1개 더. 하루(한국 시각) 30개까지, 받은 뒤 1분 안에는 다시 못 받음.
      같은 제한을 Firestore 보안 규칙(firebase/firestore.rules)이 지킴. 서버가 없어서 게임 결과 자체는 확인하지 못함(돈이 오가지 않는 동안은 받아들임)
    · Firebase SDK는 로그인한 적이 있거나 로그인을 누르거나 방장이 확인할 때만 받음(게스트는 받지 않음) */
-const FB_CONF={apiKey:'',authDomain:'',projectId:'',appId:''};   // Firebase 콘솔 → 프로젝트 설정 → 웹 앱의 값을 넣으면 켜짐
+const FB_CONF={apiKey:'AIzaSyCGVsh3kaFWLPppvBuFH-E-YDarb0izPRA',authDomain:'a-table-1470f.firebaseapp.com',projectId:'a-table-1470f',appId:'1:304752341903:web:f7d91b5d0446147c5991fa'};   // Firebase 콘솔 → 프로젝트 설정 → 웹 앱의 값을 넣으면 켜짐
 const FB_VER='10.12.2';
 const AUTH_ON=!!((FB_CONF.apiKey&&FB_CONF.projectId)||window.AUTH_MOCK);
 const ACORN_DAY=30,ACORN_GAP=60e3;
