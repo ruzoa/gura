@@ -107,7 +107,7 @@ function newRound(){
   B.order.forEach(i=>{if(H.players[i].bot)B.botAt[i]=t+rand(700,2400)});
   H.seatNote={};
   H.deadline=t+H.cfg.turn*1000;H.botActAt=0;H.turn=firstUnbet();
-  addLog(`${B.rd}판${B.hd&&B.dl>=0?` · 딜러 ${nm(B.dl)}`:''}`,'sys');
+  addLog(`${B.rd}번째 판${B.hd&&B.dl>=0?` · 딜러 ${nm(B.dl)}`:''}`,'sys');   // '{0}판'(판 수)과 다른 말로: 번역에서 '몇 판'과 '몇 번째 판'을 가름
   B.sq++;mark();
 }
 function placeBet(i,a){
@@ -1356,5 +1356,62 @@ G.init=()=>{
   cv.addEventListener('pointerup',e=>gestUp(e,false));cv.addEventListener('pointercancel',e=>gestUp(e,true));
 };
 
+/* ===== 번역 (English·日本語) =====
+   화면 문구는 한국어로 쓰고 여기에 [영어, 일본어]를 한 줄로 같이 더함(docs/i18n.md). 키는 화면에 나오는 글자 그대로(앞뒤 빈칸 없이), 바뀌는 값은 {0}·{1}.
+   게임 방법은 rulesHTML을 통째로. 공통 사전(lang/*.js)에 있는 말은 넣지 않음. 일꾼(Web Worker)으로 읽힐 때는 i18nGame이 없어 건너뜀 */
+G.i18n=typeof i18nGame!=='function'?null:i18nGame({
+'엎은 카드':['Face-down card','伏せたカード'],
+'정한 판 수까지':['Until the set number of rounds','決めた回数まで'],
+'시작 칩':['Starting chips','初期チップ'],
+'모두 같은 수의 칩으로 시작합니다':['Everyone starts with the same number of chips','全員同じ数のチップで始めます'],
+'판 수':['Rounds','回数'],
+'이 판 수를 마치면 칩이 가장 많은 사람이 이깁니다':['After this many rounds, the player with the most chips wins','この回数を終えると、チップが一番多い人の勝ちです'],
+'시간이 지나면 베팅은 최소 칩, 차례는 스탠드':['When time runs out, the bet is the minimum and your turn is a stand','時間を過ぎるとベットは最低額、手番はスタンドになります'],
+'카드 벌 수':['Decks','デッキ数'],
+'이만큼의 카드를 한 통에 섞어 쓰고, 다음 판을 나눌 만큼 남지 않을 때 다시 섞습니다':['This many decks are shuffled together in one shoe, and reshuffled when there are not enough left to deal the next round','この数のデッキを1つにまとめて使い、次の回を配るだけ残っていなければ混ぜ直します'],
+'사람 딜러':['Player dealer','プレイヤーディーラー'],
+'봇 딜러':['Bot dealer','ボットディーラー'],
+'켜면 참가자가 돌아가며 딜러를 맡고, 끄면 봇 딜러가 맡습니다':['On: players take turns as the dealer. Off: a bot is the dealer','オンにすると参加者が交代でディーラーを務め、オフならボットがディーラーです'],
+'{#0}판':['{0} rounds','{0}回'],
+'시작 칩 {#0}개 · {#1}판 · {2} · 카드 {#3}벌 · 제한 시간 {#4}초':['Starting chips {0} · {1} rounds · {2} · {3} decks · Time limit {4}s','初期チップ{0}枚 · {1}回 · {2} · カード{3}組 · 制限時間{4}秒'],
+'{0} · {#1}판':['{0} · {1} rounds','{0} · {1}回'],
+'더블':['Double','ダブル'],
+'처음 두 장일 때 건 칩을 두 배로 하고 한 장만 더 받습니다 (구라!와 같은 키)':['On your first two cards, double your bet and take just one more card (same key as Gura!)','最初の2枚のとき賭けを2倍にして1枚だけ引きます（グラ！と同じキー）'],
+'베팅 늘리기':['Increase bet','ベットを増やす'],
+'걸 칩을 10개 늘립니다':['Adds 10 chips to your bet','賭けるチップを10枚増やします'],
+'베팅 줄이기':['Decrease bet','ベットを減らす'],
+'걸 칩을 10개 줄입니다':['Removes 10 chips from your bet','賭けるチップを10枚減らします'],
+'카드가 떨어져 다시 섞습니다.':['Out of cards, reshuffling.','カードが尽きたので混ぜ直します。'],
+'{#0}번째 판':['Round {0}','{0}回目'],
+'{#0}번째 판 · 딜러 {1}':['Round {0} · Dealer {1}','{0}回目 · ディーラー {1}'],
+'카드를 다시 섞습니다.':['Reshuffling the cards.','カードを混ぜ直します。'],
+'{0} 블랙잭!':['{0} Blackjack!','{0} ブラックジャック！'],
+'딜러 블랙잭!':['Dealer Blackjack!','ディーラー ブラックジャック！'],
+'{0} 버스트 ({#1})':['{0} bust ({1})','{0} バスト（{1}）'],
+'{0} 더블':['{0} doubles','{0} ダブル'],
+'{0} 더블 · 버스트 ({#1})':['{0} doubles · bust ({1})','{0} ダブル · バスト（{1}）'],
+'딜러 버스트 ({#0})':['Dealer bust ({0})','ディーラー バスト（{0}）'],
+'딜러 {0} 칩이 모자라 가진 만큼 나눠 줍니다.':['Dealer {0} doesn\'t have enough chips and pays out what they have.','ディーラー {0} はチップが足りないので、持っている分だけ配ります。'],
+'딜러 {0} · {1}':['Dealer {0} · {1}','ディーラー {0} · {1}'],
+'버스트':['Bust','バスト'],
+'{0} 칩이 떨어졌습니다.':['{0} is out of chips.','{0} チップがなくなりました。'],
+'{#0}명 게임 시작 · 칩 {#1}개 · {#2}판 · {3}':['{0}-player game started · {1} chips · {2} rounds · {3}','{0}人でゲーム開始 · チップ{1}枚 · {2}回 · {3}'],
+'시간 초과 · {0} 최소 칩':['Time out · {0} minimum bet','時間切れ · {0} 最低額'],
+'{0} 시간 초과 · 스탠드':['{0} timed out · stand','{0} 時間切れ · スタンド'],
+'히트':['Hit','ヒット'],
+'베팅':['Bet','ベット'],
+'칩 {#0}개':['{0} chips','チップ{0}枚'],
+'{0} · 칩 {#1}개':['{0} · {1} chips','{0} · チップ{1}枚'],
+'스탠드':['Stand','スタンド'],
+'딜러':['Dealer','ディーラー'],
+'{#0} / {#1}판':['Round {0} / {1}','{0} / {1}回'],
+'딜러 · 나':['Dealer · Me','ディーラー · 自分'],
+'{#0}개 더':['{0} more','{0}枚追加'],
+'모두 빼기':['Clear all','全部戻す'],
+'가진 칩 모두':['All my chips','手持ちチップ全部'],
+'올인':['All in','オールイン']
+},{
+en:{rulesHTML:'<ol class="rules"><li><b>Goal</b> : The player with the most chips when the set number of rounds is over wins. You are out if you have fewer than 10 chips</li><li><b>Betting</b> : Bet chips each round (at least 10)</li><li><b>Cards</b> : A counts as 1 or 11, and J·Q·K as 10. The dealer keeps one card face down</li><li><b>Your turn</b> : Hit one more card · Stand stop · Double on your first two cards, double your bet and take exactly one card. Going over 21 is a bust and you lose</li><li><b>Dealer</b> : Must draw on 16 or less</li><li><b>Payout</b> : If you are closer to 21 than the dealer you win your bet, and a 21 with your first two cards (blackjack) pays 1.5×. A tie is a draw</li><li><b>Player dealer</b> : When turned on in the settings, players take turns as the dealer</li><li><b>Gestures</b> : Double-tap the table to hit · Swipe sideways past the cards to stand · Push chips forward to bet</li></ol>'},
+ja:{rulesHTML:'<ol class="rules"><li><b>目標</b> : 決めた回数が終わったとき、チップが一番多ければ勝ちです。チップが10枚より少なくなると脱落です</li><li><b>ベット</b> : 毎回チップを賭けます（最低10枚）</li><li><b>カード</b> : Aは1か11、J・Q・Kは10です。ディーラーは1枚を伏せておきます</li><li><b>自分の番</b> : ヒット もう1枚 · スタンド 止める · ダブル 最初の2枚のとき賭けを2倍にしてちょうど1枚。21を超えるとバストで負けです</li><li><b>ディーラー</b> : 16以下なら必ずもう1枚引きます</li><li><b>精算</b> : ディーラーより21に近ければ賭けた分を受け取り、最初の2枚が21（ブラックジャック）なら1.5倍です。同じなら引き分けです</li><li><b>プレイヤーディーラー</b> : 設定でオンにすると、参加者が交代でディーラーを務めます</li><li><b>手ぶり</b> : テーブルを2回タップでヒット · カードの横をスワイプでスタンド · チップを前に押し出してベット</li></ol>'}});
 (window.GAMES=window.GAMES||{}).blackjack=G;
 })();
