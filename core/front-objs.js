@@ -446,7 +446,7 @@ if(pv>.01)frontDrawList(t);
     const hp=FR.holdAt?clamp01((t-FR.holdAt)/500):0;S.cap.position.y=.15-.06*Math.min(1,hp*3);
     $('#frStart').style.setProperty('--p',hp);$('#frStart').setAttribute('aria-disabled',String(!can));
     if(FR.holdAt&&hp>=1){FR.holdAt=0;if(mode==='host'&&H&&H.phase==='wait'){if(canStart()){sfx('btnGo');hostStart()}else frontNeedSeats()}}}
-  pouchUpdate(t,wait);   // 복주머니 (core/pouch.js, 로그인이 켜져 있을 때만)
+  pouchUpdate(t,wait);   // 도토리 주머니 (core/pouch.js, 로그인이 켜져 있을 때만)
   frontLayout(lobby,wait,host,t);
 }
 /* 홀로그램: idle = 지금 게임 말 하나가 투사기 위에서 천천히 돎, browse = 가운데 크게·양옆 작게 */

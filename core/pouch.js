@@ -1,5 +1,5 @@
-/* index.html 공통 코드 · 대기실 복주머니(도토리 주머니). 파일 순서는 index.html의 <script src> 순서 */
-/* ===== 복주머니 =====
+/* index.html 공통 코드 · 대기실 도토리 주머니(복주머니 모양이지만 복주머니는 아님: '복' 글자 없음). 파일 순서는 index.html의 <script src> 순서 */
+/* ===== 도토리 주머니 =====
    디스플레이 오른쪽 나무 띠(시작 버튼과 맞은 자리)에서 구멍이 열리고 올라옴. 로그인이 켜져 있을 때(AUTH_ON) 대기실에서 내 자리에 앉아 있으면 보임
    · 게스트: 납작한 빈 주머니. 누르면 로그인 꼬리표(core/auth.js)
    · 로그인: 도토리가 많을수록 통통해짐(100개쯤이면 가득). 누르면 입구가 벌어지며 도토리가 보이고 꼬리표에 개수
@@ -18,7 +18,7 @@ function pouchBuild(TG){
   if(!AUTH_ON)return;
   const hole=frontHole(TG,PO_X,.003,PO_Z,.3);
   const g=new THREE.Group();g.position.set(PO_X,-.55,PO_Z);g.visible=false;TG.add(g);
-  const tilt=new THREE.Group();tilt.rotation.x=-.5;tilt.scale.setScalar(1.25);g.add(tilt);   // 앉은 눈에 앞(복 무늬)이 보이게 뒤로 기댐
+  const tilt=new THREE.Group();tilt.rotation.x=-.5;tilt.scale.setScalar(1.25);g.add(tilt);   // 앉은 눈에 앞이 보이게 뒤로 기댐
   const bag=new THREE.Group();tilt.add(bag);   // 통통함(scale)은 이 묶음에
   const red=toon({color:0xd23a40,rim:.3}),cord=toon({color:0x2d5fb0,rim:.3}),gold=toon({color:0xf2c14e,rim:.3});
   // 몸통: 둥근 바닥에서 목으로 모이는 주머니. 목 가까이는 잔주름
@@ -42,14 +42,9 @@ function pouchBuild(TG){
     const c=new THREE.Mesh(new THREE.CylinderGeometry(.009,.009,len,6),cord);c.position.copy(mid);c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),b.clone().sub(a).normalize());bag.add(c);
     const ts=new THREE.Mesh(new THREE.CylinderGeometry(.012,.03,.08,10),gold);ts.position.set(s*.058,.16,.24);ts.rotation.x=.18;bag.add(ts);hull(new THREE.CylinderGeometry(.016,.036,.09,10),ts,bag);
   }
-  // 앞의 '복' 무늬
-  const cv=document.createElement('canvas');cv.width=cv.height=128;const c2=cv.getContext('2d');
-  c2.fillStyle='#f2c14e';c2.beginPath();c2.arc(64,64,60,0,7);c2.fill();c2.strokeStyle='#b8862a';c2.lineWidth=6;c2.beginPath();c2.arc(64,64,52,0,7);c2.stroke();
-  c2.fillStyle='#b0262c';c2.font='72px "Black Han Sans","Jua",sans-serif';c2.textAlign='center';c2.textBaseline='middle';c2.fillText('복',64,70);
-  const patch=new THREE.Mesh(new THREE.CircleGeometry(.07,32),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv),transparent:true}));patch.position.set(0,.15,.2275);patch.rotation.x=-.06;bag.add(patch);
   // 입구에서 보이는 도토리 (열렸을 때)
   const peek=[[-.04,.0,.01,.4],[.045,-.005,-.02,-.5],[0,.01,-.045,.1]].map(([x,y,z,r])=>{const a=pouchAcorn();a.position.set(x,y,z);a.rotation.z=r;a.visible=false;frill.add(a);return a});
-  T.pouch={g,bag,frill,peek,hole,patch,TG};
+  T.pouch={g,bag,frill,peek,hole,TG};
 }
 /* 도토리 수 → 통통함 0..1 */
 const pouchFull=()=>AU.user&&AU.prof?Math.min(1,Math.log10(1+(AU.prof.acorn|0))/2):0;

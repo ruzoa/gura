@@ -1,6 +1,6 @@
 /* index.html 공통 코드 · 로그인(구글)·도토리. 파일 순서는 index.html의 <script src> 순서 */
 /* ===== 로그인·도토리 =====
-   · 꺼짐: FB_CONF가 비어 있으면 모두 꺼짐(로그인·g. 표시·복주머니 없음, 지금과 같음). 켜는 방법은 docs/login.md
+   · 꺼짐: FB_CONF가 비어 있으면 모두 꺼짐(로그인·g. 표시·도토리 주머니 없음, 지금과 같음). 켜는 방법은 docs/login.md
    · 게스트: 로그인 없이 그대로 놂. 닉네임 앞에 작고 흐린 'g.'(방장이 붙임). 아바타는 모양(종류·동물)만, 장식·색칠은 잠김
    · 구글 로그인: 처음 로그인하면 탁자에서 쓸 이름을 정함(구글 이름은 쓰지 않음). 닉네임·아바타·칠한 그림·도토리가 계정에 저장됨(users/{uid})
    · 방장 확인: 로그인한 사람은 자기 PeerJS 번호를 peers/{uid}에 적고(본인만 쓸 수 있음), hello에 uid를 실음.
@@ -136,7 +136,7 @@ function auLogout(){
   if(!AU.user)return;
   auFb().then(fb=>fb.logout()).catch(()=>{});AU.open=false;auTagDraw();sfx('pick');
 }
-/* ---- 나무 꼬리표 (복주머니를 누르거나, 잠긴 꾸미기를 누르면) ---- */
+/* ---- 나무 꼬리표 (도토리 주머니를 누르거나, 잠긴 꾸미기를 누르면) ---- */
 function auTagOpen(from){
   if(!AUTH_ON)return;
   if(AU.open&&AU.from===from){auTagClose();return}   // 다시 누르면 닫힘
@@ -180,7 +180,7 @@ $('#acTag').addEventListener('submit',e=>{
 });
 document.addEventListener('click',e=>{if(AU.open&&!e.acHit&&!e.pouchHit)auTagClose()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&AU.open)auTagClose()});
-/* 꼬리표 자리: 복주머니가 보이면 그 위, 아니면 화면 아래 가운데 */
+/* 꼬리표 자리: 도토리 주머니가 보이면 그 위, 아니면 화면 아래 가운데 */
 function auTagPlace(rect,W,Hh){
   const el=$('#acTag');if(!AU.open||el.hidden)return;
   const w=el.offsetWidth||220,h=el.offsetHeight||120;let x,y;
