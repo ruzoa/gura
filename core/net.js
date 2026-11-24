@@ -397,7 +397,7 @@ document.addEventListener('visibilitychange',()=>{
   if(mode==='guest'&&!net.retry&&!(net.conn&&net.conn.open))guestReconnect();
 });
 function enterRoom(){$('#lobby').hidden=true}
-function myNick(){return ($('#inNick').value.trim().replace(/^g\./i,'').trim()||'나').slice(0,10)}
+function myNick(){return ($('#inNick').value.trim().replace(/^g\./i,'').trim()||DEF_NICK).slice(0,10)}
 function saveNick(){store('gura-nick',myNick())}
 function roomLink(code){return location.origin+location.pathname+'?room='+code.toUpperCase()}
 

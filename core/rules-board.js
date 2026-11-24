@@ -240,7 +240,7 @@ function rbDrawSet(g,idx,t){
         g.fillStyle='rgba(0,0,0,.55)';g.fillRect(x,y0+fh/2-1.5,C.w,3);
         const ch=str[d];if(ch&&ch!==' '){g.save();g.fillStyle='#f6ecd8';g.textAlign='center';g.textBaseline='middle';g.font=`${Math.round(fh*.76)}px "Black Han Sans","Jua",sans-serif`;
           if(mid){g.translate(x+C.w/2,y0+fh/2+3);g.scale(1,Math.abs(Math.cos(fk*Math.PI))*.8+.2);g.globalAlpha=.85;g.fillText(fk<.5?String(A.from).padStart(C.nd,' ')[d]||'':ch,0,0)}else g.fillText(ch,x+C.w/2,y0+fh/2+3);g.restore()}}
-      if(it.unit)rbBurn(g,()=>{g.font=`${T2?46:40}px ${RB_BODY}`;g.textAlign='left';g.textBaseline='middle';g.fillText(it.unit,c.unit[0],c.unit[1]+3)});
+      if(it.unit)rbBurn(g,()=>{g.font=`${T2?46:40}px ${RB_BODY}`;g.textAlign='left';g.textBaseline='middle';g.fillText(__u(it.unit),c.unit[0],c.unit[1]+3)});
     }else if(it.kind==='tog'){   // 스위치: 판자에 파낸 홈 + 동그란 놋쇠 손잡이. 손잡이 왼쪽 홈은 밝고(꿀빛) 오른쪽은 어두움(그늘진 나무) → 오른쪽 끝 = 켜짐 = 홈 전체 밝음
       const S2=c.sw,gx=S2.x,gw=S2.w,gh=S2.h,gy=c.cy-gh/2,p=A.from+(v-A.from)*e,m=5,kr=gh/2-m,kx=gx+m+kr+(gw-2*(m+kr))*p,lit=kx+(kr+m)*(2*p-1);
       g.fillStyle='rgba(255,235,200,.35)';rr(g,gx-2,gy+2,gw+4,gh+2,gh/2+2);g.fill();   // 파낸 자리 아래쪽 밝은 턱

@@ -22,6 +22,13 @@ function drawTrumpCorner(g,k,lab,su,suitFirst){
 /* ===== 게임 목록 =====
    G = 지금 화면에 보이는 게임, EG() = 방장 엔진이 돌리는 게임 (방장 화면에서는 둘이 같음) */
 const GAME_IDS=['gura','president','quoridor','yahtzee','omok','chess','janggi','blackjack','poker','alkkagi','blackwhite','animal','baseball','pixel','abalone','mind','bohnanza','robo77','davinci','onecard','mia','cockroach','liardice','rummi','snakes'];
+/* 언어: 게임 이름·한 줄 소개는 lang/<언어>.js 사전으로, 게임 방법 등 게임마다 다른 것은 게임 파일의 G.i18n[언어]로 바꿈
+   G.i18n={en:{rulesHTML:'…', strings:{'한국어':'English'}}}: strings는 사전에 더하고 나머지 값은 게임에 덮어씀 (한국어면 아무것도 안 함) */
+if(LANG!=='ko')for(const g of Object.values(GAMES)){
+  const o=g.i18n&&g.i18n[LANG];
+  if(o){if(o.strings)I18N.add(LANG,o.strings);for(const k in o)if(k!=='strings')g[k]=o[k]}
+  for(const k of ['name','short','lead'])if(typeof g[k]==='string')g[k]=__(g[k]);
+}
 let G=GAMES.gura;
 const EG=()=>(H&&H.cfg&&GAMES[H.cfg.game])||GAMES.gura;
 const gameOf=id=>GAMES[id]||GAMES.gura;

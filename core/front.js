@@ -226,7 +226,7 @@ function frontLeave(){const home=FR.ok&&mode==='guest';leaveRoom();if(home)front
 function frontGoHome(){if(!FR.ok||mode!=='lobby'||net.peer)return;FR.sit=true;frontWarpStart('');FR.mkAt=clock();frontMakeHome()}
 /* 닉네임 바꾸기 (첫 화면 이름표·대기실 내 이름표). 대기실이면 이름표도 바로 바뀜 */
 function frontSetNick(v){
-  v=String(v||'').trim().slice(0,10)||'나';if(v===myNick())return;
+  v=String(v||'').trim().slice(0,10)||DEF_NICK;if(v===myNick())return;
   $('#inNick').value=v;saveNick();frontNick();const s=$('#nickShow');if(s)s.textContent=v;document.querySelectorAll('.nickShow2').forEach(e=>e.textContent=v);
   auProfSave({nick:myNick()});   // 로그인했으면 계정에도 (core/auth.js)
   auSelf();
@@ -236,7 +236,7 @@ function frontInvite(){
   if(!frWaitV()||!V.code)return;
   const link=roomLink(String(V.code)),ok=()=>{frontWord('복사',1400);sfx('pick')};
   const copy=()=>{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(link).then(ok,()=>sfx('no'));else sfx('no')};
-  if(navigator.share&&matchMedia('(pointer:coarse)').matches){navigator.share({title:'탁자하나',text:(V.title||'탁자')+'에 앉으러 오십시오.',url:link}).catch(e=>{if(e&&e.name!=='AbortError')copy()});return}
+  if(navigator.share&&matchMedia('(pointer:coarse)').matches){navigator.share({title:__('탁자하나'),text:__('{0}에 앉으러 오십시오.',V.title||__('탁자')),url:link}).catch(e=>{if(e&&e.name!=='AbortError')copy()});return}
   copy();
 }
 /* 의자 자리 k에 앉은 사람(대기실은 자리 번호, 게임 중은 사람 순서) */

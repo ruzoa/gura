@@ -257,7 +257,7 @@ function renderPanel(){
       const tooMany=GAME_IDS.filter(id=>GAMES[id].maxHi&&V.ps.length>GAMES[id].maxHi);   // 인원 제한이 있는 게임(쿼리도 4명)은 지금 인원이 넘으면 고를 수 없음
       const gpick=`<div class="rs-seg"><div class="rs-h"><b>게임</b><small>${esc(G.lead)}${tooMany.length?`<br>${tooMany.map(id=>`${esc(GAMES[id].name)}은(는) 최대 ${GAMES[id].maxHi}명`).join(', ')}까지 할 수 있습니다.`:''}</small></div><div class="segrow" role="radiogroup" aria-label="게임">${GAME_IDS.map(id=>`<button class="btn ${c.game===id?'btn-play':'btn-sub'}" type="button" role="radio" aria-checked="${c.game===id}" data-act="game:${id}"${tooMany.includes(id)?' disabled':''}>${esc(GAMES[id].name)}</button>`).join('')}</div></div>`;
       const stepRow=d=>{const v=+(c[d.k]??cfg[d.k]),lo=d.k==='max'?minMax:d.k==='spec'?(Array.isArray(V.sv)?V.sv.length:0):d.lo;
-        return `<div class="stp"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="stp-b" data-act="dec:${d.k}" aria-label="${d.label} 줄이기"${v<=lo?' disabled':''}>−</button><input class="txt stp-v" id="st_${d.k}" type="number" inputmode="numeric" min="${lo}" max="${d.hi}" step="${d.step}" value="${v}" aria-label="${d.label}"><span class="stp-u">${d.unit}</span><button type="button" class="stp-b" data-act="inc:${d.k}" aria-label="${d.label} 늘리기"${v>=d.hi?' disabled':''}>+</button></div></div>`};
+        return `<div class="stp"><div class="stp-t"><b>${d.label}</b><small>${d.desc}</small></div><div class="stp-c"><button type="button" class="stp-b" data-act="dec:${d.k}" aria-label="${d.label} 줄이기"${v<=lo?' disabled':''}>−</button><input class="txt stp-v" id="st_${d.k}" type="number" inputmode="numeric" min="${lo}" max="${d.hi}" step="${d.step}" value="${v}" aria-label="${d.label}"><span class="stp-u">${__u(d.unit)}</span><button type="button" class="stp-b" data-act="inc:${d.k}" aria-label="${d.label} 늘리기"${v>=d.hi?' disabled':''}>+</button></div></div>`};
       const rows=roomSetOf(G,c).map(stepRow).join('');
       // 게임이 규칙 칸을 직접 그릴 수 있음 (G.settingsHTML: 대부호의 룰 레버). 없으면 −/+ 칸과 스위치를 차례로
       const body=G.settingsHTML?G.settingsHTML(c,{stepRow,common:COMMON_SET.map(d=>roomSetOf(G,c).find(x=>x.k===d.k))}):`<div class="rs-grid">${rows}</div>${rules?`<div class="rulehead">게임 규칙</div><div class="rs-grid tgs">${rules}</div>`:''}`;
@@ -662,7 +662,7 @@ $('#btnMenu').addEventListener('click',e=>{
   e.stopPropagation();const m=$('#menu');
   if(!m.hidden){closeMenu();return}
   closeLog();
-  $('#menuInfo').innerHTML=roomInfoHTML();$('#mLeave').hidden=mode==='lobby';
+  $('#menuInfo').innerHTML=roomInfoHTML();$('#mLeave').hidden=mode==='lobby';syncLangSeg();
   m.hidden=false;$('#btnMenu').setAttribute('aria-expanded','true');$('#mKeys').focus();
 });
 document.addEventListener('click',e=>{if(!$('#menu').hidden&&!e.target.closest('#menu')&&!e.target.closest('#btnMenu'))closeMenu()});
@@ -709,7 +709,7 @@ syncFastField();['click','keydown'].forEach(ev=>$('#segGame').addEventListener(e
 /* 방 만들기의 공개 방 스위치 */
 function setPubSw(v){cfg.pub=v?1:0;const b=$('#swPub');b.classList.toggle('on',!!v);b.setAttribute('aria-checked',!!v)}
 $('#swPub').addEventListener('click',()=>{setPubSw(!cfg.pub);sfx('tick')});/* 대기 시간·제한 시간 등은 대기실 방 설정에서 조절 (범위 밖이면 가까운 값으로) */
-$('#inNick').value=store('gura-nick')||'나';
+$('#inNick').value=store('gura-nick')||DEF_NICK;
 /* 초대 링크(?room=번호): 페이지가 다 준비되면 resumeOrInvite가 바로 찾아감. 값은 쓰고 나면 비움 */
 let invited=(()=>{const q=new URLSearchParams(location.search).get('room');if(q&&/^[a-z0-9]{4}$/i.test(q)){$('#inCode').value=q.toUpperCase();setNote('#netNote','초대받은 탁자입니다. 참가를 누르면 앉습니다.');return q.toLowerCase()}return ''})();
 
@@ -717,7 +717,7 @@ let invited=(()=>{const q=new URLSearchParams(location.search).get('room');if(q&
 /* 로비 닉네임: 수정 버튼 → 입력칸, Enter·저장으로 확정, Esc로 취소 */
 function openNickEdit(){$('#nickLine').hidden=true;$('#nickEdit').hidden=false;const i=$('#inNick');i.focus();i.select()}
 function closeNickEdit(save){
-  if(save){$('#inNick').value=($('#inNick').value.trim()||'나').slice(0,10);saveNick()}else $('#inNick').value=store('gura-nick')||'나';
+  if(save){$('#inNick').value=($('#inNick').value.trim()||DEF_NICK).slice(0,10);saveNick()}else $('#inNick').value=store('gura-nick')||DEF_NICK;
   $('#nickEdit').hidden=true;$('#nickLine').hidden=false;showView(lobbyView,false);$('#btnNickEdit').focus();
 }
 $('#btnNickEdit').addEventListener('click',openNickEdit);
@@ -749,6 +749,15 @@ document.querySelectorAll('.mv-ic').forEach(b=>b.addEventListener('click',e=>{
   if(fx&&!SND.fxMute)sfx('pick');if(!fx&&!SND.bgmMute&&SND.bgmVol>0&&typeof BGM!=='undefined')BGM.start();
 }));
 applyVol();
+/* 언어: 메뉴·로비 설정의 한국어/English (core/i18n.js). 바꾸면 페이지를 다시 엶. 게임 중에는 못 바꿈(혼자 봇과 하던 게임은 다시 열면 이어지지 않음) */
+const langLocked=()=>mode!=='lobby'&&!!V&&(V.st==='play'||V.st==='reveal');
+function syncLangSeg(){const lk=langLocked();document.querySelectorAll('.langseg').forEach(x=>{x.classList.toggle('lock',lk);x.title=lk?__('게임 중에는 바꿀 수 없습니다'):''})}
+function buildLangSeg(box){
+  box.setAttribute('role','radiogroup');box.setAttribute('aria-label',__('언어'));
+  box.innerHTML=Object.keys(LANGS).map(k=>`<button type="button" role="radio" data-v="${k}" lang="${k}" aria-pressed="${k===LANG}" aria-checked="${k===LANG}">${LANGS[k]}</button>`).join('');
+  box.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.dataset.v===LANG)return;if(langLocked()){sfx('no');return}sfx('tick');setTimeout(()=>setLang(b.dataset.v),120)});
+}
+buildLangSeg($('#segLang'));buildLangSeg($('#mLang'));
 $('#inNick').addEventListener('change',saveNick);
 $('#inTitle').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#btnCreate').click()}});
 let lobbyView='main';

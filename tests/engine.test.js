@@ -25,6 +25,7 @@ const sfx=()=>{};
 function flush(){flushQueued=false}
 globalThis.queueMicrotask=()=>{};
 `,'stubs');
+run(fs.readFileSync(path.join(root,'core/i18n.js'),'utf8'),'i18n.js');   // 언어 (t()·LANG, node에서는 한국어)
 run(fs.readFileSync(path.join(root,'dicepick.js'),'utf8'),'dicepick.js');   // 첫 차례 주사위 계산 (hostStart가 씀)
 run(fs.readFileSync(path.join(root,'games/gura.js'),'utf8'),'gura.js');
 run(fs.readFileSync(path.join(root,'games/president.js'),'utf8'),'president.js');

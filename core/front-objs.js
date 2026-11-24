@@ -420,7 +420,7 @@ if(pv>.01)frontDrawList(t);
   if(FR.word&&t-FR.wordAt>FR.wordMs)FR.word='';
   let chars=[' ',' ',' ',' '],spin=false;FR.bad=false;
   const hid=FR.browse?frontHoloId():null;
-  if(FR.word){const s=FR.word;chars=s.length===2?[' ',s[0],s[1],' ']:s.length===3?[' ',...s]:s.padEnd(4).slice(0,4).split('')}
+  if(FR.word){const s=LANG==='ko'?FR.word:(I18N.board[FR.word]||__(FR.word).toUpperCase());chars=s.length===2?[' ',s[0],s[1],' ']:s.length===3?[' ',...s]:s.padEnd(4).slice(0,4).split('')}
   else if(FR.warp&&FR.warp.ph!=='fail'){if(FR.warp.code)chars=FR.warp.code.toUpperCase().padEnd(4).slice(0,4).split('');else spin=true}
   else if(lobby&&FR.scan)spin=true;
   else if((lobby||frSeek())&&FR.pub)chars=FR.pub.toUpperCase().padEnd(4).slice(0,4).split('');

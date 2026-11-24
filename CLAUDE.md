@@ -14,6 +14,7 @@
 | `index.html` | 화면 틀(HTML)과 스크립트 불러오는 순서만 | |
 | `core/style.css` | 공통 CSS | |
 | `core/*.js` | 공통 코드. 한 스크립트처럼 전역을 같이 쓰고 `index.html`의 순서대로 불러옴: `base`(상수·게임 목록) → `engine`(방장 엔진·첫 차례 주사위 실행부 `firstPick`) → `net`(PeerJS·재접속·방장 이양·관전) → `view`(화면 상태·소리·말풍선) → `render`(2D 화면·입력·메뉴·로비) → `table3d`(3D 테이블·카드 나누기) → `front`(첫 화면·디스플레이·자판) → `front-list`(공개 탁자 목록 판) → `rules-board`(규칙 나무판·설정 판자) → `front-objs`(홀로그램·구멍·시작 버튼·카메라) → `wait`(대기실 이름표) → `avatar`(의자 위 아바타 인형·아바타 변경) → `auth`(구글 로그인·게스트 g. 표시·도토리) → `pouch`(대기실 복주머니) → `boot`(시작, 맨 마지막) | `docs/common.md` |
+| `core/i18n.js`, `lang/en.js` | 언어(한국어·English): 모든 스크립트보다 먼저 불러옴. 한국어가 아니면 문서·캔버스 글자를 사전으로 바꿈, `__()`·`G.i18n` | `docs/i18n.md` |
 | `core/auth.js`, `core/pouch.js`, `firebase/firestore.rules` | 로그인·도토리 (`FB_CONF`가 비면 꺼짐) | `docs/login.md` |
 | `games/gura.js` | 구라! | `docs/gura.md` |
 | `games/president.js` | 대부호 (계급 카드 교환 연출) | `docs/president.md` |
@@ -60,13 +61,14 @@
   - 화면을 바꿨으면 PC와 휴대폰 크기에서 확인합니다.
 - **화면 문구**:
   - ~니다 체로 씁니다.
+  - 한국어로 쓰고, 영어를 사전에 같이 더합니다(공통은 `lang/en.js`, 게임 하나에만 쓰는 것은 게임 파일 `G.i18n.en`). 대부분 자동으로 바뀌고, 글자를 한 자·한 낱말씩 쪼개 그릴 때만 쪼개기 전에 `__()`. 자세한 것은 `docs/i18n.md`.
   - 같은 기능은 어디서나 같은 이름으로 부릅니다 (대기 시간, 제한 시간, 별카드, 관전 등).
   - 화면이 이미 보여 주는 것(누구 차례, 누를 수 있는 버튼, 갈 수 있는 칸, 남은 시간)은 글로 쓰지 않습니다. 사용법 설명은 게임 방법에만 적습니다.
   - 게임 방법(`rulesHTML`)은 짧게: 목표 → 진행 → 끝 순서, 한 항목에 한두 문장. 모든 게임 공통인 것(탈주·두 번 눌러 놓기·첫 판 선 정하기), 버튼만 봐도 아는 조작, 화면에 보이는 표시, 기보 표기, 작전 조언은 넣지 않습니다. 설정에서 켜야 쓰는 규칙은 설정 항목 설명(`desc`)에 두고, 조작은 화면만으로 알 수 없는 것(꾹 누르기·손짓)만 한 줄로.
   - 안 되는 곳을 누르면 글 대신 공통 금지 소리 `sfx('no')`를 냅니다. 왜 안 되는지는 화면에 보여야 합니다(초록 점, 빨간 ✕, 빨간 벽 등).
   - 안내 줄에는 꼭 필요한 것만 짧게 남깁니다(진행 단계, 판 시작 안내, 결과, 조커처럼 화면만으로 알 수 없는 규칙). 비면 자리만 남기고 숨깁니다(`:empty{visibility:hidden}` 또는 고정 높이).
 - **안전 영역(노치·홈 바)**: `body.fs` 한 곳에서만 `env(safe-area-inset-*)` 패딩을 줍니다. `html`/`:root`에 또 주면 홈 화면 앱 위쪽에 띠가 두 번 생깁니다.
-- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`, `gura-roomcfg-chess`, `gura-roomcfg-janggi`, `gura-roomcfg-blackjack`, `gura-roomcfg-poker`, `gura-roomcfg-alkkagi`, `gura-roomcfg-blackwhite`, `gura-roomcfg-animal`, `gura-roomcfg-baseball`, `gura-roomcfg-pixel`, `gura-roomcfg-abalone`, `gura-roomcfg-mind`, `gura-roomcfg-bohnanza`, `gura-roomcfg-robo77`, `gura-roomcfg-davinci`, `gura-roomcfg-onecard`, `gura-roomcfg-mia`, `gura-roomcfg-cockroach`, `gura-roomcfg-liardice`, `gura-roomcfg-rummi`, `gura-roomcfg-snakes`). 루미큐브는 그 판의 받침대 배열(`gura-rummi-rack`)도 저장합니다. 더 마인드는 인원별 최고 기록(`gura-mind-best`)도 저장합니다. 숫자야구는 그 판의 숫자 메모(`gura-nb-lamp`)도 저장합니다. 미아는 그 판의 칸 메모(`gura-mia-memo`)도 저장합니다. 아바타는 `gura-avatar`(모양)·`gura-avatar-paint`(칠한 그림)에 저장합니다. 로그인한 적이 있으면 `gura-login`. 오목과 대부호는 이 밖에 커스텀 규칙 기억(`gura-omok-custom`, `gura-president-custom`)과 세부 설정 펼침(`gura-omok-more`, `gura-president-more`)도 저장합니다.
+- **저장 키**: localStorage 키는 `gura-` 로 시작합니다. 방 설정은 게임별로 저장합니다 (`gura-roomcfg`, `gura-roomcfg-president`, `gura-roomcfg-quoridor`, `gura-roomcfg-yahtzee`, `gura-roomcfg-omok`, `gura-roomcfg-chess`, `gura-roomcfg-janggi`, `gura-roomcfg-blackjack`, `gura-roomcfg-poker`, `gura-roomcfg-alkkagi`, `gura-roomcfg-blackwhite`, `gura-roomcfg-animal`, `gura-roomcfg-baseball`, `gura-roomcfg-pixel`, `gura-roomcfg-abalone`, `gura-roomcfg-mind`, `gura-roomcfg-bohnanza`, `gura-roomcfg-robo77`, `gura-roomcfg-davinci`, `gura-roomcfg-onecard`, `gura-roomcfg-mia`, `gura-roomcfg-cockroach`, `gura-roomcfg-liardice`, `gura-roomcfg-rummi`, `gura-roomcfg-snakes`). 루미큐브는 그 판의 받침대 배열(`gura-rummi-rack`)도 저장합니다. 더 마인드는 인원별 최고 기록(`gura-mind-best`)도 저장합니다. 숫자야구는 그 판의 숫자 메모(`gura-nb-lamp`)도 저장합니다. 미아는 그 판의 칸 메모(`gura-mia-memo`)도 저장합니다. 아바타는 `gura-avatar`(모양)·`gura-avatar-paint`(칠한 그림)에 저장합니다. 로그인한 적이 있으면 `gura-login`. 언어는 `gura-lang`(기본 한국어). 오목과 대부호는 이 밖에 커스텀 규칙 기억(`gura-omok-custom`, `gura-president-custom`)과 세부 설정 펼침(`gura-omok-more`, `gura-president-more`)도 저장합니다.
 - **움직임 줄이기**: 기기의 '움직임 줄이기'(`prefers-reduced-motion`) 설정을 보고 게임 움직임을 끄지 않습니다. 시작 연출, 주사위 굴리기, 말·벽 이동, 돌 놓기처럼 게임 진행을 보여 주는 움직임은 설정과 상관없이 모든 기기에서 똑같이 보여야 합니다. `matchMedia('(prefers-reduced-motion…')`로 움직임을 건너뛰는 코드를 새로 넣지 않습니다. (아직 남은 예외: `games/yahtzee.js`의 2D 주사위 CSS. 손볼 때 같이 정리)
 
 ## 모든 모드 공통 원칙
@@ -136,4 +138,5 @@
 - **설정 장치는 두 가지만**: 양쪽 다 이름이 있는 선택(클래식/빠른, 자유/렌주, 대부호/대빈민)은 플립 칸, 한쪽이 '없음'인 켜기·끄기는 스위치(홈이 파이고 동그란 손잡이, 켜지면 홈이 밝아짐). 새 게임의 설정 항목(`G.boardSet`)은 `kind:'choice'`·`'tog'`로만 만들고 따로 레버를 만들지 않습니다.
 - **큰 데이터는 상태에 싣지 않음**: 상태(`snapFor`)는 바뀔 때마다 모두에게 다시 가므로 그림 같은 큰 값은 번호만 싣고, 내용은 바뀔 때 한 번만 따로 보내 받은 쪽이 번호로 기억합니다(아바타 색칠 `avp`).
 - **같은 모양은 도형·그림을 같이 쓰고, 따로 만든 것은 지울 때 버림**: 화면에서 뺀 물체의 도형·그림은 `dispose()` 전까지 남아 쌓입니다. 같은 모양은 보관함의 도형 하나를 같이 쓰고(오목 `stoneGeo`, 쿼리도 `WALL_GEO`, 블랙잭·포커 `RING_GEO`), 물체마다 따로 만든 도형은 지울 때 버리며(포커 `dropCard`), 같은 그림이 여러 장인 카드는 `G.faceKey`로 앞면을 같이 씁니다(블랙잭·보난자·바퀴벌레 포커·로보77).
+- **화면 글자는 한국어로 쓰고 영어는 사전에**: 문서·캔버스 글자는 한 덩어리가 사전과 맞으면 자동으로 바뀜. 한 자씩 그리는 글자·숫자 옆 단위는 `__()`·`__u()`, 바뀌는 값은 `{0}`, 숫자 자리는 `{#0}`. 지역 변수 `t`(시각)와 겹쳐서 번역 함수 이름은 `__`. (아직: 각 게임 문구·게임 방법)
 - **배포는 몇 분 걸림**: "적용이 안 됐다"면 먼저 사이트의 파일이 바뀌었는지 확인합니다.

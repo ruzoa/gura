@@ -157,7 +157,7 @@ function auTagDraw(){
         (AU.err==='fail'||AU.err==='net'?'<small class="ac-err">로그인하지 못했습니다. 잠시 뒤 다시 해 주세요.</small>':AU.err==='copied'?'<small>주소를 복사했습니다.</small>':'');
     }
   }else if(AU.step==='nick'){
-    h=`<p>탁자에서 쓸 이름을 정해 주세요.</p><form class="ac-nick" data-ac="nickf"><input id="acNick" maxlength="10" autocomplete="off" enterkeyhint="done" value="${esc(myNick()==='나'?'':myNick())}" placeholder="이름"><button type="submit" class="ac-btn">정하기</button></form>`;
+    h=`<p>탁자에서 쓸 이름을 정해 주세요.</p><form class="ac-nick" data-ac="nickf"><input id="acNick" maxlength="10" autocomplete="off" enterkeyhint="done" value="${esc(myNick()===DEF_NICK?'':myNick())}" placeholder="이름"><button type="submit" class="ac-btn">정하기</button></form>`;
   }else if(!P){
     h='<p>불러오는 중…</p>';
   }else{

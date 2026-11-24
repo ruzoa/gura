@@ -101,6 +101,8 @@ body.nofs .fsbtn.cfg{right:58px}
 .menu-bg svg{width:20px;height:20px;flex:none}
 .menu-bg .seg{flex:1}
 .menu-bg .seg button{padding:5px 0;font-family:var(--f-body);font-size:13px}
+.seg.langseg button{font-family:var(--f-body)}
+.seg.langseg.lock button:not([aria-pressed="true"]){opacity:.4}   /* 게임 중: 지금 언어만 */
 .seg.bgseg button,.seg.pubseg button,.seg.emoseg button,.seg.sndseg button{font-family:var(--f-body)}
 .menu-vol b{font-family:var(--f-num);font-size:12px;font-weight:500;color:var(--muted);width:36px;text-align:right}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
