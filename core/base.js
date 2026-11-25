@@ -21,7 +21,7 @@ function drawTrumpCorner(g,k,lab,su,suitFirst){
 }
 /* ===== 게임 목록 =====
    G = 지금 화면에 보이는 게임, EG() = 방장 엔진이 돌리는 게임 (방장 화면에서는 둘이 같음) */
-const GAME_IDS=['gura','president','quoridor','yahtzee','omok','chess','janggi','blackjack','poker','alkkagi','blackwhite','animal','baseball','pixel','abalone','mind','bohnanza','robo77','davinci','onecard','mia','cockroach','liardice','rummi','snakes'];
+const GAME_IDS=['gura','president','quoridor','yahtzee','omok','chess','janggi','blackjack','poker','alkkagi','blackwhite','animal','baseball','pixel','abalone','mind','bohnanza','robo77','davinci','onecard','mia','cockroach','liardice','rummi','snakes','citychase'];
 /* 언어: 게임 이름·한 줄 소개는 lang/<언어>.js 사전으로, 게임 방법 등 게임마다 다른 것은 게임 파일의 G.i18n[언어]로 바꿈
    G.i18n={en:{rulesHTML:'…', strings:{'한국어':'English'}}}: strings는 사전에 더하고 나머지 값은 게임에 덮어씀 (한국어면 아무것도 안 함) */
 if(LANG!=='ko')for(const g of Object.values(GAMES)){
@@ -86,5 +86,5 @@ let V=null, PV=null;        // 지금 화면 상태, 직전 상태
 const sel=new Set(); let pickNum=null;   // pickNum: 구라!에서 라운드를 시작할 때 고른 선언 자음
 
 /* 펠트가 필요 없는 게임: 판·장치가 따로 있어 맨 나무 탁자 위에서 함 (게임 모듈의 G.felt=true/false가 있으면 그것) */
-const NO_FELT=new Set(['quoridor','omok','chess','janggi','alkkagi','animal','baseball','pixel','abalone','bohnanza','mia']);
+const NO_FELT=new Set(['quoridor','omok','chess','janggi','alkkagi','animal','baseball','pixel','abalone','bohnanza','mia','citychase']);
 const gameFelt=id=>{const g=gameOf(id||'gura');return g&&g.felt!=null?!!g.felt:!NO_FELT.has(id||'gura')};

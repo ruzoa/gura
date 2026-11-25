@@ -27,6 +27,7 @@ I18N.add('en',{
 '다빈치코드':'Da Vinci Code','다빈치':'Da Vinci','상대 타일의 숫자를 맞히는 추리 게임':"Guess the numbers on your opponents' tiles",
 '원카드':'One Card','손패를 먼저 비우는 카드 게임':'Be the first to empty your hand',
 '미아':'MIA','내가 어디 있는지 모른 채 탈출구 찾아가기':"Find the exit without knowing where you are",
+'시티 체이스':'City Chase','헬기 셋으로 건물 밑에 숨은 도둑 찾기':"Find the thief hiding under a building with three helicopters",
 '바퀴벌레 포커':'Cockroach Poker','바퀴':'Roach','거짓말로 벌레 카드를 떠넘기는 게임':'Pass off bug cards with lies',
 '구라! 다이스':'GURA! Dice','다이스':'Dice','컵 속 주사위로 허세를 부리는 게임':'Bluff with dice hidden under cups',
 '루미큐브':'Rummikub','루미':'Rummi','숫자 타일을 묶어 먼저 다 내는 게임':'Be the first to play all your tiles in sets',
