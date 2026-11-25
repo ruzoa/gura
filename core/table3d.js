@@ -273,14 +273,21 @@ function makeCard(pos,rx,ry,s){
 }
 function killCard(c){T.scene.remove(c);T.cards.delete(c)}
 /* ===== 남의 손패(뒷면): 탁자 위 더미, 또는 인형이 든 부채꼴 =====
-   부채꼴은 게임이 G.fanHold로 켬(테스트룸 lab-fan.html은 OPP_FAN.on). 자리마다 인형 앞, 탁자 가장자리 바로 위 공중에서 뒷면이 탁자 가운데를 봄.
-   OPP_FAN: s 카드 크기, r 탁자 중심에서 손까지, y 손 높이(탁자 윗면 0), tilt 위쪽이 인형 쪽으로 눕는 각도(°), step 장당 펼침(°), max 전체 펼침 상한(°),
-        n 펼치는 장수 상한(정확한 장수는 이름표), L 손에서 카드 가운데까지(카드 높이 배), hand 손 0 없음·1 공·2 장갑 */
-const OPP_FAN={on:0,s:.55,r:5.02,y:.06,tilt:22,step:8,max:110,n:13,L:.36,hand:1};
-const fanOn=()=>!!(OPP_FAN.on||G.fanHold);
+   부채꼴은 게임이 G.fanHold로 켬(테스트룸 lab-fan.html은 OPP_FAN.on 0·1로 강제, null이면 게임을 따름). 자리마다 인형 앞, 탁자 가장자리 바로 위 공중에서 뒷면이 탁자 가운데를 봄.
+   펼치는 장수 상한은 없음: 손패를 모두 펼치고 넓이는 max에서 멈춤(촘촘해짐). 값은 사용자가 테스트룸에서 고름(2026-11-25).
+   OPP_FAN: s 카드 크기, r 탁자 중심에서 손까지(인형이 튀어나오면 그 자리만 앞으로: fanR), y 손 높이(탁자 윗면 0, 탁자 밖이라 아래로 처져도 됨), tilt 위쪽이 인형 쪽으로 눕는 각도(°), step 장당 펼침(°), max 전체 펼침 상한(°),
+        L 손에서 카드 가운데까지(카드 높이 배, .5면 카드 아래 끝이 손에 모임), hand 손 0 없음·1 공·2 장갑 */
+const OPP_FAN={on:null,s:.9,r:5.2,y:0,tilt:0,step:8,max:180,L:.5,hand:1};
+const fanOn=()=>OPP_FAN.on!=null?!!OPP_FAN.on:!!G.fanHold;
 let FANH_GEO=null;
 function fanEuler(i){return new THREE.Euler(OPP_FAN.tilt*Math.PI/180,seatAngle(i),0,'YXZ')}
-function fanPivot(i){const p=seatPos(i,OPP_FAN.r);p.y=OPP_FAN.y;return p}
+/* 부채가 인형을 뚫지 않게: 부채가 차지하는 원(손에서 카드 끝 모서리까지) 안에서 인형이 가장 앞으로 나온 곳(avFront: 여우 주둥이·밀짚모자 챙)보다 앞에 둠 */
+function fanR(i){
+  const F=OPP_FAN,h=.9*(T.cardK||1)*F.s,cw=.62*(T.cardK||1)*F.s,R=Math.hypot(h,cw/2);
+  const f=typeof avFront==='function'?avFront(V&&V.ps&&V.ps[i],F.y,R,cw/2):0;
+  return f?Math.max(5.05,Math.min(F.r,5.75-f-.03-Math.max(0,Math.sin(F.tilt*Math.PI/180))*R)):F.r;   // 5.75 = 의자(인형) 자리(core/front.js), 5.05 = 탁자 먹선(4.94) 밖
+}
+function fanPivot(i){const p=seatPos(i,fanR(i));p.y=OPP_FAN.y;return p}
 /* 그 사람 손패가 있는 곳(낸 카드가 날아오기 시작하는 곳, 가져간 카드가 가는 곳). 더미면 높이 y */
 function seatHand(i,y){
   if(!fanOn()){const p=seatPos(i,3.9);p.y=y!=null?y:.8;return p}
@@ -289,10 +296,10 @@ function seatHand(i,y){
 function stackPose(i,arr){
   const a=seatAngle(i);
   if(!fanOn()){const sp=seatPos(i,3.85);arr.forEach((c,k)=>{const u=c.userData;u.p.set(sp.x,.03+k*.016,sp.z);u.ry=a;u.rx=Math.PI/2;u.rz=0;u.s=.8});fanHands(i,0);return}
-  const n=arr.length,h=.9*(T.cardK||1)*OPP_FAN.s,L=OPP_FAN.L*h,sp=Math.min(OPP_FAN.max,OPP_FAN.step*Math.max(0,n-1))*Math.PI/180,E=fanEuler(i),P=fanPivot(i),tx=OPP_FAN.tilt*Math.PI/180;
+  const n=arr.length,h=.9*(T.cardK||1)*OPP_FAN.s,L=OPP_FAN.L*h,sp=Math.min(OPP_FAN.max,OPP_FAN.step*Math.max(0,n-1))*Math.PI/180,E=fanEuler(i),P=fanPivot(i),tx=OPP_FAN.tilt*Math.PI/180,dz=Math.min(.006,.1/Math.max(1,n-1));   // 장 사이 앞뒤 간격: 많아도 전체 0.1 안(탁자 가장자리를 넘지 않게)
   arr.forEach((c,k)=>{
     const u=c.userData,ph=n>1?sp*(.5-k/(n-1)):0;
-    u.p.copy(P).add(new THREE.Vector3(-L*Math.sin(ph),L*Math.cos(ph),-k*.006).applyEuler(E));
+    u.p.copy(P).add(new THREE.Vector3(-L*Math.sin(ph),L*Math.cos(ph),-k*dz).applyEuler(E));
     u.rx=tx;u.ry=a;u.rz=ph;u.s=OPP_FAN.s;
   });
   fanHands(i,n);
@@ -312,7 +319,8 @@ function fanHands(i,n){
   const p=V&&V.ps&&V.ps[i],v=p&&!p.b&&typeof avParse==='function'?avParse(p.av):null,col=v?AV_COL[v.c]:'#7b5534';
   if(F.col!==col){F.mat.color.set(col);F.col=col}
   const w=.62*(T.cardK||1)*OPP_FAN.s;
-  F.hs.forEach(hd=>{hd.position.set(hd.userData.sd*w*.3,-.03,-.06);hd.rotation.z=hd.userData.sd*.35;hd.scale.set(OPP_FAN.hand===2?1.25:1,OPP_FAN.hand===2?.82:1,OPP_FAN.hand===2?.62:1)});
+  const hz=-Math.min(.06,Math.max(0,fanR(i)-5.05));   // 손은 카드 앞(가운데 쪽). 부채가 앞으로 당겨진 자리는 탁자 먹선에 닿지 않게 덜 나옴
+  F.hs.forEach(hd=>{hd.position.set(hd.userData.sd*w*.3,-.03,hz);hd.rotation.z=hd.userData.sd*.35;hd.scale.set(OPP_FAN.hand===2?1.25:1,OPP_FAN.hand===2?.82:1,OPP_FAN.hand===2?.62:1)});
   const u=F.g.userData;u.p.copy(fanPivot(i));u.rx=OPP_FAN.tilt*Math.PI/180;u.ry=seatAngle(i);u.s=1;
 }
 function fanPose(){if(T.ok&&V&&V.ps&&V.st!=='wait'&&!T.deal)stacksSync(V,myIdx())}   // 테스트룸에서 값을 바꾸면 바로 다시 맞춤
@@ -601,7 +609,7 @@ function sync3D(v,pv){
 function stacksSync(v,me){
   for(const [i,arr] of T.stacks)if(i>=v.ps.length||i===me){arr.forEach(killCard);T.stacks.delete(i)}
   if(T.oppHands)for(const i of [...T.oppHands.keys()])if(i>=v.ps.length||i===me||!T.stacks.has(i))fanHands(i,0);
-  const cap=fanOn()?OPP_FAN.n:14;
+  const cap=fanOn()?Infinity:14;
   v.ps.forEach((p,i)=>{
     if(i===me)return;
     const want=Math.min(+p.c||0,cap);let arr=T.stacks.get(i);if(!arr){arr=[];T.stacks.set(i,arr)}

@@ -221,6 +221,17 @@ function avStump(S,t,dt,p){
   D.g.position.set(S.g.position.x,FLOOR_Y+1.35*S.s+hop,S.g.position.z);D.g.scale.set(k/Math.sqrt(sq),k*sq,k/Math.sqrt(sq));
   D.g.rotation.y=S.a+Math.PI+avSm(D.turn.v)*Math.PI+(me?AV.spin:0);   // 평소에는 탁자 가운데를 봄. 바꾸는 중에는 돌아앉음
 }
+/* 남의 손패 부채꼴(core/table3d.js fanR)이 인형을 뚫지 않게: 의자에 앉은 인형(avStump와 같은 높이 FLOOR_Y+1.35·크기 AV_K)이
+   부채 원(손 높이 y0에서 반지름 R, 아래로는 hw까지) 안에서 탁자 가운데 쪽으로 가장 나온 거리(의자 중심에서, 먹선 포함). 인형 키를 바꾸면 여기도 같이 */
+const AV_FRONT={};
+function avFront(p,y0,R,hw){
+  const v=p&&!p.b?avParse(p.av):null;if(!v||!window.THREE)return 0;
+  const key=v.k+'-'+(v.k===1?v.a:0)+'-'+v.h+(p.cr?'c':'')+'|'+[y0,R,hw].map(x=>x.toFixed(3)).join(',');
+  if(AV_FRONT[key]!=null)return AV_FRONT[key];
+  const g=avGeo(v.k,v.a,v.h,!!p.cr),P=(g.hull||g.body).attributes.position,base=FLOOR_Y+1.35;let z=0;
+  for(let i=0;i<P.count;i++){const x=P.getX(i)*AV_K,y=base+P.getY(i)*AV_K-y0;if(y<-hw||x*x+y*y>R*R)continue;z=Math.max(z,P.getZ(i)*AV_K)}
+  return AV_FRONT[key]=z;
+}
 /* 방장 깃발: 방장 의자 옆에 꽂힌 노란 삼각 깃발. 인형 어깨 옆, 탁자 위로 올라와 맞은편에서도 보임 (내 화면의 내 자리는 안 그림). avStump가 부름 */
 function avFlag(S,t,on){
   if(!S.flag){if(!on)return;
