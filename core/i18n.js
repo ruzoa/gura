@@ -1,11 +1,19 @@
 /* 언어 (한국어·English). 모든 스크립트보다 먼저 불러옴 (게임 파일도 맨 위에서 __()를 쓸 수 있게)
    화면 글자는 지금처럼 한국어로 쓰고, 다른 언어는 사전에 '한국어 → 번역'으로 더함(lang/en.js, 게임 문구는 게임 파일의 G.i18n). 사전에 없으면 한국어 그대로.
-   언어는 사람마다 고르는 개인 설정(gura-lang, 기본 한국어). 바꾸면 페이지를 다시 엶(탁자는 새로고침처럼 이어짐) → 모든 글자를 처음부터 그 언어로 그림.
+   언어는 사람마다 고르는 개인 설정(gura-lang, 고르지 않았으면 기기 언어, 모르는 언어는 English). 바꾸면 페이지를 다시 엶(탁자는 새로고침처럼 이어짐) → 모든 글자를 처음부터 그 언어로 그림.
    한국어가 아니면 문서 글자(텍스트·title·aria-label·placeholder)·캔버스 글자(fillText·measureText)·확인 창(confirm·alert)을 사전으로 자동으로 바꿈.
    그래서 대부분은 사전에 더하기만 하면 되고, 글자를 한 자·한 낱말씩 쪼개 그리는 곳(디스플레이 플립·목록 판·규칙 판자)만 쪼개기 전에 __()를 씀. 자세한 것은 docs/i18n.md */
 /* ===== 언어 ===== */
 const LANGS={ko:'한국어',en:'English',ja:'日本語'};   // 고르는 버튼 이름 (번역하지 않음)
-const LANG=(()=>{try{const v=localStorage.getItem('gura-lang');if(v&&LANGS[v])return v}catch(e){}return 'ko'})();
+/* 고른 언어가 없으면 기기 언어(navigator.languages 순서대로 처음 맞는 것), 모르는 언어면 English. 고른 언어만 gura-lang에 저장(기기 언어를 바꾸면 따라감).
+   node 테스트·일꾼(document 없음)은 한국어 */
+const LANG=(()=>{
+  try{const v=localStorage.getItem('gura-lang');if(v&&LANGS[v])return v}catch(e){}
+  if(typeof document==='undefined'||typeof navigator==='undefined')return 'ko';
+  const ls=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language];
+  for(const l of ls){const c=String(l||'').slice(0,2).toLowerCase();if(LANGS[c])return c}
+  return 'en';
+})();
 const I18N={dict:{},pats:[],cache:new Map(),board:{},unit:{},short:{}};   // board: 디스플레이 4칸 플립 낱말(영어는 4글자 이하), unit: 숫자 옆 단위, short: 게임의 짧은 이름(G.short 한국어 → 번역) 중 사전의 이름과 달라야 하는 것만(base.js에서 바꿈)
 const DEF_NICK={ko:'나',en:'Me',ja:'わたし'}[LANG]||'나';   // 닉네임을 비웠을 때 (사전에 '나'를 넣지 않음: 남의 닉네임 '나'가 바뀌지 않게)   // board: 디스플레이 4칸 플립 낱말(영어는 4글자 이하)
 const HANGUL=/[가-힣ㄱ-ㅎ]/;   // 한글이 없는 글자는 바로 건너뜀
