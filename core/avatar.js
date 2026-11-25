@@ -9,12 +9,14 @@
    · 내 화면에서는 내 인형을 그리지 않음(앉은 눈이 인형 자리). 아바타를 바꿀 때만 보임
    · 아바타 변경: 내 이름표 메뉴 → 카메라가 같은 각도로 내 의자 쪽으로 내려오고(돌지 않음) 인형이 돌아앉아 나를 봄. 다른 사람 화면에서도 돌아앉아 있음
    · 그리기: 인형 하나는 몸(그림 한 장) + 먹선 껍질, 두 번만 그림. 그림 한 장(256×256) = 위 절반 머리 · 그 아래 몸통 · 맨 아래 줄 단색 칸(귀·꼬리·장식처럼 칠하지 않는 부품)
-   · 크기: 의자 위에서 AV_K배. 탁자 윗면(의자 위 1.25) 위로 가슴까지 보임 */
+   · 크기: 의자 위에서 AV_K배(2026-11-25 사용자: 1.3배 더 → 1.69). 탁자 윗면(의자 위 1.25) 위로 가슴부터, 구라! 남의 손패 부채꼴 위로 눈이 보임.
+     키를 바꾸면 봇 통나무 BOT_K(core/front.js)도 같이. 맞은편 머리가 화면 위로 잘리지 않게 앉은 카메라(resize3D)·아바타 변경 눈(avPose)·깃발(avFlag)이 이 값을 따름 */
 const AV_KIND=['나무 말','동물','오뚝이'],AV_ANI=['토끼','곰','고양이','여우','개','쥐','돼지','병아리','개구리'],AV_HAT=['없음','밀짚모자','고깔','목도리','안경'];
 const AV_COL=['#e4573d','#f2994a','#f2c14e','#6fbf5f','#3fa7a0','#4a7fd4','#8c62c9','#e58fb1','#b9824f','#f6ecd8','#9aa0a8','#2a2420'];
 const AV_CELL=[null,'#fff8ea','#2a2420','#f2c14e','#e8c36a','#d9483b','#3f8f6b','#f3a7b5','#f2994a','#ffe2c4','#f5c542'];   // 단색 칸: 0 바탕색, 1 크림, 2 먹, 3 노랑, 4 밀짚, 5 빨강, 6 목도리, 7 분홍, 8 주황, 9 살구, 10 금
 const AV_RE=/^([0-2])-(\d{1,2})-(\d{1,2})(?:-(\d{1,2}))?(?:-p([0-9a-z]{4,8}))?(-e)?$/;
-const AV_K=1.3,AV_TW=256,AV_HEAD_H=128,AV_BODY_H=112,AV_PMAX=56000;
+const AV_K=1.69,AV_TOP=1.63,AV_TW=256,AV_HEAD_H=128,AV_BODY_H=112,AV_PMAX=56000;
+/* AV_TOP: 귀·모자를 뺀 가장 높은 머리 끝(인형 좌표, 동물 1.63 · 오뚝이 1.59 · 나무 말 1.58). 앉은 카메라가 맞은편 머리를 화면 안에 넣을 때 씀 */
 const AV={edit:false,spin:0,mine:null,geo:{},tex:{},ink:null,drag:null,stroke:null,tab:0,tool:'fill',bc:11,paint:null,hasPaint:false,dirty:false,pid:'',pdata:'',myTex:null,myKey:'',myDoll:null,sent:null,hostPid:null,ver:0};
 const AVP={};   // 받은 그림: 번호 → {d 데이터, cv 캔버스(풀리면)}
 function avParse(s){const m=AV_RE.exec(typeof s==='string'?s:'');return m?{k:+m[1],a:Math.min(AV_ANI.length-1,+m[2]),c:Math.min(AV_COL.length-1,+m[3]),h:Math.min(AV_HAT.length-1,+(m[4]||0)),p:m[5]||'',e:!!m[6]}:null}
@@ -218,7 +220,8 @@ function avStump(S,t,dt,p){
   D.g.visible=D.s>.01&&S.s>.3&&!!D.mat;if(!D.g.visible)return;
   frontTween(D.turn,v&&v.e?1:0,t,520);
   const h=(t-D.hopAt)/480,hop=h>0&&h<1?Math.sin(h*Math.PI)*.34:0,sq=h>0&&h<1?1+Math.sin(h*Math.PI)*.07:1,k=Math.max(.001,D.s*S.s)*AV_K;
-  D.g.position.set(S.g.position.x,FLOOR_Y+1.35*S.s+hop,S.g.position.z);D.g.scale.set(k/Math.sqrt(sq),k*sq,k/Math.sqrt(sq));
+  const bi=p&&V&&V.ps?V.ps.indexOf(p):-1,bk=bi>=0?fanBack(bi):0;D.bk=(D.bk||0)+(bk-(D.bk||0))*f;   // 부채가 더 못 나오면 그만큼 의자 뒤쪽으로 (core/table3d.js fanBack)
+  D.g.position.set(S.g.position.x+Math.sin(S.a)*D.bk,FLOOR_Y+1.35*S.s+hop,S.g.position.z+Math.cos(S.a)*D.bk);D.g.scale.set(k/Math.sqrt(sq),k*sq,k/Math.sqrt(sq));
   D.g.rotation.y=S.a+Math.PI+avSm(D.turn.v)*Math.PI+(me?AV.spin:0);   // 평소에는 탁자 가운데를 봄. 바꾸는 중에는 돌아앉음
 }
 /* 남의 손패 부채꼴(core/table3d.js fanR)이 인형을 뚫지 않게: 의자에 앉은 인형(avStump와 같은 높이 FLOOR_Y+1.35·크기 AV_K)이
@@ -246,9 +249,9 @@ function avFlag(S,t,on){
   const F=S.flag;if(on&&!F.on)F.t0=t;F.on=on;
   F.s=on?Math.min(1,Math.max(0,(t-F.t0)/350)):0;   // 꽂힐 때 0.35초에 걸쳐 올라옴
   F.g.visible=on&&S.s>.3;if(!F.g.visible)return;
-  const a=S.a,bx=.72,bz=.1;   // 의자 가운데에서 옆(인형 어깨 옆)·조금 뒤. 깃발은 어깨~머리 높이: 위쪽 배경이 좁은 PC 화면에서도 잘리지 않게
-  F.g.position.set(S.g.position.x+Math.sin(a)*bz+Math.cos(a)*bx,FLOOR_Y+1.35*S.s-1.95*(1-avSm(F.s)),S.g.position.z+Math.cos(a)*bz-Math.sin(a)*bx);
-  F.g.rotation.y=a+Math.PI;F.g.scale.setScalar(S.s);F.w.rotation.y=Math.sin(t/620)*.28;   // 살짝 펄럭임
+  const a=S.a,sc=AV_K/1.3,bx=.72*sc,bz=.1;   // sc: 인형 크기(1.3 때 맞춘 값)에 맞춰 키움   // 의자 가운데에서 옆(인형 어깨 옆)·조금 뒤. 깃발은 어깨~머리 높이: 위쪽 배경이 좁은 PC 화면에서도 잘리지 않게
+  F.g.position.set(S.g.position.x+Math.sin(a)*bz+Math.cos(a)*bx,FLOOR_Y+1.35*S.s-1.95*sc*(1-avSm(F.s)),S.g.position.z+Math.cos(a)*bz-Math.sin(a)*bx);
+  F.g.rotation.y=a+Math.PI;F.g.scale.setScalar(S.s*sc);F.w.rotation.y=Math.sin(t/620)*.28;   // 살짝 펄럭임
 }
 /* 봇이 우승자면 통나무 위에 왕관 */
 function avBotCrown(S,on){
@@ -268,7 +271,7 @@ function avTick(t){
 /* 아바타 변경 눈: 앉은 눈과 같은 각도(37°)로 내 의자 쪽으로 내려옴. 돌지 않으니 어지럽지 않고, 탁자는 인형 뒤라 가리지 않음. 인형은 화면 위쪽(아래는 고르는 판) */
 function avPose(a){
   if(!_fc||!T.seat)return;
-  const tv=Math.tan(20*Math.PI/180),d=Math.max(8.2,3/a),EL=37*Math.PI/180,c=new THREE.Vector3(0,FLOOR_Y+1.35+1.25,5.75);
+  const sc=AV_K/1.3,tv=Math.tan(20*Math.PI/180),d=Math.max(8.2,3/a)*sc,EL=37*Math.PI/180,c=new THREE.Vector3(0,FLOOR_Y+1.35+1.25*sc,5.75);   // sc: 인형이 커진 만큼 물러나 화면 속 크기는 그대로(1.3 때 맞춘 값)
   _fc.fov=40;_fc.position.set(c.x,c.y+d*Math.sin(EL),c.z+d*Math.cos(EL));_fc.lookAt(c);_fc.updateMatrixWorld();
   _fc.translateY(-.3*d*tv);_fc.updateMatrixWorld();_fc.updateProjectionMatrix();
   T.avCam={p:_fc.position.clone(),q:_fc.quaternion.clone(),m:_fc.projectionMatrix.clone()};

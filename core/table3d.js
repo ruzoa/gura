@@ -238,6 +238,7 @@ function resize3D(){
   {const ck=1.2;if(T.geo&&ck!==T.cardK){const f=ck/(T.cardK||1);T.geo.scale(f,f,1);T.olGeo.scale(f,f,1);T.cardK=ck}}
   // 카메라 = 테이블 앞에 앉은 내 눈. 눈의 위치와 각도는 어떤 화면에서도 똑같고, 화면은 창문처럼 보이는 범위만 달라짐
   //  · 기준: 맞은편 자리 위로 화면 높이의 10%만큼 테이블 너머(배경)가 보이고, 화면 맨 아래는 내 쪽 테이블 끝
+  //  · 맞은편 의자에 앉은 인형 머리는 화면 안에 (넓은 화면은 그만큼 위쪽 배경이 늘어남)
   //  · 가로로 긴 화면: 위아래 범위는 기준 그대로, 양옆이 더 보임
   //  · 세로로 긴 화면: 위아래 범위는 기준 그대로, 양옆이 덜 보임 (양옆 사람 자리는 잘릴 수 있음)
   //  · 가운데 노란 점선 원마저 잘리는 아주 좁은 화면부터는 위쪽 배경과 아래쪽 배경을 2 : 1로 함께 늘려 점선 원을 지킴
@@ -253,6 +254,10 @@ function resize3D(){
   T.seatKey=(V&&V.ps?V.ps.length:0)+':'+myIdx();
   let hx=(w/h)*(top-bot)/2;
   if(hx<hxFit){hx=hxFit;const ex=2*hx*h/w-(top-bot);top+=ex*2/3;bot-=ex/3}   // 늘어나는 양: 위쪽 배경 2 : 아래쪽 배경 1
+  // 맞은편 인형 머리(귀·모자 빼고, core/avatar.js AV_TOP·AV_K)가 화면 위로 잘리지 않게: 머리 끝이 화면 위에서 5% 아래에 오도록 위쪽 배경만 늘림.
+  // 넓은 화면(PC·휴대폰 가로)에서만 걸리고, 좁은 화면은 이미 들어옴. 인원과 상관없이 바로 맞은편 자리(가장 멀고 높게 보임)로 재서 카메라가 인원마다 바뀌지 않음
+  {const k=typeof AV_K==='number'?AV_K:1.3,ht=typeof AV_TOP==='number'?AV_TOP:1.63,tH=tn(new THREE.Vector3(0,FLOOR_Y+1.35+ht*k,-5.75))[1],need=(tH-.05*bot)/.95;
+   if(top<need){top=need;hx=(w/h)*(top-bot)/2}}
   // 내 쪽 테이블 모서리가 화면 맨 아래에서 몇 px 위에 있는지(보통 0, 좁은 화면은 아래 배경만큼 위). 카드게임 손패가 이 선에 걸쳐 놓임(layoutFan)
   {const eb=h*(tNear-bot)/(top-bot),ch=T.edgeB==null||Math.abs(eb-T.edgeB)>.5;T.edgeB=eb;if(ch&&typeof V!=='undefined'&&V&&typeof layoutFan==='function')layoutFan()}
   const nr=T.cam.near,fr=T.cam.far;
@@ -282,11 +287,14 @@ const fanOn=()=>OPP_FAN.on!=null?!!OPP_FAN.on:!!G.fanHold;
 let FANH_GEO=null;
 function fanEuler(i){return new THREE.Euler(OPP_FAN.tilt*Math.PI/180,seatAngle(i),0,'YXZ')}
 /* 부채가 인형을 뚫지 않게: 부채가 차지하는 원(손에서 카드 끝 모서리까지) 안에서 인형이 가장 앞으로 나온 곳(avFront: 여우 주둥이·밀짚모자 챙)보다 앞에 둠 */
-function fanR(i){
-  const F=OPP_FAN,h=.9*(T.cardK||1)*F.s,cw=.62*(T.cardK||1)*F.s,R=Math.hypot(h,cw/2);
-  const f=typeof avFront==='function'?avFront(V&&V.ps&&V.ps[i],F.y,R,cw/2):0;
-  return f?Math.max(5.05,Math.min(F.r,5.75-f-.03-Math.max(0,Math.sin(F.tilt*Math.PI/180))*R)):F.r;   // 5.75 = 의자(인형) 자리(core/front.js), 5.05 = 탁자 먹선(4.94) 밖
+function fanWant(i){   // 인형(봇은 통나무)을 피해 부채가 설 수 있는 반지름(제한 전). 앞으로 나온 것이 없으면 null
+  const F=OPP_FAN,h=.9*(T.cardK||1)*F.s,cw=.62*(T.cardK||1)*F.s,R=Math.hypot(h,cw/2),p=V&&V.ps&&V.ps[i];
+  const f=p&&p.b?.345*(typeof BOT_K==='number'?BOT_K:1.3):typeof avFront==='function'?avFront(p,F.y,R,cw/2):0;   // 통나무는 먹선까지 반지름 .345(core/front.js frontBuildBot)
+  return f?5.75-f-.03-Math.max(0,Math.sin(F.tilt*Math.PI/180))*R:null;   // 5.75 = 의자(인형) 자리(core/front.js)
 }
+function fanR(i){const w=fanWant(i);return w==null?OPP_FAN.r:Math.max(5.05,Math.min(OPP_FAN.r,w))}   // 5.05 = 탁자 먹선(4.94) 밖
+/* 부채는 탁자 먹선(5.05)보다 앞으로 못 나옴. 인형이 그보다 더 나오면(큰 인형의 여우 주둥이·개 코) 그만큼 인형을 의자 뒤쪽으로 물림(avStump). 게임 중에만 */
+function fanBack(i){if(!fanOn()||!V||!V.ps||V.st==='wait')return 0;const w=fanWant(i);return w==null?0:Math.max(0,5.05-w)}
 function fanPivot(i){const p=seatPos(i,fanR(i));p.y=OPP_FAN.y;return p}
 /* 그 사람 손패가 있는 곳(낸 카드가 날아오기 시작하는 곳, 가져간 카드가 가는 곳). 더미면 높이 y */
 function seatHand(i,y){
