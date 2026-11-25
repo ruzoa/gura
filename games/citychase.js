@@ -235,13 +235,14 @@ function beginThief(){
     evPush({k:'x'});addLog(`${X.rn}라운드 도둑이 갈 곳이 없어 경찰 승리`,'fin');over({why:'trap',w:polOf()});return;
   }
   H.turn=X.th;H.graceUntil=0;H.deadline=clock()+H.cfg.turn*1000;
-  H.botActAt=H.players[X.th].bot?clock()+rand(1000,1800):0;mark();
+  const last=X.ev.length?X.ev[X.ev.length-1].k:'';
+  H.botActAt=H.players[X.th].bot?clock()+(last==='s'?rand(2000,2600):rand(1100,1800)):0;mark();
 }
 function beginPolice(){
   const X=H.cc;X.ph='police';X.hd=[0,0,0];X.hel0=X.hel.slice();
   for(let h=0;h<NH;h++)if(!heliMoves(X.hel,h).length&&!heliSearches(X.hel,X.rv,h).length)X.hd[h]=1;   // 아무것도 못 하는 헬기는 넘김
   setTurn();H.graceUntil=0;H.deadline=clock()+H.cfg.turn*1000;
-  H.botActAt=clock()+rand(1100,1700);mark();
+  H.botActAt=clock()+rand(1100,1700);mark();   // 숨기 연출 뒤
   if(X.hd.every(v=>v))afterPolice();
 }
 function over(res){
@@ -251,6 +252,8 @@ function over(res){
   H.phase='over';H.botActAt=0;mark();
   H.players.forEach((p,i)=>{if(p.bot&&Math.random()<.5)botEmote(i,'gg',800+Math.random()*1600)});
 }
+const BOT_GAP={p:[600,850],m:[850,1200],s:[1750,2200]};   // 봇은 앞 사건의 연출(EV_MS)이 끝난 뒤에
+const botWait=k=>{const g=BOT_GAP[k]||[900,1300];H.botActAt=Math.max(H.botActAt||0,clock()+rand(g[0],g[1]))};
 function afterPolice(){
   const X=H.cc;
   for(const h of pendHelis())if(!heliMoves(X.hel,h).length&&!heliSearches(X.hel,X.rv,h).length)X.hd[h]=1;
@@ -263,7 +266,7 @@ function doPlace(seat,h,k){
   if(H.phase!=='play'||X.ph!=='heli'||!Number.isInteger(k)||k<0||k>=NI||X.hel.includes(k))return false;
   if(h==null){const p=pendHelis(seat);if(!p.length)return false;h=p[0]}
   if(!Number.isInteger(h)||h<0||h>=NH||X.hel[h]>=0||ownNow(h)!==seat)return false;
-  X.hel[h]=k;evPush({k:'p',h,to:k});
+  X.hel[h]=k;evPush({k:'p',h,to:k});botWait('p');
   addLog(`${H.players[seat].name} ${HELI_NAME[h]} 헬기 ${iName(k)}`);
   if(pendHelis().length){setTurn();mark();return true}
   beginThief();return true;
@@ -279,14 +282,14 @@ const heliOK=(seat,h)=>{const X=H.cc;return H.phase==='play'&&X.ph==='police'&&N
 function doMove(seat,h,k){
   const X=H.cc;
   if(!heliOK(seat,h)||!heliMoves(X.hel,h).includes(k))return false;
-  const f=X.hel[h];X.hel[h]=k;X.hd[h]=1;evPush({k:'m',h,f,to:k});
+  const f=X.hel[h];X.hel[h]=k;X.hd[h]=1;evPush({k:'m',h,f,to:k});botWait('m');
   addLog(`${X.rn}라운드 ${HELI_NAME[h]} 헬기 ${iName(k)}로`);
   afterPolice();return true;
 }
 function doSearch(seat,h,b){
   const X=H.cc;
   if(!heliOK(seat,h)||!heliSearches(X.hel,X.rv,h).includes(b))return false;
-  X.hd[h]=1;
+  X.hd[h]=1;botWait('s');
   if(b===X.pos){
     evPush({k:'s',h,b,r:4});addLog(`${X.rn}라운드 ${HELI_NAME[h]} 헬기가 ${bName(b)}에서 차를 찾아 경찰 승리`,'fin');
     over({why:'catch',w:polOf(),h,b});return true;
@@ -355,7 +358,7 @@ G.engine={
     }
     if(H.botActAt&&t>=H.botActAt){
       const h=pendHelis().find(h=>ready(H.players[ownNow(h)],t));
-      if(h!=null){const ph=X.ph;autoHeli(ownNow(h),h,true);if(H.phase==='play'&&X.ph===ph)H.botActAt=t+(ph==='heli'?rand(350,650):rand(900,1500))}
+      if(h!=null)autoHeli(ownNow(h),h,true);   // 다음 봇 시각은 행동마다 botWait
     }
   },
   /* 받는 사람마다 따로: 도둑의 자리·길은 도둑에게만(끝나면 모두에게). 놓기·경찰 단계는 할 일이 남은 사람마다 차례 */
